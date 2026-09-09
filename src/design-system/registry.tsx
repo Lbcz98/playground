@@ -1,13 +1,28 @@
 /**
- * ComponentRegistry — the catalog (`catalog.ts`) plus the React `render` function
- * for each component. This is what the canvas uses to turn a `CanvasNode` into
- * real DOM. `render` maps already-validated props to token Tailwind classes only.
+ * ComponentRegistry — a `DesignSystemManifest` hydrated with React `render`
+ * functions. This is what the canvas uses to turn a `CanvasNode` into real DOM.
  *
- * Adding a component: add the entry in `catalog.ts`, then a `render` function here.
+ * `hydrateRegistry(manifest)` pairs every component the active manifest declares
+ * with a renderer:
+ *   - the built-in ScreenFlow design system uses the hand-written renderers below
+ *   - every other (imported) design system renders through `renderGeneric` — a
+ *     token-driven structural placeholder — because we don't load external
+ *     Storybook React modules
+ *
+ * Per-component Zod schemas and default props are compiled from the manifest
+ * (`manifest-zod.ts`), so the registry always tracks the live design system.
  */
 
 import type { ReactElement, ReactNode } from 'react'
+import { z } from 'zod'
 import { cx } from '@/lib/cx'
+import type {
+  DesignSystemManifest,
+  ManifestComponent,
+} from '@/shared/design-system/manifest'
+import { deriveDefaultProps, inferControl, propLabel } from '@/shared/design-system/manifest'
+import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
+import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import {
   GAP_CLASS,
   PADDING_CLASS,
@@ -16,9 +31,8 @@ import {
   SURFACE_CLASS,
 } from './tokens'
 import {
-  Catalog,
-  type CatalogEntry,
   type ButtonProps,
+  type Control,
   type InputProps,
   type StackProps,
   type TextProps,
@@ -30,8 +44,33 @@ import {
 
 export type { Control, ComponentCategory } from './catalog'
 
-export interface RegistryEntry extends CatalogEntry {
-  render: (props: Record<string, unknown>, children: ReactNode) => ReactElement
+export type RenderFn = (props: Record<string, unknown>, children: ReactNode) => ReactElement
+
+export interface HydratedEntry {
+  id: string
+  label: string
+  category: string
+  summary: string
+  acceptsChildren: boolean
+  component: ManifestComponent
+  /** Strict object schema compiled from the manifest. */
+  schema: z.ZodObject<z.ZodRawShape>
+  /** Per-prop schemas, for field-level validation / repair. */
+  fieldSchemas: Record<string, z.ZodTypeAny>
+  defaultProps: Record<string, unknown>
+  /** Legacy control metadata, synthesised for the current Inspector / Palette. */
+  controls: Record<string, Control>
+  render: RenderFn
+  /** True when this renders through the generic placeholder. */
+  generic: boolean
+}
+
+export interface HydratedRegistry {
+  manifestId: string
+  entries: Record<string, HydratedEntry>
+  types: string[]
+  get: (type: string) => HydratedEntry | null
+  has: (type: string) => boolean
 }
 
 // ===========================================================================
@@ -200,24 +239,96 @@ function renderInput(raw: Record<string, unknown>): ReactElement {
 }
 
 // ===========================================================================
-// Registry
+// Generic renderer — the fallback for any imported component with no code
+// renderer. Structural only: a labelled box that honours the children slot and
+// picks up the active design system's brand colour via the injected CSS var.
 // ===========================================================================
 
-export const ComponentRegistry = {
-  Stack: { ...Catalog.Stack, render: renderStack },
-  Text: { ...Catalog.Text, render: renderText },
-  Button: { ...Catalog.Button, render: renderButton },
-  Input: { ...Catalog.Input, render: renderInput },
-} as const satisfies Record<string, RegistryEntry>
-
-export type RegistryType = keyof typeof ComponentRegistry
-
-export const REGISTRY_TYPES = Object.keys(ComponentRegistry) as RegistryType[]
-
-export function isRegistryType(type: string): type is RegistryType {
-  return Object.prototype.hasOwnProperty.call(ComponentRegistry, type)
+function summariseProps(component: ManifestComponent, props: Record<string, unknown>): string {
+  const parts: string[] = []
+  for (const prop of Object.values(component.props)) {
+    const value = props[prop.name]
+    if (value === undefined || value === '' || value === false) continue
+    parts.push(`${prop.name}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+  }
+  return parts.join('  ·  ')
 }
 
-export function getEntry(type: string): RegistryEntry | null {
-  return isRegistryType(type) ? ComponentRegistry[type] : null
+function makeGenericRenderer(component: ManifestComponent): RenderFn {
+  return function renderGeneric(props, children): ReactElement {
+    const summary = summariseProps(component, props)
+    return (
+      <div
+        className="flex flex-col gap-xs rounded-md border border-l-4 border-line bg-subtle p-md"
+        style={{ borderLeftColor: 'var(--sfs-color-brand)' }}
+      >
+        <span className="text-xs font-semibold text-ink-muted">{component.name}</span>
+        {summary ? <span className="text-sm text-ink">{summary}</span> : null}
+        {component.acceptsChildren ? (
+          <div className="flex flex-col gap-sm pt-xs">{children}</div>
+        ) : null}
+      </div>
+    )
+  }
+}
+
+// ===========================================================================
+// Registry hydration
+// ===========================================================================
+
+/** Hand-written renderers for the built-in ScreenFlow design system. */
+export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
+  Stack: renderStack,
+  Text: renderText,
+  Button: renderButton,
+  Input: renderInput,
+}
+
+function toControl(component: ManifestComponent, name: string): Control {
+  const prop = component.props[name]
+  const label = propLabel(prop)
+  const kind = inferControl(prop)
+  if (kind === 'select' && prop.options) {
+    return { kind: 'select', label, options: prop.options }
+  }
+  if (kind === 'boolean') return { kind: 'boolean', label }
+  if (kind === 'textarea') return { kind: 'textarea', label }
+  return { kind: 'text', label }
+}
+
+export function hydrateRegistry(manifest: DesignSystemManifest): HydratedRegistry {
+  const schemas = compileManifestSchemas(manifest)
+  const useCode = manifest.id === SCREENFLOW_MANIFEST_ID
+  const entries: Record<string, HydratedEntry> = {}
+
+  for (const component of Object.values(manifest.components)) {
+    const schema = schemas[component.id]
+    const codeRender = useCode ? SCREENFLOW_RENDERERS[component.id] : undefined
+    const controls: Record<string, Control> = {}
+    for (const name of Object.keys(component.props)) controls[name] = toControl(component, name)
+
+    entries[component.id] = {
+      id: component.id,
+      label: component.name,
+      category: component.category ?? 'component',
+      summary: component.description,
+      acceptsChildren: component.acceptsChildren,
+      component,
+      schema,
+      fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
+      defaultProps: deriveDefaultProps(component),
+      controls,
+      render: codeRender ?? makeGenericRenderer(component),
+      generic: !codeRender,
+    }
+  }
+
+  const types = Object.keys(entries)
+  return {
+    manifestId: manifest.id,
+    entries,
+    types,
+    get: (type) => entries[type] ?? null,
+    has: (type) => type in entries,
+  }
 }

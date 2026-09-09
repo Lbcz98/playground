@@ -19,7 +19,10 @@
 
 import type { z } from 'zod'
 import type { BlueprintDocument } from '@/shared/blueprint'
-import { getCatalogEntry, type CatalogEntry } from '@/design-system/catalog'
+import type { DesignSystemManifest, ManifestComponent } from '@/shared/design-system/manifest'
+import { deriveDefaultProps, rootContainerId } from '@/shared/design-system/manifest'
+import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { type CanvasNode, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
 
 export interface InterpretIssue {
@@ -33,10 +36,18 @@ export type InterpretResult =
   | { ok: true; tree: CanvasNode; issues: InterpretIssue[]; nodeCount: number }
   | { ok: false; error: string; issues: InterpretIssue[] }
 
-const ROOT_CONTAINER_TYPE = 'Stack'
 const SUPPORTED_VERSION = 1
 
-export function interpretBlueprint(input: unknown): InterpretResult {
+interface InterpretCtx {
+  manifest: DesignSystemManifest
+  schemas: Record<string, z.ZodTypeAny>
+  rootType: string
+}
+
+export function interpretBlueprint(
+  input: unknown,
+  manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
+): InterpretResult {
   const issues: InterpretIssue[] = []
 
   if (!isObject(input)) {
@@ -54,28 +65,42 @@ export function interpretBlueprint(input: unknown): InterpretResult {
     return { ok: false, error: 'Blueprint has no root node.', issues }
   }
 
-  let root = interpretNode(doc.root, 'root', issues)
+  const rootType = rootContainerId(manifest)
+  if (!rootType) {
+    return { ok: false, error: 'The active design system has no container component.', issues }
+  }
+  const ctx: InterpretCtx = {
+    manifest,
+    schemas: compileManifestSchemas(manifest),
+    rootType,
+  }
+
+  let root = interpretNode(doc.root, 'root', ctx, issues)
   if (!root) {
     return { ok: false, error: 'The root node could not be interpreted.', issues }
   }
 
   // The canvas and the component palette assume the top of the tree is a
   // container they can insert into. Wrap anything else.
-  const rootEntry = getCatalogEntry(root.type)
-  if (!rootEntry?.acceptsChildren) {
+  const rootComponent = ctx.manifest.components[root.type]
+  if (!rootComponent?.acceptsChildren) {
     issues.push({
       level: 'info',
       path: 'root',
-      message: `Wrapped <${root.type}> in a ${ROOT_CONTAINER_TYPE} — the top level must be a layout container.`,
+      message: `Wrapped <${root.type}> in a ${ctx.rootType} — the top level must be a layout container.`,
     })
-    const container = getCatalogEntry(ROOT_CONTAINER_TYPE)!
-    root = makeNode(ROOT_CONTAINER_TYPE, { ...container.defaultProps }, [root])
+    root = makeNode(ctx.rootType, deriveDefaultProps(ctx.manifest.components[ctx.rootType]), [root])
   }
 
   return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
 }
 
-function interpretNode(raw: unknown, path: string, issues: InterpretIssue[]): CanvasNode | null {
+function interpretNode(
+  raw: unknown,
+  path: string,
+  ctx: InterpretCtx,
+  issues: InterpretIssue[],
+): CanvasNode | null {
   if (!isObject(raw)) {
     issues.push({ level: 'warn', path, message: 'Dropped a node that was not an object.' })
     return null
@@ -87,25 +112,25 @@ function interpretNode(raw: unknown, path: string, issues: InterpretIssue[]): Ca
     return null
   }
 
-  const entry = getCatalogEntry(type)
-  if (!entry) {
+  const component = ctx.manifest.components[type]
+  if (!component) {
     issues.push({ level: 'warn', path, message: `Dropped unknown component <${type}>.` })
     return null
   }
 
-  const props = sanitizeProps(entry, raw.props, path, issues)
+  const props = sanitizeProps(component, ctx.schemas[type], raw.props, path, issues)
 
   const rawChildren = Array.isArray(raw.children) ? (raw.children as unknown[]) : []
   let children: CanvasNode[] = []
-  if (rawChildren.length > 0 && !entry.acceptsChildren) {
+  if (rawChildren.length > 0 && !component.acceptsChildren) {
     issues.push({
       level: 'warn',
       path,
       message: `<${type}> can't contain children — dropped ${rawChildren.length}.`,
     })
-  } else if (entry.acceptsChildren) {
+  } else if (component.acceptsChildren) {
     children = rawChildren
-      .map((child, i) => interpretNode(child, `${path} › ${type}[${i}]`, issues))
+      .map((child, i) => interpretNode(child, `${path} › ${type}[${i}]`, ctx, issues))
       .filter((child): child is CanvasNode => child !== null)
   }
 
@@ -113,12 +138,13 @@ function interpretNode(raw: unknown, path: string, issues: InterpretIssue[]): Ca
 }
 
 function sanitizeProps(
-  entry: CatalogEntry,
+  component: ManifestComponent,
+  schema: z.ZodTypeAny,
   rawProps: unknown,
   path: string,
   issues: InterpretIssue[],
 ): Record<string, unknown> {
-  const shape = getObjectShape(entry.schema)
+  const shape = getObjectShape(schema)
   const provided = isObject(rawProps) ? (rawProps as Record<string, unknown>) : {}
   const clean: Record<string, unknown> = {}
 
@@ -131,7 +157,7 @@ function sanitizeProps(
       issues.push({
         level: 'warn',
         path,
-        message: `Ignored ${key}=${brief(provided[key])} on <${entry.type}> (not an allowed value) — kept the default.`,
+        message: `Ignored ${key}=${brief(provided[key])} on <${component.id}> (not an allowed value) — kept the default.`,
       })
     }
   }
@@ -141,14 +167,15 @@ function sanitizeProps(
       issues.push({
         level: 'warn',
         path,
-        message: `Removed unsupported prop "${key}" from <${entry.type}>.`,
+        message: `Removed unsupported prop "${key}" from <${component.id}>.`,
       })
     }
   }
 
-  // `clean` only holds known keys with valid values, so this always succeeds and
-  // fills in defaults for everything omitted.
-  return entry.schema.parse(clean) as Record<string, unknown>
+  // Seed every declared prop so a manifest with required, default-less props still
+  // parses; `clean` only holds valid provided values, so this always succeeds.
+  const seeded = { ...deriveDefaultProps(component), ...clean }
+  return (schema as z.ZodTypeAny).parse(seeded) as Record<string, unknown>
 }
 
 function getObjectShape(schema: z.ZodTypeAny): Record<string, z.ZodTypeAny> {

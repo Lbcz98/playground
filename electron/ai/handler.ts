@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { IPC, type GenerateUIResponse } from '@/shared/blueprint'
 import { EFFORT_LEVELS, MODEL_IDS } from '@/shared/models'
+import { manifestZodSchema } from '@/shared/design-system/manifest'
 import { generateUI } from './ai-orchestrator'
 
 /**
@@ -31,6 +32,7 @@ export const generateUIRequestSchema = z
     prompt: z.string().trim().min(1, 'Prompt is empty').max(2000, 'Prompt is too long'),
     history: z.array(chatTurnSchema).max(40).optional(),
     options: optionsSchema.optional(),
+    manifest: manifestZodSchema.optional(),
   })
   .strict()
 
@@ -51,6 +53,7 @@ export async function handleGenerateUI(rawRequest: unknown): Promise<GenerateUIR
       parsed.data.prompt,
       parsed.data.history ?? [],
       parsed.data.options ?? {},
+      parsed.data.manifest,
     )
     console.log(`[ipc] ${IPC.generateUI} -> ok=${result.ok} source=${result.meta.source}`)
     return result

@@ -11,6 +11,8 @@
  * generate → validate → retry loop that produces it.
  */
 
+import type { DesignSystemManifest } from './design-system/manifest'
+
 export interface BlueprintNode {
   type: string
   props?: Record<string, unknown>
@@ -53,6 +55,12 @@ export interface GenerateUIRequest {
   prompt: string
   history?: ChatTurn[]
   options?: GenerateOptions
+  /**
+   * The active Design System Manifest. The orchestrator compiles the Planner /
+   * Generator prompts and the strict Zod validator from this — never a hardcoded
+   * schema. Omitted → the built-in ScreenFlow manifest.
+   */
+  manifest?: DesignSystemManifest
 }
 
 /** Token / cost accounting for one generation. */

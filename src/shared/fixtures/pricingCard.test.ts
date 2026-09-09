@@ -1,22 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { PRICING_CARD_BLUEPRINT } from './pricingCard'
 import type { BlueprintNode } from '@/shared/blueprint'
-import { getEntry } from '@/design-system/registry'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
 
 /**
- * The "dummy LLM" payload must itself obey the rules we will later enforce on the
- * real model: only registry components, only token-valid props.
+ * The "dummy LLM" payload must itself obey the rules we enforce on the real
+ * model: only components from the active design system, only token-valid props.
  */
-function walk(node: BlueprintNode, path = 'root'): void {
-  const entry = getEntry(node.type)
-  expect(entry, `${path}: unknown component "${node.type}"`).not.toBeNull()
-  if (!entry) return
+const SCHEMAS = compileManifestSchemas(SCREENFLOW_MANIFEST)
 
-  const result = entry.schema.safeParse(node.props ?? {})
+function walk(node: BlueprintNode, path = 'root'): void {
+  const component = SCREENFLOW_MANIFEST.components[node.type]
+  expect(component, `${path}: unknown component "${node.type}"`).toBeDefined()
+  if (!component) return
+
+  const result = SCHEMAS[node.type].safeParse(node.props ?? {})
   expect(result.success, `${path} (${node.type}): ${JSON.stringify(result)}`).toBe(true)
 
   if (node.children) {
-    expect(entry.acceptsChildren, `${path}: "${node.type}" cannot have children`).toBe(true)
+    expect(component.acceptsChildren, `${path}: "${node.type}" cannot have children`).toBe(true)
     node.children.forEach((child, i) => walk(child, `${path}.${node.type}[${i}]`))
   }
 }

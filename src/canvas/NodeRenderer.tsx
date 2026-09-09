@@ -1,6 +1,6 @@
 import { cloneElement, type MouseEvent, type ReactElement } from 'react'
 import type { CanvasNode } from '@/model/nodeTree'
-import { getEntry } from '@/design-system/registry'
+import { useHydratedRegistry } from '@/design-system/DesignSystemProvider'
 import { useFlowStore } from '@/store/flowStore'
 import { cx } from '@/lib/cx'
 
@@ -12,8 +12,9 @@ import { cx } from '@/lib/cx'
 export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   const selectedId = useFlowStore((s) => s.selectedId)
   const select = useFlowStore((s) => s.select)
+  const registry = useHydratedRegistry()
 
-  const entry = getEntry(node.type)
+  const entry = registry.get(node.type)
   if (!entry) {
     return (
       <div className="rounded-sm border border-danger bg-danger-subtle p-sm text-sm text-danger">

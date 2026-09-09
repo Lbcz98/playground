@@ -12,6 +12,29 @@ const { generateUI } = await import('./ai-orchestrator')
 const VALID = { version: 1, root: { type: 'Stack', props: { gap: 'md' }, children: [] } }
 const INVALID = { version: 1, root: { type: 'Stack', children: [{ type: 'Carousel' }] } }
 
+const TWO_COMPONENT_MANIFEST = {
+  id: 'mini',
+  name: 'Mini DS',
+  version: '9.9.9',
+  tokens: { colors: {}, spacing: { sm: '8px', lg: '24px' }, typography: {} },
+  components: {
+    Panel: {
+      id: 'Panel',
+      name: 'Panel',
+      description: 'the only container',
+      acceptsChildren: true,
+      props: { gap: { name: 'gap', type: { name: 'enum' }, required: false, defaultValue: 'sm', options: ['sm', 'lg'] } },
+    },
+    Label: {
+      id: 'Label',
+      name: 'Label',
+      description: 'a text leaf',
+      acceptsChildren: false,
+      props: { text: { name: 'text', type: { name: 'string' }, required: false, defaultValue: '' } },
+    },
+  },
+}
+
 function fakeProvider(overrides: Partial<AiProvider> = {}): AiProvider {
   return {
     id: 'api-key',
@@ -95,6 +118,34 @@ describe('generateUI pipeline', () => {
 
     const res = await generateUI('x')
     expect(res.ok && res.meta.usage).toMatchObject({ inputTokens: 400, outputTokens: 110 })
+  })
+
+  it('compiles the generator prompt and the validator from the active manifest', async () => {
+    const renderUi = vi
+      .fn()
+      // first: uses a component the manifest does not have -> must be rejected
+      .mockResolvedValueOnce({ blueprint: { version: 1, root: { type: 'Stack' } }, model: 'm' })
+      // then: valid against the mini manifest
+      .mockResolvedValueOnce({
+        blueprint: { version: 1, root: { type: 'Panel', props: { gap: 'lg' }, children: [] } },
+        model: 'm',
+      })
+    const provider = fakeProvider({ renderUi })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('x', [], {}, TWO_COMPONENT_MANIFEST)
+
+    expect(res.ok).toBe(true)
+    const genSystem = renderUi.mock.calls[0][0].system
+    expect(genSystem).toContain('<Panel>')
+    expect(genSystem).toContain('<Label>')
+    expect(genSystem).not.toContain('<Stack>')
+    expect(genSystem).toContain('Mini DS')
+
+    // the manifest-derived validator rejected the <Stack> attempt and retried
+    const retryMsg = renderUi.mock.calls[1][0].messages.at(-1).content
+    expect(retryMsg).toMatch(/not a real component[\s\S]*Panel, Label/)
+    expect(res.ok && res.meta.steps.some((s) => /Mini DS v9\.9\.9/.test(s))).toBe(true)
   })
 
   it('returns the fixture when no provider is available', async () => {

@@ -1,5 +1,5 @@
 import type { CanvasNode } from '@/model/nodeTree'
-import { getEntry } from '@/design-system/registry'
+import { useHydratedRegistry } from '@/design-system/DesignSystemProvider'
 import { useFlowStore, ROOT_ID } from '@/store/flowStore'
 import { cx } from '@/lib/cx'
 
@@ -7,7 +7,7 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
   const selectedId = useFlowStore((s) => s.selectedId)
   const select = useFlowStore((s) => s.select)
   const deleteNode = useFlowStore((s) => s.deleteNode)
-  const entry = getEntry(node.type)
+  const entry = useHydratedRegistry().get(node.type)
   const isSelected = selectedId === node.id
   const indent = ['pl-sm', 'pl-md', 'pl-lg', 'pl-xl', 'pl-2xl'][Math.min(depth, 4)]
 

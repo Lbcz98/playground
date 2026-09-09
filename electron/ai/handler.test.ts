@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { handleGenerateUI } from './handler'
 import { isBlueprintDocument } from '@/shared/blueprint'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 
 describe('handleGenerateUI (Phase 2 IPC bridge)', () => {
   beforeEach(() => {
@@ -68,5 +69,20 @@ describe('handleGenerateUI (Phase 2 IPC bridge)', () => {
   it('rejects an unknown model or effort', async () => {
     expect((await handleGenerateUI({ prompt: 'hi', options: { model: 'gpt-4o' } })).ok).toBe(false)
     expect((await handleGenerateUI({ prompt: 'hi', options: { effort: 'turbo' } })).ok).toBe(false)
+  })
+
+  it('accepts an active design system manifest', async () => {
+    const res = await handleGenerateUI({ prompt: 'hi', manifest: SCREENFLOW_MANIFEST })
+    expect(res.ok).toBe(true)
+  })
+
+  it('rejects a malformed manifest', async () => {
+    const res = await handleGenerateUI({
+      prompt: 'hi',
+      manifest: { id: 'x', name: 'x', version: '1', components: {}, tokens: {} },
+    })
+    expect(res.ok).toBe(false)
+    if (res.ok) return
+    expect(res.stage).toBe('ipc:validate-request')
   })
 })

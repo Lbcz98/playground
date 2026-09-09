@@ -1,4 +1,5 @@
 import type { ChatTurn, GenerateOptions, GenerateUIResponse } from '@/shared/blueprint'
+import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 
 /**
@@ -18,9 +19,10 @@ export async function generateUI(
   prompt: string,
   history: ChatTurn[] = [],
   options: GenerateOptions = {},
+  manifest?: DesignSystemManifest,
 ): Promise<GenerateUIResponse> {
   if (isBridgeAvailable()) {
-    return window.flow.generateUI(prompt, history, options)
+    return window.flow.generateUI(prompt, history, options, manifest)
   }
 
   return {

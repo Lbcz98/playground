@@ -11,6 +11,7 @@ import { create } from 'zustand'
 import { generateUI } from '@/services/aiClient'
 import { useFlowStore, type AgentRun } from '@/store/flowStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useDesignSystemStore } from '@/store/designSystemStore'
 import type { ChatTurn, GenerateUISource, GenerateUsage } from '@/shared/blueprint'
 import { createNodeId } from '@/model/nodeTree'
 
@@ -116,7 +117,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }))
 
     try {
-      const response = await generateUI(trimmed, history, { model, effort })
+      const manifest = useDesignSystemStore.getState().active
+      const response = await generateUI(trimmed, history, { model, effort }, manifest)
 
       set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage) }))
 

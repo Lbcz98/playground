@@ -18,9 +18,13 @@ import {
   removeNode,
   updateNode,
 } from '@/model/nodeTree'
-import { ComponentRegistry, getEntry } from '@/design-system/registry'
 import { interpretBlueprint, type InterpretIssue } from '@/interpreter/interpret'
 import type { BlueprintDocument } from '@/shared/blueprint'
+import { useDesignSystemStore } from '@/store/designSystemStore'
+
+/** The active hydrated registry — read lazily so a design-system switch is picked up. */
+const activeRegistry = () => useDesignSystemStore.getState().registry
+const activeManifest = () => useDesignSystemStore.getState().active
 
 const HISTORY_LIMIT = 50
 
@@ -60,6 +64,8 @@ interface FlowState {
   // high-level editing actions (each is one history step)
   addNode: (parentId: NodeId, type: string) => void
   updateProps: (id: NodeId, patch: Record<string, unknown>) => void
+  /** Spec §8 alias for `updateProps` — the name the Property Inspector uses. */
+  updateNodeProps: (id: NodeId, patch: Record<string, unknown>) => void
   deleteNode: (id: NodeId) => void
   replaceDocument: (tree: CanvasNode, label: string) => void
   /**
@@ -171,7 +177,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     }),
 
   addNode: (parentId, type) => {
-    const entry = getEntry(type)
+    const entry = activeRegistry().get(type)
     if (!entry) return
     const node = makeNode(type, { ...entry.defaultProps })
     get().commit((draft) => {
@@ -187,10 +193,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       })
     }, 'Edit properties'),
 
+  updateNodeProps: (id, patch) => get().updateProps(id, patch),
+
   deleteNode: (id) => {
     if (id === ROOT_ID) return
     const node = findNode(get().tree, id)
-    const label = node ? `Delete ${getEntry(node.type)?.label ?? node.type}` : 'Delete node'
+    const label = node ? `Delete ${activeRegistry().get(node.type)?.label ?? node.type}` : 'Delete node'
     get().commit((draft) => {
       removeNode(draft, id)
     }, label)
@@ -205,7 +213,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     }, label),
 
   applyAgentBlueprint: (blueprint, prompt) => {
-    const result = interpretBlueprint(blueprint)
+    const result = interpretBlueprint(blueprint, activeManifest())
 
     if (!result.ok) {
       const run: AgentRun = {
@@ -246,11 +254,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 }))
 
 // Convenience selectors (kept outside the store so components subscribe narrowly).
+/** Spec §8 name for the current selection. */
+export const selectActiveNodeId = (s: FlowState) => s.selectedId
 export const selectCanUndo = (s: FlowState) => s.past.length > 0
 export const selectCanRedo = (s: FlowState) => s.future.length > 0
 export const selectUndoLabel = (s: FlowState) =>
   s.past.length > 0 ? s.lastActionLabel : null
 export const selectRedoLabel = (s: FlowState) => (s.future.length > 0 ? s.future[0].label : null)
 
-// Re-export so Phase 3's interpreter has a typed entry point.
-export const REGISTRY_KEYS = Object.keys(ComponentRegistry)

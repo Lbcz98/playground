@@ -26,6 +26,8 @@ import type {
 } from '@/shared/blueprint'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
+import type { DesignSystemManifest } from '@/shared/design-system/manifest'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { unwrapBlueprint } from './providers/types'
 import { validateBlueprint } from './validateBlueprint'
@@ -36,9 +38,13 @@ export async function generateUI(
   userPrompt: string,
   history: ChatTurn[] = [],
   options: GenerateOptions = {},
+  manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
 ): Promise<GenerateUIResponse> {
   const startedAt = Date.now()
-  const steps: string[] = [`prompt: ${JSON.stringify(userPrompt)}`]
+  const steps: string[] = [
+    `prompt: ${JSON.stringify(userPrompt)}`,
+    `design system: ${manifest.name} v${manifest.version} (${Object.keys(manifest.components).length} components)`,
+  ]
 
   const provider = await resolveProvider()
   if (!provider) {
@@ -56,7 +62,7 @@ export async function generateUI(
   try {
     // ── Step 1: Planner ────────────────────────────────────────────────────
     const planner = await provider.complete({
-      system: buildPlannerPrompt(),
+      system: buildPlannerPrompt(manifest),
       messages: [...history, { role: 'user', content: userPrompt }],
       model: options.model,
       effort: 'low', // planning is structural — keep it cheap
@@ -67,7 +73,7 @@ export async function generateUI(
     steps.push(`step 1 · planner: ${planLines}-line plan`)
 
     // ── Steps 2 + 3: Generator + validation-retry loop ─────────────────────
-    const genSystem = buildSystemPrompt(provider.id === 'api-key' ? 'tool' : 'json')
+    const genSystem = buildSystemPrompt(provider.id === 'api-key' ? 'tool' : 'json', manifest)
     const genMessages: ChatTurn[] = [
       {
         role: 'user',
@@ -89,7 +95,7 @@ export async function generateUI(
       model = gen.model ?? model
       lastBlueprint = unwrapBlueprint(gen.blueprint)
 
-      const validation = validateBlueprint(lastBlueprint)
+      const validation = validateBlueprint(lastBlueprint, manifest)
       if (validation.ok) {
         steps.push(`step 2 · generator: valid on attempt ${attempt}`)
         return success(lastBlueprint, provider, model, usage, steps, startedAt)
