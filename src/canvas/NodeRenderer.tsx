@@ -1,0 +1,48 @@
+import { cloneElement, type MouseEvent, type ReactElement } from 'react'
+import type { CanvasNode } from '@/model/nodeTree'
+import { getEntry } from '@/design-system/registry'
+import { useFlowStore } from '@/store/flowStore'
+import { cx } from '@/lib/cx'
+
+/**
+ * Recursively turns a `CanvasNode` into React elements using only the
+ * ComponentRegistry. Unknown types and prop-validation failures render a visible
+ * placeholder instead of throwing, so a bad AI payload can never blank the canvas.
+ */
+export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
+  const selectedId = useFlowStore((s) => s.selectedId)
+  const select = useFlowStore((s) => s.select)
+
+  const entry = getEntry(node.type)
+  if (!entry) {
+    return (
+      <div className="rounded-sm border border-danger bg-danger-subtle p-sm text-sm text-danger">
+        Unknown component: {node.type}
+      </div>
+    )
+  }
+
+  const parsed = entry.schema.safeParse(node.props)
+  const props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps
+
+  const children = entry.acceptsChildren
+    ? node.children.map((child) => <NodeRenderer key={child.id} node={child} />)
+    : null
+
+  const rendered = entry.render(props, children)
+  const isSelected = selectedId === node.id
+
+  // Decorate the component's own root element — no wrapper div, so Stack layout
+  // (align / justify / gap) stays exactly as authored.
+  return cloneElement(rendered, {
+    className: cx(
+      rendered.props.className,
+      'outline-none',
+      isSelected ? 'ring ring-brand' : 'hover:ring hover:ring-brand-subtle',
+    ),
+    onClick: (event: MouseEvent) => {
+      event.stopPropagation()
+      select(node.id)
+    },
+  })
+}

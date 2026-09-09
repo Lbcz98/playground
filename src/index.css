@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The rendered flow preview should feel like a real product surface, so reset the
+   canvas subtree to sensible browser defaults regardless of app chrome. */
+.sfs-canvas-surface *,
+.sfs-canvas-surface *::before,
+.sfs-canvas-surface *::after {
+  box-sizing: border-box;
+}
