@@ -38,13 +38,24 @@ function createWindow(): void {
   if (DEV_SERVER_URL) {
     void win.loadURL(DEV_SERVER_URL)
     win.webContents.openDevTools({ mode: 'detach' })
-    // Dev-only: confirm the preload bridge is wired (no LLM call — that would bill).
-    win.webContents.on('did-finish-load', () => {
-      void win.webContents
-        .executeJavaScript('typeof window.flow?.generateUI')
-        .then(async (t) =>
-          console.log(`[main] bridge: window.flow.generateUI is ${t} · AI: ${await describeAiSetup()}`),
+    // Dev-only: confirm the preload bridge is wired, and optionally run one real
+    // generation through the full pipeline when SFS_SMOKE_PROMPT is set.
+    win.webContents.on('did-finish-load', async () => {
+      const t = await win.webContents.executeJavaScript('typeof window.flow?.generateUI')
+      console.log(`[main] bridge: window.flow.generateUI is ${t} · AI: ${await describeAiSetup()}`)
+
+      const smoke = process.env.SFS_SMOKE_PROMPT
+      if (smoke) {
+        console.log(`[smoke] generating (rendering to canvas): ${JSON.stringify(smoke)}`)
+        const report = await win.webContents.executeJavaScript(
+          `(async () => {
+             for (let i = 0; i < 40 && !window.__sfsSend; i++) await new Promise(r => setTimeout(r, 100))
+             await window.__sfsSend?.(${JSON.stringify(smoke)})
+             return JSON.stringify(window.__sfsReport?.() ?? {})
+           })()`,
         )
+        console.log('[smoke] report:\n' + report)
+      }
     })
   } else {
     void win.loadFile(path.join(DIST_RENDERER, 'index.html'))

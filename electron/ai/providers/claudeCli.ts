@@ -88,8 +88,8 @@ async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
     )
   }
 
-  const model = args.model || process.env.AI_CLI_MODEL?.trim()
-  const effort = args.effort || process.env.AI_EFFORT?.trim()
+  const model = args.model || process.env.AI_CLI_MODEL?.trim() || undefined
+  const effort = args.effort || process.env.AI_EFFORT?.trim() || undefined
 
   const cliArgs = [
     '-p',
