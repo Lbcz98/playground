@@ -24,6 +24,7 @@ import type {
   ManifestProp,
   ManifestTokens,
 } from './manifest'
+import { mergeTokens, parseDesignTokens } from './token-adapter'
 
 export interface StorybookAdapterMeta {
   id?: string
@@ -48,14 +49,17 @@ function slug(input: string): string {
   )
 }
 
-function emptyTokens(partial?: Partial<ManifestTokens>): ManifestTokens {
-  return {
-    colors: partial?.colors ?? {},
-    spacing: partial?.spacing ?? {},
-    typography: partial?.typography ?? {},
-    ...(partial?.radius ? { radius: partial.radius } : {}),
-    ...(partial?.shadow ? { shadow: partial.shadow } : {}),
-  }
+/** Token dictionaries carried in the same JSON as the component docgen. */
+function tokensFromJson(rawJson: unknown): Partial<ManifestTokens> {
+  if (!isObject(rawJson)) return {}
+  const candidates: unknown[] = [
+    rawJson.tokens,
+    rawJson.$tokens,
+    rawJson.designTokens,
+    isObject(rawJson.parameters) ? rawJson.parameters.designToken : undefined,
+    isObject(rawJson.parameters) ? rawJson.parameters.designTokens : undefined,
+  ]
+  return mergeTokens(...candidates.filter(isObject).map((c) => parseDesignTokens(c)))
 }
 
 /** Strip the surrounding quotes react-docgen puts around string-literal values. */
@@ -102,6 +106,17 @@ function coerceOptions(raw: unknown): string[] | undefined {
   return opts.length > 0 ? opts : undefined
 }
 
+/** Guess which token scale a prop draws from, by its name. Undefined = not token-typed. */
+function inferTokenGroup(name: string): keyof ManifestTokens | undefined {
+  const n = name.toLowerCase()
+  if (/radius|rounded|corner/.test(n)) return 'radius'
+  if (/shadow|elevation/.test(n)) return 'shadow'
+  if (/colou?r|background|\bbg\b|foreground|\bfg\b|fill|stroke|tint|accent/.test(n)) return 'colors'
+  if (/padding|margin|\bgap\b|spacing|\bspace\b|inset/.test(n)) return 'spacing'
+  if (/font(size|family|weight)?|leading|line-?height|letter-?spacing/.test(n)) return 'typography'
+  return undefined
+}
+
 // ---------------------------------------------------------------------------
 // Prop extraction — handles both `props` (react-docgen) and `argTypes` (Storybook)
 // ---------------------------------------------------------------------------
@@ -146,6 +161,8 @@ function parseProp(name: string, raw: unknown): ManifestProp | null {
         ? raw.table.description
         : undefined
 
+  const tokenGroup = typeName === 'boolean' || typeName === 'number' ? undefined : inferTokenGroup(name)
+
   const prop: ManifestProp = {
     name,
     type: { name: typeName, ...(typeof typeNode?.raw === 'string' ? { raw: typeNode.raw } : {}) },
@@ -153,6 +170,7 @@ function parseProp(name: string, raw: unknown): ManifestProp | null {
     ...(defaultValue !== undefined ? { defaultValue } : {}),
     ...(options ? { options } : {}),
     ...(description ? { description } : {}),
+    ...(tokenGroup ? { tokenGroup } : {}),
   }
   return prop
 }
@@ -261,7 +279,7 @@ export function parseStorybookDocgen(
     id: meta.id ?? slug(name),
     name,
     version: meta.version ?? versionFromJson ?? '0.0.0',
-    tokens: emptyTokens(meta.tokens),
+    tokens: mergeTokens(tokensFromJson(rawJson), meta.tokens),
     components,
   }
 }

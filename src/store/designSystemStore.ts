@@ -17,6 +17,7 @@ import {
   SCREENFLOW_MANIFEST_ID,
 } from '@/shared/design-system/screenflow-manifest'
 import { parseStorybookDocgen, type StorybookAdapterMeta } from '@/shared/design-system/storybook-adapter'
+import { mergeTokens, parseDesignTokens } from '@/shared/design-system/token-adapter'
 import { hydrateRegistry, type HydratedRegistry } from '@/design-system/registry'
 
 export type ImportResult = { ok: true; id: string } | { ok: false; error: string }
@@ -32,6 +33,8 @@ interface DesignSystemState {
   setActive: (id: string) => Promise<void>
   importStorybook: (rawJson: unknown, meta?: StorybookAdapterMeta) => Promise<ImportResult>
   importManifest: (raw: unknown) => Promise<ImportResult>
+  /** Merge design tokens (DTCG / Style Dictionary / grouped) into the active imported system. */
+  importTokens: (rawJson: unknown) => Promise<ImportResult>
   remove: (id: string) => Promise<void>
 }
 
@@ -113,6 +116,26 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
       return { ok: false, error: parsed.error.issues[0]?.message ?? 'Adapter produced an invalid manifest' }
     }
     return persistAndAdd(parsed.data, set, get)
+  },
+
+  importTokens: async (rawJson) => {
+    const target = get().active
+    if (target.id === SCREENFLOW_MANIFEST_ID) {
+      return { ok: false, error: 'The built-in ScreenFlow system cannot be re-themed.' }
+    }
+    const parsed = parseDesignTokens(rawJson)
+    if (Object.keys(parsed).length === 0) {
+      return { ok: false, error: 'No design tokens found (expected DTCG or Style Dictionary JSON).' }
+    }
+    const next: DesignSystemManifest = {
+      ...target,
+      tokens: mergeTokens(target.tokens, parsed),
+    }
+    const valid = manifestZodSchema.safeParse(next)
+    if (!valid.success) {
+      return { ok: false, error: valid.error.issues[0]?.message ?? 'Merged manifest is invalid' }
+    }
+    return persistAndAdd(valid.data, set, get)
   },
 
   remove: async (id) => {

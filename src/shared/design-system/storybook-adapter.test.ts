@@ -135,4 +135,40 @@ describe('parseStorybookDocgen', () => {
   it('throws when there are no component definitions', () => {
     expect(() => parseStorybookDocgen({ stories: { 'x--y': {} } })).toThrow(/No component definitions/)
   })
+
+  it('infers tokenGroup for token-typed props by name', () => {
+    const m = parseStorybookDocgen({
+      components: {
+        Box: {
+          displayName: 'Box',
+          props: {
+            background: { type: { name: 'string' }, required: false },
+            padding: { type: { name: 'string' }, required: false },
+            cornerRadius: { type: { name: 'string' }, required: false },
+            label: { type: { name: 'string' }, required: false },
+            count: { type: { name: 'number' }, required: false },
+          },
+        },
+      },
+    })
+    const p = m.components.Box.props
+    expect(p.background.tokenGroup).toBe('colors')
+    expect(p.padding.tokenGroup).toBe('spacing')
+    expect(p.cornerRadius.tokenGroup).toBe('radius')
+    expect(p.label.tokenGroup).toBeUndefined()
+    expect(p.count.tokenGroup).toBeUndefined()
+  })
+
+  it('ingests design tokens carried in the same JSON', () => {
+    const m = parseStorybookDocgen({
+      name: 'Toked',
+      components: { Btn: { displayName: 'Btn', props: {} } },
+      tokens: {
+        color: { $type: 'color', brand: { $value: '#0055ff' } },
+        space: { $type: 'dimension', md: { $value: '16px' } },
+      },
+    })
+    expect(m.tokens.colors).toEqual({ brand: '#0055ff' })
+    expect(m.tokens.spacing).toEqual({ md: '16px' })
+  })
 })

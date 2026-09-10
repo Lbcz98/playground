@@ -65,4 +65,39 @@ describe('designSystemStore', () => {
     expect(store().library.map((m) => m.id)).toEqual([SCREENFLOW_MANIFEST_ID])
     expect(store().activeId).toBe(SCREENFLOW_MANIFEST_ID)
   })
+
+  describe('importTokens', () => {
+    beforeEach(async () => {
+      await store().importStorybook(STORYBOOK_JSON, { id: 'acme', name: 'Acme', version: '1.0.0' })
+    })
+
+    it('merges DTCG tokens into the active imported manifest and keeps it active', async () => {
+      const result = await store().importTokens({
+        color: { $type: 'color', brand: { $value: '#0055ff' } },
+        space: { $type: 'dimension', md: { $value: '16px' } },
+      })
+      expect(result).toEqual({ ok: true, id: 'acme' })
+      expect(store().active.tokens.colors).toEqual({ brand: '#0055ff' })
+      expect(store().active.tokens.spacing).toEqual({ md: '16px' })
+      expect(store().activeId).toBe('acme')
+      expect(store().library).toHaveLength(2)
+    })
+
+    it('merges additively across successive imports', async () => {
+      await store().importTokens({ colors: { brand: '#111111' } })
+      await store().importTokens({ colors: { accent: '#222222' }, radius: { md: '8px' } })
+      expect(store().active.tokens.colors).toEqual({ brand: '#111111', accent: '#222222' })
+      expect(store().active.tokens.radius).toEqual({ md: '8px' })
+    })
+
+    it('rejects when nothing parses as a token', async () => {
+      expect((await store().importTokens({ not: 'tokens', deeply: { nested: true } })).ok).toBe(false)
+    })
+
+    it('refuses to re-theme the built-in ScreenFlow system', async () => {
+      await store().setActive(SCREENFLOW_MANIFEST_ID)
+      const result = await store().importTokens({ colors: { brand: '#000000' } })
+      expect(result.ok).toBe(false)
+    })
+  })
 })

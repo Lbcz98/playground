@@ -6,6 +6,9 @@ import {
   isDesignSystemManifest,
   propLabel,
   rootContainerId,
+  tokenCount,
+  tokenNames,
+  type DesignSystemManifest,
   type ManifestComponent,
   type ManifestProp,
 } from './manifest'
@@ -82,6 +85,27 @@ describe('rootContainerId', () => {
     expect(rootContainerId(mk({ Text: {}, Stack: { acceptsChildren: true } }))).toBe('Stack')
     expect(rootContainerId(mk({ Text: {}, Panel: { acceptsChildren: true } }))).toBe('Panel')
     expect(rootContainerId(mk({ Text: {}, Button: {} }))).toBeNull()
+  })
+})
+
+describe('token helpers', () => {
+  const manifest: DesignSystemManifest = {
+    id: 'm',
+    name: 'm',
+    version: '1',
+    tokens: {
+      colors: { brand: '#000', ink: '#111' },
+      spacing: { md: '16px' },
+      typography: {},
+      radius: { sm: '4px' },
+    },
+    components: { A: { id: 'A', name: 'A', description: '', acceptsChildren: false, props: {} } },
+  }
+
+  it('tokenNames lists a group; tokenCount sums all groups', () => {
+    expect(tokenNames(manifest, 'colors')).toEqual(['brand', 'ink'])
+    expect(tokenNames(manifest, 'shadow')).toEqual([])
+    expect(tokenCount(manifest.tokens)).toBe(4)
   })
 })
 

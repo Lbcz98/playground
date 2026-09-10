@@ -207,6 +207,25 @@ export function propLabel(prop: ManifestProp): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
+/** The token names available in a manifest's group, e.g. `['brand', 'ink', …]`. */
+export function tokenNames(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+): string[] {
+  return Object.keys(manifest.tokens[group] ?? {})
+}
+
+/** Total count of tokens across every group. */
+export function tokenCount(tokens: ManifestTokens): number {
+  return (
+    Object.keys(tokens.colors).length +
+    Object.keys(tokens.spacing).length +
+    Object.keys(tokens.typography).length +
+    Object.keys(tokens.radius ?? {}).length +
+    Object.keys(tokens.shadow ?? {}).length
+  )
+}
+
 /** The component every Blueprint root must be — the first container in the manifest. */
 export function rootContainerId(manifest: DesignSystemManifest): string | null {
   const entries = Object.values(manifest.components)
