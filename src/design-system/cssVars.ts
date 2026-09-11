@@ -12,6 +12,7 @@
  */
 
 import type { ManifestTokens } from '@/shared/design-system/manifest'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 
 const PREFIX = '--sfs-'
 
@@ -22,6 +23,17 @@ const GROUPS: Array<[keyof ManifestTokens, string]> = [
   ['radius', 'radius'],
   ['shadow', 'shadow'],
 ]
+
+/**
+ * The built-in ScreenFlow token values, as `--sfs-*` vars. The canvas seeds
+ * these underneath the active manifest's own tokens (see `Canvas.tsx`) so a
+ * partial imported system still has every var the generic renderer reads —
+ * `check-tokens.mjs` can stay strict about "no literal fallback in `var()`"
+ * because there's always a base layer underneath.
+ */
+export function screenflowBaseVars(): Record<string, string> {
+  return manifestTokensToCssVars(SCREENFLOW_MANIFEST.tokens)
+}
 
 export function manifestTokensToCssVars(tokens: ManifestTokens): Record<string, string> {
   const vars: Record<string, string> = {}

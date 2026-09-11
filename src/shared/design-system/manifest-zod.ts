@@ -10,6 +10,13 @@
  * (pipeline step 3): it REJECTS anything the manifest doesn't allow and returns the
  * error strings that get fed back to the Generator agent for a retry.
  *
+ * Phase 7B: a prop with `tokenGroup` set and no explicit `options` is compiled
+ * to an enum of that group's REAL token names in the active manifest (falling
+ * back to a plain string when the system doesn't have tokens for that group
+ * yet). A hallucinated token name is therefore rejected and retried exactly
+ * like any other invalid enum value — closing the loop between "this prop
+ * draws from a token scale" and "the value must actually be one of them".
+ *
  * Framework-free — runs in the Electron main process.
  */
 
@@ -23,11 +30,14 @@ const SUPPORTED_VERSION = 1
 // Per-prop → Zod
 // ---------------------------------------------------------------------------
 
-function propToZod(prop: ManifestProp): z.ZodTypeAny {
+function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTypeAny {
   let schema: z.ZodTypeAny
+  const tokenNames = prop.tokenGroup ? Object.keys(manifest.tokens[prop.tokenGroup] ?? {}) : []
 
   if (prop.options && prop.options.length > 0) {
     schema = z.enum(prop.options as [string, ...string[]])
+  } else if (tokenNames.length > 0) {
+    schema = z.enum(tokenNames as [string, ...string[]])
   } else {
     switch (prop.type.name) {
       case 'boolean':
@@ -58,7 +68,7 @@ export function compileManifestSchemas(
   for (const component of Object.values(manifest.components)) {
     const shape: z.ZodRawShape = {}
     for (const prop of Object.values(component.props)) {
-      shape[prop.name] = propToZod(prop)
+      shape[prop.name] = propToZod(prop, manifest)
     }
     out[component.id] = z.object(shape).strict()
   }

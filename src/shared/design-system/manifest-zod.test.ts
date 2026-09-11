@@ -62,6 +62,55 @@ describe('compileManifestSchemas', () => {
     const schemas = compileManifestSchemas(MANIFEST)
     expect(schemas.Chip.safeParse({ color: 'red' }).success).toBe(false)
   })
+
+  it('Phase 7B: a tokenGroup prop compiles to an enum of the manifest\'s real token names', () => {
+    const withTokens: DesignSystemManifest = {
+      ...MANIFEST,
+      tokens: { ...MANIFEST.tokens, colors: { brand: '#2f6bff', ink: '#111' } },
+      components: {
+        ...MANIFEST.components,
+        Box: {
+          ...MANIFEST.components.Box,
+          props: {
+            ...MANIFEST.components.Box.props,
+            background: {
+              name: 'background',
+              type: { name: 'string' },
+              required: false,
+              tokenGroup: 'colors',
+            },
+          },
+        },
+      },
+    }
+    const schemas = compileManifestSchemas(withTokens)
+    expect(schemas.Box.safeParse({ background: 'brand' }).success).toBe(true)
+    expect(schemas.Box.safeParse({ background: 'not-a-real-token' }).success).toBe(false)
+  })
+
+  it('a tokenGroup prop falls back to a plain string when the group is empty', () => {
+    // MANIFEST.tokens.colors is {} — nothing to enumerate yet, so any string is
+    // accepted rather than making the prop impossible to set.
+    const withEmptyGroup: DesignSystemManifest = {
+      ...MANIFEST,
+      components: {
+        ...MANIFEST.components,
+        Box: {
+          ...MANIFEST.components.Box,
+          props: {
+            background: {
+              name: 'background',
+              type: { name: 'string' },
+              required: false,
+              tokenGroup: 'colors',
+            },
+          },
+        },
+      },
+    }
+    const schemas = compileManifestSchemas(withEmptyGroup)
+    expect(schemas.Box.safeParse({ background: 'anything' }).success).toBe(true)
+  })
 })
 
 describe('validateBlueprintAgainstManifest', () => {

@@ -51,6 +51,7 @@ export function PropertyInspector(): JSX.Element {
                   propDef={propDef}
                   currentValue={(node.props as Record<string, unknown>)[name]}
                   onChange={(value) => updateNodeProps(node.id, { [name]: value })}
+                  tokenDict={propDef.tokenGroup ? manifest.tokens[propDef.tokenGroup] : undefined}
                 />
               ))}
             </div>

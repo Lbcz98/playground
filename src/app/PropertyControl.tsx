@@ -3,8 +3,15 @@
  *
  * Given one `ManifestProp` from the active design system, it renders the right
  * input: enum → <select>, boolean → toggle, number → number field, string →
- * text/textarea. Everything is a token-styled native element (no Radix) so it
- * stays consistent with the rest of the app and adds no dependency.
+ * text/textarea — and, when the prop draws from a token scale (`tokenGroup`,
+ * Phase 7), a <select> of that scale's real token names instead of a free-text
+ * field, with a swatch for color tokens. Everything is a token-styled native
+ * element (no Radix) so it stays consistent with the rest of the app and adds
+ * no dependency.
+ *
+ * Per spec §7b, this panel is part of the app shell, not the canvas: the swatch
+ * shows the token's literal resolved value (plain data, like a color picker
+ * would), never a `var(--sfs-*)` — those only exist inside the canvas scope.
  *
  * It is dumb and controlled: `currentValue` in, `onChange(next)` out. The
  * PropertyInspector owns wiring that back to the Zustand store.
@@ -12,12 +19,19 @@
 
 import type { ManifestProp } from '@/shared/design-system/manifest'
 import { inferControl, propLabel } from '@/shared/design-system/manifest'
+import { cx } from '@/lib/cx'
 
 export interface PropertyControlProps {
   propName: string
   propDef: ManifestProp
   currentValue: unknown
   onChange: (value: unknown) => void
+  /**
+   * This prop's token scale in the ACTIVE manifest, e.g. `{ brand: <hex> }`
+   * for a `tokenGroup: 'colors'` prop. Only passed when the active system
+   * actually declares tokens in that group.
+   */
+  tokenDict?: Record<string, string>
 }
 
 const FIELD_CLASS =
@@ -28,10 +42,16 @@ export function PropertyControl({
   propDef,
   currentValue,
   onChange,
+  tokenDict,
 }: PropertyControlProps): JSX.Element {
   const id = `prop-${propName}`
   const kind = inferControl(propDef)
   const label = propLabel(propDef)
+
+  const tokenNames = tokenDict ? Object.keys(tokenDict) : []
+  // An explicit enum (`options`) is authoritative; a `tokenGroup` only kicks in
+  // as a fallback UI when the prop is otherwise a free string.
+  const isTokenSelect = !propDef.options && !!propDef.tokenGroup && tokenNames.length > 0
 
   return (
     <div className="flex flex-col gap-xs">
@@ -41,15 +61,29 @@ export function PropertyControl({
       >
         <span>{label}</span>
         {kind === 'boolean' ? (
-          <Switch
-            id={id}
-            checked={Boolean(currentValue)}
-            onChange={(next) => onChange(next)}
-          />
+          <Switch id={id} checked={Boolean(currentValue)} onChange={(next) => onChange(next)} />
         ) : null}
       </label>
 
-      {kind === 'select' && propDef.options ? (
+      {isTokenSelect ? (
+        <div className="flex items-center gap-xs">
+          {propDef.tokenGroup === 'colors' ? (
+            <ColorSwatch value={tokenDict?.[stringValue(currentValue, propDef)]} />
+          ) : null}
+          <select
+            id={id}
+            value={stringValue(currentValue, propDef)}
+            onChange={(e) => onChange(e.target.value)}
+            className={cx(FIELD_CLASS, 'flex-1')}
+          >
+            {tokenNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : kind === 'select' && propDef.options ? (
         <select
           id={id}
           value={stringValue(currentValue, propDef)}
@@ -62,9 +96,7 @@ export function PropertyControl({
             </option>
           ))}
         </select>
-      ) : null}
-
-      {kind === 'number' ? (
+      ) : kind === 'number' ? (
         <input
           id={id}
           type="number"
@@ -72,9 +104,7 @@ export function PropertyControl({
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
           className={FIELD_CLASS}
         />
-      ) : null}
-
-      {kind === 'textarea' ? (
+      ) : kind === 'textarea' ? (
         <textarea
           id={id}
           rows={3}
@@ -82,9 +112,7 @@ export function PropertyControl({
           onChange={(e) => onChange(e.target.value)}
           className={FIELD_CLASS}
         />
-      ) : null}
-
-      {kind === 'text' ? (
+      ) : kind === 'text' ? (
         <input
           id={id}
           type="text"
@@ -105,6 +133,17 @@ function stringValue(value: unknown, prop: ManifestProp): string {
   if (value !== undefined && value !== null) return String(value)
   if (prop.defaultValue !== undefined && prop.defaultValue !== null) return String(prop.defaultValue)
   return ''
+}
+
+/** A small square showing a token's literal, resolved value — plain data. */
+function ColorSwatch({ value }: { value: string | undefined }): JSX.Element {
+  return (
+    <span
+      aria-hidden
+      className="h-md w-md shrink-0 rounded-sm border border-line"
+      style={value ? { backgroundColor: value } : undefined}
+    />
+  )
 }
 
 /** A token-styled toggle built from a native checkbox. */

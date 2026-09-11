@@ -15,7 +15,7 @@
 
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent } from '@/shared/design-system/manifest'
-import { inferControl, rootContainerId } from '@/shared/design-system/manifest'
+import { inferControl, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 
 export interface PropSpec {
@@ -23,6 +23,8 @@ export interface PropSpec {
   control: 'text' | 'textarea' | 'select' | 'boolean' | 'number'
   /** Allowed values for a `select` prop. */
   options?: readonly string[]
+  /** Phase 7B: real token names, when this prop draws from a token scale. */
+  tokenNames?: string[]
   default: unknown
 }
 
@@ -34,13 +36,17 @@ export interface ComponentSpec {
   props: PropSpec[]
 }
 
-function specForComponent(component: ManifestComponent): ComponentSpec {
-  const props: PropSpec[] = Object.values(component.props).map((prop) => ({
-    name: prop.name,
-    control: inferControl(prop),
-    options: prop.options,
-    default: prop.defaultValue,
-  }))
+function specForComponent(component: ManifestComponent, manifest: DesignSystemManifest): ComponentSpec {
+  const props: PropSpec[] = Object.values(component.props).map((prop) => {
+    const names = prop.tokenGroup ? tokenNames(manifest, prop.tokenGroup) : []
+    return {
+      name: prop.name,
+      control: inferControl(prop),
+      options: prop.options,
+      ...(names.length > 0 ? { tokenNames: names } : {}),
+      default: prop.defaultValue,
+    }
+  })
 
   return {
     type: component.id,
@@ -54,7 +60,7 @@ function specForComponent(component: ManifestComponent): ComponentSpec {
 export function getRegistrySpec(
   manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
 ): ComponentSpec[] {
-  return Object.values(manifest.components).map(specForComponent)
+  return Object.values(manifest.components).map((c) => specForComponent(c, manifest))
 }
 
 // ---------------------------------------------------------------------------
@@ -64,6 +70,9 @@ export function getRegistrySpec(
 function describeProp(p: PropSpec): string {
   const def = JSON.stringify(p.default)
   if (p.options) return `      - ${p.name}: one of [${p.options.join(', ')}] (default ${def})`
+  if (p.tokenNames) {
+    return `      - ${p.name}: a token name, one of [${p.tokenNames.join(', ')}] (default ${def})`
+  }
   if (p.control === 'boolean') return `      - ${p.name}: boolean (default ${def})`
   if (p.control === 'number') return `      - ${p.name}: number (default ${def})`
   return `      - ${p.name}: string (default ${def})`
@@ -84,9 +93,22 @@ function componentCatalogBrief(spec: ComponentSpec[]): string {
     .join('\n')
 }
 
-function spacingVocabulary(manifest: DesignSystemManifest): string {
-  const keys = Object.keys(manifest.tokens.spacing)
-  return keys.length > 0 ? keys.join(', ') : 'named tokens only — never raw numbers'
+/**
+ * Every token name the active manifest declares, grouped, for the "named
+ * tokens only" line in both prompts (Phase 7B). Falls back to a plain
+ * admonition when a group is empty (e.g. tokens haven't been imported yet).
+ */
+function tokenVocabulary(manifest: DesignSystemManifest): string {
+  const groups: Array<[string, string[]]> = [
+    ['spacing', tokenNames(manifest, 'spacing')],
+    ['colors', tokenNames(manifest, 'colors')],
+    ['radius', tokenNames(manifest, 'radius')],
+    ['shadow', tokenNames(manifest, 'shadow')],
+  ]
+  const parts = groups
+    .filter(([, names]) => names.length > 0)
+    .map(([group, names]) => `${group} [${names.join(', ')}]`)
+  return parts.length > 0 ? parts.join('; ') : 'named tokens only — never raw numbers'
 }
 
 /**
@@ -99,7 +121,7 @@ export function buildPlannerPrompt(
 ): string {
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
-  const spacing = spacingVocabulary(manifest)
+  const tokens = tokenVocabulary(manifest)
 
   return `You are the PLANNER for ScreenFlow Studio. Given a request for a screen,
 you write a short, concrete build plan — which components to use and how to nest
@@ -111,7 +133,7 @@ Design system: ${manifest.name} (v${manifest.version})
 - The primary layout tool is <${container}> — a flex row ("direction: horizontal")
   or column. Build every layout by nesting them. There is no absolute positioning,
   no grid.
-- Spacing/radius/shadow are named tokens: ${spacing}.
+- Design tokens available (spacing, colors, radius, shadow): ${tokens}.
 - Components available:
 ${componentCatalogBrief(spec)}
 
@@ -161,7 +183,7 @@ export function buildSystemPrompt(
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
   const containers = spec.filter((c) => c.acceptsChildren).map((c) => c.type)
   const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
-  const spacing = spacingVocabulary(manifest)
+  const tokens = tokenVocabulary(manifest)
 
   const intro =
     mode === 'tool'
@@ -199,7 +221,9 @@ ${intro}
   column; use its "gap" for spacing between children and "padding" for inner spacing.
   Use "direction: horizontal" for rows.
 - Only containers can hold children.${leaves.length ? ` ${leaves.join(', ')} are leaves.` : ''}
-- Spacing, radius and shadow are named tokens (${spacing}) — never numbers.
+- Every appearance-affecting value is a named token, never a raw number or hex
+  color: ${tokens}. A prop listed below as "a token name" must be set to exactly
+  one of its listed names, or omitted.
 - Prefer semantic structure: group related content in a container, give cards a
   surface + border + radius + shadow, use text "variant" for hierarchy.
 

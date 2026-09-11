@@ -19,6 +19,7 @@ import { cx } from '@/lib/cx'
 import type {
   DesignSystemManifest,
   ManifestComponent,
+  ManifestTokens,
 } from '@/shared/design-system/manifest'
 import { deriveDefaultProps, inferControl, propLabel } from '@/shared/design-system/manifest'
 import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
@@ -240,9 +241,49 @@ function renderInput(raw: Record<string, unknown>): ReactElement {
 
 // ===========================================================================
 // Generic renderer — the fallback for any imported component with no code
-// renderer. Structural only: a labelled box that honours the children slot and
-// picks up the active design system's brand colour via the injected CSS var.
+// renderer. Structural only, but genuinely themed: every visual property comes
+// from the active manifest's tokens via the `--sfs-*` custom properties scoped
+// onto the canvas surface (see `cssVars.ts` / `Canvas.tsx`) — never a literal
+// color or length, so this stays true to whichever design system is active
+// without loading any external Storybook React module.
 // ===========================================================================
+
+const TOKEN_VAR_ALIAS: Record<keyof ManifestTokens, string> = {
+  colors: 'color',
+  spacing: 'space',
+  typography: 'type',
+  radius: 'radius',
+  shadow: 'shadow',
+}
+
+function tokenVar(group: keyof ManifestTokens, name: string): string {
+  return `var(--sfs-${TOKEN_VAR_ALIAS[group]}-${name})`
+}
+
+/**
+ * If this component declares a prop drawing from `group` whose name matches
+ * `nameHint`, and the node's value names a token the active manifest actually
+ * has, resolve it to a CSS `var()`. This is how a component's own props (e.g.
+ * a `background` prop set to `"surface"`) drive the placeholder's actual look
+ * — and why a hallucinated or stale token name safely falls through instead
+ * of resolving to a dangling, silently-blank `var()`.
+ */
+function resolvedTokenValue(
+  component: ManifestComponent,
+  props: Record<string, unknown>,
+  tokens: ManifestTokens,
+  group: keyof ManifestTokens,
+  nameHint: RegExp,
+): string | undefined {
+  const prop = Object.values(component.props).find(
+    (p) => p.tokenGroup === group && nameHint.test(p.name),
+  )
+  if (!prop) return undefined
+  const value = props[prop.name]
+  if (typeof value !== 'string' || !value) return undefined
+  const dict = tokens[group]
+  return dict && value in dict ? tokenVar(group, value) : undefined
+}
 
 function summariseProps(component: ManifestComponent, props: Record<string, unknown>): string {
   const parts: string[] = []
@@ -254,18 +295,48 @@ function summariseProps(component: ManifestComponent, props: Record<string, unkn
   return parts.join('  ·  ')
 }
 
-function makeGenericRenderer(component: ManifestComponent): RenderFn {
+function makeGenericRenderer(component: ManifestComponent, tokens: ManifestTokens): RenderFn {
   return function renderGeneric(props, children): ReactElement {
     const summary = summariseProps(component, props)
+
+    // The box's own chrome — always resolves, because the canvas seeds the
+    // built-in ScreenFlow token values underneath whatever the active
+    // manifest overrides (see `Canvas.tsx`).
+    const background =
+      resolvedTokenValue(component, props, tokens, 'colors', /background|\bbg\b|\bfill\b|surface/i) ??
+      tokenVar('colors', 'surface')
+    const text =
+      resolvedTokenValue(component, props, tokens, 'colors', /text|foreground|\bfg\b|\bink\b/i) ??
+      tokenVar('colors', 'ink')
+    const radius =
+      resolvedTokenValue(component, props, tokens, 'radius', /./) ?? tokenVar('radius', 'md')
+    const padding =
+      resolvedTokenValue(component, props, tokens, 'spacing', /padding|inset/i) ??
+      tokenVar('spacing', 'md')
+
     return (
       <div
-        className="flex flex-col gap-xs rounded-md border border-l-4 border-line bg-subtle p-md"
-        style={{ borderLeftColor: 'var(--sfs-color-brand)' }}
+        className="flex flex-col gap-xs border border-l-4"
+        style={{
+          backgroundColor: background,
+          color: text,
+          borderColor: tokenVar('colors', 'line'),
+          borderLeftColor: tokenVar('colors', 'brand'),
+          borderRadius: radius,
+          padding,
+        }}
       >
-        <span className="text-xs font-semibold text-ink-muted">{component.name}</span>
-        {summary ? <span className="text-sm text-ink">{summary}</span> : null}
+        <span className="text-xs font-semibold" style={{ opacity: 0.7 }}>
+          {component.name}
+        </span>
+        {summary ? <span className="text-sm">{summary}</span> : null}
         {component.acceptsChildren ? (
-          <div className="flex flex-col gap-sm pt-xs">{children}</div>
+          <div
+            className="flex flex-col"
+            style={{ gap: tokenVar('spacing', 'sm'), paddingTop: tokenVar('spacing', 'xs') }}
+          >
+            {children}
+          </div>
         ) : null}
       </div>
     )
@@ -318,7 +389,7 @@ export function hydrateRegistry(manifest: DesignSystemManifest): HydratedRegistr
       fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
       defaultProps: deriveDefaultProps(component),
       controls,
-      render: codeRender ?? makeGenericRenderer(component),
+      render: codeRender ?? makeGenericRenderer(component, manifest.tokens),
       generic: !codeRender,
     }
   }
