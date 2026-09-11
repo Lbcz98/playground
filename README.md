@@ -68,11 +68,15 @@ src/
     primitives.ts        The ONLY file allowed to contain raw hex / px values
     tokens.ts            Semantic token unions (SpaceToken, ColorRole, ...)
     catalog.ts            The built-in system's Zod schemas + control metadata (no React)
-    registry.tsx          hydrateRegistry(manifest) — code renderers for ScreenFlow,
-                          a generic structural renderer for every imported component
-    cssVars.ts            Manifest tokens -> `--sfs-*` CSS custom properties
-    DesignSystemProvider.tsx  Hydrates the library on boot; useActiveDesignSystem() / useHydratedRegistry()
-    promptSpec.ts         Active manifest -> machine spec + the LLM system prompt
+    registry.tsx          hydrateRegistry(manifest) — code renderers for ScreenFlow; every
+                          imported component gets a generic renderer whose background /
+                          text / radius / padding are driven by --sfs-* (Phase 7B)
+    cssVars.ts            Manifest tokens -> `--sfs-*` CSS custom properties;
+                          screenflowBaseVars() so imported partial sets never dangle
+    DesignSystemProvider.tsx  Hydrates the library on boot ONLY — no CSS vars here
+                          (spec §7b: the app shell stays insulated, see Canvas.tsx)
+    promptSpec.ts         Active manifest -> machine spec + the LLM system prompt +
+                          tokenVocabulary() (real token names, not just "string")
   model/
     nodeTree.ts           CanvasNode { id, type, props, children } + tree helpers
   store/
@@ -81,7 +85,9 @@ src/
     chatStore.ts           The AI conversation; send() -> IPC -> applyAgentBlueprint; session usage
     settingsStore.ts       Chosen model + effort, persisted to localStorage
   canvas/
-    Canvas.tsx             The stage (Stack/flex layout only — no absolute X/Y)
+    Canvas.tsx             The stage (Stack/flex layout only — no absolute X/Y). The ONLY
+                          place --sfs-* tokens land — on [data-canvas-theme="active"],
+                          never :root (Phase 7B)
     NodeRenderer.tsx       Tree -> React via the hydrated registry; bad nodes render a placeholder
   app/                     Toolbar, DesignSystemSwitcher, ComponentPalette, LayersPanel,
                            PropertyInspector + PropertyControl, AgentPanel (chat)
@@ -131,7 +137,15 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
 - **Rendering**: the built-in system uses hand-written React renderers; every
   imported system renders through a generic, token-driven structural renderer
   (`hydrateRegistry()` in `registry.tsx`) — no external Storybook React modules
-  are ever loaded.
+  are ever loaded. A component's own token-typed prop (e.g. `background: 'brand'`)
+  genuinely re-themes it — but only when that name is a real token in the active
+  manifest; a hallucinated or stale name falls through to the base look instead of
+  a dangling CSS reference.
+- **Scoped, not global (spec §7b)**: the active manifest's tokens land as `--sfs-*`
+  CSS custom properties on the canvas surface only (`[data-canvas-theme="active"]`
+  in `Canvas.tsx`) — never on `:root`. The app shell (toolbar, sidebars, the
+  Property Inspector's own controls) stays on static Tailwind classes and never
+  re-themes, no matter which design system is active.
 - **Persistence**: imported manifests are written to
   `app.getPath('userData')/design-systems/*.json` (Electron's filesystem, not
   localStorage) via `electron/storage.ts`; the last-active system is restored on
@@ -139,7 +153,10 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
 - **AI schema injection**: `promptSpec.ts` compiles the Planner/Generator prompts
   and `manifest-zod.ts` compiles the strict Zod validator fresh, from the active
   manifest, on every call — the model can only ever see the components, props and
-  tokens the active system actually declares.
+  tokens the active system actually declares. A prop that draws from a token scale
+  is validated as an enum of the manifest's *real* token names, not a free string,
+  and the Property Inspector renders it as a `<select>` of those same names (with a
+  color swatch for color tokens) instead of a text field.
 
 ## AI providers (`AI_PROVIDER` in `.env`)
 
@@ -198,17 +215,25 @@ claude.ai/settings/usage.
   - **6C** — `PropertyControl` (a token-styled native control factory: select /
     toggle / number / text, no external UI library) and `PropertyInspector`,
     which renders one control per prop of the selected node's manifest component.
-- **Phase 7A (done): Storybook design-token ingestion** — imported systems now
-  carry real color/spacing/typography/radius/shadow scales, not just components.
-  `token-adapter.ts` normalises W3C DTCG, pre-DTCG Style Dictionary, already-grouped,
-  and flat token JSON (resolving alias references); `storybook-adapter.ts` picks up
-  tokens carried in the same JSON and infers which token scale a prop draws from;
-  `designSystemStore.importTokens()` merges them into the active imported system
-  and persists the result. *(Phase 7B — scoping the injected tokens to the canvas
-  only and having the generic renderer + Property Inspector actually consume them —
-  is planned, not yet built.)*
+- **Phase 7 (done): Storybook design-token ingestion & consumption** — imported
+  systems now carry real color/spacing/typography/radius/shadow scales, and those
+  scales genuinely re-theme the canvas:
+  - **7A** — `token-adapter.ts` normalises W3C DTCG, pre-DTCG Style Dictionary,
+    already-grouped, and flat token JSON (resolving alias references);
+    `storybook-adapter.ts` picks up tokens carried in the same JSON and infers
+    which token scale a prop draws from (`ManifestProp.tokenGroup`);
+    `designSystemStore.importTokens()` merges them into the active imported
+    system and persists the result.
+  - **7B** — token injection is scoped to `[data-canvas-theme="active"]` on the
+    canvas surface, never `:root` (the app shell stays insulated); the generic
+    renderer's chrome and any token-typed prop resolve from `var(--sfs-*)`, with
+    a real-token-name check so a hallucinated value never dangles; `manifest-zod.ts`
+    compiles a `tokenGroup` prop to an enum of the manifest's real names, so the
+    AI's validate/retry loop and the interpreter's repair path both enforce it;
+    the Property Inspector renders those props as a token `<select>` (with a
+    color swatch) instead of free text.
 
-128 tests across adapters, the interpreter, providers, prompt compilation, storage
+136 tests across adapters, the interpreter, providers, prompt compilation, storage
 and undo/redo.
 
 ## The pipeline
@@ -238,3 +263,5 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
 4. Imported design systems never execute external code — unknown components render
    through a generic, token-driven placeholder rather than loading a Storybook
    React module.
+5. Design-system tokens re-theme the canvas only, never the tool's own UI — the
+   app shell is insulated from whichever design system is active (spec §7b).
