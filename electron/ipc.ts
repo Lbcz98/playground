@@ -5,7 +5,9 @@ import { handleGenerateUI } from './ai/handler'
 import {
   deleteDesignSystem,
   getActiveDesignSystemId,
+  hasBundle,
   listDesignSystems,
+  saveBundle,
   saveDesignSystem,
   setActiveDesignSystemId,
 } from './storage'
@@ -27,4 +29,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(DS_IPC.delete, (_e, id: unknown) => deleteDesignSystem(id))
   ipcMain.handle(DS_IPC.getActive, () => getActiveDesignSystemId())
   ipcMain.handle(DS_IPC.setActive, (_e, id: unknown) => setActiveDesignSystemId(id))
+
+  // Live component bundles (Phase 8A).
+  ipcMain.handle(DS_IPC.saveBundle, (_e, id: unknown, code: unknown) => saveBundle(id, code))
+  ipcMain.handle(DS_IPC.hasBundle, (_e, id: unknown) => hasBundle(id))
 }

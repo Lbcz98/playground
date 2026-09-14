@@ -1,23 +1,28 @@
 import { useRef, useState } from 'react'
-import { useDesignSystemStore } from '@/store/designSystemStore'
+import { selectActiveBundleState, useDesignSystemStore } from '@/store/designSystemStore'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import { cx } from '@/lib/cx'
 
 /**
  * Switch the active design system, import new ones from a Storybook / react-docgen
- * JSON export, and attach design tokens (DTCG / Style Dictionary) to an imported
- * system. The Canvas, Inspector and AI agent all follow the selection instantly.
+ * JSON export, attach design tokens (DTCG / Style Dictionary), and — Phase 8B —
+ * attach a live component bundle. The Canvas, Inspector and AI agent all follow
+ * the selection instantly.
  */
 export function DesignSystemSwitcher(): JSX.Element {
   const library = useDesignSystemStore((s) => s.library)
   const activeId = useDesignSystemStore((s) => s.activeId)
+  const registry = useDesignSystemStore((s) => s.registry)
+  const bundleState = useDesignSystemStore(selectActiveBundleState)
   const setActive = useDesignSystemStore((s) => s.setActive)
   const importStorybook = useDesignSystemStore((s) => s.importStorybook)
   const importTokens = useDesignSystemStore((s) => s.importTokens)
+  const importBundle = useDesignSystemStore((s) => s.importBundle)
   const remove = useDesignSystemStore((s) => s.remove)
 
   const componentsRef = useRef<HTMLInputElement>(null)
   const tokensRef = useRef<HTMLInputElement>(null)
+  const bundleRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null)
 
   async function readJson(file: File): Promise<unknown | undefined> {
@@ -52,8 +57,33 @@ export function DesignSystemSwitcher(): JSX.Element {
     )
   }
 
+  async function onBundleFile(file: File): Promise<void> {
+    setStatus(null)
+    const code = await file.text()
+    const result = await importBundle(code)
+    setStatus(
+      result.ok
+        ? { kind: 'ok', text: 'Bundle attached — loading live components…' }
+        : { kind: 'error', text: result.error },
+    )
+  }
+
   const active = library.find((m) => m.id === activeId)
   const isImported = activeId !== SCREENFLOW_MANIFEST_ID
+  const colorCount = active ? Object.keys(active.tokens.colors).length : 0
+  const spacingCount = active ? Object.keys(active.tokens.spacing).length : 0
+
+  const trust = !isImported
+    ? null
+    : bundleState === 'loading'
+      ? 'loading live components…'
+      : bundleState === 'error'
+        ? 'bundle failed to load · generic renderers'
+        : registry.liveCount > 0
+          ? registry.genericCount > 0
+            ? `${registry.liveCount} live · ${registry.genericCount} generic`
+            : `${registry.liveCount} live component${registry.liveCount === 1 ? '' : 's'}`
+          : 'generic renderers'
 
   const summary =
     active &&
@@ -61,13 +91,9 @@ export function DesignSystemSwitcher(): JSX.Element {
       `${Object.keys(active.components).length} component${
         Object.keys(active.components).length === 1 ? '' : 's'
       }`,
-      Object.keys(active.tokens.colors).length
-        ? `${Object.keys(active.tokens.colors).length} colors`
-        : null,
-      Object.keys(active.tokens.spacing).length
-        ? `${Object.keys(active.tokens.spacing).length} spacing`
-        : null,
-      isImported && !Object.keys(active.tokens.colors).length ? 'generic renderers' : null,
+      colorCount ? `${colorCount} colors` : null,
+      spacingCount ? `${spacingCount} spacing` : null,
+      trust,
     ]
       .filter(Boolean)
       .join(' · ')
@@ -107,6 +133,14 @@ export function DesignSystemSwitcher(): JSX.Element {
             </button>
             <button
               type="button"
+              onClick={() => bundleRef.current?.click()}
+              title="A UMD build with react/react-dom external, exporting window.__sfsDesignSystem = { <ComponentId>: Component }"
+              className="rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink hover:bg-subtle"
+            >
+              Import component bundle…
+            </button>
+            <button
+              type="button"
               onClick={() => void remove(activeId)}
               className="rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink-muted hover:text-danger"
             >
@@ -138,6 +172,24 @@ export function DesignSystemSwitcher(): JSX.Element {
           if (file) void onTokensFile(file)
         }}
       />
+      <input
+        ref={bundleRef}
+        type="file"
+        accept="text/javascript,.js"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) void onBundleFile(file)
+        }}
+      />
+
+      {isImported ? (
+        <p className="text-xs text-ink-muted">
+          A component bundle executes as real code, with the same reach as any web page's own
+          script (DOM only) — never Node.js or Electron APIs, and never your files.
+        </p>
+      ) : null}
 
       {summary ? <p className="text-xs text-ink-muted">{summary}</p> : null}
 

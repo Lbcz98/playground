@@ -260,8 +260,12 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
 2. No absolute positioning. Layout is a container component (flexbox) with token gaps.
 3. Every appearance-affecting prop is a token union, enforced at runtime by Zod —
    hand-written for the built-in system, compiled at runtime for imported ones.
-4. Imported design systems never execute external code — unknown components render
-   through a generic, token-driven placeholder rather than loading a Storybook
-   React module.
+4. Imported design systems render through a generic, token-driven placeholder by
+   default. Attaching a live component bundle (Phase 8) is opt-in per system and
+   sandboxed to DOM-only privileges (no Node.js or Electron APIs) via a narrow
+   `design-system://` protocol that only ever serves a bundle you attached to a
+   system you already imported — never an arbitrary file, never unprompted. A
+   crash in a live component is caught by an error boundary and falls back to
+   the generic placeholder rather than taking the canvas down.
 5. Design-system tokens re-theme the canvas only, never the tool's own UI — the
    app shell is insulated from whichever design system is active (spec §7b).

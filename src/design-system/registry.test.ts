@@ -114,3 +114,51 @@ describe('hydrateRegistry — generic renderer resolves token-typed props', () =
     expect(el.props.style?.backgroundColor).toBe('var(--sfs-color-surface)')
   })
 })
+
+describe('hydrateRegistry — live components (Phase 8B)', () => {
+  const imported = parseStorybookDocgen(
+    {
+      components: {
+        Hero: { displayName: 'Hero', props: { title: { required: false, type: { name: 'string' } } } },
+        Footer: { displayName: 'Footer', props: {} },
+      },
+    },
+    { id: 'acme3', name: 'Acme3', version: '1.0.0' },
+  )
+
+  function LiveHero(props: Record<string, unknown>) {
+    return { type: 'live-hero-marker', props, key: null } as unknown as null
+  }
+
+  it('renders a component the bundle provides, and leaves an uncovered one generic', () => {
+    const reg = hydrateRegistry(imported, { Hero: LiveHero })
+    const hero = reg.get('Hero')!
+    expect(hero.live).toBe(true)
+    expect(hero.generic).toBe(false)
+    expect(reg.liveCount).toBe(1)
+    expect(reg.genericCount).toBe(1) // Footer has no live component -> stays generic
+
+    const footer = reg.get('Footer')!
+    expect(footer.live).toBe(false)
+    expect(footer.generic).toBe(true)
+  })
+
+  it('wraps the live component in a boundary and forwards props', () => {
+    const reg = hydrateRegistry(imported, { Hero: LiveHero })
+    const el = reg.get('Hero')!.render({ title: 'Hi' }, null) as {
+      props: { children: { type: unknown; props: Record<string, unknown> } }
+    }
+    // el = <LiveComponentBoundary><LiveHero title="Hi">…</LiveHero></LiveComponentBoundary>
+    const inner = el.props.children
+    expect(inner.type).toBe(LiveHero)
+    expect(inner.props.title).toBe('Hi')
+  })
+
+  it('never mistakes the built-in ScreenFlow system for a live-bundle candidate', () => {
+    // Passing a `live` map keyed by ScreenFlow's own component ids must be a no-op —
+    // the built-in system always uses its hand-written renderers.
+    const reg = hydrateRegistry(SCREENFLOW_MANIFEST, { Button: LiveHero })
+    expect(reg.get('Button')!.live).toBe(false)
+    expect(reg.get('Button')!.generic).toBe(false)
+  })
+})

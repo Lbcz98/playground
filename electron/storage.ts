@@ -7,6 +7,10 @@
  *
  * Every read is validated with `manifestZodSchema`; corrupt files are skipped,
  * not fatal. Ids are sanitised before they touch the filesystem.
+ *
+ * Phase 8A: a system may also have a `<id>.bundle.js` sibling — a live
+ * component bundle, served to the renderer ONLY via the `design-system://`
+ * protocol (`protocol.ts`), and only for an id that already has a manifest.
  */
 
 import { promises as fs } from 'node:fs'
@@ -17,8 +21,13 @@ import { manifestZodSchema, type DesignSystemManifest } from '@/shared/design-sy
 const DIR_NAME = 'design-systems'
 const META_FILE = 'meta.json'
 
-function dir(): string {
+/** Exported so `protocol.ts` can serve exactly the same files this module writes. */
+export function designSystemsDir(): string {
   return path.join(app.getPath('userData'), DIR_NAME)
+}
+
+function dir(): string {
+  return designSystemsDir()
 }
 
 function metaPath(): string {
@@ -26,7 +35,7 @@ function metaPath(): string {
 }
 
 /** Filesystem-safe id (defence in depth — the schema already bounds length). */
-function safeId(id: string): string {
+export function safeId(id: string): string {
   const cleaned = id.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^\.+/, '_').slice(0, 120)
   if (!cleaned) throw new Error('Empty design-system id')
   return cleaned
@@ -34,6 +43,15 @@ function safeId(id: string): string {
 
 async function ensureDir(): Promise<void> {
   await fs.mkdir(dir(), { recursive: true })
+}
+
+async function exists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function listDesignSystems(): Promise<DesignSystemManifest[]> {
@@ -73,7 +91,42 @@ export async function saveDesignSystem(rawManifest: unknown): Promise<DesignSyst
 
 export async function deleteDesignSystem(id: unknown): Promise<void> {
   if (typeof id !== 'string' || !id) return
-  await fs.rm(path.join(dir(), `${safeId(id)}.json`), { force: true })
+  const cleanId = safeId(id)
+  await fs.rm(path.join(dir(), `${cleanId}.json`), { force: true })
+  await fs.rm(path.join(dir(), `${cleanId}.bundle.js`), { force: true })
+}
+
+// ---------------------------------------------------------------------------
+// Live component bundles (Phase 8A) — one `<id>.bundle.js` sibling per manifest
+// that opted in. Never served for an id that doesn't already have a persisted
+// manifest — see `protocol.ts`, which is the only thing that reads this file.
+// ---------------------------------------------------------------------------
+
+const MAX_BUNDLE_BYTES = 2 * 1024 * 1024
+
+export async function saveBundle(id: unknown, code: unknown): Promise<void> {
+  if (typeof id !== 'string' || !id) throw new Error('Missing design-system id')
+  if (typeof code !== 'string' || code.trim().length === 0) {
+    throw new Error('Bundle must be non-empty JavaScript source')
+  }
+  if (Buffer.byteLength(code, 'utf8') > MAX_BUNDLE_BYTES) {
+    throw new Error(`Bundle exceeds the ${MAX_BUNDLE_BYTES / (1024 * 1024)} MB limit`)
+  }
+
+  const cleanId = safeId(id)
+  // Defence in depth: a bundle can only be attached to a system that was
+  // already legitimately imported — never staged ahead of a manifest.
+  if (!(await exists(path.join(dir(), `${cleanId}.json`)))) {
+    throw new Error(`No imported design system with id "${id}" — import its components first`)
+  }
+
+  await ensureDir()
+  await fs.writeFile(path.join(dir(), `${cleanId}.bundle.js`), code, 'utf8')
+}
+
+export async function hasBundle(id: unknown): Promise<boolean> {
+  if (typeof id !== 'string' || !id) return false
+  return exists(path.join(dir(), `${safeId(id)}.bundle.js`))
 }
 
 async function readMeta(): Promise<{ activeId?: string }> {

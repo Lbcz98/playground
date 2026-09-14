@@ -3,9 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      script-src additionally allows the design-system: scheme (Phase 8A) —
+      the ONLY way a live component bundle can load, and only via the narrow
+      design-system://<id>/bundle.js protocol handler in electron/protocol.ts
+      (a fixed filename, gated on an id that already has a persisted manifest).
+      No other directive is loosened.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+      content="default-src 'self'; script-src 'self' design-system:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     />
     <title>ScreenFlow Studio</title>
   </head>

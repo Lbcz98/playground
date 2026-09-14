@@ -13,7 +13,14 @@
  * (`manifest-zod.ts`), so the registry always tracks the live design system.
  */
 
-import type { ReactElement, ReactNode } from 'react'
+import {
+  Component,
+  cloneElement,
+  type ErrorInfo,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { z } from 'zod'
 import { cx } from '@/lib/cx'
 import type {
@@ -24,6 +31,7 @@ import type {
 import { deriveDefaultProps, inferControl, propLabel } from '@/shared/design-system/manifest'
 import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
+import type { LiveComponentMap } from './liveBundle'
 import {
   GAP_CLASS,
   PADDING_CLASS,
@@ -64,12 +72,17 @@ export interface HydratedEntry {
   render: RenderFn
   /** True when this renders through the generic placeholder. */
   generic: boolean
+  /** True when this renders the design system's OWN React component (Phase 8B). */
+  live: boolean
 }
 
 export interface HydratedRegistry {
   manifestId: string
   entries: Record<string, HydratedEntry>
   types: string[]
+  /** How many entries render live components vs. the generic placeholder. */
+  liveCount: number
+  genericCount: number
   get: (type: string) => HydratedEntry | null
   has: (type: string) => boolean
 }
@@ -344,6 +357,112 @@ function makeGenericRenderer(component: ManifestComponent, tokens: ManifestToken
 }
 
 // ===========================================================================
+// Live renderer — Phase 8B. Renders the design system's OWN React component
+// (loaded via `liveBundle.ts`), wrapped in a real error boundary: one bundle
+// component crashing must never take the rest of the canvas down with it.
+// ===========================================================================
+
+/**
+ * `NodeRenderer` decorates whatever a registry entry's `render()` returns with
+ * selection styling (`className`) and a click-to-select handler (`onClick`) via
+ * `cloneElement` on the OUTERMOST element — by design, so no wrapper `<div>`
+ * ever breaks a parent Stack's flex layout. `LiveComponentBoundary` and
+ * `CrashedPlaceholder` both forward those same two props down onto the real
+ * DOM-producing element they wrap, so a live-rendered node stays selectable
+ * exactly like every other node — success or crashed.
+ */
+interface Decoration {
+  className?: string
+  onClick?: (event: MouseEvent<HTMLElement>) => void
+}
+
+function CrashedPlaceholder({
+  component,
+  message,
+  className,
+  onClick,
+}: Decoration & { component: ManifestComponent; message: string }): ReactElement {
+  return (
+    <div
+      className={cx('flex flex-col gap-xs border border-l-4 border-dashed', className)}
+      onClick={onClick}
+      style={{
+        backgroundColor: tokenVar('colors', 'surface'),
+        color: tokenVar('colors', 'ink'),
+        borderColor: tokenVar('colors', 'line'),
+        borderLeftColor: tokenVar('colors', 'danger'),
+        borderRadius: tokenVar('radius', 'md'),
+        padding: tokenVar('spacing', 'md'),
+      }}
+    >
+      <span className="text-xs font-semibold" style={{ opacity: 0.7 }}>
+        {component.name} — crashed
+      </span>
+      <span className="text-sm">{message}</span>
+    </div>
+  )
+}
+
+interface BoundaryProps extends Decoration {
+  component: ManifestComponent
+  children: ReactElement
+}
+interface BoundaryState {
+  error: Error | null
+}
+
+class LiveComponentBoundary extends Component<BoundaryProps, BoundaryState> {
+  override state: BoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: Error): BoundaryState {
+    return { error }
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error(`[registry] live component "${this.props.component.name}" crashed:`, error, info)
+  }
+
+  override render(): ReactNode {
+    if (this.state.error) {
+      return (
+        <CrashedPlaceholder
+          component={this.props.component}
+          message={this.state.error.message}
+          className={this.props.className}
+          onClick={this.props.onClick}
+        />
+      )
+    }
+    // Forward the decoration onto the live component's own root element —
+    // best-effort: this assumes the component spreads unknown props onto its
+    // root DOM node, which is the common convention but not guaranteed for
+    // every bundle. Worst case, that one node just isn't click-selectable.
+    const child = this.props.children
+    const childProps = child.props as { className?: string }
+    return cloneElement(child, {
+      className: cx(childProps.className, this.props.className),
+      onClick: this.props.onClick,
+    })
+  }
+}
+
+function makeLiveRenderer(
+  component: ManifestComponent,
+  LiveComponent: LiveComponentMap[string],
+): RenderFn {
+  return function renderLive(props, children): ReactElement {
+    return (
+      // Keyed on the props so fixing a bad value in the Property Inspector
+      // remounts (and gives the component a fresh chance) rather than being
+      // stuck showing a stale crash from before the edit.
+      <LiveComponentBoundary component={component} key={JSON.stringify(props)}>
+        <LiveComponent {...props}>{component.acceptsChildren ? children : undefined}</LiveComponent>
+      </LiveComponentBoundary>
+    )
+  }
+}
+
+// ===========================================================================
 // Registry hydration
 // ===========================================================================
 
@@ -367,14 +486,20 @@ function toControl(component: ManifestComponent, name: string): Control {
   return { kind: 'text', label }
 }
 
-export function hydrateRegistry(manifest: DesignSystemManifest): HydratedRegistry {
+export function hydrateRegistry(
+  manifest: DesignSystemManifest,
+  live?: LiveComponentMap,
+): HydratedRegistry {
   const schemas = compileManifestSchemas(manifest)
   const useCode = manifest.id === SCREENFLOW_MANIFEST_ID
   const entries: Record<string, HydratedEntry> = {}
+  let liveCount = 0
 
   for (const component of Object.values(manifest.components)) {
     const schema = schemas[component.id]
     const codeRender = useCode ? SCREENFLOW_RENDERERS[component.id] : undefined
+    const liveComponent = !useCode ? live?.[component.id] : undefined
+    if (liveComponent) liveCount++
     const controls: Record<string, Control> = {}
     for (const name of Object.keys(component.props)) controls[name] = toControl(component, name)
 
@@ -389,16 +514,22 @@ export function hydrateRegistry(manifest: DesignSystemManifest): HydratedRegistr
       fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
       defaultProps: deriveDefaultProps(component),
       controls,
-      render: codeRender ?? makeGenericRenderer(component, manifest.tokens),
-      generic: !codeRender,
+      render:
+        codeRender ??
+        (liveComponent ? makeLiveRenderer(component, liveComponent) : makeGenericRenderer(component, manifest.tokens)),
+      generic: !codeRender && !liveComponent,
+      live: !!liveComponent,
     }
   }
 
   const types = Object.keys(entries)
+  const genericCount = Object.values(entries).filter((e) => e.generic).length
   return {
     manifestId: manifest.id,
     entries,
     types,
+    liveCount,
+    genericCount,
     get: (type) => entries[type] ?? null,
     has: (type) => type in entries,
   }

@@ -100,4 +100,33 @@ describe('designSystemStore', () => {
       expect(result.ok).toBe(false)
     })
   })
+
+  describe('importBundle (Phase 8B)', () => {
+    beforeEach(async () => {
+      await store().importStorybook(STORYBOOK_JSON, { id: 'acme', name: 'Acme', version: '1.0.0' })
+    })
+
+    it('refuses the built-in ScreenFlow system', async () => {
+      await store().setActive(SCREENFLOW_MANIFEST_ID)
+      const result = await store().importBundle('window.__sfsDesignSystem = {}')
+      expect(result.ok).toBe(false)
+    })
+
+    it('rejects empty source', async () => {
+      expect((await store().importBundle('   ')).ok).toBe(false)
+    })
+
+    it('accepts non-empty source for the active imported system (no bridge -> in-memory no-op save)', async () => {
+      const result = await store().importBundle('window.__sfsDesignSystem = { Button: () => null }')
+      expect(result).toEqual({ ok: true, id: 'acme' })
+    })
+
+    it('clears any cached bundle result so a re-import gets a fresh load attempt', async () => {
+      useDesignSystemStore.setState({ liveComponents: { acme: 'error' } })
+      await store().importBundle('window.__sfsDesignSystem = { Button: () => null }')
+      // No bridge in tests -> maybeLoadLiveComponents no-ops, but the stale
+      // 'error' entry must not survive the import untouched.
+      expect(store().liveComponents.acme).toBeUndefined()
+    })
+  })
 })

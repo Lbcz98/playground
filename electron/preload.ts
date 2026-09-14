@@ -47,6 +47,14 @@ const bridge = {
     setActiveId(id: string): Promise<void> {
       return ipcRenderer.invoke(DS_IPC.setActive, id)
     },
+
+    /** Live component bundle for `id` (Phase 8A) — served back via `design-system://<id>/bundle.js`. */
+    saveBundle(id: string, code: string): Promise<void> {
+      return ipcRenderer.invoke(DS_IPC.saveBundle, id, code)
+    },
+    hasBundle(id: string): Promise<boolean> {
+      return ipcRenderer.invoke(DS_IPC.hasBundle, id)
+    },
   },
 } as const
 

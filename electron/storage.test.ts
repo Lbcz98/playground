@@ -16,6 +16,8 @@ const {
   deleteDesignSystem,
   getActiveDesignSystemId,
   setActiveDesignSystemId,
+  saveBundle,
+  hasBundle,
 } = await import('./storage')
 
 function manifest(id: string): DesignSystemManifest {
@@ -87,5 +89,48 @@ describe('design-system storage (spec §9)', () => {
     expect(list).toHaveLength(1)
     // file lands inside the storage dir, id preserved in content
     expect(list[0].id).toBe('../evil')
+  })
+})
+
+describe('live component bundles (Phase 8A)', () => {
+  it('refuses a bundle for an id with no imported manifest', async () => {
+    expect(await hasBundle('acme')).toBe(false)
+    await expect(saveBundle('acme', 'window.Acme = {}')).rejects.toThrow(/No imported design system/)
+    expect(await hasBundle('acme')).toBe(false)
+  })
+
+  it('saves a bundle once the manifest exists, and it round-trips', async () => {
+    await saveDesignSystem(manifest('acme'))
+    expect(await hasBundle('acme')).toBe(false)
+    await saveBundle('acme', 'window.Acme = { Button: () => null }')
+    expect(await hasBundle('acme')).toBe(true)
+
+    const { readFile } = await import('node:fs/promises')
+    const written = await readFile(join(userData, 'design-systems', 'acme.bundle.js'), 'utf8')
+    expect(written).toContain('window.Acme')
+  })
+
+  it('rejects empty or oversized bundles', async () => {
+    await saveDesignSystem(manifest('acme'))
+    await expect(saveBundle('acme', '   ')).rejects.toThrow(/non-empty/)
+    await expect(saveBundle('acme', 'x'.repeat(3 * 1024 * 1024))).rejects.toThrow(/exceeds/)
+  })
+
+  it('deleting the design system also removes its bundle', async () => {
+    await saveDesignSystem(manifest('acme'))
+    await saveBundle('acme', 'window.Acme = {}')
+    await deleteDesignSystem('acme')
+    expect(await hasBundle('acme')).toBe(false)
+    expect(await listDesignSystems()).toEqual([])
+  })
+
+  it('sanitises the id the same way manifests do', async () => {
+    await saveDesignSystem(manifest('../evil'))
+    await saveBundle('../evil', 'window.Evil = {}')
+    expect(await hasBundle('../evil')).toBe(true)
+    // lands under the sanitised filename, not a path escape
+    const { readdir } = await import('node:fs/promises')
+    const files = await readdir(join(userData, 'design-systems'))
+    expect(files.some((f) => f.endsWith('.bundle.js') && !f.includes('/'))).toBe(true)
   })
 })

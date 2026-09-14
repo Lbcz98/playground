@@ -17,6 +17,10 @@ export const DS_IPC = {
   getActive: 'ds:getActive',
   /** main: persist the active manifest id. */
   setActive: 'ds:setActive',
+  /** main: write `<id>.bundle.js` (Phase 8A — only for an id with a manifest). */
+  saveBundle: 'ds:saveBundle',
+  /** main: whether `<id>.bundle.js` exists. */
+  hasBundle: 'ds:hasBundle',
 } as const
 
 export type DsIpcChannel = (typeof DS_IPC)[keyof typeof DS_IPC]
