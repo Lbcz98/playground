@@ -1,7 +1,27 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import * as ReactDOMFull from 'react-dom'
 import { App } from '@/app/App'
+// Foundational design-token layer — must load before index.css so every
+// component (hand-authored or AI-generated) can reference the resulting
+// var(--...) custom properties with no per-file import.
+import '@/styles/global.css'
 import './index.css'
+
+// Phase 8A: the one deliberate global leak. A live design-system bundle
+// (Phase 8B, loaded via a UMD <script> pointed at design-system://<id>/bundle.js)
+// must run against THIS SAME React instance, not a second copy it bundles
+// itself — two React copies in one page means "invalid hook call" the moment
+// a bundle mounts. Exposing our own instances is what lets a UMD build declare
+// react/react-dom as externals resolved to window.React / window.ReactDOM.
+declare global {
+  interface Window {
+    React?: typeof React
+    ReactDOM?: typeof ReactDOMFull
+  }
+}
+window.React = React
+window.ReactDOM = ReactDOMFull
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

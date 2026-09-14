@@ -14,7 +14,10 @@ import { join, relative } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const SRC = join(ROOT, 'src')
-const ALLOWLIST = new Set([join(SRC, 'design-system', 'primitives.ts')])
+const ALLOWLIST = new Set([
+  join(SRC, 'design-system', 'primitives.ts'),
+  join(SRC, 'styles', 'global.css'),
+])
 
 const ARBITRARY_CLASS = /\b(?:[a-z-]+)-\[[^\]]+\]/g
 const RAW_HEX = /#[0-9a-fA-F]{3,8}\b/g

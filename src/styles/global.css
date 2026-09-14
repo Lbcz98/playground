@@ -1,0 +1,298 @@
+:root {
+  /* ===== Color · Core · Neutral ===== */
+  --color-core-neutral-white: #EEEEEE;
+  --color-core-neutral-white-alpha-0: #EEEEEE00;
+  --color-core-neutral-light-grey: #888888;
+  --color-core-neutral-medium-grey: #3F3F3F;
+  --color-core-neutral-dark-grey: #191919;
+  --color-core-neutral-black: #000000;
+  --color-core-neutral-grey-mid: #999999;
+  --color-core-neutral-dark-blue-grey: #34343C;
+  --color-core-neutral-charcoal: #17161B;
+  --color-core-neutral-slate: #2B313A;
+
+  /* ===== Color · Core · Primary ===== */
+  --color-core-primary-night-light: #35C7F3;
+  --color-core-primary-night-dark: #414FFD;
+  --color-core-primary-day-light: #00E1C0;
+  --color-core-primary-day-dark: #00E879;
+  --color-core-primary-evening-light: #E7C300;
+  --color-core-primary-evening-dark: #ED6001;
+
+  /* ===== Color · Core · Complementary ===== */
+  --color-core-complementary-error: #DE2C2C;
+  --color-core-complementary-confirmation: #11BB0E;
+  --color-core-complementary-alert: #FFA90A;
+  --color-core-complementary-live: #FD4142;
+
+  /* ===== Color · Opacity ===== */
+  --color-opacity-background: #191F274D;
+  --color-opacity-base-rounded: #2B313A33;
+
+  --color-opacity-dark-10: #0000001A;
+  --color-opacity-dark-20: #00000033;
+  --color-opacity-dark-30: #0000004D;
+  --color-opacity-dark-50: #00000080;
+  --color-opacity-dark-70: #000000B3;
+
+  --color-opacity-light-10: #FFFFFF1A;
+  --color-opacity-light-20: #FFFFFF33;
+  --color-opacity-light-30: #FFFFFF4D;
+  --color-opacity-light-50: #FFFFFF80;
+  --color-opacity-light-70: #FFFFFFB3;
+
+  /* ===== Color · Semantic · Theme ===== */
+  --color-semantic-theme-day-dark: var(--color-core-primary-night-dark);
+  --color-semantic-theme-day-light: var(--color-core-primary-night-light);
+  --color-semantic-theme-evening-dark: var(--color-core-primary-day-dark);
+  --color-semantic-theme-evening-light: var(--color-core-primary-day-light);
+  --color-semantic-theme-night-dark: var(--color-core-primary-evening-dark);
+  --color-semantic-theme-night-light: var(--color-core-primary-evening-light);
+
+  /* ===== Color · Semantic · Functional ===== */
+  --color-semantic-functional-background-primary: var(--color-core-neutral-dark-grey);
+  --color-semantic-functional-background-elevated: var(--color-core-neutral-medium-grey);
+  --color-semantic-functional-background-overlay: var(--color-opacity-base-rounded);
+  --color-semantic-functional-text-primary: var(--color-core-neutral-white);
+  --color-semantic-functional-text-secondary: var(--color-core-neutral-light-grey);
+  --color-semantic-functional-text-inverse: var(--color-core-neutral-black);
+  --color-semantic-functional-border-subtle: var(--color-opacity-light-10);
+  --color-semantic-functional-border-default: var(--color-opacity-light-20);
+  --color-semantic-functional-status-error: var(--color-core-complementary-error);
+  --color-semantic-functional-status-success: var(--color-core-complementary-confirmation);
+  --color-semantic-functional-status-warning: var(--color-core-complementary-alert);
+  --color-semantic-functional-status-live: var(--color-core-complementary-live);
+
+  /* ===== Gradient · Primary =====
+     Stop positions taken from token data; the W3C gradient $type carries no
+     angle, so direction defaults to 180deg (to bottom) throughout. */
+  --gradient-primary-night: linear-gradient(180deg, var(--color-core-primary-night-dark) 30%, var(--color-core-primary-night-light) 100%);
+  --gradient-primary-day: linear-gradient(180deg, var(--color-core-primary-day-dark) 30%, var(--color-core-primary-day-light) 100%);
+  --gradient-primary-evening: linear-gradient(180deg, var(--color-core-primary-evening-dark) 30%, var(--color-core-primary-evening-light) 100%);
+
+  /* ===== Gradient · Inverse ===== */
+  --gradient-inverse-night: linear-gradient(180deg, var(--color-core-primary-night-light) 0%, var(--color-core-primary-night-dark) 70%);
+  --gradient-inverse-day: linear-gradient(180deg, var(--color-core-primary-day-light) 0%, var(--color-core-primary-day-dark) 100%);
+  --gradient-inverse-evening: linear-gradient(180deg, var(--color-core-primary-evening-light) 0%, var(--color-core-primary-evening-dark) 70%);
+
+  /* ===== Gradient · Complementary ===== */
+  --gradient-complementary-shiny: linear-gradient(180deg, var(--color-core-neutral-grey-mid) 0%, var(--color-core-neutral-white) 100%);
+  --gradient-complementary-diagonal-light: linear-gradient(180deg, var(--color-opacity-light-70) 0%, var(--color-opacity-dark-30) 60%);
+  --gradient-complementary-linear-light: linear-gradient(180deg, var(--color-core-neutral-white) 0%, var(--color-core-neutral-white-alpha-0) 100%);
+  --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey) 0%, var(--color-core-neutral-charcoal) 100%);
+  --gradient-complementary-live: linear-gradient(180deg, var(--color-core-complementary-live) 0%, var(--color-core-complementary-error) 70%);
+
+  /* ===== Dimension · Radius · Core ===== */
+  --dimension-radius-core-none: 0px;
+  --dimension-radius-core-xs: 4px;
+  --dimension-radius-core-sm: 8px;
+  --dimension-radius-core-md: 12px;
+  --dimension-radius-core-lg: 16px;
+  --dimension-radius-core-xl: 20px;
+  --dimension-radius-core-2xl: 24px;
+  --dimension-radius-core-3xl: 28px;
+  --dimension-radius-core-4xl: 32px;
+  --dimension-radius-core-5xl: 36px;
+  --dimension-radius-core-6xl: 40px;
+  --dimension-radius-core-7xl: 48px;
+  --dimension-radius-core-8xl: 56px;
+  --dimension-radius-core-9xl: 64px;
+  --dimension-radius-core-10xl: 88px;
+  --dimension-radius-core-full: 100px;
+
+  /* ===== Dimension · Spacing · Core ===== */
+  --dimension-spacing-core-none: 0px;
+  --dimension-spacing-core-3xs: 4px;
+  --dimension-spacing-core-2xs: 8px;
+  --dimension-spacing-core-xs: 12px;
+  --dimension-spacing-core-sm: 16px;
+  --dimension-spacing-core-md: 20px;
+  --dimension-spacing-core-lg: 24px;
+  --dimension-spacing-core-xl: 32px;
+  --dimension-spacing-core-2xl: 40px;
+  --dimension-spacing-core-3xl: 48px;
+  --dimension-spacing-core-4xl: 64px;
+  --dimension-spacing-core-5xl: 80px;
+  --dimension-spacing-core-6xl: 96px;
+
+  /* ===== Typography · Font Family ===== */
+  --typography-font-family-primary: 'Inter';
+
+  /* ===== Typography · Font Weight ===== */
+  --typography-font-weight-regular: 400;
+  --typography-font-weight-medium: 500;
+  --typography-font-weight-bold: 700;
+  --typography-font-weight-extra-bold: 800;
+
+  /* ===== Typography · Font Size ===== */
+  --typography-font-size-xs: 10px;
+  --typography-font-size-sm: 12px;
+  --typography-font-size-md: 14px;
+  --typography-font-size-base: 16px;
+  --typography-font-size-lg: 18px;
+  --typography-font-size-xl: 20px;
+  --typography-font-size-2xl: 24px;
+  --typography-font-size-3xl: 28px;
+
+  /* ===== Typography · Letter Spacing ===== */
+  --typography-letter-spacing-tight: -0.01em;
+  --typography-letter-spacing-tighter: -0.02em;
+
+  /* ===== Typography · Line Height ===== */
+  --typography-line-height-tight: 1.1;
+  --typography-line-height-normal: 1.2;
+}
+
+/* ===== Typography · Utility Classes ===== */
+
+.text-caption-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-xs);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-caption-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-xs);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-caption-extra-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-xs);
+  font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-footnote-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-footnote-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-sm-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-sm-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-sm-extra-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-body-md-regular {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-base);
+  font-weight: var(--typography-font-weight-regular);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-md-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-base);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-md-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-base);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-lg-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-body-lg-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-5-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-5-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-4-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-2xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-4-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-2xl);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-3-medium {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-3xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
+
+.text-heading-3-bold {
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-3xl);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+}
