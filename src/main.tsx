@@ -2,6 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import * as ReactDOMFull from 'react-dom'
 import { App } from '@/app/App'
+// Self-hosted: the CSP has no font-src, so fonts fall back to default-src 'self'
+// and a CDN copy would be blocked — and the packaged app has to work offline.
+import '@fontsource-variable/inter'
 // Foundational design-token layer — must load before index.css so every
 // component (hand-authored or AI-generated) can reference the resulting
 // var(--...) custom properties with no per-file import.

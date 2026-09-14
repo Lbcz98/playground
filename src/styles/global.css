@@ -115,8 +115,13 @@
   --dimension-spacing-core-5xl: 80px;
   --dimension-spacing-core-6xl: 96px;
 
-  /* ===== Typography · Font Family ===== */
-  --typography-font-family-primary: 'Inter';
+  /* ===== Typography · Font Family =====
+     The token names the typeface; CSS needs a resolution chain. 'Inter Variable'
+     is the bundled @fontsource copy, 'Inter' picks up a locally-installed one,
+     and the tail degrades to sans-serif — without it an unresolved 'Inter' lands
+     on the browser default, which is SERIF. */
+  --typography-font-family-primary: 'Inter Variable', 'Inter', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   /* ===== Typography · Font Weight ===== */
   --typography-font-weight-regular: 400;

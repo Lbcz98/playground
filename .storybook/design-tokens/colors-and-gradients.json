@@ -1,0 +1,308 @@
+{
+  "color": {
+    "core": {
+      "neutral": {
+        "white": {
+          "$value": "#EEEEEE",
+          "$type": "color"
+        },
+        "white-alpha-0": {
+          "$value": "#EEEEEE00",
+          "$type": "color",
+          "$description": "Fully transparent white — used for fade-out gradient endpoints"
+        },
+        "light-grey": {
+          "$value": "#888888",
+          "$type": "color"
+        },
+        "medium-grey": {
+          "$value": "#3F3F3F",
+          "$type": "color"
+        },
+        "dark-grey": {
+          "$value": "#191919",
+          "$type": "color"
+        },
+        "black": {
+          "$value": "#000000",
+          "$type": "color"
+        },
+        "grey-mid": {
+          "$value": "#999999",
+          "$type": "color",
+          "$description": "Used in complementary gradient stops"
+        },
+        "dark-blue-grey": {
+          "$value": "#34343C",
+          "$type": "color",
+          "$description": "Transparent gradient base"
+        },
+        "charcoal": {
+          "$value": "#17161B",
+          "$type": "color",
+          "$description": "Deep dark gradient endpoint"
+        },
+        "slate": {
+          "$value": "#2B313A",
+          "$type": "color",
+          "$description": "Base hue for translucent overlays"
+        }
+      },
+      "primary": {
+        "night": {
+          "light": {
+            "$value": "#35C7F3",
+            "$type": "color"
+          },
+          "dark": {
+            "$value": "#414FFD",
+            "$type": "color"
+          }
+        },
+        "day": {
+          "light": {
+            "$value": "#00E1C0",
+            "$type": "color"
+          },
+          "dark": {
+            "$value": "#00E879",
+            "$type": "color"
+          }
+        },
+        "evening": {
+          "light": {
+            "$value": "#E7C300",
+            "$type": "color"
+          },
+          "dark": {
+            "$value": "#ED6001",
+            "$type": "color"
+          }
+        }
+      },
+      "complementary": {
+        "error": {
+          "$value": "#DE2C2C",
+          "$type": "color"
+        },
+        "confirmation": {
+          "$value": "#11BB0E",
+          "$type": "color"
+        },
+        "alert": {
+          "$value": "#FFA90A",
+          "$type": "color"
+        },
+        "live": {
+          "$value": "#FD4142",
+          "$type": "color"
+        }
+      }
+    },
+    "opacity": {
+      "background": {
+        "$value": "#191F274D",
+        "$type": "color",
+        "$description": "Derived from {color.core.neutral.slate} at 30% alpha"
+      },
+      "base-rounded": {
+        "$value": "#2B313A33",
+        "$type": "color",
+        "$description": "Derived from {color.core.neutral.slate} at 20% alpha"
+      },
+      "dark": {
+        "10": { "$value": "#0000001A", "$type": "color" },
+        "20": { "$value": "#00000033", "$type": "color" },
+        "30": { "$value": "#0000004D", "$type": "color" },
+        "50": { "$value": "#00000080", "$type": "color" },
+        "70": { "$value": "#000000B3", "$type": "color" }
+      },
+      "light": {
+        "10": { "$value": "#FFFFFF1A", "$type": "color" },
+        "20": { "$value": "#FFFFFF33", "$type": "color" },
+        "30": { "$value": "#FFFFFF4D", "$type": "color" },
+        "50": { "$value": "#FFFFFF80", "$type": "color" },
+        "70": { "$value": "#FFFFFFB3", "$type": "color" }
+      }
+    },
+    "semantic": {
+      "theme": {
+        "day-dark": {
+          "$value": "{color.core.primary.night.dark}",
+          "$type": "color",
+          "$description": "Figma variable: Dia-Escuro"
+        },
+        "day-light": {
+          "$value": "{color.core.primary.night.light}",
+          "$type": "color",
+          "$description": "Figma variable: Dia-Claro"
+        },
+        "evening-dark": {
+          "$value": "{color.core.primary.day.dark}",
+          "$type": "color",
+          "$description": "Figma variable: Tarde-Escura"
+        },
+        "evening-light": {
+          "$value": "{color.core.primary.day.light}",
+          "$type": "color",
+          "$description": "Figma variable: Tarde-Clara"
+        },
+        "night-dark": {
+          "$value": "{color.core.primary.evening.dark}",
+          "$type": "color",
+          "$description": "Figma variable: Noite-Escura"
+        },
+        "night-light": {
+          "$value": "{color.core.primary.evening.light}",
+          "$type": "color",
+          "$description": "Figma variable: Noite-Clara"
+        }
+      },
+      "functional": {
+        "background-primary": {
+          "$value": "{color.core.neutral.dark-grey}",
+          "$type": "color",
+          "$description": "Default app background"
+        },
+        "background-elevated": {
+          "$value": "{color.core.neutral.medium-grey}",
+          "$type": "color",
+          "$description": "Cards, modals, elevated surfaces"
+        },
+        "background-overlay": {
+          "$value": "{color.opacity.base-rounded}",
+          "$type": "color",
+          "$description": "Translucent scrim behind modals/drawers"
+        },
+        "text-primary": {
+          "$value": "{color.core.neutral.white}",
+          "$type": "color",
+          "$description": "Primary readable text on dark surfaces"
+        },
+        "text-secondary": {
+          "$value": "{color.core.neutral.light-grey}",
+          "$type": "color",
+          "$description": "Subdued text, placeholders, captions"
+        },
+        "text-inverse": {
+          "$value": "{color.core.neutral.black}",
+          "$type": "color",
+          "$description": "Text on light/accent backgrounds"
+        },
+        "border-subtle": {
+          "$value": "{color.opacity.light.10}",
+          "$type": "color",
+          "$description": "Low-contrast dividers on dark surfaces"
+        },
+        "border-default": {
+          "$value": "{color.opacity.light.20}",
+          "$type": "color",
+          "$description": "Standard border on dark surfaces"
+        },
+        "status-error": {
+          "$value": "{color.core.complementary.error}",
+          "$type": "color"
+        },
+        "status-success": {
+          "$value": "{color.core.complementary.confirmation}",
+          "$type": "color"
+        },
+        "status-warning": {
+          "$value": "{color.core.complementary.alert}",
+          "$type": "color"
+        },
+        "status-live": {
+          "$value": "{color.core.complementary.live}",
+          "$type": "color"
+        }
+      }
+    }
+  },
+  "gradient": {
+    "primary": {
+      "night": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.night.dark}", "position": 0.3 },
+          { "color": "{color.core.primary.night.light}", "position": 1 }
+        ]
+      },
+      "day": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.day.dark}", "position": 0.3 },
+          { "color": "{color.core.primary.day.light}", "position": 1 }
+        ]
+      },
+      "evening": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.evening.dark}", "position": 0.3 },
+          { "color": "{color.core.primary.evening.light}", "position": 1 }
+        ]
+      }
+    },
+    "inverse": {
+      "night": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.night.light}", "position": 0 },
+          { "color": "{color.core.primary.night.dark}", "position": 0.7 }
+        ]
+      },
+      "day": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.day.light}", "position": 0 },
+          { "color": "{color.core.primary.day.dark}", "position": 1 }
+        ]
+      },
+      "evening": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.primary.evening.light}", "position": 0 },
+          { "color": "{color.core.primary.evening.dark}", "position": 0.7 }
+        ]
+      }
+    },
+    "complementary": {
+      "shiny": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.neutral.grey-mid}", "position": 0 },
+          { "color": "{color.core.neutral.white}", "position": 1 }
+        ]
+      },
+      "diagonal-light": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.opacity.light.70}", "position": 0 },
+          { "color": "{color.opacity.dark.30}", "position": 0.6 }
+        ],
+        "$description": "Approximate alias — original stops use 80% white and 30% grey-mid"
+      },
+      "linear-light": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.neutral.white}", "position": 0 },
+          { "color": "{color.core.neutral.white-alpha-0}", "position": 1 }
+        ]
+      },
+      "dark": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.neutral.dark-blue-grey}", "position": 0 },
+          { "color": "{color.core.neutral.charcoal}", "position": 1 }
+        ],
+        "$description": "Start stop carries alpha 0 in source — transparent-to-opaque dark overlay"
+      },
+      "live": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.complementary.live}", "position": 0 },
+          { "color": "{color.core.complementary.error}", "position": 0.7 }
+        ]
+      }
+    }
+  }
+}
