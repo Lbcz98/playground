@@ -22,6 +22,7 @@ import {
   SCREENFLOW_MANIFEST,
   SCREENFLOW_MANIFEST_ID,
 } from '@/shared/design-system/screenflow-manifest'
+import { W3C_MANIFEST, W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
 import { parseStorybookDocgen, type StorybookAdapterMeta } from '@/shared/design-system/storybook-adapter'
 import { mergeTokens, parseDesignTokens } from '@/shared/design-system/token-adapter'
 import { hydrateRegistry, type HydratedRegistry } from '@/design-system/registry'
@@ -61,15 +62,19 @@ function ds() {
   return typeof window !== 'undefined' ? window.flow?.designSystems : undefined
 }
 
-/** Built-in first, then imported systems sorted by name; de-duped by id. */
+const BUILT_IN_IDS = new Set([SCREENFLOW_MANIFEST_ID, W3C_MANIFEST_ID])
+
+/** Built-ins first (ScreenFlow, then the global.css tokens), then imported
+ *  systems sorted by name; de-duped by id. */
 function composeLibrary(imported: DesignSystemManifest[]): DesignSystemManifest[] {
   const byId = new Map<string, DesignSystemManifest>()
   byId.set(SCREENFLOW_MANIFEST_ID, SCREENFLOW_MANIFEST)
-  for (const m of imported) if (m.id !== SCREENFLOW_MANIFEST_ID) byId.set(m.id, m)
+  byId.set(W3C_MANIFEST_ID, W3C_MANIFEST)
+  for (const m of imported) if (!BUILT_IN_IDS.has(m.id)) byId.set(m.id, m)
   const rest = [...byId.values()]
-    .filter((m) => m.id !== SCREENFLOW_MANIFEST_ID)
+    .filter((m) => !BUILT_IN_IDS.has(m.id))
     .sort((a, b) => a.name.localeCompare(b.name))
-  return [SCREENFLOW_MANIFEST, ...rest]
+  return [SCREENFLOW_MANIFEST, W3C_MANIFEST, ...rest]
 }
 
 function liveMapOf(state: LiveBundleState | undefined): LiveComponentMap | undefined {
@@ -150,8 +155,8 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
 
   importTokens: async (rawJson) => {
     const target = get().active
-    if (target.id === SCREENFLOW_MANIFEST_ID) {
-      return { ok: false, error: 'The built-in ScreenFlow system cannot be re-themed.' }
+    if (BUILT_IN_IDS.has(target.id)) {
+      return { ok: false, error: 'This built-in design system cannot be re-themed.' }
     }
     const parsed = parseDesignTokens(rawJson)
     if (Object.keys(parsed).length === 0) {
@@ -170,8 +175,8 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
 
   importBundle: async (code) => {
     const target = get().active
-    if (target.id === SCREENFLOW_MANIFEST_ID) {
-      return { ok: false, error: 'The built-in ScreenFlow system cannot load a live bundle.' }
+    if (BUILT_IN_IDS.has(target.id)) {
+      return { ok: false, error: 'This built-in design system cannot load a live bundle.' }
     }
     if (typeof code !== 'string' || code.trim().length === 0) {
       return { ok: false, error: 'That file is empty.' }
@@ -192,7 +197,7 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
   },
 
   remove: async (id) => {
-    if (id === SCREENFLOW_MANIFEST_ID) return
+    if (BUILT_IN_IDS.has(id)) return
     const library = get().library.filter((m) => m.id !== id)
     const wantId = get().activeId === id ? SCREENFLOW_MANIFEST_ID : get().activeId
     const liveComponents = { ...get().liveComponents }
@@ -218,7 +223,7 @@ async function persistAndAdd(
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
   const library = composeLibrary([
-    ...get().library.filter((m) => m.id !== manifest.id && m.id !== SCREENFLOW_MANIFEST_ID),
+    ...get().library.filter((m) => m.id !== manifest.id && !BUILT_IN_IDS.has(m.id)),
     manifest,
   ])
   set({ library, ...derive(library, manifest.id, get().liveComponents) })
@@ -242,7 +247,7 @@ async function maybeLoadLiveComponents(
   set: SetFn,
   get: () => DesignSystemState,
 ): Promise<void> {
-  if (id === SCREENFLOW_MANIFEST_ID) return
+  if (BUILT_IN_IDS.has(id)) return
   if (get().liveComponents[id] !== undefined) return // already cached or in flight
 
   const bridge = ds()
