@@ -1,0 +1,106 @@
+{
+  "dimension": {
+    "border-width": {
+      "core": {
+        "hairline": { "$value": "1px", "$type": "dimension" },
+        "thin": { "$value": "2px", "$type": "dimension" },
+        "medium": { "$value": "4px", "$type": "dimension" },
+        "thick": { "$value": "6px", "$type": "dimension" }
+      },
+      "semantic": {
+        "card": {
+          "$value": "{dimension.border-width.core.hairline}",
+          "$type": "dimension"
+        },
+        "button": {
+          "$value": "{dimension.border-width.core.hairline}",
+          "$type": "dimension",
+          "$description": "Snapped from 1.33–1.34px"
+        },
+        "section-focus": {
+          "$value": "{dimension.border-width.core.thin}",
+          "$type": "dimension"
+        },
+        "focus-ring": {
+          "$value": "{dimension.border-width.core.medium}",
+          "$type": "dimension"
+        },
+        "pill-focus": {
+          "$value": "{dimension.border-width.core.thick}",
+          "$type": "dimension"
+        }
+      }
+    }
+  },
+  "opacity": {
+    "core": {
+      "0": { "$value": 0, "$type": "number" },
+      "10": { "$value": 0.1, "$type": "number" },
+      "20": { "$value": 0.2, "$type": "number" },
+      "25": { "$value": 0.25, "$type": "number" },
+      "30": { "$value": 0.3, "$type": "number" },
+      "40": { "$value": 0.4, "$type": "number" },
+      "50": { "$value": 0.5, "$type": "number" },
+      "60": { "$value": 0.6, "$type": "number" },
+      "70": { "$value": 0.7, "$type": "number" },
+      "75": { "$value": 0.75, "$type": "number" },
+      "80": { "$value": 0.8, "$type": "number" },
+      "90": { "$value": 0.9, "$type": "number" },
+      "100": { "$value": 1, "$type": "number" }
+    },
+    "semantic": {
+      "hidden": {
+        "$value": "{opacity.core.0}",
+        "$type": "number"
+      },
+      "overlay-minimal": {
+        "$value": "{opacity.core.10}",
+        "$type": "number"
+      },
+      "image-subdued": {
+        "$value": "{opacity.core.20}",
+        "$type": "number"
+      },
+      "shadow-subtle": {
+        "$value": "{opacity.core.25}",
+        "$type": "number"
+      },
+      "background-subtle": {
+        "$value": "{opacity.core.30}",
+        "$type": "number"
+      },
+      "border-subtle": {
+        "$value": "{opacity.core.40}",
+        "$type": "number"
+      },
+      "content-muted": {
+        "$value": "{opacity.core.50}",
+        "$type": "number"
+      },
+      "overlay": {
+        "$value": "{opacity.core.60}",
+        "$type": "number"
+      },
+      "text-secondary": {
+        "$value": "{opacity.core.70}",
+        "$type": "number"
+      },
+      "statistics-vector": {
+        "$value": "{opacity.core.75}",
+        "$type": "number"
+      },
+      "illumination-strong": {
+        "$value": "{opacity.core.80}",
+        "$type": "number"
+      },
+      "title": {
+        "$value": "{opacity.core.90}",
+        "$type": "number"
+      },
+      "visible": {
+        "$value": "{opacity.core.100}",
+        "$type": "number"
+      }
+    }
+  }
+}

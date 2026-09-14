@@ -115,6 +115,19 @@
   --dimension-spacing-core-5xl: 80px;
   --dimension-spacing-core-6xl: 96px;
 
+  /* ===== Dimension · Border Width · Core ===== */
+  --dimension-border-width-core-hairline: 1px;
+  --dimension-border-width-core-thin: 2px;
+  --dimension-border-width-core-medium: 4px;
+  --dimension-border-width-core-thick: 6px;
+
+  /* ===== Dimension · Border Width · Semantic ===== */
+  --dimension-border-width-semantic-card: var(--dimension-border-width-core-hairline);
+  --dimension-border-width-semantic-button: var(--dimension-border-width-core-hairline);
+  --dimension-border-width-semantic-section-focus: var(--dimension-border-width-core-thin);
+  --dimension-border-width-semantic-focus-ring: var(--dimension-border-width-core-medium);
+  --dimension-border-width-semantic-pill-focus: var(--dimension-border-width-core-thick);
+
   /* ===== Typography · Font Family =====
      The token names the typeface; CSS needs a resolution chain. 'Inter Variable'
      is the bundled @fontsource copy, 'Inter' picks up a locally-installed one,
@@ -146,6 +159,36 @@
   /* ===== Typography · Line Height ===== */
   --typography-line-height-tight: 1.1;
   --typography-line-height-normal: 1.2;
+
+  /* ===== Opacity · Core ===== */
+  --opacity-core-0: 0;
+  --opacity-core-10: 0.1;
+  --opacity-core-20: 0.2;
+  --opacity-core-25: 0.25;
+  --opacity-core-30: 0.3;
+  --opacity-core-40: 0.4;
+  --opacity-core-50: 0.5;
+  --opacity-core-60: 0.6;
+  --opacity-core-70: 0.7;
+  --opacity-core-75: 0.75;
+  --opacity-core-80: 0.8;
+  --opacity-core-90: 0.9;
+  --opacity-core-100: 1;
+
+  /* ===== Opacity · Semantic ===== */
+  --opacity-semantic-hidden: var(--opacity-core-0);
+  --opacity-semantic-overlay-minimal: var(--opacity-core-10);
+  --opacity-semantic-image-subdued: var(--opacity-core-20);
+  --opacity-semantic-shadow-subtle: var(--opacity-core-25);
+  --opacity-semantic-background-subtle: var(--opacity-core-30);
+  --opacity-semantic-border-subtle: var(--opacity-core-40);
+  --opacity-semantic-content-muted: var(--opacity-core-50);
+  --opacity-semantic-overlay: var(--opacity-core-60);
+  --opacity-semantic-text-secondary: var(--opacity-core-70);
+  --opacity-semantic-statistics-vector: var(--opacity-core-75);
+  --opacity-semantic-illumination-strong: var(--opacity-core-80);
+  --opacity-semantic-title: var(--opacity-core-90);
+  --opacity-semantic-visible: var(--opacity-core-100);
 }
 
 /* ===== Typography · Utility Classes ===== */

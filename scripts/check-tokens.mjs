@@ -18,6 +18,7 @@ const ALLOWLIST = new Set([
   join(SRC, 'design-system', 'primitives.ts'),
   join(SRC, 'styles', 'global.css'),
   join(SRC, 'shared', 'design-system', 'w3c-token-source.ts'),
+  join(SRC, 'ui-kit', 'untokenized.ts'),
 ])
 
 const ARBITRARY_CLASS = /\b(?:[a-z-]+)-\[[^\]]+\]/g
