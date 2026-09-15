@@ -10,10 +10,10 @@
 import { createElement, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import {
   borderColor,
-  cssVar,
   radius as radiusStep,
   spacing,
   surface,
+  token,
   type BorderColor,
   type GridSpacing,
   type RadiusStep,
@@ -74,7 +74,7 @@ export function resolveBoxProps<P extends BoxProps>({
     paddingBlock: block ? spacing(block) : 0,
     backgroundColor: background ? surface(background) : undefined,
     border: border
-      ? `${cssVar('--dimension-border-width-semantic-card')} solid ${borderColor(border)}`
+      ? `${token('--dimension-border-width-semantic-card')} solid ${borderColor(border)}`
       : undefined,
     borderRadius: radius ? radiusStep(radius) : undefined,
     flex: grow ? '1 1 0%' : undefined,

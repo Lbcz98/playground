@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Box, Stack } from '@/primitives'
 import { WideButton } from './WideButton'
 
 const meta = {
@@ -7,14 +8,9 @@ const meta = {
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          padding: 'var(--dimension-spacing-core-xl)',
-          backgroundColor: 'var(--color-semantic-functional-background-primary)',
-        }}
-      >
+      <Box padding="xl" background="primary">
         <Story />
-      </div>
+      </Box>
     ),
   ],
   args: { label: 'Label' },
@@ -34,17 +30,11 @@ export const WithIcons: Story = {
 export const AllStatuses: Story = {
   args: {},
   render: (args) => (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--dimension-spacing-core-sm)',
-      }}
-    >
+    <Stack gap="sm">
       <WideButton {...args} status="focus" />
       <WideButton {...args} status="default" />
       <WideButton {...args} status="loading" />
       <WideButton {...args} status="disabled" />
-    </div>
+    </Stack>
   ),
 }

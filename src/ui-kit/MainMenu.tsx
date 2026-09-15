@@ -17,7 +17,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { Text, token } from '@/primitives'
+import { size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell } from './RoundButtonShell'
@@ -43,42 +43,33 @@ export interface MainMenuProps {
   onBugClick?: () => void
 }
 
-const row: CSSProperties = { display: 'flex', alignItems: 'center' }
+const PILL = token('--dimension-radius-semantic-pill')
 
-const cluster: CSSProperties = {
-  ...row,
-  gap: 'var(--dimension-spacing-core-3xs)',
-}
-
+/** A text column that can shrink below its content, so long titles ellipsise. */
 const textStack: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 'var(--dimension-spacing-core-3xs)',
+  gap: spacing('3xs'),
   minWidth: 0,
 }
 
-function ContentCircle({ src, size, alt }: { src?: string; size: string; alt: string }): ReactNode {
+function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: string }): ReactNode {
+  const edge = size(role)
   if (src) {
     return (
       <img
         src={src}
         alt={alt}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 'var(--dimension-radius-core-full)',
-          objectFit: 'cover',
-          display: 'block',
-        }}
+        style={{ width: edge, height: edge, borderRadius: PILL, objectFit: 'cover', display: 'block' }}
       />
     )
   }
   return (
     <span
       style={{
-        width: size,
-        height: size,
-        borderRadius: 'var(--dimension-radius-core-full)',
+        width: edge,
+        height: edge,
+        borderRadius: PILL,
         backgroundColor: token('--color-semantic-functional-background-elevated'),
         display: 'block',
       }}
@@ -102,37 +93,29 @@ export function MainMenu({
   onBugClick,
 }: MainMenuProps): ReactNode {
   return (
-    <nav style={{ ...row, justifyContent: 'space-between', width: '100%' }}>
-      <div style={cluster}>
+    <Stack as="nav" direction="row" align="center" justify="between">
+      <Stack direction="row" align="center" gap="3xs">
         <RoundButtonShell label="Profile" onClick={onAvatarClick}>
-          <ContentCircle src={avatarSrc} size="var(--dimension-spacing-core-2xl)" alt="" />
+          <ContentCircle src={avatarSrc} role="avatar" alt="" />
         </RoundButtonShell>
 
         <RoundButtonShell label="Schedule" onClick={onScheduleClick}>
           <img
             src={scheduleIcon}
             alt=""
-            style={{
-              width: 'var(--dimension-spacing-core-xl)',
-              height: 'var(--dimension-spacing-core-xl)',
-              display: 'block',
-            }}
+            style={{ width: size('icon-xl'), height: size('icon-xl'), display: 'block' }}
           />
         </RoundButtonShell>
 
-        <div style={row}>
+        <Stack direction="row" align="center">
           <RoundButtonShell label="Weather" onClick={onWeatherClick}>
             <img
               src={weatherIcon}
               alt=""
-              style={{
-                width: 'var(--dimension-spacing-core-2xl)',
-                height: 'var(--dimension-spacing-core-2xl)',
-                display: 'block',
-              }}
+              style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
             />
           </RoundButtonShell>
-          <div style={{ ...textStack, paddingInlineStart: 'var(--dimension-spacing-core-3xs)' }}>
+          <div style={{ ...textStack, paddingInlineStart: spacing('3xs') }}>
             <Text variant="body-lg-bold" opacity="title" truncate>
               {weatherTitle}
             </Text>
@@ -140,19 +123,18 @@ export function MainMenu({
               {weatherSubtitle}
             </Text>
           </div>
-        </div>
-      </div>
+        </Stack>
+      </Stack>
 
-      <div style={cluster}>
-        <div style={row}>
+      <Stack direction="row" align="center" gap="3xs">
+        <Stack direction="row" align="center">
           <div
             style={{
               ...textStack,
               alignItems: 'end',
               textAlign: 'right',
-              paddingInline: 'var(--dimension-spacing-core-xs)',
-              paddingBlock: 'var(--dimension-spacing-core-2xs)',
-              minWidth: 0,
+              paddingInline: spacing('xs'),
+              paddingBlock: spacing('2xs'),
             }}
           >
             <Text variant="body-lg-bold" opacity="title" truncate>
@@ -163,9 +145,9 @@ export function MainMenu({
             </Text>
           </div>
           <RoundButtonShell focus label="Now playing" onClick={onLogoClick}>
-            <ContentCircle src={logoSrc} size="var(--dimension-spacing-core-3xl)" alt="" />
+            <ContentCircle src={logoSrc} role="program-logo" alt="" />
           </RoundButtonShell>
-        </div>
+        </Stack>
 
         <button
           type="button"
@@ -173,8 +155,8 @@ export function MainMenu({
           onClick={onBugClick}
           style={{
             position: 'relative',
-            width: 'var(--dimension-spacing-core-4xl)',
-            height: 'var(--dimension-spacing-core-4xl)',
+            width: size('channel-bug'),
+            height: size('channel-bug'),
             padding: 0,
             border: 'none',
             background: 'none',
@@ -188,14 +170,14 @@ export function MainMenu({
               style={{
                 position: 'absolute',
                 inset: 0,
-                borderRadius: 'var(--dimension-radius-core-full)',
-                border: `var(--dimension-border-width-core-thin) solid ${token('--color-semantic-focus-outline')}`,
+                borderRadius: PILL,
+                border: `${token('--dimension-border-width-semantic-section-focus')} solid ${token('--color-semantic-focus-outline')}`,
               }}
             />
           )}
-          <ContentCircle src={bugSrc} size="var(--dimension-spacing-core-4xl)" alt="" />
+          <ContentCircle src={bugSrc} role="channel-bug" alt="" />
         </button>
-      </div>
-    </nav>
+      </Stack>
+    </Stack>
   )
 }

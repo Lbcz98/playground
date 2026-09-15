@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Box, Stack } from '@/primitives'
 import { LabelVideo } from './LabelVideo'
 
 const meta = {
@@ -7,14 +8,9 @@ const meta = {
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          padding: 'var(--dimension-spacing-core-xl)',
-          backgroundColor: 'var(--color-semantic-functional-background-primary)',
-        }}
-      >
+      <Box padding="xl" background="primary">
         <Story />
-      </div>
+      </Box>
     ),
   ],
 } satisfies Meta<typeof LabelVideo>
@@ -31,23 +27,16 @@ export const ReplayRest: Story = { args: { kind: 'replay', focus: false } }
 export const AllVariants: Story = {
   args: {},
   render: () => (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--dimension-spacing-core-sm)',
-        alignItems: 'start',
-      }}
-    >
-      <div style={{ display: 'flex', gap: 'var(--dimension-spacing-core-sm)' }}>
+    <Stack gap="sm" align="start">
+      <Stack direction="row" gap="sm">
         <LabelVideo kind="live" focus />
         <LabelVideo kind="live" focus={false} />
         <LabelVideo kind="live" focus mini />
-      </div>
-      <div style={{ display: 'flex', gap: 'var(--dimension-spacing-core-sm)' }}>
+      </Stack>
+      <Stack direction="row" gap="sm">
         <LabelVideo kind="replay" focus />
         <LabelVideo kind="replay" focus={false} />
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   ),
 }

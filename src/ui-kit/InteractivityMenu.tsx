@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
-import { Text } from '@/primitives'
+import { spacing, Stack, Text } from '@/primitives'
 import { Button, type ButtonState } from './Button'
 
 export interface InteractivityMenuItem {
@@ -36,10 +36,11 @@ export interface InteractivityMenuProps {
   heading?: string
 }
 
-const row: CSSProperties = {
+/** Scrolls horizontally, so it stays a plain element rather than a Stack. */
+const rail: CSSProperties = {
   display: 'flex',
   alignItems: 'flex-end',
-  gap: 'var(--dimension-spacing-core-2xs)',
+  gap: spacing('2xs'),
   overflowX: 'auto',
 }
 
@@ -65,15 +66,13 @@ export function InteractivityMenu({
   }, [activeIndex])
 
   return (
-    <div>
+    <Stack gap="xs">
       {heading && (
-        <div style={{ marginBottom: 'var(--dimension-spacing-core-xs)' }}>
-          <Text as="div" variant="heading-5-bold" opacity="title" align="end">
-            {heading}
-          </Text>
-        </div>
+        <Text as="div" variant="heading-5-bold" opacity="title" align="end">
+          {heading}
+        </Text>
       )}
-      <div style={row}>
+      <div style={rail}>
         {items.map((item, index) => (
           <div
             key={index}
@@ -94,6 +93,6 @@ export function InteractivityMenu({
           </div>
         ))}
       </div>
-    </div>
+    </Stack>
   )
 }

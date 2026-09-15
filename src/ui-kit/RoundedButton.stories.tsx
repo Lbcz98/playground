@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Box, Stack } from '@/primitives'
 import { RoundedButton } from './RoundedButton'
 
 const meta = {
@@ -7,14 +8,9 @@ const meta = {
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          padding: 'var(--dimension-spacing-core-xl)',
-          backgroundColor: 'var(--color-semantic-functional-background-primary)',
-        }}
-      >
+      <Box padding="xl" background="primary">
         <Story />
-      </div>
+      </Box>
     ),
   ],
 } satisfies Meta<typeof RoundedButton>
@@ -28,9 +24,9 @@ export const Rest: Story = { args: { focus: false } }
 export const BothStates: Story = {
   args: {},
   render: (args) => (
-    <div style={{ display: 'flex', gap: 'var(--dimension-spacing-core-sm)' }}>
+    <Stack direction="row" gap="sm">
       <RoundedButton {...args} focus />
       <RoundedButton {...args} focus={false} />
-    </div>
+    </Stack>
   ),
 }

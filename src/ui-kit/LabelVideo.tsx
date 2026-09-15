@@ -10,7 +10,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { textClass, token } from '@/primitives'
+import { size, spacing, textClass, token } from '@/primitives'
 import volumeOnIcon from './icons/volume-on.svg'
 
 export type LabelVideoKind = 'live' | 'replay'
@@ -32,9 +32,9 @@ const base: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  paddingInline: 'var(--dimension-spacing-core-2xs)',
-  paddingBlock: 'var(--dimension-spacing-core-3xs)',
-  borderRadius: 'var(--dimension-radius-core-full)',
+  paddingInline: spacing('2xs'),
+  paddingBlock: spacing('3xs'),
+  borderRadius: token('--dimension-radius-semantic-pill'),
   color: token('--color-semantic-functional-text-primary'),
   whiteSpace: 'nowrap',
 }
@@ -60,21 +60,14 @@ export function LabelVideo({
       style={{
         ...base,
         ...fillFor(kind, focus),
-        gap: showIcon
-          ? 'var(--dimension-spacing-core-2xs)'
-          : 'var(--dimension-spacing-core-3xs)',
+        gap: spacing(showIcon ? '2xs' : '3xs'),
       }}
     >
       {showIcon && (
         <img
           src={volumeOnIcon}
           alt=""
-          style={{
-            width: 'var(--dimension-spacing-core-sm)',
-            height: 'var(--dimension-spacing-core-sm)',
-            flexShrink: 0,
-            display: 'block',
-          }}
+          style={{ width: size('icon-sm'), height: size('icon-sm'), flexShrink: 0, display: 'block' }}
         />
       )}
       {LABEL[kind]}

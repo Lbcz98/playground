@@ -1,17 +1,15 @@
 /**
  * Wide Button — Figma UI Kit node 3386:10618 ("Insert Button").
  *
- * Every colour, radius, gap and text style resolves to a `--*` custom property
- * from `src/styles/global.css`. The handful of values the token set has no
- * entry for live in `./untokenized`.
+ * Every colour, radius, gap, size and text style resolves to a semantic token
+ * or a grid spacing step from `src/styles/global.css`.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { Text, token } from '@/primitives'
+import { size, spacing, Text, token } from '@/primitives'
 import arrowLeftIcon from './icons/arrow-left.svg'
 import arrowRightIcon from './icons/arrow-right.svg'
 import spinnerIcon from './icons/spinner.svg'
-import { WIDE } from './untokenized'
 
 export type WideButtonStatus = 'default' | 'focus' | 'loading' | 'disabled'
 
@@ -23,14 +21,16 @@ export interface WideButtonProps {
   onClick?: () => void
 }
 
+const PILL = token('--dimension-radius-semantic-pill')
+
 const root: CSSProperties = {
   position: 'relative',
-  width: WIDE.width,
-  height: 'var(--dimension-spacing-core-2xl)',
+  width: size('wide-button-width'),
+  height: size('control-height'),
   padding: 0,
   border: 'none',
   background: 'none',
-  borderRadius: 'var(--dimension-radius-core-2xl)',
+  borderRadius: PILL,
   overflow: 'hidden',
   cursor: 'pointer',
 }
@@ -39,14 +39,14 @@ const root: CSSProperties = {
 const focusFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
-  borderRadius: 'var(--dimension-radius-core-full)',
+  borderRadius: PILL,
   backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const focusInset: CSSProperties = {
   position: 'absolute',
-  inset: 'var(--dimension-border-width-semantic-focus-ring)',
-  borderRadius: 'var(--dimension-radius-core-4xl)',
+  inset: token('--dimension-border-width-semantic-focus-ring'),
+  borderRadius: PILL,
   overflow: 'hidden',
   backgroundColor: token('--color-semantic-focus-inset'),
   backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
@@ -56,7 +56,7 @@ const focusGlow: CSSProperties = {
   position: 'absolute',
   insetInline: 0,
   bottom: 0,
-  height: 'var(--dimension-spacing-core-xl)',
+  height: spacing('xl'),
   opacity: token('--opacity-semantic-overlay'),
   backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
@@ -67,13 +67,13 @@ const center: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: 'var(--dimension-spacing-core-2xs)',
-  borderRadius: 'var(--dimension-radius-core-4xl)',
+  gap: spacing('2xs'),
+  borderRadius: PILL,
 }
 
 const icon: CSSProperties = {
-  width: 'var(--dimension-spacing-core-sm)',
-  height: 'var(--dimension-spacing-core-sm)',
+  width: size('icon-sm'),
+  height: size('icon-sm'),
   flexShrink: 0,
   display: 'block',
 }
@@ -95,8 +95,8 @@ const icon: CSSProperties = {
 const diagonalRing: CSSProperties = {
   position: 'absolute',
   inset: 0,
-  padding: 'var(--dimension-border-width-semantic-button)',
-  borderRadius: 'var(--dimension-radius-core-full)',
+  padding: token('--dimension-border-width-semantic-button'),
+  borderRadius: PILL,
   backgroundImage: token('--gradient-semantic-border-default'),
   WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
   WebkitMaskComposite: 'xor',
@@ -142,11 +142,7 @@ export function WideButton({
           <img
             src={spinnerIcon}
             alt=""
-            style={{
-              width: 'var(--dimension-spacing-core-md)',
-              height: 'var(--dimension-spacing-core-md)',
-              display: 'block',
-            }}
+            style={{ width: size('icon-md'), height: size('icon-md'), display: 'block' }}
           />
         ) : (
           <>

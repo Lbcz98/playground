@@ -18,7 +18,6 @@ const ALLOWLIST = new Set([
   join(SRC, 'design-system', 'primitives.ts'),
   // Generated from tokens/tokens.json by `npm run tokens:build`.
   join(SRC, 'styles', 'global.css'),
-  join(SRC, 'ui-kit', 'untokenized.ts'),
 ])
 
 const ARBITRARY_CLASS = /\b(?:[a-z-]+)-\[[^\]]+\]/g

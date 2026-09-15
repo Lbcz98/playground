@@ -11,11 +11,10 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { Text, token } from '@/primitives'
+import { size, spacing, Text, token } from '@/primitives'
 import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
-import { CARD } from './untokenized'
 
 export type ButtonState = 'default' | 'focus' | 'selected'
 
@@ -41,16 +40,14 @@ function rootFor(state: ButtonState): CSSProperties {
   const large = isLarge(state)
   return {
     position: 'relative',
-    width: large ? CARD.focusWidth : CARD.defaultWidth,
-    height: large ? CARD.focusHeight : CARD.defaultHeight,
-    padding: large
-      ? 'var(--dimension-spacing-core-lg)'
-      : 'var(--dimension-spacing-core-md)',
+    width: size(large ? 'card-expanded-width' : 'card-width'),
+    height: size(large ? 'card-expanded-height' : 'card-height'),
+    padding: token(
+      large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset',
+    ),
     border: 'none',
     background: 'none',
-    borderRadius: large
-      ? 'var(--dimension-radius-core-6xl)'
-      : 'var(--dimension-radius-core-3xl)',
+    borderRadius: cardRadius(state),
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
@@ -59,18 +56,21 @@ function rootFor(state: ButtonState): CSSProperties {
   }
 }
 
+const EXPANDED_RADIUS = token('--dimension-radius-semantic-card-expanded')
+const RING_WIDTH = token('--dimension-border-width-semantic-focus-ring')
+
 /** Focus: the Primary/Noite gradient frame. */
 const gradientFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
-  borderRadius: 'var(--dimension-radius-core-6xl)',
+  borderRadius: EXPANDED_RADIUS,
   backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const gradientInset: CSSProperties = {
   position: 'absolute',
-  inset: 'var(--dimension-spacing-core-3xs)',
-  borderRadius: 'var(--dimension-radius-core-5xl)',
+  inset: RING_WIDTH,
+  borderRadius: `calc(${EXPANDED_RADIUS} - ${RING_WIDTH})`,
   overflow: 'hidden',
   backgroundColor: token('--color-semantic-focus-inset-fade'),
   opacity: token('--opacity-semantic-overlay'),
@@ -82,23 +82,23 @@ const gradientGlow: CSSProperties = {
   bottom: 0,
   height: '65%',
   opacity: token('--opacity-semantic-illumination-strong'),
-  filter: 'blur(var(--dimension-spacing-core-3xs))',
+  filter: `blur(${spacing('3xs')})`,
   backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const scrim: CSSProperties = {
   position: 'absolute',
   inset: 0,
-  borderRadius: 'var(--dimension-radius-core-6xl)',
+  borderRadius: EXPANDED_RADIUS,
   backgroundColor: token('--color-semantic-functional-background-translucent'),
 }
 
 /**
  * Default / Selected: a translucent card with a Diagonal Light gradient
  * stroke — confirmed as a bound style on this exact card in the original
- * Figma fetch, not the flat `--color-opacity-light-70` this used to render as
- * (Figma's own codegen flattens gradient borders to one of their stops; a
- * plain CSS `border` can't carry a gradient on a rounded shape either way).
+ * Figma fetch, not the flat 70% white this used to render as (Figma's own
+ * codegen flattens gradient borders to one of their stops; a plain CSS
+ * `border` can't carry a gradient on a rounded shape either way).
  *
  * The fill and the ring are two SIBLING layers, not nested: the translucent
  * background is itself only ~30% opaque, so an earlier version that
@@ -110,7 +110,7 @@ const scrim: CSSProperties = {
  * everywhere else, never against the gradient.
  */
 function cardRadius(state: ButtonState): string {
-  return isLarge(state) ? 'var(--dimension-radius-core-6xl)' : 'var(--dimension-radius-core-3xl)'
+  return isLarge(state) ? EXPANDED_RADIUS : token('--dimension-radius-semantic-card')
 }
 
 function cardFill(state: ButtonState): CSSProperties {
@@ -126,7 +126,7 @@ function cardRing(state: ButtonState): CSSProperties {
   return {
     position: 'absolute',
     inset: 0,
-    padding: 'var(--dimension-border-width-semantic-card)',
+    padding: token('--dimension-border-width-semantic-card'),
     borderRadius: cardRadius(state),
     backgroundImage: token('--gradient-semantic-border-default'),
     WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
@@ -177,7 +177,7 @@ export function Button({
           display: 'flex',
           alignItems: 'start',
           justifyContent: 'space-between',
-          gap: 'var(--dimension-spacing-core-2xs)',
+          gap: spacing('2xs'),
         }}
       >
         {live ? (
@@ -191,11 +191,7 @@ export function Button({
           <img
             src={checkIcon}
             alt=""
-            style={{
-              width: 'var(--dimension-spacing-core-lg)',
-              height: 'var(--dimension-spacing-core-lg)',
-              display: 'block',
-            }}
+            style={{ width: size('icon-lg'), height: size('icon-lg'), display: 'block' }}
           />
         )}
       </span>
@@ -207,7 +203,7 @@ export function Button({
           ...layer,
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--dimension-spacing-core-3xs)',
+          gap: spacing('3xs'),
           opacity: state === 'focus' ? undefined : token('--opacity-semantic-content-muted'),
         }}
       >
@@ -227,23 +223,13 @@ export function Button({
           </span>
         )}
         {advertising && (
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--dimension-spacing-core-2xs)',
-            }}
-          >
+          <span style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs') }}>
             <span style={luminosity}>
               <Text variant={secondary} color="muted">
                 {advertising.label}
               </Text>
             </span>
-            <img
-              src={advertising.logoSrc}
-              alt=""
-              style={{ height: 'var(--dimension-spacing-core-lg)', display: 'block' }}
-            />
+            <img src={advertising.logoSrc} alt="" style={{ height: size('icon-lg'), display: 'block' }} />
           </span>
         )}
       </span>

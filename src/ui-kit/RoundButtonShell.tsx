@@ -3,15 +3,14 @@
  * the kit ("ShapesHdMotionless" in Figma: RoundedButton's back button, and the
  * avatar/clock/weather/logo buttons in MainMenu are all the same outer hit
  * target and inner circle with a gradient focus ring, just with different
- * content — see untokenized.ts's ROUNDED constants for the exact sizes).
+ * content — see the `round-button` size tokens for the exact sizes).
  *
  * Extracted so that shell only exists once — content and its sizing are the
  * caller's job.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { token } from '@/primitives'
-import { ROUNDED } from './untokenized'
+import { size, token } from '@/primitives'
 
 export interface RoundButtonShellProps {
   focus?: boolean
@@ -21,10 +20,12 @@ export interface RoundButtonShellProps {
   children?: ReactNode
 }
 
+const PILL = token('--dimension-radius-semantic-pill')
+
 const root: CSSProperties = {
   position: 'relative',
-  width: ROUNDED.outerSize,
-  height: ROUNDED.outerSize,
+  width: size('round-button'),
+  height: size('round-button'),
   padding: 0,
   border: 'none',
   background: 'none',
@@ -36,9 +37,9 @@ const root: CSSProperties = {
 
 const circle: CSSProperties = {
   position: 'relative',
-  width: ROUNDED.circleSize,
-  height: ROUNDED.circleSize,
-  borderRadius: 'var(--dimension-radius-core-full)',
+  width: size('round-button-circle'),
+  height: size('round-button-circle'),
+  borderRadius: PILL,
   overflow: 'hidden',
   display: 'grid',
   placeItems: 'center',
@@ -47,7 +48,7 @@ const circle: CSSProperties = {
 const restCircle: CSSProperties = {
   ...circle,
   backgroundColor: token('--color-semantic-functional-background-translucent'),
-  border: `var(--dimension-border-width-semantic-button) solid ${token('--color-semantic-functional-border-default')}`,
+  border: `${token('--dimension-border-width-semantic-button')} solid ${token('--color-semantic-functional-border-default')}`,
 }
 
 const focusCircle: CSSProperties = {
@@ -62,8 +63,8 @@ const focusCircle: CSSProperties = {
 
 const focusInset: CSSProperties = {
   position: 'absolute',
-  inset: 'var(--dimension-border-width-semantic-focus-ring)',
-  borderRadius: 'var(--dimension-radius-core-full)',
+  inset: token('--dimension-border-width-semantic-focus-ring'),
+  borderRadius: PILL,
   overflow: 'hidden',
   backgroundColor: token('--color-semantic-focus-inset'),
   backgroundImage: `linear-gradient(180deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,

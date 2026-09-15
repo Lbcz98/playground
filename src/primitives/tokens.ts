@@ -18,6 +18,7 @@ const SPACING = '--dimension-spacing-core-'
 const RADIUS = '--dimension-radius-core-'
 const FUNCTIONAL = '--color-semantic-functional-'
 const OPACITY = '--opacity-semantic-'
+const SIZE = '--dimension-size-semantic-'
 
 export type SpacingStep = NamesAfter<typeof SPACING>
 export type RadiusStep = NamesAfter<typeof RADIUS>
@@ -84,6 +85,13 @@ export function borderColor(role: BorderColor): string {
 
 export function opacity(role: OpacityRole): string {
   return token(`${OPACITY}${role}`)
+}
+
+/** A component size: `icon-sm`, `control-height`, `card-width`, … */
+export type SizeRole = NamesAfter<typeof SIZE>
+
+export function size(role: SizeRole): string {
+  return token(`${SIZE}${role}`)
 }
 
 function isStatus(role: TextColor): role is `status-${StatusColor}` {

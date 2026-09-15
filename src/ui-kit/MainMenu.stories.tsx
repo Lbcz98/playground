@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Box } from '@/primitives'
 import { MainMenu } from './MainMenu'
 
 const meta = {
@@ -7,14 +8,9 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          padding: 'var(--dimension-spacing-core-lg)',
-          backgroundColor: 'var(--color-semantic-functional-background-primary)',
-        }}
-      >
+      <Box padding="lg" background="primary">
         <Story />
-      </div>
+      </Box>
     ),
   ],
 } satisfies Meta<typeof MainMenu>

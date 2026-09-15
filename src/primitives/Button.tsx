@@ -15,19 +15,20 @@
  */
 
 import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
-import type { CssVar, TextStyle } from '@/styles/global-tokens'
+import type { TextStyle } from '@/styles/global-tokens'
 import spinnerIcon from '@/ui-kit/icons/spinner.svg'
 import './primitives.css'
 import { Text } from './Text'
 import {
   borderColor,
-  cssVar,
+  size as sizeRole,
   spacing,
   surface,
   textColor,
   token,
   type BorderColor,
   type GridSpacing,
+  type SizeRole,
   type SurfaceColor,
   type TextColor,
 } from './tokens'
@@ -53,13 +54,13 @@ const SURFACE: Record<ButtonVariant, { fill?: SurfaceColor; stroke?: BorderColor
   ghost: { text: 'secondary' },
 }
 
-/** `md` matches WideButton's height (spacing 2xl); `lg` steps up one spacing token. */
+/** `md` matches WideButton's height; `lg` steps up one control size. */
 const SIZE = {
-  md: { height: '--dimension-spacing-core-2xl', paddingX: 'lg', icon: '--dimension-spacing-core-sm', label: 'body-sm-bold' },
-  lg: { height: '--dimension-spacing-core-3xl', paddingX: 'xl', icon: '--dimension-spacing-core-lg', label: 'body-md-bold' },
-} as const satisfies Record<ButtonSize, { height: CssVar; paddingX: GridSpacing; icon: CssVar; label: TextStyle }>
+  md: { height: 'control-height', paddingX: 'lg', icon: 'icon-sm', label: 'body-sm-bold' },
+  lg: { height: 'control-height-lg', paddingX: 'xl', icon: 'icon-lg', label: 'body-md-bold' },
+} as const satisfies Record<ButtonSize, { height: SizeRole; paddingX: GridSpacing; icon: SizeRole; label: TextStyle }>
 
-const FULL = cssVar('--dimension-radius-core-full')
+const PILL = token('--dimension-radius-semantic-pill')
 
 function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatus): CSSProperties {
   const { fill, stroke, text } = SURFACE[variant]
@@ -70,19 +71,19 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
     alignItems: 'center',
     justifyContent: 'center',
     boxSizing: 'border-box',
-    height: cssVar(SIZE[size].height),
+    height: sizeRole(SIZE[size].height),
     margin: 0,
     paddingBlock: 0,
     paddingInline: spacing(SIZE[size].paddingX),
     border: 'none',
-    borderRadius: FULL,
+    borderRadius: PILL,
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     backgroundColor: !focus && fill ? surface(fill) : 'transparent',
     // An inset shadow, not a border, so the stroke never changes the button's size.
     boxShadow:
       !focus && stroke
-        ? `inset 0 0 0 ${cssVar('--dimension-border-width-semantic-button')} ${borderColor(stroke)}`
+        ? `inset 0 0 0 ${token('--dimension-border-width-semantic-button')} ${borderColor(stroke)}`
         : 'none',
     color: textColor(focus ? 'primary' : text),
     cursor: status === 'disabled' ? 'not-allowed' : status === 'loading' ? 'progress' : 'pointer',
@@ -92,14 +93,14 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
 const focusFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
-  borderRadius: FULL,
+  borderRadius: PILL,
   backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const focusInset: CSSProperties = {
   position: 'absolute',
-  inset: cssVar('--dimension-border-width-semantic-focus-ring'),
-  borderRadius: FULL,
+  inset: token('--dimension-border-width-semantic-focus-ring'),
+  borderRadius: PILL,
   overflow: 'hidden',
   backgroundColor: token('--color-semantic-focus-inset'),
   backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
@@ -122,7 +123,7 @@ const overlay: CSSProperties = {
 }
 
 function iconSlot(size: ButtonSize): CSSProperties {
-  const edge = cssVar(SIZE[size].icon)
+  const edge = sizeRole(SIZE[size].icon)
   return { display: 'grid', placeItems: 'center', width: edge, height: edge, flexShrink: 0 }
 }
 
@@ -142,7 +143,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const loading = status === 'loading'
   const disabled = status === 'disabled'
-  const spinnerEdge = cssVar(SIZE[size].icon)
+  const spinnerEdge = sizeRole(SIZE[size].icon)
 
   return (
     <button

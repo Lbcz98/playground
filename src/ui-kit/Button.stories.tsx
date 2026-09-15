@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Box, Stack } from '@/primitives'
 import { Button } from './Button'
 
 const meta = {
@@ -7,14 +8,9 @@ const meta = {
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
-      <div
-        style={{
-          padding: 'var(--dimension-spacing-core-xl)',
-          backgroundColor: 'var(--color-semantic-functional-background-primary)',
-        }}
-      >
+      <Box padding="xl" background="primary">
         <Story />
-      </div>
+      </Box>
     ),
   ],
   args: { title: 'Title', overline: 'Overline', subtitle: 'Subtitle', live: true },
@@ -31,16 +27,10 @@ export const WithCheck: Story = { args: { state: 'focus', check: true } }
 export const AllStates: Story = {
   args: {},
   render: (args) => (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--dimension-spacing-core-lg)',
-      }}
-    >
+    <Stack direction="row" align="center" gap="lg">
       <Button {...args} state="focus" />
       <Button {...args} state="selected" />
       <Button {...args} state="default" />
-    </div>
+    </Stack>
   ),
 }

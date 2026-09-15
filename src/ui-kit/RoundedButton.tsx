@@ -6,10 +6,10 @@
  */
 
 import type { ReactNode } from 'react'
+import { size } from '@/primitives'
 import backFocusIcon from './icons/back-focus.svg'
 import backRestIcon from './icons/back-rest.svg'
 import { RoundButtonShell } from './RoundButtonShell'
-import { ROUNDED } from './untokenized'
 
 export interface RoundedButtonProps {
   focus?: boolean
@@ -23,7 +23,7 @@ export function RoundedButton({
   label = 'Back',
   onClick,
 }: RoundedButtonProps): ReactNode {
-  const iconSize = focus ? 'var(--dimension-spacing-core-xl)' : ROUNDED.iconRestSize
+  const iconSize = size(focus ? 'icon-xl' : 'icon-round-rest')
 
   return (
     <RoundButtonShell focus={focus} label={label} onClick={onClick}>
