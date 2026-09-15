@@ -1,0 +1,14 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Basic / Schedule">
+<g id="Basic / Schedule_2">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M31 16C31 24.2843 24.2843 31 16 31C7.71573 31 1 24.2843 1 16C1 7.71573 7.71573 1 16 1C24.2843 1 31 7.71573 31 16ZM14.5 11C14.5 10.1716 15.1716 9.5 16 9.5C16.8284 9.5 17.5 10.1716 17.5 11V15.5H22C22.8284 15.5 23.5 16.1716 23.5 17C23.5 17.8284 22.8284 18.5 22 18.5H16C15.1716 18.5 14.5 17.8284 14.5 17V11Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M31 16C31 24.2843 24.2843 31 16 31C7.71573 31 1 24.2843 1 16C1 7.71573 7.71573 1 16 1C24.2843 1 31 7.71573 31 16ZM14.5 11C14.5 10.1716 15.1716 9.5 16 9.5C16.8284 9.5 17.5 10.1716 17.5 11V15.5H22C22.8284 15.5 23.5 16.1716 23.5 17C23.5 17.8284 22.8284 18.5 22 18.5H16C15.1716 18.5 14.5 17.8284 14.5 17V11Z" fill="url(#paint0_linear_0_220)" fill-opacity="0.5"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_220" x1="16" y1="1" x2="16" y2="31" gradientUnits="userSpaceOnUse">
+<stop stop-opacity="0"/>
+<stop offset="1"/>
+</linearGradient>
+</defs>
+</svg>
