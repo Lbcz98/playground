@@ -2,8 +2,9 @@
  * Button — the generic action primitive.
  *
  * Rest surfaces map to the functional semantic colours: `primary` sits on
- * background-elevated with a border-default stroke, `secondary` on
- * background-overlay with border-subtle, `ghost` on nothing with text-secondary.
+ * background-elevated, `secondary` on background-overlay, `ghost` on nothing
+ * with text-secondary. `primary` and `secondary` draw the kit's one
+ * `<RestingBorder>`.
  *
  * Focus draws the kit's one `<FocusRing>` and loading its one `<Spinner>`, so a
  * primitive button behaves exactly like a kit component. Unlike WideButton's
@@ -16,16 +17,15 @@
 import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 import type { TextStyle } from '@/styles/global-tokens'
 import { FocusRing } from './FocusRing'
+import { RestingBorder } from './RestingBorder'
 import { Spinner } from './Spinner'
 import { Text } from './Text'
 import {
-  borderColor,
   size as sizeRole,
   spacing,
   surface,
   textColor,
   token,
-  type BorderColor,
   type GridSpacing,
   type SizeRole,
   type SurfaceColor,
@@ -47,10 +47,10 @@ export interface ButtonProps
   children: ReactNode
 }
 
-const SURFACE: Record<ButtonVariant, { fill?: SurfaceColor; stroke?: BorderColor; text: TextColor }> = {
-  primary: { fill: 'elevated', stroke: 'default', text: 'primary' },
-  secondary: { fill: 'overlay', stroke: 'subtle', text: 'primary' },
-  ghost: { text: 'secondary' },
+const SURFACE: Record<ButtonVariant, { fill?: SurfaceColor; bordered: boolean; text: TextColor }> = {
+  primary: { fill: 'elevated', bordered: true, text: 'primary' },
+  secondary: { fill: 'overlay', bordered: true, text: 'primary' },
+  ghost: { bordered: false, text: 'secondary' },
 }
 
 /** `md` matches WideButton's height; `lg` steps up one control size. */
@@ -60,7 +60,7 @@ const SIZE = {
 } as const satisfies Record<ButtonSize, { height: SizeRole; paddingX: GridSpacing; icon: SizeRole; label: TextStyle }>
 
 function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatus): CSSProperties {
-  const { fill, stroke, text } = SURFACE[variant]
+  const { fill, text } = SURFACE[variant]
   const focus = status === 'focus'
   return {
     position: 'relative',
@@ -77,11 +77,6 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     backgroundColor: !focus && fill ? surface(fill) : 'transparent',
-    // An inset shadow, not a border, so the stroke never changes the button's size.
-    boxShadow:
-      !focus && stroke
-        ? `inset 0 0 0 ${token('--dimension-border-width-semantic-button')} ${borderColor(stroke)}`
-        : 'none',
     color: textColor(focus ? 'primary' : text),
     cursor: status === 'disabled' ? 'not-allowed' : status === 'loading' ? 'progress' : 'pointer',
   }
@@ -115,6 +110,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const loading = status === 'loading'
   const disabled = status === 'disabled'
+  const focus = status === 'focus'
 
   return (
     <button
@@ -126,7 +122,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onClick={loading ? undefined : onClick}
       style={rootStyle(variant, size, status)}
     >
-      {status === 'focus' && <FocusRing shape="pill" />}
+      {focus && <FocusRing shape="pill" />}
+      {!focus && SURFACE[variant].bordered && <RestingBorder shape="pill" />}
       <span
         style={{
           position: 'relative',

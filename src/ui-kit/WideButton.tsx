@@ -3,12 +3,12 @@
  *
  * Every colour, radius, gap, size and text style resolves to a semantic token
  * or a grid spacing step from `src/styles/global.css`. Focus draws the kit's
- * one `<FocusRing>` (this button's recipe is the one it standardised on), and
- * loading its one `<Spinner>`.
+ * one `<FocusRing>` (this button's recipe is the one it standardised on), rest
+ * and loading its one `<RestingBorder>`, and loading its one `<Spinner>`.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { FocusRing, size, spacing, Spinner, Text, token } from '@/primitives'
+import { FocusRing, RestingBorder, size, spacing, Spinner, Text, token } from '@/primitives'
 import arrowLeftIcon from './icons/arrow-left.svg'
 import arrowRightIcon from './icons/arrow-right.svg'
 
@@ -52,33 +52,7 @@ const icon: CSSProperties = {
   display: 'block',
 }
 
-/**
- * Default / Loading: a Diagonal Light gradient stroke, same reasoning as
- * Button's card — confirmed as a bound style on this component, and a plain
- * CSS border can't carry a gradient on a rounded shape.
- *
- * Rendered as a sibling AFTER the content span, not nested inside it:
- * the translucent background is itself only ~30% opaque, so insetting it
- * on top of a full gradient frame let the gradient bleed through the whole
- * interior instead of staying confined to the edge (a real bug an earlier
- * version had — see git history). This uses a masked "hole"
- * (`mask-composite: exclude`) so the ring has NO pixels in its center at
- * all — the content span's flat fill sits fully behind it at inset 0,
- * compositing against the real page background, never against the gradient.
- */
-const diagonalRing: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  padding: token('--dimension-border-width-semantic-button'),
-  borderRadius: PILL,
-  backgroundImage: token('--gradient-semantic-border-default'),
-  WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-  WebkitMaskComposite: 'xor',
-  mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-  maskComposite: 'exclude',
-} as CSSProperties
-
-function hasDiagonalStroke(status: WideButtonStatus): boolean {
+function hasRestingBorder(status: WideButtonStatus): boolean {
   return status === 'default' || status === 'loading'
 }
 
@@ -119,7 +93,7 @@ export function WideButton({
           </>
         )}
       </span>
-      {hasDiagonalStroke(status) && <span style={diagonalRing} />}
+      {hasRestingBorder(status) && <RestingBorder shape="pill" />}
     </button>
   )
 }

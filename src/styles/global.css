@@ -120,7 +120,7 @@
   --gradient-semantic-focus-ring: var(--gradient-primary-night);
 
   /* ===== Gradient · Semantic · Border ===== */
-  /* Resting stroke on translucent cards and pill buttons */
+  /* The one resting stroke on every interactive control: cards, pill buttons, round buttons */
   --gradient-semantic-border-default: var(--gradient-complementary-diagonal-light);
 
   /* ===== Gradient · Semantic · Status ===== */

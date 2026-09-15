@@ -3,15 +3,15 @@
  *
  * The 10-foot card button: a media thumbnail slot over an overline/title/
  * subtitle stack, with an optional live badge and check mark. Focus draws the
- * kit's one `<FocusRing>`; Default and Selected are translucent cards that dim
- * their content.
+ * kit's one `<FocusRing>`; Default and Selected are translucent cards with the
+ * kit's one `<RestingBorder>` that dim their content.
  *
  * Figma positions the content with percentage insets; those resolve to a plain
  * padding box, so this uses flow layout instead.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { FocusRing, size, spacing, Text, token } from '@/primitives'
+import { FocusRing, RestingBorder, size, spacing, Text, token } from '@/primitives'
 import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
@@ -36,6 +36,10 @@ export interface ButtonProps {
 
 const isLarge = (state: ButtonState): boolean => state !== 'default'
 
+function cardRadius(state: ButtonState): string {
+  return token(isLarge(state) ? '--dimension-radius-semantic-card-expanded' : '--dimension-radius-semantic-card')
+}
+
 function rootFor(state: ButtonState): CSSProperties {
   const large = isLarge(state)
   return {
@@ -56,26 +60,7 @@ function rootFor(state: ButtonState): CSSProperties {
   }
 }
 
-/**
- * Default / Selected: a translucent card with a Diagonal Light gradient
- * stroke — confirmed as a bound style on this exact card in the original
- * Figma fetch, not the flat 70% white this used to render as (Figma's own
- * codegen flattens gradient borders to one of their stops; a plain CSS
- * `border` can't carry a gradient on a rounded shape either way).
- *
- * The fill and the ring are two SIBLING layers, not nested: the translucent
- * background is itself only ~30% opaque, so an earlier version that
- * stacked it on top of the gradient as an inset let the gradient bleed
- * through the whole interior instead of staying confined to the edge. The
- * ring below uses a masked "hole" (`mask-composite: exclude`) so it has NO
- * pixels at all in its center — the fill sits fully behind it, at inset 0,
- * compositing against the real page background exactly like it does
- * everywhere else, never against the gradient.
- */
-function cardRadius(state: ButtonState): string {
-  return token(isLarge(state) ? '--dimension-radius-semantic-card-expanded' : '--dimension-radius-semantic-card')
-}
-
+/** Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
 function cardFill(state: ButtonState): CSSProperties {
   return {
     position: 'absolute',
@@ -83,20 +68,6 @@ function cardFill(state: ButtonState): CSSProperties {
     borderRadius: cardRadius(state),
     backgroundColor: token('--color-semantic-functional-background-translucent'),
   }
-}
-
-function cardRing(state: ButtonState): CSSProperties {
-  return {
-    position: 'absolute',
-    inset: 0,
-    padding: token('--dimension-border-width-semantic-card'),
-    borderRadius: cardRadius(state),
-    backgroundImage: token('--gradient-semantic-border-default'),
-    WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-    WebkitMaskComposite: 'xor',
-    mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-    maskComposite: 'exclude',
-  } as CSSProperties
 }
 
 const layer: CSSProperties = { position: 'relative' }
@@ -126,7 +97,7 @@ export function Button({
       ) : (
         <>
           <span style={cardFill(state)} />
-          <span style={cardRing(state)} />
+          <RestingBorder shape={large ? 'card-expanded' : 'card'} width="card" />
         </>
       )}
 
