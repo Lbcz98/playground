@@ -17,7 +17,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
+import { focusOutline, size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell } from './RoundButtonShell'
@@ -154,27 +154,19 @@ export function MainMenu({
           aria-label="Interactive content"
           onClick={onBugClick}
           style={{
-            position: 'relative',
             width: size('channel-bug'),
             height: size('channel-bug'),
             padding: 0,
             border: 'none',
+            borderRadius: PILL,
             background: 'none',
             cursor: 'pointer',
             display: 'grid',
             placeItems: 'center',
+            // The logo fills the button, so focus sits outside it instead of as an inset ring.
+            ...(bugFocused ? focusOutline : null),
           }}
         >
-          {bugFocused && (
-            <span
-              style={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: PILL,
-                border: `${token('--dimension-border-width-semantic-section-focus')} solid ${token('--color-semantic-focus-outline')}`,
-              }}
-            />
-          )}
           <ContentCircle src={bugSrc} role="channel-bug" alt="" />
         </button>
       </Stack>

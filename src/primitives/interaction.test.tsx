@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { FocusRing, Spinner, size, token } from '.'
+import { FocusRing, focusOutline, Spinner, size, token } from '.'
 
 const html = (node: ReactElement): string => renderToStaticMarkup(node)
 
@@ -42,5 +42,14 @@ describe('<Spinner>', () => {
     expect(out).toContain('alt=""')
     expect(out).toContain('class="sfs-spin"')
     expect(out).toContain('width:var(--dimension-size-semantic-icon-md)')
+  })
+})
+
+describe('focusOutline', () => {
+  it('moves the ring outside the content: ring width, outline colour and offset, all semantic', () => {
+    expect(focusOutline).toEqual({
+      outline: 'var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline)',
+      outlineOffset: 'var(--dimension-spacing-semantic-focus-offset)',
+    })
   })
 })

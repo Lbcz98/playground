@@ -112,7 +112,7 @@
   --color-semantic-focus-inset-fade: var(--color-core-neutral-charcoal);
   /* Light pooling inside a focused control */
   --color-semantic-focus-glow: var(--color-core-primary-night-light);
-  /* Thin focus outline for content that fills its own hit target (the channel bug) */
+  /* Outside focus outline (CSS outline + offset) for content that fills its own hit target, like the channel bug. An outline can't carry the ring's gradient, so it takes the ring's dominant colour. */
   --color-semantic-focus-outline: var(--color-semantic-theme-day-dark);
 
   /* ===== Gradient · Semantic · Focus ===== */
@@ -195,6 +195,8 @@
   --dimension-spacing-semantic-card-inset: var(--dimension-spacing-core-md);
   /* Focused or selected card padding */
   --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-lg);
+  /* Gap between a content-filled control's edge and its outside focus outline */
+  --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
 
   /* ===== Dimension · Size · Semantic ===== */
   /* Inline icon in a control or pill */

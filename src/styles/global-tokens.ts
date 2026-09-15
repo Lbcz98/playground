@@ -112,6 +112,7 @@ export const CSS_VARS = [
   '--dimension-spacing-core-6xl',
   '--dimension-spacing-semantic-card-inset',
   '--dimension-spacing-semantic-card-inset-expanded',
+  '--dimension-spacing-semantic-focus-offset',
   '--dimension-size-semantic-icon-sm',
   '--dimension-size-semantic-icon-md',
   '--dimension-size-semantic-icon-lg',

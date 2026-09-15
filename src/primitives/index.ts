@@ -6,7 +6,7 @@
 
 export { Box, type BoxElement, type BoxProps } from './Box'
 export { Button, type ButtonProps, type ButtonSize, type ButtonStatus, type ButtonVariant } from './Button'
-export { FocusRing, type FocusRingProps } from './FocusRing'
+export { FocusRing, focusOutline, type FocusRingProps } from './FocusRing'
 export { Heading, type HeadingLevel, type HeadingProps, type HeadingWeight } from './Heading'
 export { RestingBorder, type RestingBorderProps } from './RestingBorder'
 export { Spinner, type SpinnerProps } from './Spinner'

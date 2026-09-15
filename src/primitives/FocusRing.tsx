@@ -52,3 +52,15 @@ export function FocusRing({ shape }: FocusRingProps): ReactNode {
     </span>
   )
 }
+
+/**
+ * The focus treatment for content that fills its own hit target (the channel
+ * bug's logo), where an inset ring would cover the content: the same ring width
+ * moved outside as a CSS `outline`, `focus-offset` away from the edge. Spread it
+ * onto the control's style, and give the control a border-radius so the outline
+ * follows its shape.
+ */
+export const focusOutline: CSSProperties = {
+  outline: `${RING_WIDTH} solid ${token('--color-semantic-focus-outline')}`,
+  outlineOffset: token('--dimension-spacing-semantic-focus-offset'),
+}
