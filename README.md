@@ -30,6 +30,8 @@ npm run lint:tokens   # fails on hard-coded colors / px / arbitrary Tailwind val
 npm run tokens:build  # regenerate src/styles/global.css + global-tokens.ts from tokens/tokens.json
 npm run tokens:check  # fails if those generated files have drifted from tokens.json
 npm run storybook     # UI Kit + Primitives on :6006
+npm run tokens:audit  # which tokens each component references, by tier
+npm run test:visual   # pixel-diff every story against tests/visual/baselines (needs Storybook running)
 ```
 
 ## Architecture
@@ -42,6 +44,10 @@ scripts/
   build-tokens.ts       tokens:build / tokens:check
   tokens/compile.ts     Strict DTCG -> CSS compiler (aliases stay var(), typography -> .text-*)
   check-tokens.mjs      lint:tokens — no raw hex / px outside the allowlist
+  tokens/audit.ts       tokens:audit + audit.test.ts — components reference semantic tokens only
+  visual/regression.mjs test:visual — offscreen Electron capture + per-pixel diff per story
+docs/
+  ui-kit-token-audit.md Token architecture, the per-batch refactor plan, before/after results
 electron/
   main.ts               Window creation + dotenv + registerIpcHandlers()
   ipc.ts                 Binds ai/handler.ts + storage.ts to ipcMain.handle
@@ -60,9 +66,11 @@ src/
   styles/
     global.css           GENERATED — --color-* / --dimension-* / --typography-* / --opacity-* + .text-*
     global-tokens.ts     GENERATED — CssVar / TextStyle unions that primitives type their props with
-  primitives/            Text, Heading, Box, Stack, Button — built only on global.css;
-                         every appearance prop is a generated token name (Storybook: Primitives/*)
-  ui-kit/                Figma UI Kit components (card Button, WideButton, MainMenu, …)
+  primitives/            Text, Heading, Box, Stack, Button, FocusRing, Spinner — built only on
+                         global.css; every appearance prop is a generated token name, and
+                         token() / size() / spacing() type-check names (Storybook: Primitives/*)
+  ui-kit/                Figma UI Kit components (card Button, WideButton, MainMenu, …) —
+                         semantic tokens only, composed from the primitives
   shared/
     blueprint.ts         Blueprint DSL types + IPC/tool contract constants
     models.ts            Model list, effort levels, pricing for the spend estimate
@@ -288,3 +296,7 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
 6. `tokens/tokens.json` is the only place a token value is authored. `global.css`,
    its typed names, and the built-in "Global CSS Tokens" system are all derived
    from it, and `npm test` fails while the generated files are stale.
+7. Components (`src/ui-kit`, `src/primitives`) reference **semantic** tokens only —
+   never a core value — through the typed `token()`, `size()` and `spacing()`
+   helpers, and `npm test` fails otherwise. Every focus state is the one
+   `<FocusRing>`; every loading state is the one `<Spinner>`.

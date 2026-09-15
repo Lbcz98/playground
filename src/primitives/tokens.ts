@@ -53,7 +53,8 @@ export const GRID_SPACING = namesAfter(SPACING).filter(
 /** Radius steps, smallest first. */
 export const RADIUS_STEPS = namesAfter(RADIUS) as RadiusStep[]
 
-export function cssVar(name: CssVar): string {
+/** Internal: the layout-scale variables behind spacing() and radius(). Components use token(). */
+function cssVar(name: CssVar): string {
   return `var(${name})`
 }
 

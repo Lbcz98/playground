@@ -31,7 +31,9 @@ resolve, malformed values, and unknown `$type`s.
 - **Naming:** a token's path is its CSS name. `dimension.spacing.core.sm` becomes
   `--dimension-spacing-core-sm`, and camelCase segments are kebab-cased.
 - **Layers:** `core` holds raw values. `semantic` holds intent, as aliases to
-  core. Components should reach for semantic tokens first.
+  core (or, for a measured component size with no matching step, a literal).
+  Components reference semantic tokens only; `npm test` fails if one names a core
+  token. See `docs/ui-kit-token-audit.md`.
 - **Typography:** `typography.<style>.<weight>` composites become utility classes
   (`.text-body-md-bold`), not variables.
 - **Platform hints** that DTCG has no field for go under

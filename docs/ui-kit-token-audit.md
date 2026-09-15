@@ -146,4 +146,47 @@ intent (focus glows green) repoints one semantic alias. Neither edits a componen
 
 ## Results
 
-_Filled in when the batches land._
+| Measure | Before | After |
+| --- | ---: | ---: |
+| Core-token references in components | 110 | **0** |
+| Untyped `var(--…)` strings | 124 | **0** |
+| Raw `.text-*` class strings | 12 | **0** |
+| Measured sizes outside `tokens.json` | 10 (+ `untokenized.ts`) | **0** (file deleted) |
+| Focus-ring implementations | 4 | **1** (`<FocusRing>`) |
+| Loading spinners | 2 (one static) | **1** (`<Spinner>`) |
+
+Visual regression, per batch (48 stories, 1280×720, per-pixel):
+
+| Batch | Unchanged | Changed |
+| --- | ---: | --- |
+| 1 — colours, gradients, typography | 48 | none |
+| 2 — spacing, radius, sizes | 48 | none |
+| 3 — interactive states | 33 | 15, all focus states and all intended (re-baselined in the Batch 3 commit, see below) |
+
+Batch 3's changes:
+- **Card Button** (and InteractivityMenu, which is built from it), about 3.1%:
+  - the old translucent scrim no longer dims the ring, so the ring is brighter;
+  - the inner fill is darker;
+  - the blurred glow that bled below the card is gone.
+- **RoundedButton and the MainMenu logo**, 0.15–0.33%: the glow moves from the top to the bottom.
+- **primitives/Button**, about 0.1%: the glow fills the whole inner area.
+- **WideButton**: pixel-identical, because its recipe is the standard.
+
+### Kept in place
+
+- **`scripts/tokens/audit.test.ts`** fails `npm test` on any core token, untyped
+  `var()` string, raw text class or measured size in `src/ui-kit` or `src/primitives`.
+- **`token()`, `size()` and `spacing()`** type-check their names. A core token passed
+  to `token()` is a compile error.
+- **`npm run test:visual`** catches any unreviewed pixel change.
+
+### Open follow-ups
+
+- **Figma binding.** The Figma UI Kit components still have no bound variables.
+  Binding them to the new semantic names would make Figma and code share the contract.
+- **State prop names.** `state`, `status`, `focus`, `bugFocused`: unify them in a
+  breaking-change pass.
+- **Resting strokes.** The round button's is solid; the card and WideButton's is a
+  gradient. This is a design decision.
+- **Channel bug focus.** It keeps its thin `focus.outline` rather than the ring,
+  because its logo fills the whole hit target.
