@@ -16,6 +16,8 @@
   --color-core-neutral-grey-mid: #999999;
   /* Transparent gradient base */
   --color-core-neutral-dark-blue-grey: #34343C;
+  /* Fully transparent dark-blue-grey — the start of the Dark gradient's fade */
+  --color-core-neutral-dark-blue-grey-alpha-0: #34343C00;
   /* Deep dark gradient endpoint */
   --color-core-neutral-charcoal: #17161B;
   /* Base hue for translucent overlays */
@@ -144,8 +146,8 @@
   /* 135deg (top-left to bottom-right), confirmed by pixel-sampling the real Figma render (node 6038:18472): brightness falls off along both the top and the left edge, which only a diagonal produces. End stop is greymid-30, not black. */
   --gradient-complementary-diagonal-light: linear-gradient(135deg, var(--color-opacity-light-70) 0%, var(--color-opacity-greymid-30) 60%);
   --gradient-complementary-linear-light: linear-gradient(180deg, var(--color-core-neutral-white) 0%, var(--color-core-neutral-white-alpha-0) 100%);
-  /* Start stop carries alpha 0 in source — transparent-to-opaque dark overlay */
-  --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey) 0%, var(--color-core-neutral-charcoal) 100%);
+  /* Transparent-to-opaque dark overlay: fades from fully transparent dark-blue-grey to charcoal, as in the Figma style Gradients/Complementary/Dark (which also applies 50% style-level opacity) */
+  --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey-alpha-0) 0%, var(--color-core-neutral-charcoal) 100%);
   --gradient-complementary-live: linear-gradient(180deg, var(--color-core-complementary-live) 0%, var(--color-core-complementary-error) 70%);
   --gradient-complementary-replay: linear-gradient(180deg, var(--color-core-complementary-replay-light) 0%, var(--color-core-complementary-replay-dark) 70%);
 

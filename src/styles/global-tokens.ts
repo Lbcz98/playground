@@ -10,6 +10,7 @@ export const CSS_VARS = [
   '--color-core-neutral-black',
   '--color-core-neutral-grey-mid',
   '--color-core-neutral-dark-blue-grey',
+  '--color-core-neutral-dark-blue-grey-alpha-0',
   '--color-core-neutral-charcoal',
   '--color-core-neutral-slate',
   '--color-core-primary-night-light',
