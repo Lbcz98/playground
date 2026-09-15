@@ -17,6 +17,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
+import { Text, token } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell } from './RoundButtonShell'
@@ -56,19 +57,6 @@ const textStack: CSSProperties = {
   minWidth: 0,
 }
 
-const titleStyle: CSSProperties = {
-  color: 'var(--color-core-neutral-white)',
-  opacity: 'var(--opacity-semantic-title)',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-}
-
-const subtitleStyle: CSSProperties = {
-  color: 'var(--color-core-neutral-white)',
-  opacity: 'var(--opacity-semantic-text-secondary)',
-}
-
 function ContentCircle({ src, size, alt }: { src?: string; size: string; alt: string }): ReactNode {
   if (src) {
     return (
@@ -91,7 +79,7 @@ function ContentCircle({ src, size, alt }: { src?: string; size: string; alt: st
         width: size,
         height: size,
         borderRadius: 'var(--dimension-radius-core-full)',
-        backgroundColor: 'var(--color-semantic-functional-background-elevated)',
+        backgroundColor: token('--color-semantic-functional-background-elevated'),
         display: 'block',
       }}
     />
@@ -145,12 +133,12 @@ export function MainMenu({
             />
           </RoundButtonShell>
           <div style={{ ...textStack, paddingInlineStart: 'var(--dimension-spacing-core-3xs)' }}>
-            <span className="text-body-lg-bold" style={titleStyle}>
+            <Text variant="body-lg-bold" opacity="title" truncate>
               {weatherTitle}
-            </span>
-            <span className="text-body-md-medium" style={subtitleStyle}>
+            </Text>
+            <Text variant="body-md-medium" opacity="text-secondary">
               {weatherSubtitle}
-            </span>
+            </Text>
           </div>
         </div>
       </div>
@@ -167,12 +155,12 @@ export function MainMenu({
               minWidth: 0,
             }}
           >
-            <span className="text-body-lg-bold" style={titleStyle}>
+            <Text variant="body-lg-bold" opacity="title" truncate>
               {programTitle}
-            </span>
-            <span className="text-body-md-medium" style={subtitleStyle}>
+            </Text>
+            <Text variant="body-md-medium" opacity="text-secondary">
               {programSubtitle}
-            </span>
+            </Text>
           </div>
           <RoundButtonShell focus label="Now playing" onClick={onLogoClick}>
             <ContentCircle src={logoSrc} size="var(--dimension-spacing-core-3xl)" alt="" />
@@ -201,8 +189,7 @@ export function MainMenu({
                 position: 'absolute',
                 inset: 0,
                 borderRadius: 'var(--dimension-radius-core-full)',
-                border:
-                  'var(--dimension-border-width-core-thin) solid var(--color-semantic-theme-day-dark)',
+                border: `var(--dimension-border-width-core-thin) solid ${token('--color-semantic-focus-outline')}`,
               }}
             />
           )}

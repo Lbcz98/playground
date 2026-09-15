@@ -118,8 +118,8 @@ describe('<Button>', () => {
   })
 
   it('draws the kit focus ring only when focused', () => {
-    expect(html(<Button status="focus">Go</Button>)).toContain('var(--gradient-primary-night)')
-    expect(html(<Button>Go</Button>)).not.toContain('var(--gradient-primary-night)')
+    expect(html(<Button status="focus">Go</Button>)).toContain('var(--gradient-semantic-focus-ring)')
+    expect(html(<Button>Go</Button>)).not.toContain('var(--gradient-semantic-focus-ring)')
   })
 
   it('is a non-submitting button that disables and reports loading', () => {

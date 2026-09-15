@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { Text } from '@/primitives'
 import { Button, type ButtonState } from './Button'
 
 export interface InteractivityMenuItem {
@@ -33,14 +34,6 @@ export interface InteractivityMenuProps {
   activeIndex?: number | null
   /** Optional label above the rail, right-aligned to match the source usage. */
   heading?: string
-}
-
-const headingStyle: CSSProperties = {
-  display: 'block',
-  color: 'var(--color-core-neutral-white)',
-  opacity: 'var(--opacity-semantic-title)',
-  textAlign: 'end',
-  marginBottom: 'var(--dimension-spacing-core-xs)',
 }
 
 const row: CSSProperties = {
@@ -74,9 +67,11 @@ export function InteractivityMenu({
   return (
     <div>
       {heading && (
-        <span className="text-heading-5-bold" style={headingStyle}>
-          {heading}
-        </span>
+        <div style={{ marginBottom: 'var(--dimension-spacing-core-xs)' }}>
+          <Text as="div" variant="heading-5-bold" opacity="title" align="end">
+            {heading}
+          </Text>
+        </div>
       )}
       <div style={row}>
         {items.map((item, index) => (

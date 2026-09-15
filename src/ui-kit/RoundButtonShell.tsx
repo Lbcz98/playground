@@ -10,6 +10,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
+import { token } from '@/primitives'
 import { ROUNDED } from './untokenized'
 
 export interface RoundButtonShellProps {
@@ -45,8 +46,8 @@ const circle: CSSProperties = {
 
 const restCircle: CSSProperties = {
   ...circle,
-  backgroundColor: 'var(--color-opacity-background)',
-  border: 'var(--dimension-border-width-semantic-button) solid var(--color-opacity-light-20)',
+  backgroundColor: token('--color-semantic-functional-background-translucent'),
+  border: `var(--dimension-border-width-semantic-button) solid ${token('--color-semantic-functional-border-default')}`,
 }
 
 const focusCircle: CSSProperties = {
@@ -56,7 +57,7 @@ const focusCircle: CSSProperties = {
   // source node exported the gradient as a flattened image with no literal
   // color classes to read; cross-checking against a second Figma file (the
   // Handoff/DTV round button) confirmed every focus ring shares one gradient.
-  backgroundImage: 'var(--gradient-primary-night)',
+  backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const focusInset: CSSProperties = {
@@ -64,8 +65,8 @@ const focusInset: CSSProperties = {
   inset: 'var(--dimension-border-width-semantic-focus-ring)',
   borderRadius: 'var(--dimension-radius-core-full)',
   overflow: 'hidden',
-  backgroundColor: 'var(--color-opacity-dark-70)',
-  backgroundImage: 'linear-gradient(180deg, var(--color-core-neutral-charcoal) 0%, transparent 100%)',
+  backgroundColor: token('--color-semantic-focus-inset'),
+  backgroundImage: `linear-gradient(180deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
 }
 
 const focusGlow: CSSProperties = {
@@ -73,9 +74,8 @@ const focusGlow: CSSProperties = {
   insetInline: 0,
   top: 0,
   height: '50%',
-  opacity: 'var(--opacity-semantic-illumination-strong)',
-  backgroundImage:
-    'radial-gradient(ellipse at 50% 0%, var(--color-core-primary-night-light) 0%, transparent 70%)',
+  opacity: token('--opacity-semantic-illumination-strong'),
+  backgroundImage: `radial-gradient(ellipse at 50% 0%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 export function RoundButtonShell({

@@ -25,6 +25,7 @@ import {
   spacing,
   surface,
   textColor,
+  token,
   type BorderColor,
   type GridSpacing,
   type SurfaceColor,
@@ -92,7 +93,7 @@ const focusFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
   borderRadius: FULL,
-  backgroundImage: cssVar('--gradient-primary-night'),
+  backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const focusInset: CSSProperties = {
@@ -100,8 +101,8 @@ const focusInset: CSSProperties = {
   inset: cssVar('--dimension-border-width-semantic-focus-ring'),
   borderRadius: FULL,
   overflow: 'hidden',
-  backgroundColor: cssVar('--color-opacity-dark-70'),
-  backgroundImage: `linear-gradient(0deg, ${cssVar('--color-core-neutral-charcoal')} 0%, transparent 100%)`,
+  backgroundColor: token('--color-semantic-focus-inset'),
+  backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
 }
 
 const focusGlow: CSSProperties = {
@@ -109,8 +110,8 @@ const focusGlow: CSSProperties = {
   insetInline: 0,
   bottom: 0,
   height: '80%',
-  opacity: cssVar('--opacity-semantic-overlay'),
-  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${cssVar('--color-core-primary-night-light')} 0%, transparent 70%)`,
+  opacity: token('--opacity-semantic-overlay'),
+  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const overlay: CSSProperties = {
@@ -168,7 +169,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           gap: spacing('2xs'),
           // Hidden, not removed, so a loading button keeps its width.
           visibility: loading ? 'hidden' : undefined,
-          opacity: disabled ? cssVar('--opacity-semantic-content-muted') : undefined,
+          opacity: disabled ? token('--opacity-semantic-content-muted') : undefined,
         }}
       >
         {iconLeft && <span style={iconSlot(size)}>{iconLeft}</span>}

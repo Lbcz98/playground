@@ -7,6 +7,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
+import { Text, token } from '@/primitives'
 import arrowLeftIcon from './icons/arrow-left.svg'
 import arrowRightIcon from './icons/arrow-right.svg'
 import spinnerIcon from './icons/spinner.svg'
@@ -39,7 +40,7 @@ const focusFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
   borderRadius: 'var(--dimension-radius-core-full)',
-  backgroundImage: 'var(--gradient-primary-night)',
+  backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const focusInset: CSSProperties = {
@@ -47,8 +48,8 @@ const focusInset: CSSProperties = {
   inset: 'var(--dimension-border-width-semantic-focus-ring)',
   borderRadius: 'var(--dimension-radius-core-4xl)',
   overflow: 'hidden',
-  backgroundColor: 'var(--color-opacity-dark-70)',
-  backgroundImage: 'linear-gradient(0deg, var(--color-core-neutral-charcoal) 0%, transparent 100%)',
+  backgroundColor: token('--color-semantic-focus-inset'),
+  backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
 }
 
 const focusGlow: CSSProperties = {
@@ -56,9 +57,8 @@ const focusGlow: CSSProperties = {
   insetInline: 0,
   bottom: 0,
   height: 'var(--dimension-spacing-core-xl)',
-  opacity: 'var(--opacity-semantic-overlay)',
-  backgroundImage:
-    'radial-gradient(ellipse at 50% 100%, var(--color-core-primary-night-light) 0%, transparent 70%)',
+  opacity: token('--opacity-semantic-overlay'),
+  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const center: CSSProperties = {
@@ -84,7 +84,7 @@ const icon: CSSProperties = {
  * CSS border can't carry a gradient on a rounded shape.
  *
  * Rendered as a sibling AFTER the content span, not nested inside it:
- * `--color-opacity-background` is itself only ~30% opaque, so insetting it
+ * the translucent background is itself only ~30% opaque, so insetting it
  * on top of a full gradient frame let the gradient bleed through the whole
  * interior instead of staying confined to the edge (a real bug an earlier
  * version had — see git history). This uses a masked "hole"
@@ -97,7 +97,7 @@ const diagonalRing: CSSProperties = {
   inset: 0,
   padding: 'var(--dimension-border-width-semantic-button)',
   borderRadius: 'var(--dimension-radius-core-full)',
-  backgroundImage: 'var(--gradient-complementary-diagonal-light)',
+  backgroundImage: token('--gradient-semantic-border-default'),
   WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
   WebkitMaskComposite: 'xor',
   mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
@@ -110,7 +110,7 @@ function hasDiagonalStroke(status: WideButtonStatus): boolean {
 
 function centerFor(status: WideButtonStatus): CSSProperties {
   if (status === 'focus') return center
-  return { ...center, backgroundColor: 'var(--color-opacity-background)' }
+  return { ...center, backgroundColor: token('--color-semantic-functional-background-translucent') }
 }
 
 export function WideButton({
@@ -151,16 +151,9 @@ export function WideButton({
         ) : (
           <>
             {iconLeft && <img src={arrowLeftIcon} alt="" style={icon} />}
-            <span
-              className="text-body-sm-bold"
-              style={{
-                color: 'var(--color-core-neutral-white)',
-                whiteSpace: 'nowrap',
-                opacity: isDisabled ? 'var(--opacity-semantic-content-muted)' : undefined,
-              }}
-            >
+            <Text variant="body-sm-bold" opacity={isDisabled ? 'content-muted' : undefined} truncate>
               {label}
-            </span>
+            </Text>
             {iconRight && <img src={arrowRightIcon} alt="" style={icon} />}
           </>
         )}

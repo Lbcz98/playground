@@ -7,7 +7,7 @@
  * the build of every primitive that used it.
  */
 
-import { CSS_VARS, type CssVar } from '@/styles/global-tokens'
+import { CSS_VARS, type CssVar, type TextStyle } from '@/styles/global-tokens'
 
 /** The part of each `CssVar` that follows `Prefix`. */
 type NamesAfter<Prefix extends string, Var extends string = CssVar> = Var extends `${Prefix}${infer Name}`
@@ -17,6 +17,7 @@ type NamesAfter<Prefix extends string, Var extends string = CssVar> = Var extend
 const SPACING = '--dimension-spacing-core-'
 const RADIUS = '--dimension-radius-core-'
 const FUNCTIONAL = '--color-semantic-functional-'
+const OPACITY = '--opacity-semantic-'
 
 export type SpacingStep = NamesAfter<typeof SPACING>
 export type RadiusStep = NamesAfter<typeof RADIUS>
@@ -25,6 +26,10 @@ export type BorderColor = NamesAfter<`${typeof FUNCTIONAL}border-`>
 export type StatusColor = NamesAfter<`${typeof FUNCTIONAL}status-`>
 /** A functional text role (`primary`, `secondary`, …) or a status colour as `status-<name>`. */
 export type TextColor = NamesAfter<`${typeof FUNCTIONAL}text-`> | `status-${StatusColor}`
+export type OpacityRole = NamesAfter<typeof OPACITY>
+
+/** Every custom property in a tokens.json `semantic` group — the tier components may name. */
+export type SemanticVar = Extract<CssVar, `${string}-semantic-${string}`>
 
 /**
  * Spacing steps off the layout grid (frame.ts rule 2: multiples of 8, plus the
@@ -51,6 +56,16 @@ export function cssVar(name: CssVar): string {
   return `var(${name})`
 }
 
+/** A semantic token as a CSS value. Core names don't type-check: components never name raw values. */
+export function token(name: SemanticVar): string {
+  return `var(${name})`
+}
+
+/** The generated utility class for a text style, for elements that can't be a `<Text>`. */
+export function textClass(style: TextStyle): string {
+  return `text-${style}`
+}
+
 export function spacing(step: GridSpacing): string {
   return cssVar(`${SPACING}${step}`)
 }
@@ -60,11 +75,15 @@ export function radius(step: RadiusStep): string {
 }
 
 export function surface(role: SurfaceColor): string {
-  return cssVar(`${FUNCTIONAL}background-${role}`)
+  return token(`${FUNCTIONAL}background-${role}`)
 }
 
 export function borderColor(role: BorderColor): string {
-  return cssVar(`${FUNCTIONAL}border-${role}`)
+  return token(`${FUNCTIONAL}border-${role}`)
+}
+
+export function opacity(role: OpacityRole): string {
+  return token(`${OPACITY}${role}`)
 }
 
 function isStatus(role: TextColor): role is `status-${StatusColor}` {
@@ -73,5 +92,5 @@ function isStatus(role: TextColor): role is `status-${StatusColor}` {
 
 export function textColor(role: TextColor | 'inherit'): string {
   if (role === 'inherit') return 'inherit'
-  return isStatus(role) ? cssVar(`${FUNCTIONAL}${role}`) : cssVar(`${FUNCTIONAL}text-${role}`)
+  return isStatus(role) ? token(`${FUNCTIONAL}${role}`) : token(`${FUNCTIONAL}text-${role}`)
 }

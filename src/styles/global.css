@@ -98,6 +98,36 @@
   --color-semantic-functional-status-success: var(--color-core-complementary-confirmation);
   --color-semantic-functional-status-warning: var(--color-core-complementary-alert);
   --color-semantic-functional-status-live: var(--color-core-complementary-live);
+  /* Resting card and control surface over video or imagery */
+  --color-semantic-functional-background-translucent: var(--color-opacity-background);
+  /* Faint light tint behind a resting status pill */
+  --color-semantic-functional-background-tint: var(--color-opacity-light-10);
+  /* Supporting text on translucent cards (overline, subtitle) */
+  --color-semantic-functional-text-muted: var(--color-opacity-light-70);
+
+  /* ===== Color · Semantic · Focus ===== */
+  /* Fill inside the focus ring */
+  --color-semantic-focus-inset: var(--color-opacity-dark-70);
+  /* Fade layered over the focus ring's inner fill */
+  --color-semantic-focus-inset-fade: var(--color-core-neutral-charcoal);
+  /* Light pooling inside a focused control */
+  --color-semantic-focus-glow: var(--color-core-primary-night-light);
+  /* Thin focus outline for content that fills its own hit target (the channel bug) */
+  --color-semantic-focus-outline: var(--color-semantic-theme-day-dark);
+
+  /* ===== Gradient · Semantic · Focus ===== */
+  /* The one focus ring, shared by every focusable control */
+  --gradient-semantic-focus-ring: var(--gradient-primary-night);
+
+  /* ===== Gradient · Semantic · Border ===== */
+  /* Resting stroke on translucent cards and pill buttons */
+  --gradient-semantic-border-default: var(--gradient-complementary-diagonal-light);
+
+  /* ===== Gradient · Semantic · Status ===== */
+  /* Focused live-broadcast pill */
+  --gradient-semantic-status-live: var(--gradient-complementary-live);
+  /* Focused replay pill */
+  --gradient-semantic-status-replay: var(--gradient-complementary-replay);
 
   /* ===== Gradient · Primary ===== */
   --gradient-primary-night: linear-gradient(180deg, var(--color-core-primary-night-dark) 30%, var(--color-core-primary-night-light) 100%);

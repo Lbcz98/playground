@@ -10,6 +10,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
+import { textClass, token } from '@/primitives'
 import volumeOnIcon from './icons/volume-on.svg'
 
 export type LabelVideoKind = 'live' | 'replay'
@@ -34,15 +35,15 @@ const base: CSSProperties = {
   paddingInline: 'var(--dimension-spacing-core-2xs)',
   paddingBlock: 'var(--dimension-spacing-core-3xs)',
   borderRadius: 'var(--dimension-radius-core-full)',
-  color: 'var(--color-semantic-functional-text-primary)',
+  color: token('--color-semantic-functional-text-primary'),
   whiteSpace: 'nowrap',
 }
 
 function fillFor(kind: LabelVideoKind, focus: boolean): CSSProperties {
-  if (!focus) return { backgroundColor: 'var(--color-opacity-light-10)' }
+  if (!focus) return { backgroundColor: token('--color-semantic-functional-background-tint') }
   return kind === 'live'
-    ? { backgroundImage: 'var(--gradient-complementary-live)' }
-    : { backgroundImage: 'var(--gradient-complementary-replay)' }
+    ? { backgroundImage: token('--gradient-semantic-status-live') }
+    : { backgroundImage: token('--gradient-semantic-status-replay') }
 }
 
 export function LabelVideo({
@@ -55,7 +56,7 @@ export function LabelVideo({
 
   return (
     <span
-      className={compact ? 'text-caption-extra-bold' : 'text-body-sm-extra-bold'}
+      className={textClass(compact ? 'caption-extra-bold' : 'body-sm-extra-bold')}
       style={{
         ...base,
         ...fillFor(kind, focus),

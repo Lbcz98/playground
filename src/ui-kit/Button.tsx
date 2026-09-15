@@ -11,6 +11,8 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
+import { Text, token } from '@/primitives'
+import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
 import { CARD } from './untokenized'
@@ -62,7 +64,7 @@ const gradientFrame: CSSProperties = {
   position: 'absolute',
   inset: 0,
   borderRadius: 'var(--dimension-radius-core-6xl)',
-  backgroundImage: 'var(--gradient-primary-night)',
+  backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
 const gradientInset: CSSProperties = {
@@ -70,8 +72,8 @@ const gradientInset: CSSProperties = {
   inset: 'var(--dimension-spacing-core-3xs)',
   borderRadius: 'var(--dimension-radius-core-5xl)',
   overflow: 'hidden',
-  backgroundColor: 'var(--color-core-neutral-charcoal)',
-  opacity: 'var(--opacity-semantic-overlay)',
+  backgroundColor: token('--color-semantic-focus-inset-fade'),
+  opacity: token('--opacity-semantic-overlay'),
 }
 
 const gradientGlow: CSSProperties = {
@@ -79,17 +81,16 @@ const gradientGlow: CSSProperties = {
   insetInline: 0,
   bottom: 0,
   height: '65%',
-  opacity: 'var(--opacity-semantic-illumination-strong)',
+  opacity: token('--opacity-semantic-illumination-strong'),
   filter: 'blur(var(--dimension-spacing-core-3xs))',
-  backgroundImage:
-    'radial-gradient(ellipse at 50% 100%, var(--color-core-primary-night-light) 0%, transparent 70%)',
+  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const scrim: CSSProperties = {
   position: 'absolute',
   inset: 0,
   borderRadius: 'var(--dimension-radius-core-6xl)',
-  backgroundColor: 'var(--color-opacity-background)',
+  backgroundColor: token('--color-semantic-functional-background-translucent'),
 }
 
 /**
@@ -99,8 +100,8 @@ const scrim: CSSProperties = {
  * (Figma's own codegen flattens gradient borders to one of their stops; a
  * plain CSS `border` can't carry a gradient on a rounded shape either way).
  *
- * The fill and the ring are two SIBLING layers, not nested: `--color-opacity-
- * background` is itself only ~30% opaque, so an earlier version that
+ * The fill and the ring are two SIBLING layers, not nested: the translucent
+ * background is itself only ~30% opaque, so an earlier version that
  * stacked it on top of the gradient as an inset let the gradient bleed
  * through the whole interior instead of staying confined to the edge. The
  * ring below uses a masked "hole" (`mask-composite: exclude`) so it has NO
@@ -117,7 +118,7 @@ function cardFill(state: ButtonState): CSSProperties {
     position: 'absolute',
     inset: 0,
     borderRadius: cardRadius(state),
-    backgroundColor: 'var(--color-opacity-background)',
+    backgroundColor: token('--color-semantic-functional-background-translucent'),
   }
 }
 
@@ -127,7 +128,7 @@ function cardRing(state: ButtonState): CSSProperties {
     inset: 0,
     padding: 'var(--dimension-border-width-semantic-card)',
     borderRadius: cardRadius(state),
-    backgroundImage: 'var(--gradient-complementary-diagonal-light)',
+    backgroundImage: token('--gradient-semantic-border-default'),
     WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
     WebkitMaskComposite: 'xor',
     mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
@@ -136,6 +137,9 @@ function cardRing(state: ButtonState): CSSProperties {
 }
 
 const layer: CSSProperties = { position: 'relative' }
+
+/** Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
+const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' }
 
 export function Button({
   state = 'focus',
@@ -149,8 +153,8 @@ export function Button({
   onClick,
 }: ButtonProps): ReactNode {
   const large = isLarge(state)
-  const secondary = large ? 'text-footnote-bold' : 'text-caption-bold'
-  const titleClass = large ? 'text-body-md-bold' : 'text-body-sm-bold'
+  const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
+  const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
 
   return (
     <button type="button" onClick={onClick} style={rootFor(state)}>
@@ -204,29 +208,22 @@ export function Button({
           display: 'flex',
           flexDirection: 'column',
           gap: 'var(--dimension-spacing-core-3xs)',
-          opacity: state === 'focus' ? undefined : 'var(--opacity-semantic-content-muted)',
+          opacity: state === 'focus' ? undefined : token('--opacity-semantic-content-muted'),
         }}
       >
         {overline && (
-          <span
-            className={secondary}
-            style={{ color: 'var(--color-opacity-light-70)', mixBlendMode: 'luminosity' }}
-          >
-            {overline}
+          <span style={luminosity}>
+            <Text variant={secondary} color="muted">
+              {overline}
+            </Text>
           </span>
         )}
-        <span
-          className={titleClass}
-          style={{ color: 'var(--color-semantic-functional-text-primary)' }}
-        >
-          {title}
-        </span>
+        <Text variant={titleStyle}>{title}</Text>
         {subtitle && (
-          <span
-            className={secondary}
-            style={{ color: 'var(--color-opacity-light-70)', mixBlendMode: 'luminosity' }}
-          >
-            {subtitle}
+          <span style={luminosity}>
+            <Text variant={secondary} color="muted">
+              {subtitle}
+            </Text>
           </span>
         )}
         {advertising && (
@@ -237,11 +234,10 @@ export function Button({
               gap: 'var(--dimension-spacing-core-2xs)',
             }}
           >
-            <span
-              className={secondary}
-              style={{ color: 'var(--color-opacity-light-70)', mixBlendMode: 'luminosity' }}
-            >
-              {advertising.label}
+            <span style={luminosity}>
+              <Text variant={secondary} color="muted">
+                {advertising.label}
+              </Text>
             </span>
             <img
               src={advertising.logoSrc}
