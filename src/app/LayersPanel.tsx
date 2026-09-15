@@ -21,7 +21,12 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
         )}
         onClick={() => select(node.id)}
       >
-        <span className="font-medium">{entry?.label ?? node.type}</span>
+        <span className="flex items-center gap-xs">
+          <span className="font-medium">{entry?.label ?? node.type}</span>
+          {node.anchor ? (
+            <span className="rounded-full bg-brand-subtle px-xs text-xs text-brand-strong">anchored</span>
+          ) : null}
+        </span>
         {node.id !== ROOT_ID ? (
           <button
             type="button"

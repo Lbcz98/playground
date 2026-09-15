@@ -3,6 +3,7 @@ import { DesignSystemSwitcher } from './DesignSystemSwitcher'
 import { ComponentPalette } from './ComponentPalette'
 import { LayersPanel } from './LayersPanel'
 import { PropertyInspector } from './PropertyInspector'
+import { FramePanel } from './FramePanel'
 import { AgentPanel } from './AgentPanel'
 import { Canvas } from '@/canvas/Canvas'
 import { DesignSystemProvider } from '@/design-system/DesignSystemProvider'
@@ -24,6 +25,7 @@ export function App(): JSX.Element {
           </main>
 
           <aside className="flex w-panel-lg flex-col overflow-hidden border-l border-line bg-surface">
+            <FramePanel />
             <div className="max-h-inspector shrink-0 overflow-auto border-b border-line">
               <PropertyInspector />
             </div>

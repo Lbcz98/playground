@@ -9,6 +9,11 @@ export interface CanvasNode {
   type: string
   props: Record<string, unknown>
   children: CanvasNode[]
+  /**
+   * The frame's element group. Only meaningful on a direct child of the root —
+   * the canvas renders it in the focus zone (see `shared/layout/frame.ts`).
+   */
+  anchor?: boolean
 }
 
 export type NodeId = string

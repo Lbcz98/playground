@@ -46,7 +46,8 @@ const Container: ManifestComponent = {
       name: 'padding',
       type: { name: 'enum' },
       required: false,
-      defaultValue: 'spacing-core-md',
+      // `spacing-core-md` sits off the 8pt grid, so the default is the gutter step.
+      defaultValue: 'spacing-core-sm',
       tokenGroup: 'spacing',
       control: 'select',
     },

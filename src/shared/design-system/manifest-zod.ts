@@ -22,7 +22,13 @@
 
 import { z } from 'zod'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp } from './manifest'
-import { rootContainerId } from './manifest'
+import { deriveDefaultProps, rootContainerId } from './manifest'
+import {
+  frameLayoutErrors,
+  isOffGridSpacingToken,
+  onGridSpacingNames,
+  snapSpacingName,
+} from '@/shared/layout/frame'
 
 const SUPPORTED_VERSION = 1
 
@@ -33,11 +39,15 @@ const SUPPORTED_VERSION = 1
 function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTypeAny {
   let schema: z.ZodTypeAny
   const tokenNames = prop.tokenGroup ? Object.keys(manifest.tokens[prop.tokenGroup] ?? {}) : []
+  const enumValues =
+    prop.options && prop.options.length > 0 ? prop.options : tokenNames.length > 0 ? tokenNames : null
+  // Spacing scales are cut to the 8pt grid (`shared/layout/frame.ts`), so an
+  // off-grid step is rejected and retried like any other invalid token.
+  const spacing = prop.tokenGroup === 'spacing'
+  const choices = enumValues && spacing ? onGridSpacingNames(manifest, enumValues) : enumValues
 
-  if (prop.options && prop.options.length > 0) {
-    schema = z.enum(prop.options as [string, ...string[]])
-  } else if (tokenNames.length > 0) {
-    schema = z.enum(tokenNames as [string, ...string[]])
+  if (choices) {
+    schema = z.enum(choices as [string, ...string[]])
   } else {
     switch (prop.type.name) {
       case 'boolean':
@@ -51,13 +61,36 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
     }
   }
 
-  if (prop.defaultValue !== undefined) {
-    schema = schema.default(prop.defaultValue as never)
+  let defaultValue = prop.defaultValue
+  if (choices && spacing && isOffGridSpacingToken(manifest, defaultValue)) {
+    defaultValue = snapSpacingName(manifest, choices, defaultValue) ?? defaultValue
+  }
+
+  if (defaultValue !== undefined) {
+    schema = schema.default(defaultValue as never)
   } else if (!prop.required) {
     schema = schema.optional()
   }
 
   return schema
+}
+
+/**
+ * A component's full default props, every value valid against its compiled
+ * schema: a declared default the schema no longer accepts (an off-grid spacing
+ * step) falls back to the schema's own snapped default.
+ */
+export function compiledDefaultProps(
+  component: ManifestComponent,
+  schema: z.ZodObject<z.ZodRawShape>,
+): Record<string, unknown> {
+  const out = deriveDefaultProps(component)
+  for (const [name, field] of Object.entries(schema.shape as Record<string, z.ZodTypeAny>)) {
+    if (field.safeParse(out[name]).success) continue
+    const fallback = field.safeParse(undefined)
+    if (fallback.success) out[name] = fallback.data
+  }
+  return out
 }
 
 /** One `.strict()` object schema per component, keyed by component id. */
@@ -106,6 +139,8 @@ export function validateBlueprintAgainstManifest(
   }
 
   validateNode(input.root, 'root', { schemas, manifest, allowed }, errors)
+  // Layout QA: frame margins, the 8pt grid + gutters, focus anchoring.
+  errors.push(...frameLayoutErrors(input, manifest))
 
   return errors.length === 0 ? { ok: true } : { ok: false, errors }
 }
@@ -146,6 +181,14 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
     }
     const field = (schema.shape as Record<string, z.ZodTypeAny>)[key]
     if (field && !field.safeParse(props[key]).success) {
+      // A real spacing token rejected only for sitting off the grid is reported
+      // by the frame audit, whose message explains the grid rule.
+      if (
+        component.props[key].tokenGroup === 'spacing' &&
+        isOffGridSpacingToken(ctx.manifest, props[key])
+      ) {
+        continue
+      }
       errors.push(
         `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} is not an allowed value.`,
       )

@@ -56,19 +56,18 @@ function tier(opts: {
   }
 }
 
+// Frame-compliant: the root adds no padding (the frame supplies the outer margin)
+// and the root and the tier row both sit one gutter ("md") apart.
 export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
   version: 1,
   root: {
     type: 'Stack',
     props: {
       direction: 'vertical',
-      gap: 'lg',
-      padding: 'xl',
+      gap: 'md',
+      padding: 'none',
       align: 'stretch',
       surface: 'surface',
-      radius: 'lg',
-      shadow: 'sm',
-      bordered: true,
     },
     children: [
       {
@@ -89,7 +88,7 @@ export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
       },
       {
         type: 'Stack',
-        props: { direction: 'horizontal', gap: 'lg', align: 'stretch', justify: 'between' },
+        props: { direction: 'horizontal', gap: 'md', align: 'stretch', justify: 'between' },
         children: [
           tier({
             name: 'Starter',

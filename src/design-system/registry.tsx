@@ -28,8 +28,8 @@ import type {
   ManifestComponent,
   ManifestTokens,
 } from '@/shared/design-system/manifest'
-import { deriveDefaultProps, inferControl, propLabel } from '@/shared/design-system/manifest'
-import { compileManifestSchemas } from '@/shared/design-system/manifest-zod'
+import { inferControl, propLabel } from '@/shared/design-system/manifest'
+import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import type { LiveComponentMap } from './liveBundle'
 import {
@@ -374,6 +374,8 @@ function makeGenericRenderer(component: ManifestComponent, tokens: ManifestToken
 interface Decoration {
   className?: string
   onClick?: (event: MouseEvent<HTMLElement>) => void
+  /** Set by `NodeRenderer` so the canvas can map DOM back to the tree. */
+  'data-node-id'?: string
 }
 
 function CrashedPlaceholder({
@@ -381,9 +383,11 @@ function CrashedPlaceholder({
   message,
   className,
   onClick,
+  'data-node-id': nodeId,
 }: Decoration & { component: ManifestComponent; message: string }): ReactElement {
   return (
     <div
+      data-node-id={nodeId}
       className={cx('flex flex-col gap-xs border border-l-4 border-dashed', className)}
       onClick={onClick}
       style={{
@@ -430,6 +434,7 @@ class LiveComponentBoundary extends Component<BoundaryProps, BoundaryState> {
           message={this.state.error.message}
           className={this.props.className}
           onClick={this.props.onClick}
+          data-node-id={this.props['data-node-id']}
         />
       )
     }
@@ -442,6 +447,7 @@ class LiveComponentBoundary extends Component<BoundaryProps, BoundaryState> {
     return cloneElement(child, {
       className: cx(childProps.className, this.props.className),
       onClick: this.props.onClick,
+      'data-node-id': this.props['data-node-id'],
     })
   }
 }
@@ -512,7 +518,7 @@ export function hydrateRegistry(
       component,
       schema,
       fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
-      defaultProps: deriveDefaultProps(component),
+      defaultProps: compiledDefaultProps(component, schema),
       controls,
       render:
         codeRender ??

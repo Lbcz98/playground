@@ -1,11 +1,20 @@
 /**
  * Turns a Design System Manifest into (a) a machine-readable spec and (b) the LLM
- * system prompt.
+ * system prompts.
+ *
+ * The Generator's system prompt opens with the GLOBAL KERNEL (`buildGlobalKernel`)
+ * — the agent's unbreakable, design-system-agnostic laws: Blueprint JSON + tokens,
+ * the 8pt grid, the 1280×720 canvas with its safe area / gutters / focus
+ * alignment, and registry strictness. It is kept lean, and every number in it
+ * comes from `shared/layout/frame.ts`, so the laws can never drift from what the
+ * validator enforces. Everything specific to the active design system follows it,
+ * compiled from the manifest (`designSystemBinding`, the component list).
  *
  * Spec §6 Step 3 ("Dynamic AI Schema Injection"): the Planner and Generator agents
- * must NEVER see a hardcoded schema. Every prompt here is compiled from the *active*
- * `DesignSystemManifest` that the orchestrator passes in, so the model can only ever
- * be told about components and token values that the active system actually has.
+ * must NEVER see a hardcoded schema. Every design-system detail here is compiled
+ * from the *active* `DesignSystemManifest` that the orchestrator passes in, so the
+ * model can only ever be told about components and token values that the active
+ * system actually has.
  *
  * When no manifest is supplied we fall back to the built-in ScreenFlow manifest
  * (itself derived from `catalog.ts`), so existing callers are unaffected.
@@ -17,6 +26,15 @@ import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent } from '@/shared/design-system/manifest'
 import { inferControl, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import {
+  FRAME,
+  allowedSpacingNames,
+  centeringPropsFor,
+  onGridSpacingNames,
+  spacingNameForPx,
+  spacingPropFor,
+  spacingPx,
+} from '@/shared/layout/frame'
 
 export interface PropSpec {
   name: string
@@ -38,11 +56,15 @@ export interface ComponentSpec {
 
 function specForComponent(component: ManifestComponent, manifest: DesignSystemManifest): ComponentSpec {
   const props: PropSpec[] = Object.values(component.props).map((prop) => {
-    const names = prop.tokenGroup ? tokenNames(manifest, prop.tokenGroup) : []
+    // Spacing values are cut to the 8pt grid, exactly as the validator compiles them.
+    const spacing = prop.tokenGroup === 'spacing'
+    const allNames = prop.tokenGroup ? tokenNames(manifest, prop.tokenGroup) : []
+    const names = spacing ? onGridSpacingNames(manifest, allNames) : allNames
+    const options = spacing && prop.options ? onGridSpacingNames(manifest, prop.options) : prop.options
     return {
       name: prop.name,
       control: inferControl(prop),
-      options: prop.options,
+      options,
       ...(names.length > 0 ? { tokenNames: names } : {}),
       default: prop.defaultValue,
     }
@@ -64,7 +86,65 @@ export function getRegistrySpec(
 }
 
 // ---------------------------------------------------------------------------
-// Prompt rendering
+// Global kernel — the agent's unbreakable laws, design-system agnostic
+// ---------------------------------------------------------------------------
+
+const px = (n: number): string => `${n}px`
+
+function kernelIntro(): string {
+  return `You are an expert UI Engineering Agent. Your primary directive is to generate valid Blueprint JSON (DSL) layouts that strictly adhere to our design system's physical constraints and component registry.
+
+You must never violate the following global architectural laws:`
+}
+
+function tokensLaw(): string {
+  return `### 1. BLUEPRINT JSON FORMAT & TOKENS
+* **Output:** You must generate valid Blueprint JSON DSL. Do not output React components, JSX, or raw HTML.
+* **Tokens:** You are strictly forbidden from using raw pixel values (e.g., \`${px(FRAME.gutter)}\`) or HEX/RGB color codes for styling. All typography, colors, radii, spacing, and dimensions must be assigned using our global design tokens.`
+}
+
+function spatialLaw(): string {
+  const [halfStep, oneAndHalfStep] = FRAME.offGridAllowed
+  const examples = [1, 2, 3, 4, 5, 6, 8].map((n) => n * FRAME.grid).join(', ')
+  return `### 2. THE SPATIAL PHYSICS & EXCEPTIONS
+The application operates on a strict mathematical ${FRAME.grid}-point grid.
+* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of ${FRAME.grid} (e.g., ${examples}).
+* **Exceptions:** \`${px(halfStep)}\` (half-step) and \`${px(oneAndHalfStep)}\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
+* Never output fractional pixels or any other off-grid values outside of the allowed ${FRAME.grid}pt scale and the ${px(halfStep)}/${px(oneAndHalfStep)} exceptions.`
+}
+
+/**
+ * §3 as specified, with three bullets reworded to match the engine (approved by
+ * the product owner): the engine locks the viewport and applies the safe area, and
+ * it READS the TV focus — the model never declares a focus side, it only marks
+ * the group that follows it.
+ */
+function macroLayoutLaw(): string {
+  const { width, height } = FRAME.base
+  return `### 3. MACRO-LAYOUT & ${width}×${height} CANVAS BOUNDARIES
+When generating full screens or master containers, you must target the base HD canvas (the engine will handle the upscale switch).
+* **Master Viewport:** The outermost container is strictly locked to **${px(width)} by ${px(height)}** by the engine — never try to size it yourself.
+* **Safe Area Margins:** A strict **${px(FRAME.margin)} margin** applies on all outer edges (Top, Bottom, Left, Right). The engine applies it as the canvas safe area, so the outermost container adds no padding of its own. Content cannot breach this safe area.
+* **Gutters:** The space between structural columns or module stacks must be exactly **${px(FRAME.gutter)}**.
+* **Dynamic Focus Alignment:** Master layouts do not use static center alignment. This is a TV canvas: something always holds focus, and the engine reads where it is — you never declare a focus side.
+  * Initial focus lands on the first focusable element (a button or an input) in reading order — top to bottom, then left to right — so order the screen so the element that should be focused first comes first.
+  * Mark the one element group that follows the focus (a floating action area or widget cluster) with "anchor": true on a direct child of the outermost container. If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
+}
+
+function registryLaw(): string {
+  return `### 4. COMPONENT REGISTRY STRICTNESS
+You must construct the UI using ONLY the provided Blueprint component definitions (which have been imported and mapped from our Storybook registry).
+* Rely exclusively on the Blueprint schema properties provided in your context.
+* Never invent new UI elements or inject unsupported properties into the Blueprint JSON.`
+}
+
+/** The Generator's global kernel: identity + the four laws. No design-system specifics. */
+export function buildGlobalKernel(): string {
+  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw()].join('\n\n')
+}
+
+// ---------------------------------------------------------------------------
+// Design-system binding — the laws mapped onto the active manifest's real names
 // ---------------------------------------------------------------------------
 
 function describeProp(p: PropSpec): string {
@@ -94,13 +174,18 @@ function componentCatalogBrief(spec: ComponentSpec[]): string {
 }
 
 /**
- * Every token name the active manifest declares, grouped, for the "named
- * tokens only" line in both prompts (Phase 7B). Falls back to a plain
- * admonition when a group is empty (e.g. tokens haven't been imported yet).
+ * Every token name the active manifest declares, grouped (Phase 7B). Spacing is
+ * cut to the 8pt grid and shows each step's size, so the model can map the
+ * kernel's pixel laws onto token names. Falls back to a plain admonition when
+ * every group is empty.
  */
 function tokenVocabulary(manifest: DesignSystemManifest): string {
+  const spacing = onGridSpacingNames(manifest, tokenNames(manifest, 'spacing')).map((name) => {
+    const size = spacingPx(manifest, name)
+    return size === null ? name : `${name} = ${px(size)}`
+  })
   const groups: Array<[string, string[]]> = [
-    ['spacing', tokenNames(manifest, 'spacing')],
+    ['spacing', spacing],
     ['colors', tokenNames(manifest, 'colors')],
     ['radius', tokenNames(manifest, 'radius')],
     ['shadow', tokenNames(manifest, 'shadow')],
@@ -111,10 +196,63 @@ function tokenVocabulary(manifest: DesignSystemManifest): string {
   return parts.length > 0 ? parts.join('; ') : 'named tokens only — never raw numbers'
 }
 
+/** The frame laws in the active system's own prop and token names — shared by both agents. */
+function frameSpecifics(manifest: DesignSystemManifest, container: string): string[] {
+  const component = manifest.components[container]
+  const padding = component ? spacingPropFor(component, 'margin') : undefined
+  const gap = component ? spacingPropFor(component, 'gutter') : undefined
+  const zero = padding ? spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0) : undefined
+  const gutter = gap ? spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter) : undefined
+  const centering = component ? centeringPropsFor(component).map((prop) => prop.name) : []
+
+  return [
+    `* **Safe area:** ${
+      padding && zero
+        ? `the outermost <${container}> sets ${padding.name} "${zero}".`
+        : `the outermost <${container}> sets no padding.`
+    }`,
+    `* **Gutters:** ${
+      gap && gutter
+        ? `the outermost <${container}>, and any container whose children are all containers (stacked modules, columns), set ${gap.name} "${gutter}".`
+        : `stacked modules and columns sit ${px(FRAME.gutter)} apart.`
+    }`,
+    `* **No static centering:** ${
+      centering.length > 0
+        ? `the outermost <${container}> never sets ${centering.join(' or ')} to "center".`
+        : `the outermost <${container}> is never centered.`
+    }`,
+    `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen.`,
+  ]
+}
+
+function designSystemBinding(
+  manifest: DesignSystemManifest,
+  spec: ComponentSpec[],
+  container: string,
+): string {
+  const containers = spec.filter((c) => c.acceptsChildren).map((c) => c.type)
+  const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
+
+  return [
+    `### 5. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
+    `The laws above, mapped onto this system's registry and tokens.`,
+    `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
+    `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
+    `* **Tokens:** ${tokenVocabulary(manifest)}. A prop listed below as "a token name" takes exactly one of its listed names, or is omitted.`,
+    ...frameSpecifics(manifest, container),
+    `* **Structure:** group related content in a container, give cards a surface + border + radius + shadow, use text "variant" for hierarchy.`,
+  ].join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Prompts
+// ---------------------------------------------------------------------------
+
 /**
  * Step 1 of the pipeline — the Planner. Given the user's request and the "Product
  * Blueprint" (guidelines + a11y + layout patterns), it writes a short structural
- * plan in prose. It does NOT emit JSON.
+ * plan in prose that already obeys the kernel's spatial and macro-layout laws. It
+ * does NOT emit JSON.
  */
 export function buildPlannerPrompt(
   manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
@@ -122,6 +260,11 @@ export function buildPlannerPrompt(
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
   const tokens = tokenVocabulary(manifest)
+  const component = manifest.components[container]
+  const padding = component ? spacingPropFor(component, 'margin') : undefined
+  const gap = component ? spacingPropFor(component, 'gutter') : undefined
+  const zero = padding ? spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0) : undefined
+  const gutter = gap ? spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter) : undefined
 
   return `You are the PLANNER for ScreenFlow Studio. Given a request for a screen,
 you write a short, concrete build plan — which components to use and how to nest
@@ -137,6 +280,15 @@ Design system: ${manifest.name} (v${manifest.version})
 - Components available:
 ${componentCatalogBrief(spec)}
 
+# Global laws your plan must obey
+
+${spatialLaw()}
+
+${macroLayoutLaw()}
+
+In ${manifest.name}:
+${frameSpecifics(manifest, container).join('\n')}
+
 Accessibility rules:
 - Heading hierarchy must be logical: one prominent heading as the screen title,
   smaller headings for sections, body/caption for supporting copy.
@@ -147,33 +299,36 @@ Accessibility rules:
 Common layout patterns:
 - Card: a vertical container with padding, gap, a surface, a border, a radius and
   a small shadow.
-- Form: a vertical container with one input per field, then a primary button,
-  grouped in a card.
+- Form: a vertical container with one input per field, grouped in a card, and its
+  primary button in the anchored action area.
 - Equal columns / tiers: a horizontal container (align stretch) of child
   containers that each grow.
-- Page header: a centered vertical container with a title then a muted body line.
+- Page header: a vertical container with a title then a muted body line.
 - Section: a vertical container with a heading then its content.
+- Action area: a horizontal container of buttons, anchored so it follows focus.
 
 # Output format
 
 A numbered list. Each line: the component, its role, its nesting, and its text
-content. Keep it under ~15 lines. Example:
+content; mark the anchored group. Keep it under ~15 lines. Example:
 
-1. Root ${container} (vertical, gap lg, padding xl) — the screen.
-2.   Header ${container} (vertical, gap xs, align center).
+1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start) — the screen.
+2.   Header ${container} (vertical, gap xs).
 3.     A prominent title: "Create your account".
 4.     A muted body line: "It takes less than a minute.".
 5.   Card ${container} (vertical, gap md, padding lg, surface, bordered, radius lg, shadow sm).
-6.     Input, label "Full name".
+6.     Input, label "Full name" — first focusable, so it holds initial focus.
 7.     Input, label "Email".
-8.     Primary button, full width: "Create account".`
+8.   Actions ${container} (horizontal, gap sm) — anchored.
+9.     Primary button: "Create account".`
 }
 
 export type PromptOutputMode = 'tool' | 'json'
 
 /**
- * Step 2 of the pipeline — the Generator's system prompt. It translates the
- * Planner's prose into the strict Blueprint JSON, constrained to the manifest.
+ * Step 2 of the pipeline — the Generator's system prompt: the global kernel, then
+ * the active design system's binding and component definitions, then the output
+ * contract. It translates the Planner's prose into the strict Blueprint JSON.
  */
 export function buildSystemPrompt(
   mode: PromptOutputMode = 'tool',
@@ -181,57 +336,32 @@ export function buildSystemPrompt(
 ): string {
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
-  const containers = spec.filter((c) => c.acceptsChildren).map((c) => c.type)
-  const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
-  const tokens = tokenVocabulary(manifest)
 
-  const intro =
-    mode === 'tool'
-      ? `You do NOT write HTML, CSS, or code. You describe a UI as a JSON tree ("Blueprint")
-built ONLY from the components below, and you return it by calling the ${RENDER_TOOL_NAME} tool.`
-      : `You do NOT write HTML, CSS, or code. You describe a UI as a JSON tree ("Blueprint")
-built ONLY from the components below.`
-
+  const blueprint = `"version": 1,
+  "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }`
   const output =
     mode === 'tool'
-      ? `Call ${RENDER_TOOL_NAME} exactly once with:
+      ? `Return the Blueprint by calling the ${RENDER_TOOL_NAME} tool exactly once with:
 {
   "blueprint": {
-    "version": 1,
-    "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }
+    ${blueprint.replace('\n', '\n  ')}
   }
 }`
       : `Respond with ONLY this JSON object and nothing else — no prose, no explanation,
 no markdown fences:
 {
-  "version": 1,
-  "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }
+  ${blueprint}
 }`
 
-  return `You generate screen-flow UI for ScreenFlow Studio, an internal design tool.
-Active design system: ${manifest.name} (v${manifest.version}).
+  return `${buildGlobalKernel()}
 
-${intro}
-
-# Hard rules
-- Use ONLY these component types: ${spec.map((c) => c.type).join(', ')}.
-- Use ONLY the listed prop values. Never invent a prop, a token, a color, or a pixel size.
-- There is NO absolute positioning. Every layout is built by nesting container
-  components (${containers.join(', ') || container}). A container is a flexbox row or
-  column; use its "gap" for spacing between children and "padding" for inner spacing.
-  Use "direction: horizontal" for rows.
-- Only containers can hold children.${leaves.length ? ` ${leaves.join(', ')} are leaves.` : ''}
-- Every appearance-affecting value is a named token, never a raw number or hex
-  color: ${tokens}. A prop listed below as "a token name" must be set to exactly
-  one of its listed names, or omitted.
-- Prefer semantic structure: group related content in a container, give cards a
-  surface + border + radius + shadow, use text "variant" for hierarchy.
+${designSystemBinding(manifest, spec, container)}
 
 # Components
 ${spec.map(describeComponent).join('\n\n')}
 
 # Output
 ${output}
-The root MUST be a <${container}>. Omit props you don't need — defaults are applied.
-Do not include an "id" field on any node.`
+Omit props you don't need — defaults are applied. Do not include an "id" field on
+any node — besides "type", "props" and "children", the only node field is "anchor".`
 }

@@ -10,6 +10,7 @@
 
 import type { z } from 'zod'
 import { Catalog, CATALOG_TYPES, getCatalogEntry, type Control } from '@/design-system/catalog'
+import { SPACE_TOKENS } from '@/design-system/tokens'
 import {
   palette,
   spacingScale,
@@ -96,12 +97,15 @@ function toManifestComponent(type: string): ManifestComponent {
   for (const name of Object.keys(shape)) {
     const control = entry.controls[name]
     const options = control?.kind === 'select' ? [...control.options] : undefined
+    // Gap / padding draw from the spacing scale — the frame rules key off this.
+    const spacing = control?.kind === 'select' && control.options === SPACE_TOKENS
     props[name] = {
       name,
       type: propTypeName(control),
       required: false, // every catalog prop has a schema default
       defaultValue: entry.defaultProps[name],
       ...(options ? { options } : {}),
+      ...(spacing ? { tokenGroup: 'spacing' as const } : {}),
       ...(controlKind(control) ? { control: controlKind(control) } : {}),
     }
   }

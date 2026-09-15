@@ -7,6 +7,7 @@ import {
   fontWeightScale,
   shadowScale,
   fontFamilyStack,
+  frameSpec,
 } from './src/design-system/primitives'
 
 /**
@@ -64,16 +65,22 @@ export default {
       ringColor: {
         DEFAULT: palette.blue[500],
       },
-      // Device-frame widths for the canvas stage (app chrome, not user content).
-      maxWidth: {
-        'device-sm': '360px',
-        'device-md': '480px',
-        'device-lg': '768px',
-      },
+      // The canvas stage's master frame (app chrome, not user content).
       width: {
         'panel-sm': '260px',
         'panel-md': '320px',
         'panel-lg': '360px',
+        // The canvas frame is always laid out on the HD base; upscaling is a transform.
+        frame: `${frameSpec.baseWidth}px`,
+      },
+      height: {
+        frame: `${frameSpec.baseHeight}px`,
+      },
+      padding: {
+        'frame-margin': `${frameSpec.margin}px`,
+      },
+      gap: {
+        'frame-gutter': `${frameSpec.gutter}px`,
       },
       maxHeight: {
         trace: '200px',

@@ -34,8 +34,10 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   const isSelected = selectedId === node.id
 
   // Decorate the component's own root element — no wrapper div, so Stack layout
-  // (align / justify / gap) stays exactly as authored.
+  // (align / justify / gap) stays exactly as authored. `data-node-id` lets the
+  // canvas map what's on screen (e.g. the focused element) back to the tree.
   return cloneElement(rendered, {
+    'data-node-id': node.id,
     className: cx(
       rendered.props.className,
       'outline-none',

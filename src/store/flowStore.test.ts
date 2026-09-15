@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useFlowStore } from './flowStore'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import type { BlueprintDocument } from '@/shared/blueprint'
+import { frameLayoutErrors } from '@/shared/layout/frame'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 
 const store = () => useFlowStore.getState()
 
@@ -57,5 +59,33 @@ describe('applyAgentBlueprint — per-turn undo', () => {
     expect(run.ok).toBe(false)
     expect(store().past).toHaveLength(0)
     expect(store().lastAgentRun?.ok).toBe(false)
+  })
+})
+
+describe('frame anchoring', () => {
+  const anchoredIds = () => store().tree.children.filter((c) => c.anchor).map((c) => c.id)
+
+  it('starts on a frame-compliant screen with its action cluster anchored', () => {
+    expect(frameLayoutErrors({ root: store().tree }, SCREENFLOW_MANIFEST)).toEqual([])
+    expect(anchoredIds()).toHaveLength(1)
+  })
+
+  it('anchors at most one direct child of the root, undoably', () => {
+    const [title, body] = store().tree.children
+    store().setAnchor(title.id, true)
+    expect(anchoredIds()).toEqual([title.id])
+    store().setAnchor(body.id, true)
+    expect(anchoredIds()).toEqual([body.id])
+
+    store().undo()
+    expect(anchoredIds()).toEqual([title.id])
+    store().setAnchor(title.id, false)
+    expect(anchoredIds()).toEqual([])
+  })
+
+  it('ignores anchor requests for nested nodes', () => {
+    const cluster = store().tree.children.find((c) => c.anchor)!
+    store().setAnchor(cluster.children[0].id, true)
+    expect(store().past).toHaveLength(0)
   })
 })

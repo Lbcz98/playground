@@ -67,6 +67,8 @@ interface FlowState {
   /** Spec §8 alias for `updateProps` — the name the Property Inspector uses. */
   updateNodeProps: (id: NodeId, patch: Record<string, unknown>) => void
   deleteNode: (id: NodeId) => void
+  /** Anchor (or release) a direct child of the root to the focus zone. At most one is anchored. */
+  setAnchor: (id: NodeId, anchored: boolean) => void
   replaceDocument: (tree: CanvasNode, label: string) => void
   /**
    * Interpret an AI Blueprint against the registry and render it to the canvas as
@@ -77,21 +79,22 @@ interface FlowState {
 }
 
 function initialTree(): CanvasNode {
-  // A root Stack that fills the frame, seeded with one Text + one Button so the
-  // canvas is never empty (Phase 1 acceptance: "render a basic Stack and Button").
+  // A frame-compliant starting screen: the root fills the frame with no padding of
+  // its own (the frame supplies the outer margin) and a gutter-sized gap, and its
+  // action cluster is anchored so it follows the side the TV focus is on.
   return {
     id: ROOT_ID,
     type: 'Stack',
     props: {
       direction: 'vertical',
       gap: 'md',
-      padding: 'xl',
+      padding: 'none',
       align: 'start',
       justify: 'start',
       surface: 'surface',
-      radius: 'lg',
-      shadow: 'sm',
-      bordered: true,
+      radius: 'none',
+      shadow: 'none',
+      bordered: false,
       grow: false,
     },
     children: [
@@ -107,13 +110,40 @@ function initialTree(): CanvasNode {
         tone: 'muted',
         align: 'start',
       }),
-      makeNode('Button', {
-        label: 'Get started',
-        variant: 'primary',
-        size: 'md',
-        fullWidth: false,
-        disabled: false,
-      }),
+      {
+        ...makeNode(
+          'Stack',
+          {
+            direction: 'horizontal',
+            gap: 'sm',
+            padding: 'none',
+            align: 'center',
+            justify: 'start',
+            surface: 'none',
+            radius: 'none',
+            shadow: 'none',
+            bordered: false,
+            grow: false,
+          },
+          [
+            makeNode('Button', {
+              label: 'Learn more',
+              variant: 'secondary',
+              size: 'md',
+              fullWidth: false,
+              disabled: false,
+            }),
+            makeNode('Button', {
+              label: 'Get started',
+              variant: 'primary',
+              size: 'md',
+              fullWidth: false,
+              disabled: false,
+            }),
+          ],
+        ),
+        anchor: true,
+      },
     ],
   }
 }
@@ -205,6 +235,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     if (get().selectedId === id) set({ selectedId: null })
   },
 
+  setAnchor: (id, anchored) => {
+    const node = get().tree.children.find((child) => child.id === id)
+    if (!node || Boolean(node.anchor) === anchored) return
+    get().commit(
+      (draft) => {
+        for (const child of draft.children) {
+          if (anchored && child.id === id) child.anchor = true
+          else delete child.anchor
+        }
+      },
+      anchored ? 'Anchor to focus zone' : 'Release anchor',
+    )
+  },
+
   replaceDocument: (tree, label) =>
     get().commit((draft) => {
       draft.type = tree.type
@@ -261,4 +305,3 @@ export const selectCanRedo = (s: FlowState) => s.future.length > 0
 export const selectUndoLabel = (s: FlowState) =>
   s.past.length > 0 ? s.lastActionLabel : null
 export const selectRedoLabel = (s: FlowState) => (s.future.length > 0 ? s.future[0].label : null)
-

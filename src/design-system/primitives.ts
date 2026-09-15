@@ -96,3 +96,19 @@ export const fontFamilyStack = [
   'Arial',
   'sans-serif',
 ]
+
+/**
+ * Master frame geometry, in CSS pixels. Layouts are designed on the 1280×720 HD
+ * base and every frame renders upscaled 1.5× — 1920×1080. All spacing sits on
+ * the 8pt grid; `offGridAllowed` are the only exceptions, kept for tight spacing
+ * inside a component. See `src/shared/layout/frame.ts` for the rules built on it.
+ */
+export const frameSpec = {
+  baseWidth: 1280,
+  baseHeight: 720,
+  upscale: 1.5,
+  grid: 8,
+  margin: 32,
+  gutter: 16,
+  offGridAllowed: [4, 12],
+} as const

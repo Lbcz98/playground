@@ -36,7 +36,8 @@ const renderTool: Anthropic.Tool = {
           root: {
             type: 'object',
             description:
-              'A component node: { type, props?, children? }. `children` is only valid on a Stack. The root must be a Stack.',
+              'A component node: { type, props?, children?, anchor? }. `children` is only valid on a Stack. ' +
+              '`anchor: true` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.',
             properties: {
               type: { type: 'string', enum: [...CATALOG_TYPES] },
               props: { type: 'object' },

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildPlannerPrompt, buildSystemPrompt, getRegistrySpec } from './promptSpec'
+import { buildGlobalKernel, buildPlannerPrompt, buildSystemPrompt, getRegistrySpec } from './promptSpec'
 import { CATALOG_TYPES, getCatalogEntry } from './catalog'
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
+import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
 
 describe('registry spec / system prompt', () => {
   it('describes every catalog component and no others', () => {
@@ -96,5 +97,77 @@ describe('Phase 7B — token vocabulary for imported systems', () => {
       expect(prompt).toContain('lg')
     }
     expect(system).toMatch(/background: a token name, one of \[brand, ink\]/)
+  })
+})
+
+describe('global kernel', () => {
+  it('opens the Generator prompt with the four global laws, every number from the frame constants', () => {
+    for (const system of [buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
+      expect(system.startsWith(buildGlobalKernel())).toBe(true)
+    }
+    const kernel = buildGlobalKernel()
+    expect(kernel.startsWith('You are an expert UI Engineering Agent.')).toBe(true)
+    for (const heading of [
+      '### 1. BLUEPRINT JSON FORMAT & TOKENS',
+      '### 2. THE SPATIAL PHYSICS & EXCEPTIONS',
+      '### 3. MACRO-LAYOUT & 1280×720 CANVAS BOUNDARIES',
+      '### 4. COMPONENT REGISTRY STRICTNESS',
+    ]) {
+      expect(kernel).toContain(heading)
+    }
+    expect(kernel).toContain('raw pixel values (e.g., `16px`)')
+    expect(kernel).toContain('a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64)')
+    expect(kernel).toContain('`4px` (half-step) and `12px` (1.5 step)')
+    expect(kernel).toContain('the 4px/12px exceptions')
+    expect(kernel).toContain('the engine will handle the upscale switch')
+    expect(kernel).toContain('**1280px by 720px**')
+    expect(kernel).toContain('**32px margin**')
+    expect(kernel).toContain('exactly **16px**')
+    expect(kernel).toContain('Master layouts do not use static center alignment.')
+  })
+
+  it('stays design-system agnostic', () => {
+    const kernel = buildGlobalKernel()
+    for (const specific of ['ScreenFlow', '<Stack>', 'padding "none"', 'gap "md"']) {
+      expect(kernel).not.toContain(specific)
+    }
+  })
+
+  it('never asks the model to declare a focus side — the engine reads it', () => {
+    for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
+      expect(prompt).not.toMatch(/focus: '(left|right)'|"focus"/)
+      expect(prompt).toContain('you never declare a focus side')
+      expect(prompt).toContain('"anchor": true')
+      expect(prompt).toMatch(/\*\*Bottom-Right\*\*.*\*\*Left\*\* margin/)
+    }
+  })
+
+  it('always targets the 1280×720 base — the upscale is the engine’s job', () => {
+    for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
+      expect(prompt).not.toContain('1920')
+    }
+  })
+})
+
+describe('design-system binding (§5)', () => {
+  it('maps the laws onto the active system’s real names', () => {
+    const system = buildSystemPrompt()
+    expect(system).toContain('### 5. ACTIVE DESIGN SYSTEM — ScreenFlow (v1.0.0)')
+    expect(system).toMatch(/outermost <Stack> sets padding "none"/)
+    expect(system).toMatch(/set gap "md"/)
+    expect(system).toMatch(/never sets align or justify to "center"/)
+    expect(system).not.toContain('"frame"')
+    expect(buildPlannerPrompt()).toMatch(/outermost <Stack> sets padding "none"/)
+
+    const w3c = buildSystemPrompt('tool', W3C_MANIFEST)
+    expect(w3c).toMatch(/outermost <Container> sets padding "spacing-core-none"/)
+    expect(w3c).toMatch(/outermost <Container> is never centered/)
+  })
+
+  it('shows spacing sizes and leaves off-grid steps out of an imported system’s vocabulary', () => {
+    const system = buildSystemPrompt('tool', W3C_MANIFEST)
+    expect(system).not.toContain('spacing-core-md')
+    expect(system).toContain('spacing-core-xs = 12px')
+    expect(system).toContain('spacing-core-3xs = 4px')
   })
 })

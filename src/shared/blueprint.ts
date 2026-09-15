@@ -17,6 +17,12 @@ export interface BlueprintNode {
   type: string
   props?: Record<string, unknown>
   children?: BlueprintNode[]
+  /**
+   * Marks the frame's element group (floating action area, widget cluster). Only
+   * valid on a direct child of the root; the canvas pins it to the bottom corner
+   * on the side the TV focus is on.
+   */
+  anchor?: boolean
 }
 
 export interface BlueprintDocument {
