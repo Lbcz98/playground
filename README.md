@@ -27,11 +27,21 @@ npm run typecheck
 npm run test          # vitest — adapters, interpreter, providers, prompts, undo, storage
 cp .env.example .env  # pick an AI provider (else the app serves a built-in fixture)
 npm run lint:tokens   # fails on hard-coded colors / px / arbitrary Tailwind values
+npm run tokens:build  # regenerate src/styles/global.css + global-tokens.ts from tokens/tokens.json
+npm run tokens:check  # fails if those generated files have drifted from tokens.json
+npm run storybook     # UI Kit + Primitives on :6006
 ```
 
 ## Architecture
 
 ```
+tokens/
+  tokens.json           THE design-token contract (W3C DTCG) — every token value is authored here
+  README.md             Figma-change workflow + naming conventions
+scripts/
+  build-tokens.ts       tokens:build / tokens:check
+  tokens/compile.ts     Strict DTCG -> CSS compiler (aliases stay var(), typography -> .text-*)
+  check-tokens.mjs      lint:tokens — no raw hex / px outside the allowlist
 electron/
   main.ts               Window creation + dotenv + registerIpcHandlers()
   ipc.ts                 Binds ai/handler.ts + storage.ts to ipcMain.handle
@@ -47,6 +57,12 @@ electron/
       claudeCli.ts       Shells out to `claude -p` (runs on your Claude Code / subscription)
       index.ts           resolveProvider() — AI_PROVIDER=auto|api-key|claude-cli
 src/
+  styles/
+    global.css           GENERATED — --color-* / --dimension-* / --typography-* / --opacity-* + .text-*
+    global-tokens.ts     GENERATED — CssVar / TextStyle unions that primitives type their props with
+  primitives/            Text, Heading, Box, Stack, Button — built only on global.css;
+                         every appearance prop is a generated token name (Storybook: Primitives/*)
+  ui-kit/                Figma UI Kit components (card Button, WideButton, MainMenu, …)
   shared/
     blueprint.ts         Blueprint DSL types + IPC/tool contract constants
     models.ts            Model list, effort levels, pricing for the spend estimate
@@ -269,3 +285,6 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
    the generic placeholder rather than taking the canvas down.
 5. Design-system tokens re-theme the canvas only, never the tool's own UI — the
    app shell is insulated from whichever design system is active (spec §7b).
+6. `tokens/tokens.json` is the only place a token value is authored. `global.css`,
+   its typed names, and the built-in "Global CSS Tokens" system are all derived
+   from it, and `npm test` fails while the generated files are stale.

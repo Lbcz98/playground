@@ -1,0 +1,20 @@
+/*
+ * The little that inline styles can't express: keyframes.
+ * Token-only, like everything else in src/primitives.
+ */
+
+@keyframes sfs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sfs-spin {
+  animation: sfs-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfs-spin {
+    animation: none;
+  }
+}

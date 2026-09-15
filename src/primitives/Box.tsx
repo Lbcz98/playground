@@ -1,0 +1,90 @@
+/**
+ * Box — the generic structural container.
+ *
+ * Padding takes only grid spacing steps (a multiple of 8, or the 4 and 12
+ * exceptions — the frame's layout rule), the surface only functional background and border
+ * roles, corners only the radius scale. There is no `style` or `className`:
+ * everything a Box can look like is a token. For flex layout, use `<Stack>`.
+ */
+
+import { createElement, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
+import {
+  borderColor,
+  cssVar,
+  radius as radiusStep,
+  spacing,
+  surface,
+  type BorderColor,
+  type GridSpacing,
+  type RadiusStep,
+  type SurfaceColor,
+} from './tokens'
+
+export type BoxElement =
+  | 'div'
+  | 'section'
+  | 'article'
+  | 'header'
+  | 'footer'
+  | 'nav'
+  | 'main'
+  | 'aside'
+  | 'ul'
+  | 'ol'
+  | 'li'
+  | 'span'
+
+export interface BoxProps extends Omit<HTMLAttributes<HTMLElement>, 'style' | 'className'> {
+  as?: BoxElement
+  padding?: GridSpacing
+  /** Overrides `padding` on the inline (left/right) edges. */
+  paddingX?: GridSpacing
+  /** Overrides `padding` on the block (top/bottom) edges. */
+  paddingY?: GridSpacing
+  background?: SurfaceColor
+  /** A hairline border in a functional border colour. */
+  border?: BorderColor
+  radius?: RadiusStep
+  /** Take the remaining space along the parent Stack's direction. */
+  grow?: boolean
+  children?: ReactNode
+}
+
+/**
+ * Splits Box's own props from the pass-through HTML attributes and resolves them
+ * to declarations — Stack uses this to layer flex layout over the same surface.
+ */
+export function resolveBoxProps<P extends BoxProps>({
+  as = 'div',
+  padding,
+  paddingX,
+  paddingY,
+  background,
+  border,
+  radius,
+  grow,
+  ...rest
+}: P) {
+  const inline = paddingX ?? padding
+  const block = paddingY ?? padding
+  const style: CSSProperties = {
+    boxSizing: 'border-box',
+    margin: 0,
+    paddingInline: inline ? spacing(inline) : 0,
+    paddingBlock: block ? spacing(block) : 0,
+    backgroundColor: background ? surface(background) : undefined,
+    border: border
+      ? `${cssVar('--dimension-border-width-semantic-card')} solid ${borderColor(border)}`
+      : undefined,
+    borderRadius: radius ? radiusStep(radius) : undefined,
+    flex: grow ? '1 1 0%' : undefined,
+    minWidth: grow ? 0 : undefined,
+    listStyle: as === 'ul' || as === 'ol' ? 'none' : undefined,
+  }
+  return { as, style, rest }
+}
+
+export function Box(props: BoxProps): ReactNode {
+  const { as, style, rest } = resolveBoxProps(props)
+  return createElement(as, { ...rest, style })
+}
