@@ -11,18 +11,34 @@
  * `RoundButtonShell` RoundedButton already uses — this component carries no
  * new circular-button styling of its own.
  *
+ * A TV screen has exactly one focused item, so focus is a single `focusedItem`
+ * — like InteractivityMenu's `activeIndex` — rather than a flag per control.
+ *
  * Avatar/program-logo/channel-bug are real, per-viewer/per-broadcast content,
  * not kit chrome — they're plain `src` props with no bundled default image; a
  * neutral token-coloured circle fills in when none is given.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { focusOutline, size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
+import { focusOutline, size, spacing, Stack, Text, token, warnDeprecated, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import weatherIcon from './icons/weather.svg'
-import { RoundButtonShell } from './RoundButtonShell'
+import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
+
+export type MainMenuItem = 'profile' | 'schedule' | 'weather' | 'program' | 'channel-bug'
 
 export interface MainMenuProps {
+  /**
+   * The one focused item. Default `program` (the live program's logo). `null`
+   * when focus is elsewhere on the screen.
+   */
+  focusedItem?: MainMenuItem | null
+  /**
+   * @deprecated Use `focusedItem="channel-bug"`. Like that, it moves focus off the
+   * program logo — a TV screen has one focused item.
+   */
+  bugFocused?: boolean
+
   avatarSrc?: string
   onAvatarClick?: () => void
 
@@ -38,8 +54,6 @@ export interface MainMenuProps {
   onLogoClick?: () => void
 
   bugSrc?: string
-  /** Reveals the focus ring around the bug — an interaction affordance, not a static look. */
-  bugFocused?: boolean
   onBugClick?: () => void
 }
 
@@ -78,6 +92,8 @@ function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: 
 }
 
 export function MainMenu({
+  focusedItem,
+  bugFocused,
   avatarSrc,
   onAvatarClick,
   onScheduleClick,
@@ -89,17 +105,20 @@ export function MainMenu({
   logoSrc,
   onLogoClick,
   bugSrc,
-  bugFocused = false,
   onBugClick,
 }: MainMenuProps): ReactNode {
+  if (bugFocused !== undefined) warnDeprecated('ui-kit/MainMenu', 'bugFocused', 'focusedItem')
+  const focused = focusedItem !== undefined ? focusedItem : bugFocused ? 'channel-bug' : 'program'
+  const stateOf = (item: MainMenuItem): RoundButtonState => (item === focused ? 'focus' : 'default')
+
   return (
     <Stack as="nav" direction="row" align="center" justify="between">
       <Stack direction="row" align="center" gap="3xs">
-        <RoundButtonShell label="Profile" onClick={onAvatarClick}>
+        <RoundButtonShell interactionState={stateOf('profile')} label="Profile" onClick={onAvatarClick}>
           <ContentCircle src={avatarSrc} role="avatar" alt="" />
         </RoundButtonShell>
 
-        <RoundButtonShell label="Schedule" onClick={onScheduleClick}>
+        <RoundButtonShell interactionState={stateOf('schedule')} label="Schedule" onClick={onScheduleClick}>
           <img
             src={scheduleIcon}
             alt=""
@@ -108,7 +127,7 @@ export function MainMenu({
         </RoundButtonShell>
 
         <Stack direction="row" align="center">
-          <RoundButtonShell label="Weather" onClick={onWeatherClick}>
+          <RoundButtonShell interactionState={stateOf('weather')} label="Weather" onClick={onWeatherClick}>
             <img
               src={weatherIcon}
               alt=""
@@ -144,7 +163,7 @@ export function MainMenu({
               {programSubtitle}
             </Text>
           </div>
-          <RoundButtonShell focus label="Now playing" onClick={onLogoClick}>
+          <RoundButtonShell interactionState={stateOf('program')} label="Now playing" onClick={onLogoClick}>
             <ContentCircle src={logoSrc} role="program-logo" alt="" />
           </RoundButtonShell>
         </Stack>
@@ -164,7 +183,7 @@ export function MainMenu({
             display: 'grid',
             placeItems: 'center',
             // The logo fills the button, so focus sits outside it instead of as an inset ring.
-            ...(bugFocused ? focusOutline : null),
+            ...(focused === 'channel-bug' ? focusOutline : null),
           }}
         >
           <ContentCircle src={bugSrc} role="channel-bug" alt="" />

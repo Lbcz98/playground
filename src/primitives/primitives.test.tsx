@@ -118,14 +118,14 @@ describe('<Button>', () => {
   })
 
   it('draws the kit focus ring only when focused', () => {
-    expect(html(<Button status="focus">Go</Button>)).toContain('var(--gradient-semantic-focus-ring)')
+    expect(html(<Button interactionState="focus">Go</Button>)).toContain('var(--gradient-semantic-focus-ring)')
     expect(html(<Button>Go</Button>)).not.toContain('var(--gradient-semantic-focus-ring)')
   })
 
   it('is a non-submitting button that disables and reports loading', () => {
     expect(html(<Button>Go</Button>)).toContain('type="button"')
-    expect(html(<Button status="disabled">Go</Button>)).toContain('disabled=""')
-    const loading = html(<Button status="loading">Go</Button>)
+    expect(html(<Button interactionState="disabled">Go</Button>)).toContain('disabled=""')
+    const loading = html(<Button interactionState="loading">Go</Button>)
     expect(loading).toContain('aria-busy="true"')
     expect(loading).toContain('class="sfs-spin"')
   })

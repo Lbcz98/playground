@@ -18,24 +18,24 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const LiveFocus: Story = { args: { kind: 'live', focus: true } }
-export const LiveRest: Story = { args: { kind: 'live', focus: false } }
-export const LiveMini: Story = { args: { kind: 'live', focus: true, mini: true } }
-export const ReplayFocus: Story = { args: { kind: 'replay', focus: true } }
-export const ReplayRest: Story = { args: { kind: 'replay', focus: false } }
+export const LiveFocus: Story = { args: { kind: 'live', interactionState: 'focus' } }
+export const LiveRest: Story = { args: { kind: 'live', interactionState: 'default' } }
+export const LiveMini: Story = { args: { kind: 'live', interactionState: 'focus', mini: true } }
+export const ReplayFocus: Story = { args: { kind: 'replay', interactionState: 'focus' } }
+export const ReplayRest: Story = { args: { kind: 'replay', interactionState: 'default' } }
 
 export const AllVariants: Story = {
   args: {},
   render: () => (
     <Stack gap="sm" align="start">
       <Stack direction="row" gap="sm">
-        <LabelVideo kind="live" focus />
-        <LabelVideo kind="live" focus={false} />
-        <LabelVideo kind="live" focus mini />
+        <LabelVideo kind="live" interactionState="focus" />
+        <LabelVideo kind="live" interactionState="default" />
+        <LabelVideo kind="live" interactionState="focus" mini />
       </Stack>
       <Stack direction="row" gap="sm">
-        <LabelVideo kind="replay" focus />
-        <LabelVideo kind="replay" focus={false} />
+        <LabelVideo kind="replay" interactionState="focus" />
+        <LabelVideo kind="replay" interactionState="default" />
       </Stack>
     </Stack>
   ),

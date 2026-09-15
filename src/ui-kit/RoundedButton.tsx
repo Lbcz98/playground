@@ -6,12 +6,15 @@
  */
 
 import type { ReactNode } from 'react'
-import { size } from '@/primitives'
+import { fromFocusFlag, resolveInteractionState, size } from '@/primitives'
 import backFocusIcon from './icons/back-focus.svg'
 import backRestIcon from './icons/back-rest.svg'
-import { RoundButtonShell } from './RoundButtonShell'
+import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 
 export interface RoundedButtonProps {
+  /** Default `focus`. */
+  interactionState?: RoundButtonState
+  /** @deprecated Use `interactionState` (`focus` or `default`). */
   focus?: boolean
   /** Accessible name — the control is icon-only. */
   label?: string
@@ -19,14 +22,22 @@ export interface RoundedButtonProps {
 }
 
 export function RoundedButton({
-  focus = true,
+  interactionState,
+  focus: legacyFocus,
   label = 'Back',
   onClick,
 }: RoundedButtonProps): ReactNode {
+  const state = resolveInteractionState(
+    'ui-kit/RoundedButton',
+    interactionState,
+    { prop: 'focus', value: fromFocusFlag(legacyFocus) },
+    'focus',
+  )
+  const focus = state === 'focus'
   const iconSize = size(focus ? 'icon-xl' : 'icon-round-rest')
 
   return (
-    <RoundButtonShell focus={focus} label={label} onClick={onClick}>
+    <RoundButtonShell interactionState={state} label={label} onClick={onClick}>
       <img
         src={focus ? backFocusIcon : backRestIcon}
         alt=""

@@ -82,7 +82,7 @@ export function InteractivityMenu({
             style={{ flexShrink: 0 }}
           >
             <Button
-              state={stateFor(index, activeIndex)}
+              interactionState={stateFor(index, activeIndex)}
               title={item.title}
               overline=""
               subtitle=""

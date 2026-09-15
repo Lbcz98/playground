@@ -11,14 +11,26 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { FocusRing, RestingBorder, size, spacing, Text, token } from '@/primitives'
+import {
+  FocusRing,
+  resolveInteractionState,
+  RestingBorder,
+  size,
+  spacing,
+  Text,
+  token,
+  type InteractionState,
+} from '@/primitives'
 import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
 
-export type ButtonState = 'default' | 'focus' | 'selected'
+export type ButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
 
 export interface ButtonProps {
+  /** Default `focus`. */
+  interactionState?: ButtonState
+  /** @deprecated Use `interactionState` — same values. */
   state?: ButtonState
   title?: string
   overline?: string
@@ -76,7 +88,8 @@ const layer: CSSProperties = { position: 'relative' }
 const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' }
 
 export function Button({
-  state = 'focus',
+  interactionState,
+  state: legacyState,
   title = 'Title',
   overline = 'Overline',
   subtitle = 'Subtitle',
@@ -86,6 +99,7 @@ export function Button({
   thumbnail,
   onClick,
 }: ButtonProps): ReactNode {
+  const state = resolveInteractionState('ui-kit/Button', interactionState, { prop: 'state', value: legacyState }, 'focus')
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
@@ -112,7 +126,7 @@ export function Button({
       >
         {live ? (
           <span style={layer}>
-            <LabelVideo kind="live" focus mini />
+            <LabelVideo kind="live" interactionState="focus" mini />
           </span>
         ) : (
           <span />

@@ -184,9 +184,19 @@ Batch 3's changes:
 
 - **Figma binding.** The Figma UI Kit components still have no bound variables.
   Binding them to the new semantic names would make Figma and code share the contract.
-- **State prop names.** `state`, `status`, `focus`, `bugFocused`: unify them in a
-  breaking-change pass.
-- **Resting strokes.** The round button's is solid; the card and WideButton's is a
-  gradient. This is a design decision.
-- **Channel bug focus.** It keeps its thin `focus.outline` rather than the ring,
-  because its logo fills the whole hit target.
+
+
+### Resolved after review
+
+- **Resting strokes:** reconciled on the gradient. `<RestingBorder>` draws
+  `gradient.semantic.border.default` on every interactive control: the card,
+  WideButton, the round button and primitives/Button. The round button's resting
+  circle also stops being 2px larger than its focused one.
+- **Channel bug focus:** the ring moves outside the logo. `focusOutline` is the
+  focus-ring width as a CSS `outline`, `dimension.spacing.semantic.focus-offset`
+  (2px) away from the edge.
+- **State prop names:** one `interactionState` prop, with a deprecation path rather
+  than a breaking change. The legacy props map onto it, carry `@deprecated`, and warn
+  once in development. MainMenu's `bugFocused` becomes `focusedItem`, the one focused
+  item. The only behaviour difference is that a legacy `bugFocused` now also moves
+  focus off the program logo, instead of showing two focused items at once.

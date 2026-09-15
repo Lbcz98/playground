@@ -19,22 +19,22 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Focus: Story = { args: { status: 'focus' } }
-export const Default: Story = { args: { status: 'default' } }
-export const Loading: Story = { args: { status: 'loading' } }
-export const Disabled: Story = { args: { status: 'disabled' } }
+export const Focus: Story = { args: { interactionState: 'focus' } }
+export const Default: Story = { args: { interactionState: 'default' } }
+export const Loading: Story = { args: { interactionState: 'loading' } }
+export const Disabled: Story = { args: { interactionState: 'disabled' } }
 export const WithIcons: Story = {
-  args: { status: 'focus', iconLeft: true, iconRight: true },
+  args: { interactionState: 'focus', iconLeft: true, iconRight: true },
 }
 
 export const AllStatuses: Story = {
   args: {},
   render: (args) => (
     <Stack gap="sm">
-      <WideButton {...args} status="focus" />
-      <WideButton {...args} status="default" />
-      <WideButton {...args} status="loading" />
-      <WideButton {...args} status="disabled" />
+      <WideButton {...args} interactionState="focus" />
+      <WideButton {...args} interactionState="default" />
+      <WideButton {...args} interactionState="loading" />
+      <WideButton {...args} interactionState="disabled" />
     </Stack>
   ),
 }

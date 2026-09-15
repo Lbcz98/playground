@@ -18,15 +18,15 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Focus: Story = { args: { focus: true } }
-export const Rest: Story = { args: { focus: false } }
+export const Focus: Story = { args: { interactionState: 'focus' } }
+export const Rest: Story = { args: { interactionState: 'default' } }
 
 export const BothStates: Story = {
   args: {},
   render: (args) => (
     <Stack direction="row" gap="sm">
-      <RoundedButton {...args} focus />
-      <RoundedButton {...args} focus={false} />
+      <RoundedButton {...args} interactionState="focus" />
+      <RoundedButton {...args} interactionState="default" />
     </Stack>
   ),
 }

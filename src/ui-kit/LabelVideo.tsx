@@ -10,14 +10,24 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { size, spacing, textClass, token } from '@/primitives'
+import {
+  fromFocusFlag,
+  resolveInteractionState,
+  size,
+  spacing,
+  textClass,
+  token,
+  type InteractionState,
+} from '@/primitives'
 import volumeOnIcon from './icons/volume-on.svg'
 
 export type LabelVideoKind = 'live' | 'replay'
 
 export interface LabelVideoProps {
   kind?: LabelVideoKind
-  /** Focused: gradient fill with the volume icon. Resting: translucent chip. */
+  /** Focused: gradient fill with the volume icon. Default: translucent chip. Default `focus`. */
+  interactionState?: Extract<InteractionState, 'default' | 'focus'>
+  /** @deprecated Use `interactionState` (`focus` or `default`). */
   focus?: boolean
   /** Compact chip — live only, no icon. */
   mini?: boolean
@@ -48,9 +58,17 @@ function fillFor(kind: LabelVideoKind, focus: boolean): CSSProperties {
 
 export function LabelVideo({
   kind = 'live',
-  focus = true,
+  interactionState,
+  focus: legacyFocus,
   mini = false,
 }: LabelVideoProps): ReactNode {
+  const focus =
+    resolveInteractionState(
+      'ui-kit/LabelVideo',
+      interactionState,
+      { prop: 'focus', value: fromFocusFlag(legacyFocus) },
+      'focus',
+    ) === 'focus'
   const compact = mini && kind === 'live'
   const showIcon = focus && !compact
 

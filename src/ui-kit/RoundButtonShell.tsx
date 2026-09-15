@@ -13,9 +13,22 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { FocusRing, RestingBorder, size, token } from '@/primitives'
+import {
+  FocusRing,
+  fromFocusFlag,
+  resolveInteractionState,
+  RestingBorder,
+  size,
+  token,
+  type InteractionState,
+} from '@/primitives'
+
+export type RoundButtonState = Extract<InteractionState, 'default' | 'focus'>
 
 export interface RoundButtonShellProps {
+  /** Default `default`. */
+  interactionState?: RoundButtonState
+  /** @deprecated Use `interactionState="focus"`. */
   focus?: boolean
   /** Accessible name — every consumer so far is icon/image-only. */
   label: string
@@ -52,11 +65,20 @@ const restCircle: CSSProperties = {
 }
 
 export function RoundButtonShell({
-  focus = false,
+  interactionState,
+  focus: legacyFocus,
   label,
   onClick,
   children,
 }: RoundButtonShellProps): ReactNode {
+  const focus =
+    resolveInteractionState(
+      'ui-kit/RoundButtonShell',
+      interactionState,
+      { prop: 'focus', value: fromFocusFlag(legacyFocus) },
+      'default',
+    ) === 'focus'
+
   return (
     <button type="button" aria-label={label} onClick={onClick} style={root}>
       <span style={focus ? circle : restCircle}>

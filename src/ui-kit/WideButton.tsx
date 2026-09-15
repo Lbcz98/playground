@@ -8,13 +8,26 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { FocusRing, RestingBorder, size, spacing, Spinner, Text, token } from '@/primitives'
+import {
+  FocusRing,
+  resolveInteractionState,
+  RestingBorder,
+  size,
+  spacing,
+  Spinner,
+  Text,
+  token,
+  type InteractionState,
+} from '@/primitives'
 import arrowLeftIcon from './icons/arrow-left.svg'
 import arrowRightIcon from './icons/arrow-right.svg'
 
-export type WideButtonStatus = 'default' | 'focus' | 'loading' | 'disabled'
+export type WideButtonStatus = Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>
 
 export interface WideButtonProps {
+  /** Default `focus`. */
+  interactionState?: WideButtonStatus
+  /** @deprecated Use `interactionState` — same values. */
   status?: WideButtonStatus
   label?: string
   iconLeft?: boolean
@@ -52,24 +65,26 @@ const icon: CSSProperties = {
   display: 'block',
 }
 
-function hasRestingBorder(status: WideButtonStatus): boolean {
-  return status === 'default' || status === 'loading'
+function hasRestingBorder(state: WideButtonStatus): boolean {
+  return state === 'default' || state === 'loading'
 }
 
-function centerFor(status: WideButtonStatus): CSSProperties {
-  if (status === 'focus') return center
+function centerFor(state: WideButtonStatus): CSSProperties {
+  if (state === 'focus') return center
   return { ...center, backgroundColor: token('--color-semantic-functional-background-translucent') }
 }
 
 export function WideButton({
-  status = 'focus',
+  interactionState,
+  status,
   label = 'Label',
   iconLeft = false,
   iconRight = false,
   onClick,
 }: WideButtonProps): ReactNode {
-  const isLoading = status === 'loading'
-  const isDisabled = status === 'disabled'
+  const state = resolveInteractionState('ui-kit/WideButton', interactionState, { prop: 'status', value: status }, 'focus')
+  const isLoading = state === 'loading'
+  const isDisabled = state === 'disabled'
 
   return (
     <button
@@ -79,8 +94,8 @@ export function WideButton({
       onClick={isLoading ? undefined : onClick}
       style={{ ...root, cursor: isDisabled ? 'not-allowed' : isLoading ? 'progress' : 'pointer' }}
     >
-      {status === 'focus' && <FocusRing shape="pill" />}
-      <span style={centerFor(status)}>
+      {state === 'focus' && <FocusRing shape="pill" />}
+      <span style={centerFor(state)}>
         {isLoading ? (
           <Spinner size="icon-md" />
         ) : (
@@ -93,7 +108,7 @@ export function WideButton({
           </>
         )}
       </span>
-      {hasRestingBorder(status) && <RestingBorder shape="pill" />}
+      {hasRestingBorder(state) && <RestingBorder shape="pill" />}
     </button>
   )
 }

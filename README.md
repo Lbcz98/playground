@@ -300,3 +300,9 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
    never a core value — through the typed `token()`, `size()` and `spacing()`
    helpers, and `npm test` fails otherwise. Every focus state is the one
    `<FocusRing>`; every loading state is the one `<Spinner>`.
+8. Interactive components take one `interactionState` prop (a subset of
+   `default | focus | selected | loading | disabled`); composites name their one
+   focused child instead (`MainMenu focusedItem`, `InteractivityMenu activeIndex`).
+   The old `state` / `status` / `focus` / `bugFocused` props still work, map onto it,
+   carry `@deprecated`, and warn once in development. `npm run test:visual` fails
+   any story that still uses one.

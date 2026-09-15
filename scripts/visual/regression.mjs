@@ -31,6 +31,8 @@ const STORY_IDS = /^(ui-kit|primitives)-/
 const VIEWPORT = { width: 1280, height: 720 }
 /** Per-channel difference (0–255) treated as anti-aliasing noise, not a change. */
 const CHANNEL_TOLERANCE = 8
+/** The development warning `warnDeprecated()` (src/primitives/interactionState.ts) prints. */
+const DEPRECATION = /^\[(ui-kit|primitives)\/[^\]]+\] `[^`]+` is deprecated/
 
 const FREEZE_CSS =
   '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}'
@@ -127,7 +129,7 @@ function writeReport(results) {
 <style>
 body{font:14px system-ui,sans-serif;margin:24px;background:#fafafa;color:#111}
 table{border-collapse:collapse;margin-bottom:32px}td{padding:4px 12px;border-bottom:1px solid #ddd}
-tr.changed td,tr.error td,tr.new td,tr.removed td{background:#fde8e8}
+tr.changed td,tr.error td,tr.new td,tr.removed td,tr.deprecated td{background:#fde8e8}
 .shots{display:flex;gap:12px;overflow-x:auto}figure{margin:0}img{max-width:640px;border:1px solid #ccc}
 </style>
 <h1>Visual regression — ${new Date().toISOString()}</h1>
@@ -156,8 +158,16 @@ async function run() {
     webPreferences: { offscreen: true },
   })
 
+  // A story that still passes a deprecated prop teaches the old API; fail it.
+  let deprecations = []
+  win.webContents.on('console-message', (event, ...legacyArgs) => {
+    const message = event.message ?? legacyArgs[1] ?? ''
+    if (DEPRECATION.test(message)) deprecations.push(message)
+  })
+
   const results = []
   for (const id of ids) {
+    deprecations = []
     await win.loadURL(`${STORYBOOK}/iframe.html?id=${encodeURIComponent(id)}&viewMode=story`)
     const { error } = await win.webContents.executeJavaScript(`(${settle})(${JSON.stringify(FREEZE_CSS)})`)
     if (error) {
@@ -176,6 +186,11 @@ async function run() {
       const result = compare(baseline, current)
       results.push({ id, status: result.changed ? 'changed' : 'same', baseline, current, ...result })
     }
+    if (deprecations.length) {
+      const last = results[results.length - 1]
+      last.status = 'deprecated'
+      last.note = [...new Set(deprecations)].join(' ')
+    }
   }
 
   if (!ONLY) {
@@ -189,7 +204,7 @@ async function run() {
 
   writeReport(results)
   const count = (status) => results.filter((r) => r.status === status).length
-  const failing = results.filter((r) => ['changed', 'new', 'error', 'removed'].includes(r.status))
+  const failing = results.filter((r) => ['changed', 'new', 'error', 'removed', 'deprecated'].includes(r.status))
   for (const r of failing) {
     const detail = r.changed ? `${r.changed} px (${(r.ratio * 100).toFixed(3)}%)` : r.note ?? ''
     console.log(`  ${r.status.padEnd(8)} ${r.id} ${detail}`)

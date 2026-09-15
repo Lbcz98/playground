@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>
  */
 export const Default: Story = {}
 
-export const BugFocused: Story = { args: { bugFocused: true } }
+export const BugFocused: Story = { args: { focusedItem: 'channel-bug' } }
 
 export const CustomContent: Story = {
   args: {

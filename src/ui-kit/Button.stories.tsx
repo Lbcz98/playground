@@ -19,18 +19,18 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Focus: Story = { args: { state: 'focus' } }
-export const Selected: Story = { args: { state: 'selected' } }
-export const Default: Story = { args: { state: 'default' } }
-export const WithCheck: Story = { args: { state: 'focus', check: true } }
+export const Focus: Story = { args: { interactionState: 'focus' } }
+export const Selected: Story = { args: { interactionState: 'selected' } }
+export const Default: Story = { args: { interactionState: 'default' } }
+export const WithCheck: Story = { args: { interactionState: 'focus', check: true } }
 
 export const AllStates: Story = {
   args: {},
   render: (args) => (
     <Stack direction="row" align="center" gap="lg">
-      <Button {...args} state="focus" />
-      <Button {...args} state="selected" />
-      <Button {...args} state="default" />
+      <Button {...args} interactionState="focus" />
+      <Button {...args} interactionState="selected" />
+      <Button {...args} interactionState="default" />
     </Stack>
   ),
 }

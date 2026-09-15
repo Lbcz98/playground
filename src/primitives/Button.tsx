@@ -11,12 +11,13 @@
  * fixed width, it sizes to its label.
  *
  * Controlled, like every kit component: the app's remote/keyboard handler sets
- * `status="focus"`; the button doesn't track focus itself.
+ * `interactionState="focus"`; the button doesn't track focus itself.
  */
 
 import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 import type { TextStyle } from '@/styles/global-tokens'
 import { FocusRing } from './FocusRing'
+import { resolveInteractionState, type InteractionState } from './interactionState'
 import { RestingBorder } from './RestingBorder'
 import { Spinner } from './Spinner'
 import { Text } from './Text'
@@ -34,12 +35,15 @@ import {
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 export type ButtonSize = 'md' | 'lg'
-export type ButtonStatus = 'default' | 'focus' | 'loading' | 'disabled'
+export type ButtonStatus = Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>
 
 export interface ButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'className' | 'disabled' | 'color'> {
   variant?: ButtonVariant
   size?: ButtonSize
+  /** Default `default`. */
+  interactionState?: ButtonStatus
+  /** @deprecated Use `interactionState` — same values. */
   status?: ButtonStatus
   iconLeft?: ReactNode
   iconRight?: ReactNode
@@ -59,9 +63,9 @@ const SIZE = {
   lg: { height: 'control-height-lg', paddingX: 'xl', icon: 'icon-lg', label: 'body-md-bold' },
 } as const satisfies Record<ButtonSize, { height: SizeRole; paddingX: GridSpacing; icon: SizeRole; label: TextStyle }>
 
-function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatus): CSSProperties {
+function rootStyle(variant: ButtonVariant, size: ButtonSize, state: ButtonStatus): CSSProperties {
   const { fill, text } = SURFACE[variant]
-  const focus = status === 'focus'
+  const focus = state === 'focus'
   return {
     position: 'relative',
     display: 'inline-flex',
@@ -78,7 +82,7 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
     whiteSpace: 'nowrap',
     backgroundColor: !focus && fill ? surface(fill) : 'transparent',
     color: textColor(focus ? 'primary' : text),
-    cursor: status === 'disabled' ? 'not-allowed' : status === 'loading' ? 'progress' : 'pointer',
+    cursor: state === 'disabled' ? 'not-allowed' : state === 'loading' ? 'progress' : 'pointer',
   }
 }
 
@@ -98,7 +102,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   {
     variant = 'primary',
     size = 'md',
-    status = 'default',
+    interactionState,
+    status,
     iconLeft,
     iconRight,
     children,
@@ -108,9 +113,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   },
   ref,
 ) {
-  const loading = status === 'loading'
-  const disabled = status === 'disabled'
-  const focus = status === 'focus'
+  const state = resolveInteractionState('primitives/Button', interactionState, { prop: 'status', value: status }, 'default')
+  const loading = state === 'loading'
+  const disabled = state === 'disabled'
+  const focus = state === 'focus'
 
   return (
     <button
@@ -120,7 +126,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled}
       aria-busy={loading || undefined}
       onClick={loading ? undefined : onClick}
-      style={rootStyle(variant, size, status)}
+      style={rootStyle(variant, size, state)}
     >
       {focus && <FocusRing shape="pill" />}
       {!focus && SURFACE[variant].bordered && <RestingBorder shape="pill" />}
