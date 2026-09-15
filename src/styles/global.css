@@ -24,6 +24,8 @@
   --color-core-complementary-confirmation: #11BB0E;
   --color-core-complementary-alert: #FFA90A;
   --color-core-complementary-live: #FD4142;
+  --color-core-complementary-replay-light: #FFB54E;
+  --color-core-complementary-replay-dark: #DA7F00;
 
   /* ===== Color · Opacity ===== */
   --color-opacity-background: #191F274D;
@@ -40,6 +42,11 @@
   --color-opacity-light-30: #FFFFFF4D;
   --color-opacity-light-50: #FFFFFF80;
   --color-opacity-light-70: #FFFFFFB3;
+
+  /* #646464 at 30% — the only opacity token that isn't dark-, light-, or
+     grey-mid-based (#999999); it's a distinct mid-gray, confirmed value, used
+     only by Diagonal Light's end stop. */
+  --color-opacity-greymid-30: #6464644D;
 
   /* ===== Color · Semantic · Theme ===== */
   --color-semantic-theme-day-dark: var(--color-core-primary-night-dark);
@@ -77,10 +84,16 @@
 
   /* ===== Gradient · Complementary ===== */
   --gradient-complementary-shiny: linear-gradient(180deg, var(--color-core-neutral-grey-mid) 0%, var(--color-core-neutral-white) 100%);
-  --gradient-complementary-diagonal-light: linear-gradient(180deg, var(--color-opacity-light-70) 0%, var(--color-opacity-dark-30) 60%);
+  /* 135deg (top-left -> bottom-right), confirmed by pixel-sampling the actual
+     Figma render (node 6038:18472): brightness falls off along BOTH the top
+     edge and the left edge, and the right/bottom edges plateau at the same
+     dark value — a pure 180deg (top-to-bottom) gradient can't produce that;
+     only a diagonal can. Matches the token's own name. */
+  --gradient-complementary-diagonal-light: linear-gradient(135deg, var(--color-opacity-light-70) 0%, var(--color-opacity-greymid-30) 60%);
   --gradient-complementary-linear-light: linear-gradient(180deg, var(--color-core-neutral-white) 0%, var(--color-core-neutral-white-alpha-0) 100%);
   --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey) 0%, var(--color-core-neutral-charcoal) 100%);
   --gradient-complementary-live: linear-gradient(180deg, var(--color-core-complementary-live) 0%, var(--color-core-complementary-error) 70%);
+  --gradient-complementary-replay: linear-gradient(180deg, var(--color-core-complementary-replay-light) 0%, var(--color-core-complementary-replay-dark) 70%);
 
   /* ===== Dimension · Radius · Core ===== */
   --dimension-radius-core-none: 0px;

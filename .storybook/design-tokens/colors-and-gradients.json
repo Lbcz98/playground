@@ -96,6 +96,16 @@
         "live": {
           "$value": "#FD4142",
           "$type": "color"
+        },
+        "replay-light": {
+          "$value": "#FFB54E",
+          "$type": "color",
+          "$description": "Replay pill gradient start"
+        },
+        "replay-dark": {
+          "$value": "#DA7F00",
+          "$type": "color",
+          "$description": "Replay pill gradient end"
         }
       }
     },
@@ -123,6 +133,11 @@
         "30": { "$value": "#FFFFFF4D", "$type": "color" },
         "50": { "$value": "#FFFFFF80", "$type": "color" },
         "70": { "$value": "#FFFFFFB3", "$type": "color" }
+      },
+      "greymid-30": {
+        "$value": "#6464644D",
+        "$type": "color",
+        "$description": "#646464 at 30% — a distinct mid-gray, not the grey-mid (#999999) core swatch. Only diagonal-light's end stop uses it."
       }
     },
     "semantic": {
@@ -277,9 +292,9 @@
         "$type": "gradient",
         "$value": [
           { "color": "{color.opacity.light.70}", "position": 0 },
-          { "color": "{color.opacity.dark.30}", "position": 0.6 }
+          { "color": "{color.opacity.greymid-30}", "position": 0.6 }
         ],
-        "$description": "Approximate alias — original stops use 80% white and 30% grey-mid"
+        "$description": "135deg (top-left to bottom-right), confirmed by pixel-sampling the real Figma render (node 6038:18472) — the CSS layer's earlier 180deg default was wrong for this one. End stop is grey-mid at ~30% opacity, not black."
       },
       "linear-light": {
         "$type": "gradient",
@@ -301,6 +316,13 @@
         "$value": [
           { "color": "{color.core.complementary.live}", "position": 0 },
           { "color": "{color.core.complementary.error}", "position": 0.7 }
+        ]
+      },
+      "replay": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "{color.core.complementary.replay-light}", "position": 0 },
+          { "color": "{color.core.complementary.replay-dark}", "position": 0.7 }
         ]
       }
     }

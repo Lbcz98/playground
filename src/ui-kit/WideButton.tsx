@@ -78,18 +78,39 @@ const icon: CSSProperties = {
   display: 'block',
 }
 
+/**
+ * Default / Loading: a Diagonal Light gradient stroke, same reasoning as
+ * Button's card — confirmed as a bound style on this component, and a plain
+ * CSS border can't carry a gradient on a rounded shape.
+ *
+ * Rendered as a sibling AFTER the content span, not nested inside it:
+ * `--color-opacity-background` is itself only ~30% opaque, so insetting it
+ * on top of a full gradient frame let the gradient bleed through the whole
+ * interior instead of staying confined to the edge (a real bug an earlier
+ * version had — see git history). This uses a masked "hole"
+ * (`mask-composite: exclude`) so the ring has NO pixels in its center at
+ * all — the content span's flat fill sits fully behind it at inset 0,
+ * compositing against the real page background, never against the gradient.
+ */
+const diagonalRing: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  padding: 'var(--dimension-border-width-semantic-button)',
+  borderRadius: 'var(--dimension-radius-core-full)',
+  backgroundImage: 'var(--gradient-complementary-diagonal-light)',
+  WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
+  WebkitMaskComposite: 'xor',
+  mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
+  maskComposite: 'exclude',
+} as CSSProperties
+
+function hasDiagonalStroke(status: WideButtonStatus): boolean {
+  return status === 'default' || status === 'loading'
+}
+
 function centerFor(status: WideButtonStatus): CSSProperties {
   if (status === 'focus') return center
-  const surface: CSSProperties = {
-    ...center,
-    backgroundColor: 'var(--color-opacity-background)',
-  }
-  if (status === 'disabled') return surface
-  return {
-    ...surface,
-    border:
-      'var(--dimension-border-width-semantic-button) solid var(--color-opacity-light-70)',
-  }
+  return { ...center, backgroundColor: 'var(--color-opacity-background)' }
 }
 
 export function WideButton({
@@ -116,7 +137,6 @@ export function WideButton({
           </span>
         </span>
       )}
-
       <span style={centerFor(status)}>
         {isLoading ? (
           <img
@@ -145,6 +165,7 @@ export function WideButton({
           </>
         )}
       </span>
+      {hasDiagonalStroke(status) && <span style={diagonalRing} />}
     </button>
   )
 }

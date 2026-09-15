@@ -42,7 +42,7 @@ function fillFor(kind: LabelVideoKind, focus: boolean): CSSProperties {
   if (!focus) return { backgroundColor: 'var(--color-opacity-light-10)' }
   return kind === 'live'
     ? { backgroundImage: 'var(--gradient-complementary-live)' }
-    : { backgroundImage: 'var(--gradient-inverse-evening)' }
+    : { backgroundImage: 'var(--gradient-complementary-replay)' }
 }
 
 export function LabelVideo({

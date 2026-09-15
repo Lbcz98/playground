@@ -92,18 +92,47 @@ const scrim: CSSProperties = {
   backgroundColor: 'var(--color-opacity-background)',
 }
 
-/** Default / Selected: a translucent card with a light hairline. */
-function cardSurface(state: ButtonState): CSSProperties {
-  const large = isLarge(state)
+/**
+ * Default / Selected: a translucent card with a Diagonal Light gradient
+ * stroke — confirmed as a bound style on this exact card in the original
+ * Figma fetch, not the flat `--color-opacity-light-70` this used to render as
+ * (Figma's own codegen flattens gradient borders to one of their stops; a
+ * plain CSS `border` can't carry a gradient on a rounded shape either way).
+ *
+ * The fill and the ring are two SIBLING layers, not nested: `--color-opacity-
+ * background` is itself only ~30% opaque, so an earlier version that
+ * stacked it on top of the gradient as an inset let the gradient bleed
+ * through the whole interior instead of staying confined to the edge. The
+ * ring below uses a masked "hole" (`mask-composite: exclude`) so it has NO
+ * pixels at all in its center — the fill sits fully behind it, at inset 0,
+ * compositing against the real page background exactly like it does
+ * everywhere else, never against the gradient.
+ */
+function cardRadius(state: ButtonState): string {
+  return isLarge(state) ? 'var(--dimension-radius-core-6xl)' : 'var(--dimension-radius-core-3xl)'
+}
+
+function cardFill(state: ButtonState): CSSProperties {
   return {
     position: 'absolute',
     inset: 0,
+    borderRadius: cardRadius(state),
     backgroundColor: 'var(--color-opacity-background)',
-    border: 'var(--dimension-border-width-semantic-card) solid var(--color-opacity-light-70)',
-    borderRadius: large
-      ? 'var(--dimension-radius-core-6xl)'
-      : 'var(--dimension-radius-core-3xl)',
   }
+}
+
+function cardRing(state: ButtonState): CSSProperties {
+  return {
+    position: 'absolute',
+    inset: 0,
+    padding: 'var(--dimension-border-width-semantic-card)',
+    borderRadius: cardRadius(state),
+    backgroundImage: 'var(--gradient-complementary-diagonal-light)',
+    WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
+    WebkitMaskComposite: 'xor',
+    mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
+    maskComposite: 'exclude',
+  } as CSSProperties
 }
 
 const layer: CSSProperties = { position: 'relative' }
@@ -132,7 +161,10 @@ export function Button({
           <span style={scrim} />
         </span>
       ) : (
-        <span style={cardSurface(state)} />
+        <>
+          <span style={cardFill(state)} />
+          <span style={cardRing(state)} />
+        </>
       )}
 
       <span

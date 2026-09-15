@@ -39,6 +39,8 @@ export const W3C_TOKEN_SOURCE = {
         confirmation: { $value: '#11BB0E', $type: 'color' },
         alert: { $value: '#FFA90A', $type: 'color' },
         live: { $value: '#FD4142', $type: 'color' },
+        'replay-light': { $value: '#FFB54E', $type: 'color' },
+        'replay-dark': { $value: '#DA7F00', $type: 'color' },
       },
     },
     opacity: {
@@ -58,6 +60,9 @@ export const W3C_TOKEN_SOURCE = {
         '50': { $value: '#FFFFFF80', $type: 'color' },
         '70': { $value: '#FFFFFFB3', $type: 'color' },
       },
+      // #646464 at 30% — a distinct mid-gray, not the grey-mid (#999999)
+      // core swatch. Only Diagonal Light's end stop uses it.
+      'greymid-30': { $value: '#6464644D', $type: 'color' },
     },
     semantic: {
       theme: {
@@ -143,7 +148,7 @@ export const W3C_TOKEN_SOURCE = {
         $type: 'gradient',
         $value: [
           { color: '{color.opacity.light.70}', position: 0 },
-          { color: '{color.opacity.dark.30}', position: 0.6 },
+          { color: '{color.opacity.greymid-30}', position: 0.6 },
         ],
       },
       'linear-light': {
@@ -165,6 +170,13 @@ export const W3C_TOKEN_SOURCE = {
         $value: [
           { color: '{color.core.complementary.live}', position: 0 },
           { color: '{color.core.complementary.error}', position: 0.7 },
+        ],
+      },
+      replay: {
+        $type: 'gradient',
+        $value: [
+          { color: '{color.core.complementary.replay-light}', position: 0 },
+          { color: '{color.core.complementary.replay-dark}', position: 0.7 },
         ],
       },
     },
