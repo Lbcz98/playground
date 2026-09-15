@@ -5,10 +5,9 @@
  * background-elevated with a border-default stroke, `secondary` on
  * background-overlay with border-subtle, `ghost` on nothing with text-secondary.
  *
- * Focus is the UI Kit's one focus language — the Primary/Noite gradient ring
- * over a dark inset with a night-light glow, as on WideButton, RoundButtonShell
- * and the card Button — so a primitive button focuses exactly like a kit
- * component. Unlike WideButton's fixed width, it sizes to its label.
+ * Focus draws the kit's one `<FocusRing>` and loading its one `<Spinner>`, so a
+ * primitive button behaves exactly like a kit component. Unlike WideButton's
+ * fixed width, it sizes to its label.
  *
  * Controlled, like every kit component: the app's remote/keyboard handler sets
  * `status="focus"`; the button doesn't track focus itself.
@@ -16,8 +15,8 @@
 
 import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 import type { TextStyle } from '@/styles/global-tokens'
-import spinnerIcon from '@/ui-kit/icons/spinner.svg'
-import './primitives.css'
+import { FocusRing } from './FocusRing'
+import { Spinner } from './Spinner'
 import { Text } from './Text'
 import {
   borderColor,
@@ -60,8 +59,6 @@ const SIZE = {
   lg: { height: 'control-height-lg', paddingX: 'xl', icon: 'icon-lg', label: 'body-md-bold' },
 } as const satisfies Record<ButtonSize, { height: SizeRole; paddingX: GridSpacing; icon: SizeRole; label: TextStyle }>
 
-const PILL = token('--dimension-radius-semantic-pill')
-
 function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatus): CSSProperties {
   const { fill, stroke, text } = SURFACE[variant]
   const focus = status === 'focus'
@@ -76,7 +73,7 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
     paddingBlock: 0,
     paddingInline: spacing(SIZE[size].paddingX),
     border: 'none',
-    borderRadius: PILL,
+    borderRadius: token('--dimension-radius-semantic-pill'),
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     backgroundColor: !focus && fill ? surface(fill) : 'transparent',
@@ -88,31 +85,6 @@ function rootStyle(variant: ButtonVariant, size: ButtonSize, status: ButtonStatu
     color: textColor(focus ? 'primary' : text),
     cursor: status === 'disabled' ? 'not-allowed' : status === 'loading' ? 'progress' : 'pointer',
   }
-}
-
-const focusFrame: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  borderRadius: PILL,
-  backgroundImage: token('--gradient-semantic-focus-ring'),
-}
-
-const focusInset: CSSProperties = {
-  position: 'absolute',
-  inset: token('--dimension-border-width-semantic-focus-ring'),
-  borderRadius: PILL,
-  overflow: 'hidden',
-  backgroundColor: token('--color-semantic-focus-inset'),
-  backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
-}
-
-const focusGlow: CSSProperties = {
-  position: 'absolute',
-  insetInline: 0,
-  bottom: 0,
-  height: '80%',
-  opacity: token('--opacity-semantic-overlay'),
-  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const overlay: CSSProperties = {
@@ -143,7 +115,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const loading = status === 'loading'
   const disabled = status === 'disabled'
-  const spinnerEdge = sizeRole(SIZE[size].icon)
 
   return (
     <button
@@ -155,13 +126,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onClick={loading ? undefined : onClick}
       style={rootStyle(variant, size, status)}
     >
-      {status === 'focus' && (
-        <span aria-hidden style={focusFrame}>
-          <span style={focusInset}>
-            <span style={focusGlow} />
-          </span>
-        </span>
-      )}
+      {status === 'focus' && <FocusRing shape="pill" />}
       <span
         style={{
           position: 'relative',
@@ -170,7 +135,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           gap: spacing('2xs'),
           // Hidden, not removed, so a loading button keeps its width.
           visibility: loading ? 'hidden' : undefined,
-          opacity: disabled ? token('--opacity-semantic-content-muted') : undefined,
+          opacity: disabled ? token('--opacity-semantic-state-disabled') : undefined,
         }}
       >
         {iconLeft && <span style={iconSlot(size)}>{iconLeft}</span>}
@@ -181,12 +146,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       </span>
       {loading && (
         <span style={overlay}>
-          <img
-            src={spinnerIcon}
-            alt=""
-            className="sfs-spin"
-            style={{ width: spinnerEdge, height: spinnerEdge, display: 'block' }}
-          />
+          <Spinner size={SIZE[size].icon} />
         </span>
       )}
     </button>

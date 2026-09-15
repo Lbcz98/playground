@@ -182,6 +182,8 @@ export const CSS_VARS = [
   '--opacity-semantic-illumination-strong',
   '--opacity-semantic-title',
   '--opacity-semantic-visible',
+  '--opacity-semantic-focus-glow',
+  '--opacity-semantic-state-disabled',
 ] as const
 
 export type CssVar = (typeof CSS_VARS)[number]

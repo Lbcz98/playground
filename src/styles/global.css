@@ -305,6 +305,10 @@
   --opacity-semantic-illumination-strong: var(--opacity-core-80);
   --opacity-semantic-title: var(--opacity-core-90);
   --opacity-semantic-visible: var(--opacity-core-100);
+  /* Glow inside the focus ring */
+  --opacity-semantic-focus-glow: var(--opacity-core-60);
+  /* Content of a disabled control */
+  --opacity-semantic-state-disabled: var(--opacity-core-50);
 }
 
 /* ===== Typography · Utility Classes ===== */

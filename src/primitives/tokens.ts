@@ -94,6 +94,9 @@ export function size(role: SizeRole): string {
   return token(`${SIZE}${role}`)
 }
 
+/** A component corner shape: `pill`, `card`, `card-expanded`. */
+export type RadiusRole = NamesAfter<'--dimension-radius-semantic-'>
+
 function isStatus(role: TextColor): role is `status-${StatusColor}` {
   return role.startsWith('status-')
 }

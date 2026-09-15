@@ -2,14 +2,15 @@
  * Wide Button — Figma UI Kit node 3386:10618 ("Insert Button").
  *
  * Every colour, radius, gap, size and text style resolves to a semantic token
- * or a grid spacing step from `src/styles/global.css`.
+ * or a grid spacing step from `src/styles/global.css`. Focus draws the kit's
+ * one `<FocusRing>` (this button's recipe is the one it standardised on), and
+ * loading its one `<Spinner>`.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { size, spacing, Text, token } from '@/primitives'
+import { FocusRing, size, spacing, Spinner, Text, token } from '@/primitives'
 import arrowLeftIcon from './icons/arrow-left.svg'
 import arrowRightIcon from './icons/arrow-right.svg'
-import spinnerIcon from './icons/spinner.svg'
 
 export type WideButtonStatus = 'default' | 'focus' | 'loading' | 'disabled'
 
@@ -32,33 +33,6 @@ const root: CSSProperties = {
   background: 'none',
   borderRadius: PILL,
   overflow: 'hidden',
-  cursor: 'pointer',
-}
-
-/** The gradient frame: a night-gradient fill with a dark inset sitting on top. */
-const focusFrame: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  borderRadius: PILL,
-  backgroundImage: token('--gradient-semantic-focus-ring'),
-}
-
-const focusInset: CSSProperties = {
-  position: 'absolute',
-  inset: token('--dimension-border-width-semantic-focus-ring'),
-  borderRadius: PILL,
-  overflow: 'hidden',
-  backgroundColor: token('--color-semantic-focus-inset'),
-  backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
-}
-
-const focusGlow: CSSProperties = {
-  position: 'absolute',
-  insetInline: 0,
-  bottom: 0,
-  height: spacing('xl'),
-  opacity: token('--opacity-semantic-overlay'),
-  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
 }
 
 const center: CSSProperties = {
@@ -127,27 +101,18 @@ export function WideButton({
     <button
       type="button"
       disabled={isDisabled}
-      onClick={onClick}
-      style={{ ...root, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
+      aria-busy={isLoading || undefined}
+      onClick={isLoading ? undefined : onClick}
+      style={{ ...root, cursor: isDisabled ? 'not-allowed' : isLoading ? 'progress' : 'pointer' }}
     >
-      {status === 'focus' && (
-        <span style={focusFrame}>
-          <span style={focusInset}>
-            <span style={focusGlow} />
-          </span>
-        </span>
-      )}
+      {status === 'focus' && <FocusRing shape="pill" />}
       <span style={centerFor(status)}>
         {isLoading ? (
-          <img
-            src={spinnerIcon}
-            alt=""
-            style={{ width: size('icon-md'), height: size('icon-md'), display: 'block' }}
-          />
+          <Spinner size="icon-md" />
         ) : (
           <>
             {iconLeft && <img src={arrowLeftIcon} alt="" style={icon} />}
-            <Text variant="body-sm-bold" opacity={isDisabled ? 'content-muted' : undefined} truncate>
+            <Text variant="body-sm-bold" opacity={isDisabled ? 'state-disabled' : undefined} truncate>
               {label}
             </Text>
             {iconRight && <img src={arrowRightIcon} alt="" style={icon} />}

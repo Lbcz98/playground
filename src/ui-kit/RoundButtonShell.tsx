@@ -5,12 +5,14 @@
  * target and inner circle with a gradient focus ring, just with different
  * content — see the `round-button` size tokens for the exact sizes).
  *
+ * Focus draws the kit's one `<FocusRing>` inside the circle.
+ *
  * Extracted so that shell only exists once — content and its sizing are the
  * caller's job.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { size, token } from '@/primitives'
+import { FocusRing, size, token } from '@/primitives'
 
 export interface RoundButtonShellProps {
   focus?: boolean
@@ -19,8 +21,6 @@ export interface RoundButtonShellProps {
   onClick?: () => void
   children?: ReactNode
 }
-
-const PILL = token('--dimension-radius-semantic-pill')
 
 const root: CSSProperties = {
   position: 'relative',
@@ -39,7 +39,7 @@ const circle: CSSProperties = {
   position: 'relative',
   width: size('round-button-circle'),
   height: size('round-button-circle'),
-  borderRadius: PILL,
+  borderRadius: token('--dimension-radius-semantic-pill'),
   overflow: 'hidden',
   display: 'grid',
   placeItems: 'center',
@@ -51,34 +51,6 @@ const restCircle: CSSProperties = {
   border: `${token('--dimension-border-width-semantic-button')} solid ${token('--color-semantic-functional-border-default')}`,
 }
 
-const focusCircle: CSSProperties = {
-  ...circle,
-  // Same focus color as every other control (Button, WideButton) —
-  // gradient-inverse-night was this shell's own guess, since RoundedButton's
-  // source node exported the gradient as a flattened image with no literal
-  // color classes to read; cross-checking against a second Figma file (the
-  // Handoff/DTV round button) confirmed every focus ring shares one gradient.
-  backgroundImage: token('--gradient-semantic-focus-ring'),
-}
-
-const focusInset: CSSProperties = {
-  position: 'absolute',
-  inset: token('--dimension-border-width-semantic-focus-ring'),
-  borderRadius: PILL,
-  overflow: 'hidden',
-  backgroundColor: token('--color-semantic-focus-inset'),
-  backgroundImage: `linear-gradient(180deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
-}
-
-const focusGlow: CSSProperties = {
-  position: 'absolute',
-  insetInline: 0,
-  top: 0,
-  height: '50%',
-  opacity: token('--opacity-semantic-illumination-strong'),
-  backgroundImage: `radial-gradient(ellipse at 50% 0%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
-}
-
 export function RoundButtonShell({
   focus = false,
   label,
@@ -87,12 +59,8 @@ export function RoundButtonShell({
 }: RoundButtonShellProps): ReactNode {
   return (
     <button type="button" aria-label={label} onClick={onClick} style={root}>
-      <span style={focus ? focusCircle : restCircle}>
-        {focus && (
-          <span style={focusInset}>
-            <span style={focusGlow} />
-          </span>
-        )}
+      <span style={focus ? circle : restCircle}>
+        {focus && <FocusRing shape="pill" />}
         <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
           {children}
         </span>

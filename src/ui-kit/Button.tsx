@@ -3,15 +3,15 @@
  *
  * The 10-foot card button: a media thumbnail slot over an overline/title/
  * subtitle stack, with an optional live badge and check mark. Focus draws the
- * Primary/Noite gradient frame; Default and Selected are translucent cards that
- * dim their content.
+ * kit's one `<FocusRing>`; Default and Selected are translucent cards that dim
+ * their content.
  *
  * Figma positions the content with percentage insets; those resolve to a plain
  * padding box, so this uses flow layout instead.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { size, spacing, Text, token } from '@/primitives'
+import { FocusRing, size, spacing, Text, token } from '@/primitives'
 import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
@@ -56,43 +56,6 @@ function rootFor(state: ButtonState): CSSProperties {
   }
 }
 
-const EXPANDED_RADIUS = token('--dimension-radius-semantic-card-expanded')
-const RING_WIDTH = token('--dimension-border-width-semantic-focus-ring')
-
-/** Focus: the Primary/Noite gradient frame. */
-const gradientFrame: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  borderRadius: EXPANDED_RADIUS,
-  backgroundImage: token('--gradient-semantic-focus-ring'),
-}
-
-const gradientInset: CSSProperties = {
-  position: 'absolute',
-  inset: RING_WIDTH,
-  borderRadius: `calc(${EXPANDED_RADIUS} - ${RING_WIDTH})`,
-  overflow: 'hidden',
-  backgroundColor: token('--color-semantic-focus-inset-fade'),
-  opacity: token('--opacity-semantic-overlay'),
-}
-
-const gradientGlow: CSSProperties = {
-  position: 'absolute',
-  insetInline: 0,
-  bottom: 0,
-  height: '65%',
-  opacity: token('--opacity-semantic-illumination-strong'),
-  filter: `blur(${spacing('3xs')})`,
-  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
-}
-
-const scrim: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  borderRadius: EXPANDED_RADIUS,
-  backgroundColor: token('--color-semantic-functional-background-translucent'),
-}
-
 /**
  * Default / Selected: a translucent card with a Diagonal Light gradient
  * stroke — confirmed as a bound style on this exact card in the original
@@ -110,7 +73,7 @@ const scrim: CSSProperties = {
  * everywhere else, never against the gradient.
  */
 function cardRadius(state: ButtonState): string {
-  return isLarge(state) ? EXPANDED_RADIUS : token('--dimension-radius-semantic-card')
+  return token(isLarge(state) ? '--dimension-radius-semantic-card-expanded' : '--dimension-radius-semantic-card')
 }
 
 function cardFill(state: ButtonState): CSSProperties {
@@ -159,11 +122,7 @@ export function Button({
   return (
     <button type="button" onClick={onClick} style={rootFor(state)}>
       {state === 'focus' ? (
-        <span style={gradientFrame}>
-          <span style={gradientInset} />
-          <span style={gradientGlow} />
-          <span style={scrim} />
-        </span>
+        <FocusRing shape="card-expanded" />
       ) : (
         <>
           <span style={cardFill(state)} />
