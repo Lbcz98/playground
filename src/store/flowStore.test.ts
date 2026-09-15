@@ -65,9 +65,15 @@ describe('applyAgentBlueprint — per-turn undo', () => {
 describe('frame anchoring', () => {
   const anchoredIds = () => store().tree.children.filter((c) => c.anchor).map((c) => c.id)
 
-  it('starts on a frame-compliant screen with its action cluster anchored', () => {
-    expect(frameLayoutErrors({ root: store().tree }, SCREENFLOW_MANIFEST)).toEqual([])
+  it('starts on a frame-compliant screen: primary actions in the content, only a secondary cluster anchored', () => {
+    const tree = store().tree
+    expect(frameLayoutErrors({ root: tree }, SCREENFLOW_MANIFEST)).toEqual([])
     expect(anchoredIds()).toHaveLength(1)
+
+    const labels = (node: (typeof tree.children)[number]) => node.children.map((c) => c.props.label)
+    expect(labels(tree.children.find((c) => c.anchor)!)).toEqual(['Help'])
+    const contentActions = tree.children.find((c) => !c.anchor && c.type === 'Stack')!
+    expect(labels(contentActions)).toEqual(['Get started', 'Learn more'])
   })
 
   it('anchors at most one direct child of the root, undoably', () => {

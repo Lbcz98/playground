@@ -142,6 +142,17 @@ describe('global kernel', () => {
     }
   })
 
+  it('keeps primary actions in the content — the anchored group is a secondary cluster that never holds initial focus', () => {
+    for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
+      expect(prompt).toContain("never the screen's primary actions")
+      expect(prompt).toContain('an anchored element never holds initial focus')
+    }
+    // The planner's worked example must not anchor a primary button (a live run copied that).
+    const planner = buildPlannerPrompt()
+    expect(planner).not.toMatch(/— anchored[^\n]*\n\s*\d+\.\s+Primary button/)
+    expect(planner).toMatch(/Primary button: "Create account"\.\n\d+\.\s+Help Stack \(horizontal, gap sm\) — anchored/)
+  })
+
   it('always targets the 1280×720 base — the upscale is the engine’s job', () => {
     for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
       expect(prompt).not.toContain('1920')

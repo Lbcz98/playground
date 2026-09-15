@@ -117,7 +117,9 @@ The application operates on a strict mathematical ${FRAME.grid}-point grid.
  * §3 as specified, with three bullets reworded to match the engine (approved by
  * the product owner): the engine locks the viewport and applies the safe area, and
  * it READS the TV focus — the model never declares a focus side, it only marks
- * the group that follows it.
+ * the secondary group that follows it. A live run showed the model anchoring the
+ * screen's primary CTAs to "give them focus", so the bullets say plainly that the
+ * anchored group leaves the content flow and never holds initial focus.
  */
 function macroLayoutLaw(): string {
   const { width, height } = FRAME.base
@@ -127,8 +129,8 @@ When generating full screens or master containers, you must target the base HD c
 * **Safe Area Margins:** A strict **${px(FRAME.margin)} margin** applies on all outer edges (Top, Bottom, Left, Right). The engine applies it as the canvas safe area, so the outermost container adds no padding of its own. Content cannot breach this safe area.
 * **Gutters:** The space between structural columns or module stacks must be exactly **${px(FRAME.gutter)}**.
 * **Dynamic Focus Alignment:** Master layouts do not use static center alignment. This is a TV canvas: something always holds focus, and the engine reads where it is — you never declare a focus side.
-  * Initial focus lands on the first focusable element (a button or an input) in reading order — top to bottom, then left to right — so order the screen so the element that should be focused first comes first.
-  * Mark the one element group that follows the focus (a floating action area or widget cluster) with "anchor": true on a direct child of the outermost container. If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
+  * Initial focus lands on the first focusable element (a button or an input) in reading order — top to bottom, then left to right — within the screen's content. Keep the screen's primary actions (e.g. "Play", "Watch now", "Continue") in the content, placed where focus should start.
+  * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus. If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
 }
 
 function registryLaw(): string {
@@ -221,7 +223,7 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
         ? `the outermost <${container}> never sets ${centering.join(' or ')} to "center".`
         : `the outermost <${container}> is never centered.`
     }`,
-    `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen.`,
+    `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen, and only on a secondary floating cluster, never the screen's primary actions.`,
   ]
 }
 
@@ -299,13 +301,14 @@ Accessibility rules:
 Common layout patterns:
 - Card: a vertical container with padding, gap, a surface, a border, a radius and
   a small shadow.
-- Form: a vertical container with one input per field, grouped in a card, and its
-  primary button in the anchored action area.
+- Form: a vertical container with one input per field, grouped in a card, with its
+  primary button in the card after the last field.
 - Equal columns / tiers: a horizontal container (align stretch) of child
   containers that each grow.
 - Page header: a vertical container with a title then a muted body line.
 - Section: a vertical container with a heading then its content.
-- Action area: a horizontal container of buttons, anchored so it follows focus.
+- Floating action cluster: a horizontal container of secondary quick actions
+  (options, help), anchored so it follows focus — never the screen's primary actions.
 
 # Output format
 
@@ -319,8 +322,9 @@ content; mark the anchored group. Keep it under ~15 lines. Example:
 5.   Card ${container} (vertical, gap md, padding lg, surface, bordered, radius lg, shadow sm).
 6.     Input, label "Full name" — first focusable, so it holds initial focus.
 7.     Input, label "Email".
-8.   Actions ${container} (horizontal, gap sm) — anchored.
-9.     Primary button: "Create account".`
+8.     Primary button: "Create account".
+9.   Help ${container} (horizontal, gap sm) — anchored, a secondary floating cluster.
+10.    Ghost button: "Need help?".`
 }
 
 export type PromptOutputMode = 'tool' | 'json'

@@ -80,8 +80,21 @@ interface FlowState {
 
 function initialTree(): CanvasNode {
   // A frame-compliant starting screen: the root fills the frame with no padding of
-  // its own (the frame supplies the outer margin) and a gutter-sized gap, and its
-  // action cluster is anchored so it follows the side the TV focus is on.
+  // its own (the frame supplies the outer margin) and a gutter-sized gap. The
+  // primary actions stay in the content, where TV focus starts; only a secondary
+  // "Help" cluster is anchored, so it follows the side the focus is on.
+  const row = {
+    direction: 'horizontal',
+    gap: 'sm',
+    padding: 'none',
+    align: 'center',
+    justify: 'start',
+    surface: 'none',
+    radius: 'none',
+    shadow: 'none',
+    bordered: false,
+    grow: false,
+  }
   return {
     id: ROOT_ID,
     type: 'Stack',
@@ -110,38 +123,32 @@ function initialTree(): CanvasNode {
         tone: 'muted',
         align: 'start',
       }),
+      makeNode('Stack', { ...row }, [
+        makeNode('Button', {
+          label: 'Get started',
+          variant: 'primary',
+          size: 'md',
+          fullWidth: false,
+          disabled: false,
+        }),
+        makeNode('Button', {
+          label: 'Learn more',
+          variant: 'secondary',
+          size: 'md',
+          fullWidth: false,
+          disabled: false,
+        }),
+      ]),
       {
-        ...makeNode(
-          'Stack',
-          {
-            direction: 'horizontal',
-            gap: 'sm',
-            padding: 'none',
-            align: 'center',
-            justify: 'start',
-            surface: 'none',
-            radius: 'none',
-            shadow: 'none',
-            bordered: false,
-            grow: false,
-          },
-          [
-            makeNode('Button', {
-              label: 'Learn more',
-              variant: 'secondary',
-              size: 'md',
-              fullWidth: false,
-              disabled: false,
-            }),
-            makeNode('Button', {
-              label: 'Get started',
-              variant: 'primary',
-              size: 'md',
-              fullWidth: false,
-              disabled: false,
-            }),
-          ],
-        ),
+        ...makeNode('Stack', { ...row }, [
+          makeNode('Button', {
+            label: 'Help',
+            variant: 'ghost',
+            size: 'md',
+            fullWidth: false,
+            disabled: false,
+          }),
+        ]),
         anchor: true,
       },
     ],
