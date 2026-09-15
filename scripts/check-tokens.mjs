@@ -16,8 +16,8 @@ const ROOT = new URL('..', import.meta.url).pathname
 const SRC = join(ROOT, 'src')
 const ALLOWLIST = new Set([
   join(SRC, 'design-system', 'primitives.ts'),
+  // Generated from tokens/tokens.json by `npm run tokens:build`.
   join(SRC, 'styles', 'global.css'),
-  join(SRC, 'shared', 'design-system', 'w3c-token-source.ts'),
   join(SRC, 'ui-kit', 'untokenized.ts'),
 ])
 
