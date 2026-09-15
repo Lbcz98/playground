@@ -15,6 +15,9 @@
     "lint:tokens": "node scripts/check-tokens.mjs",
     "tokens:build": "vite-node --config vitest.config.ts scripts/build-tokens.ts",
     "tokens:check": "vite-node --config vitest.config.ts scripts/build-tokens.ts -- --check",
+    "tokens:audit": "vite-node --config vitest.config.ts scripts/audit-tokens.ts",
+    "test:visual": "electron scripts/visual/regression.mjs",
+    "test:visual:update": "electron scripts/visual/regression.mjs --update",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

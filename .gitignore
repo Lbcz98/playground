@@ -9,3 +9,4 @@ release
 
 *storybook.log
 storybook-static
+tests/visual/.output
