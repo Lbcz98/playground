@@ -12,6 +12,8 @@
   --color-core-neutral-medium-grey: #3F3F3F;
   --color-core-neutral-dark-grey: #191919;
   --color-core-neutral-black: #000000;
+  /* Fully transparent black — where every overlay shade starts */
+  --color-core-neutral-black-alpha-0: #00000000;
   /* Used in complementary gradient stops */
   --color-core-neutral-grey-mid: #999999;
   /* Transparent gradient base */
@@ -53,6 +55,8 @@
   --color-opacity-dark-30: #0000004D;
   --color-opacity-dark-50: #00000080;
   --color-opacity-dark-70: #000000B3;
+  --color-opacity-dark-80: #000000CC;
+  --color-opacity-dark-90: #000000E6;
 
   /* ===== Color · Opacity · Light ===== */
   --color-opacity-light-10: #FFFFFF1A;
@@ -117,6 +121,10 @@
   /* Outside focus outline (CSS outline + offset) for content that fills its own hit target, like the channel bug. An outline can't carry the ring's gradient, so it takes the ring's dominant colour. */
   --color-semantic-focus-outline: var(--color-semantic-theme-day-dark);
 
+  /* ===== Color · Semantic · Overlay ===== */
+  /* Base legibility scrim over video or imagery. Every overlay except top-right lays it under its shade (Figma: Overlays). */
+  --color-semantic-overlay-scrim: var(--color-opacity-dark-10);
+
   /* ===== Gradient · Semantic · Focus ===== */
   /* The one focus ring, shared by every focusable control */
   --gradient-semantic-focus-ring: var(--gradient-primary-night);
@@ -130,6 +138,20 @@
   --gradient-semantic-status-live: var(--gradient-complementary-live);
   /* Focused replay pill */
   --gradient-semantic-status-replay: var(--gradient-complementary-replay);
+
+  /* ===== Gradient · Semantic · Overlay ===== */
+  /* Shade behind content anchored to the bottom edge (Figma Overlays: ↓) */
+  --gradient-semantic-overlay-bottom: var(--gradient-overlay-bottom);
+  /* Shade behind a panel or list on the left (Figma Overlays: ←) */
+  --gradient-semantic-overlay-left: var(--gradient-overlay-left);
+  /* Shade behind a panel or list on the right (Figma Overlays: →) */
+  --gradient-semantic-overlay-right: var(--gradient-overlay-right);
+  /* Shade behind content in the bottom-right corner (Figma Overlays: ↘) */
+  --gradient-semantic-overlay-bottom-right: var(--gradient-overlay-bottom-right);
+  /* Shade behind content in the bottom-left corner (Figma Overlays: ↙) */
+  --gradient-semantic-overlay-bottom-left: var(--gradient-overlay-bottom-left);
+  /* Shade behind a notification in the top-right corner — the one overlay without the scrim (Figma Overlays: ↗ Notificação) */
+  --gradient-semantic-overlay-top-right: var(--gradient-overlay-top-right);
 
   /* ===== Gradient · Primary ===== */
   --gradient-primary-night: linear-gradient(180deg, var(--color-core-primary-night-dark) 30%, var(--color-core-primary-night-light) 100%);
@@ -150,6 +172,14 @@
   --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey-alpha-0) 0%, var(--color-core-neutral-charcoal) 100%);
   --gradient-complementary-live: linear-gradient(180deg, var(--color-core-complementary-live) 0%, var(--color-core-complementary-error) 70%);
   --gradient-complementary-replay: linear-gradient(180deg, var(--color-core-complementary-replay-light) 0%, var(--color-core-complementary-replay-dark) 70%);
+
+  /* ===== Gradient · Overlay ===== */
+  --gradient-overlay-bottom: linear-gradient(180deg, var(--color-core-neutral-black-alpha-0) 50%, var(--color-opacity-dark-90) 90%);
+  --gradient-overlay-left: linear-gradient(270deg, var(--color-core-neutral-black-alpha-0) 50%, var(--color-opacity-dark-80) 100%);
+  --gradient-overlay-right: linear-gradient(90deg, var(--color-core-neutral-black-alpha-0) 50%, var(--color-opacity-dark-80) 100%);
+  --gradient-overlay-bottom-right: linear-gradient(134.57deg, var(--color-core-neutral-black-alpha-0) 59.52%, var(--color-core-neutral-black) 95.79%);
+  --gradient-overlay-bottom-left: linear-gradient(225.43deg, var(--color-core-neutral-black-alpha-0) 59.52%, var(--color-core-neutral-black) 95.79%);
+  --gradient-overlay-top-right: linear-gradient(36.4deg, var(--color-core-neutral-black-alpha-0) 70.15%, var(--color-opacity-dark-90) 93.22%);
 
   /* ===== Dimension · Radius · Core ===== */
   --dimension-radius-core-none: 0px;

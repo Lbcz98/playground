@@ -20,6 +20,10 @@ manifest records every token's tier (`layers` in
 `src/shared/design-system/manifest.ts`), the agents get the rule as global law 5,
 and the validator rejects a blueprint that names a core token or a raw value.
 
+Overlays follow it too: `<Overlay direction>` (`src/ui-kit/Overlay.tsx`, Figma
+node 3730:7871) names only `color.semantic.overlay.scrim` and
+`gradient.semantic.overlay.*`; the raw shades live in `gradient.overlay.*`.
+
 ## Baseline — before the refactor (commit `d2a4472`)
 
 | File | Core refs | Semantic refs | Untyped `var()` strings | Raw `.text-*` strings | Measured sizes |
