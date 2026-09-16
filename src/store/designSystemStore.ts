@@ -17,14 +17,19 @@
 
 import { create } from 'zustand'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
-import { manifestZodSchema } from '@/shared/design-system/manifest'
+import { TOKEN_LAYER_RULE, manifestZodSchema, tokenLayers } from '@/shared/design-system/manifest'
 import {
   SCREENFLOW_MANIFEST,
   SCREENFLOW_MANIFEST_ID,
 } from '@/shared/design-system/screenflow-manifest'
 import { W3C_MANIFEST, W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
 import { parseStorybookDocgen, type StorybookAdapterMeta } from '@/shared/design-system/storybook-adapter'
-import { mergeTokens, parseDesignTokens } from '@/shared/design-system/token-adapter'
+import {
+  mergeTokenTiers,
+  mergeTokens,
+  parseDesignTokenTiers,
+  parseDesignTokens,
+} from '@/shared/design-system/token-adapter'
 import { hydrateRegistry, type HydratedRegistry } from '@/design-system/registry'
 import { loadLiveComponents, type LiveComponentMap } from '@/design-system/liveBundle'
 
@@ -162,9 +167,14 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
     if (Object.keys(parsed).length === 0) {
       return { ok: false, error: 'No design tokens found (expected DTCG or Style Dictionary JSON).' }
     }
+    // Re-theming keeps the layer rule: the new export's tiers join the old ones.
+    const tiers = mergeTokenTiers(tokenLayers(target).tiers, parseDesignTokenTiers(rawJson))
     const next: DesignSystemManifest = {
       ...target,
       tokens: mergeTokens(target.tokens, parsed),
+      ...(Object.keys(tiers).length > 0
+        ? { layers: { rule: target.layers?.rule ?? TOKEN_LAYER_RULE, tiers } }
+        : {}),
     }
     const valid = manifestZodSchema.safeParse(next)
     if (!valid.success) {

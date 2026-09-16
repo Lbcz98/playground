@@ -18,13 +18,15 @@
  * Framework-free — usable from the Electron main process.
  */
 
-import type {
-  DesignSystemManifest,
-  ManifestComponent,
-  ManifestProp,
-  ManifestTokens,
+import {
+  TOKEN_LAYER_RULE,
+  inferTokenTiers,
+  type DesignSystemManifest,
+  type ManifestComponent,
+  type ManifestProp,
+  type ManifestTokens,
 } from './manifest'
-import { mergeTokens, parseDesignTokens } from './token-adapter'
+import { mergeTokenTiers, mergeTokens, parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
 
 export interface StorybookAdapterMeta {
   id?: string
@@ -49,9 +51,9 @@ function slug(input: string): string {
   )
 }
 
-/** Token dictionaries carried in the same JSON as the component docgen. */
-function tokensFromJson(rawJson: unknown): Partial<ManifestTokens> {
-  if (!isObject(rawJson)) return {}
+/** The token exports carried in the same JSON as the component docgen. */
+function tokenExports(rawJson: unknown): Record<string, unknown>[] {
+  if (!isObject(rawJson)) return []
   const candidates: unknown[] = [
     rawJson.tokens,
     rawJson.$tokens,
@@ -59,7 +61,7 @@ function tokensFromJson(rawJson: unknown): Partial<ManifestTokens> {
     isObject(rawJson.parameters) ? rawJson.parameters.designToken : undefined,
     isObject(rawJson.parameters) ? rawJson.parameters.designTokens : undefined,
   ]
-  return mergeTokens(...candidates.filter(isObject).map((c) => parseDesignTokens(c)))
+  return candidates.filter(isObject)
 }
 
 /** Strip the surrounding quotes react-docgen puts around string-literal values. */
@@ -275,11 +277,19 @@ export function parseStorybookDocgen(
     isObject(rawJson) && typeof rawJson.version === 'string' ? rawJson.version : undefined
 
   const name = meta.name ?? nameFromJson ?? 'Imported design system'
+  const exports = tokenExports(rawJson)
+  const tokens = mergeTokens(...exports.map((c) => parseDesignTokens(c)), meta.tokens)
+  // The layer rule travels with the tokens when the export has a semantic tier.
+  const tiers = mergeTokenTiers(
+    ...exports.map((c) => parseDesignTokenTiers(c)),
+    meta.tokens ? inferTokenTiers(mergeTokens(meta.tokens)) : undefined,
+  )
   return {
     id: meta.id ?? slug(name),
     name,
     version: meta.version ?? versionFromJson ?? '0.0.0',
-    tokens: mergeTokens(tokensFromJson(rawJson), meta.tokens),
+    tokens,
     components,
+    ...(Object.keys(tiers).length > 0 ? { layers: { rule: TOKEN_LAYER_RULE, tiers } } : {}),
   }
 }

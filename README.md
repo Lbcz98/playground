@@ -181,6 +181,18 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
   is validated as an enum of the manifest's *real* token names, not a free string,
   and the Property Inspector renders it as a `<select>` of those same names (with a
   color swatch for color tokens) instead of a text field.
+- **The layer rule** (`manifest.layers`, `TOKEN_LAYER_RULE` in `manifest.ts`) is part
+  of every manifest: each token is `core` (a raw value), `semantic` (an intent that
+  aliases core) or `layout` (a grid spacing or radius step, for layout props only).
+  Generated screens follow it without exception — the prompts carry it as global
+  law 5 with the active system's tiers and core → semantic translations (white text
+  is `semantic-functional-text-primary`), the token enums never contain a core
+  token, a core default is swapped for its semantic twin, and a blueprint that names
+  a core token or a raw value is rejected with a retry message naming the semantic
+  token to use. The Property Inspector never offers a core token either. Tiers come
+  from the token tree (`core` / `semantic` groups, and raw groups beside a `semantic`
+  one, like `color.opacity`); a manifest saved without `layers` gets them inferred
+  from `core` / `semantic` segments in its token names.
 
 ## AI providers (`AI_PROVIDER` in `.env`)
 

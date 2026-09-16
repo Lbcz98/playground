@@ -5,7 +5,8 @@
  * The Generator's system prompt opens with the GLOBAL KERNEL (`buildGlobalKernel`)
  * — the agent's unbreakable, design-system-agnostic laws: Blueprint JSON + tokens,
  * the 8pt grid, the 1280×720 canvas with its safe area / gutters / focus
- * alignment, and registry strictness. It is kept lean, and every number in it
+ * alignment, registry strictness, and the token layer rule (core → semantic →
+ * components; `manifest.ts`). It is kept lean, and every number in it
  * comes from `shared/layout/frame.ts`, so the laws can never drift from what the
  * validator enforces. Everything specific to the active design system follows it,
  * compiled from the manifest (`designSystemBinding`, the component list).
@@ -23,8 +24,18 @@
  */
 
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
-import type { DesignSystemManifest, ManifestComponent } from '@/shared/design-system/manifest'
-import { inferControl, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
+import type { DesignSystemManifest, ManifestComponent, ManifestTokens } from '@/shared/design-system/manifest'
+import {
+  TOKEN_LAYER_RULE,
+  assignableTokenNames,
+  inferControl,
+  isCoreToken,
+  rootContainerId,
+  semanticEquivalents,
+  tokenLayers,
+  tokenNames,
+  tokenTier,
+} from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import {
   FRAME,
@@ -57,10 +68,13 @@ export interface ComponentSpec {
 function specForComponent(component: ManifestComponent, manifest: DesignSystemManifest): ComponentSpec {
   const props: PropSpec[] = Object.values(component.props).map((prop) => {
     // Spacing values are cut to the 8pt grid, exactly as the validator compiles them.
-    const spacing = prop.tokenGroup === 'spacing'
-    const allNames = prop.tokenGroup ? tokenNames(manifest, prop.tokenGroup) : []
+    const group = prop.tokenGroup
+    const spacing = group === 'spacing'
+    // The layer rule: the model is only ever shown tokens it may name — never core.
+    const allNames = group ? assignableTokenNames(manifest, group) : []
     const names = spacing ? onGridSpacingNames(manifest, allNames) : allNames
-    const options = spacing && prop.options ? onGridSpacingNames(manifest, prop.options) : prop.options
+    const allowed = group && prop.options ? prop.options.filter((o) => !isCoreToken(manifest, group, o)) : prop.options
+    const options = spacing && allowed ? onGridSpacingNames(manifest, allowed) : allowed
     return {
       name: prop.name,
       control: inferControl(prop),
@@ -140,9 +154,23 @@ You must construct the UI using ONLY the provided Blueprint component definition
 * Never invent new UI elements or inject unsupported properties into the Blueprint JSON.`
 }
 
-/** The Generator's global kernel: identity + the four laws. No design-system specifics. */
+/**
+ * The layer rule — how tokens are tiered and which tier a screen may name. The
+ * wording is `TOKEN_LAYER_RULE`, the same text every manifest carries; the
+ * validator rejects a blueprint that breaks it.
+ */
+function layerLaw(): string {
+  return `### 5. TOKEN LAYERS — THE LAYER RULE
+Design tokens are layered, and the layer decides whether you may name a token. Follow this without exception:
+* **Core:** ${TOKEN_LAYER_RULE.core}
+* **Semantic:** ${TOKEN_LAYER_RULE.semantic}
+* **Layout scale:** ${TOKEN_LAYER_RULE.layout}
+* A blueprint that names a core token or a raw value is rejected. When no semantic token matches a role exactly, pick the closest role — never fall back to a core token.`
+}
+
+/** The Generator's global kernel: identity + the five laws. No design-system specifics. */
 export function buildGlobalKernel(): string {
-  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw()].join('\n\n')
+  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw(), layerLaw()].join('\n\n')
 }
 
 // ---------------------------------------------------------------------------
@@ -175,27 +203,88 @@ function componentCatalogBrief(spec: ComponentSpec[]): string {
     .join('\n')
 }
 
+/** Human label for a tier inside a token group. */
+const TIER_LABEL = { semantic: 'semantic', layout: 'layout scale' } as const
+
 /**
- * Every token name the active manifest declares, grouped (Phase 7B). Spacing is
- * cut to the 8pt grid and shows each step's size, so the model can map the
- * kernel's pixel laws onto token names. Falls back to a plain admonition when
+ * Every token name the active manifest lets a screen name, grouped (Phase 7B) and
+ * split by layer tier when the system is tiered. Core tokens are never listed.
+ * Spacing is cut to the 8pt grid and shows each step's size, so the model can map
+ * the kernel's pixel laws onto token names. Falls back to a plain admonition when
  * every group is empty.
  */
 function tokenVocabulary(manifest: DesignSystemManifest): string {
-  const spacing = onGridSpacingNames(manifest, tokenNames(manifest, 'spacing')).map((name) => {
-    const size = spacingPx(manifest, name)
-    return size === null ? name : `${name} = ${px(size)}`
-  })
-  const groups: Array<[string, string[]]> = [
-    ['spacing', spacing],
-    ['colors', tokenNames(manifest, 'colors')],
-    ['radius', tokenNames(manifest, 'radius')],
-    ['shadow', tokenNames(manifest, 'shadow')],
-  ]
-  const parts = groups
-    .filter(([, names]) => names.length > 0)
-    .map(([group, names]) => `${group} [${names.join(', ')}]`)
+  const named = (group: keyof ManifestTokens, names: string[]): string[] =>
+    group !== 'spacing'
+      ? names
+      : onGridSpacingNames(manifest, names).map((name) => {
+          const size = spacingPx(manifest, name)
+          return size === null ? name : `${name} = ${px(size)}`
+        })
+  const groups: Array<keyof ManifestTokens> = ['spacing', 'colors', 'radius', 'shadow']
+  const parts: string[] = []
+  for (const group of groups) {
+    const names = assignableTokenNames(manifest, group)
+    if (names.length === 0) continue
+    const tiered = names.filter((name) => tokenTier(manifest, group, name) !== undefined)
+    if (tiered.length === 0) {
+      const list = named(group, names)
+      if (list.length > 0) parts.push(`${group} [${list.join(', ')}]`)
+      continue
+    }
+    for (const tier of ['semantic', 'layout'] as const) {
+      const list = named(group, names.filter((name) => tokenTier(manifest, group, name) === tier))
+      if (list.length > 0) parts.push(`${group} — ${TIER_LABEL[tier]} [${list.join(', ')}]`)
+    }
+    const untiered = named(group, names.filter((name) => tokenTier(manifest, group, name) === undefined))
+    if (untiered.length > 0) parts.push(`${group} [${untiered.join(', ')}]`)
+  }
   return parts.length > 0 ? parts.join('; ') : 'named tokens only — never raw numbers'
+}
+
+/** How many core tokens a group holds, and the name families they share (`core-*`, `opacity-*`). */
+function coreFamilies(manifest: DesignSystemManifest): { count: number; families: string[] } {
+  const families = new Set<string>()
+  let count = 0
+  for (const [group, map] of Object.entries(tokenLayers(manifest).tiers)) {
+    for (const [name, tier] of Object.entries(map ?? {})) {
+      if (tier !== 'core' || !(name in (manifest.tokens[group as keyof ManifestTokens] ?? {}))) continue
+      count++
+      families.add(`${name.split('-')[0]}-*`)
+    }
+  }
+  return { count, families: [...families] }
+}
+
+/** Core colors that already have a semantic name — the translations the model most often needs. */
+const MAX_TRANSLATIONS = 12
+function coreTranslations(manifest: DesignSystemManifest): string[] {
+  const out: string[] = []
+  for (const name of tokenNames(manifest, 'colors')) {
+    if (!isCoreToken(manifest, 'colors', name)) continue
+    const twins = semanticEquivalents(manifest, 'colors', name)
+    if (twins.length === 0 || twins.length > 2) continue
+    out.push(`\`${name}\` → ${twins.map((t) => `\`${t}\``).join(' or ')}`)
+    if (out.length === MAX_TRANSLATIONS) break
+  }
+  return out
+}
+
+/** The layer rule mapped onto the active system's names — empty for an untiered system. */
+function layerSpecifics(manifest: DesignSystemManifest): string[] {
+  const { count, families } = coreFamilies(manifest)
+  if (count === 0) return []
+  const layers = tokenLayers(manifest)
+  const lines = [
+    `* **Layer rule:** only the semantic and layout-scale tokens listed above may be named. This system's ${count} core tokens (${families.join(', ')}) are never assigned.`,
+  ]
+  const translations = coreTranslations(manifest)
+  if (translations.length > 0) {
+    lines.push(`* **Core → semantic:** these core values already have a semantic name — name that instead: ${translations.join('; ')}.`)
+  }
+  const custom = (['core', 'semantic', 'layout'] as const).filter((tier) => layers.rule[tier] !== TOKEN_LAYER_RULE[tier])
+  for (const tier of custom) lines.push(`* **${tier} tier, as this system defines it:** ${layers.rule[tier]}`)
+  return lines
 }
 
 /** The frame laws in the active system's own prop and token names — shared by both agents. */
@@ -236,11 +325,12 @@ function designSystemBinding(
   const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
 
   return [
-    `### 5. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
+    `### 6. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
     `The laws above, mapped onto this system's registry and tokens.`,
     `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
     `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
     `* **Tokens:** ${tokenVocabulary(manifest)}. A prop listed below as "a token name" takes exactly one of its listed names, or is omitted.`,
+    ...layerSpecifics(manifest),
     ...frameSpecifics(manifest, container),
     `* **Structure:** group related content in a container, give cards a surface + border + radius + shadow, use text "variant" for hierarchy.`,
   ].join('\n')
@@ -288,8 +378,10 @@ ${spatialLaw()}
 
 ${macroLayoutLaw()}
 
+${layerLaw()}
+
 In ${manifest.name}:
-${frameSpecifics(manifest, container).join('\n')}
+${[...layerSpecifics(manifest), ...frameSpecifics(manifest, container)].join('\n')}
 
 Accessibility rules:
 - Heading hierarchy must be logical: one prominent heading as the screen title,
@@ -297,6 +389,8 @@ Accessibility rules:
 - Every text input must have a label.
 - Every button label must say what it does ("Create account", not "Submit").
 - Use a muted tone for secondary text, never a faint custom color.
+- Name every color by its role (primary text, elevated surface, default border),
+  never by its look — the layer rule allows semantic tokens only.
 
 Common layout patterns:
 - Card: a vertical container with padding, gap, a surface, a border, a radius and

@@ -17,12 +17,23 @@
  * like any other invalid enum value — closing the loop between "this prop
  * draws from a token scale" and "the value must actually be one of them".
  *
+ * The layer rule (`manifest.ts`): those enums hold every token EXCEPT the core
+ * tier, a core default is swapped for its semantic twin, and a screen that names
+ * a core token (or a raw value) is rejected with a message pointing at the
+ * semantic token to use instead.
+ *
  * Framework-free — runs in the Electron main process.
  */
 
 import { z } from 'zod'
-import type { DesignSystemManifest, ManifestComponent, ManifestProp } from './manifest'
-import { deriveDefaultProps, rootContainerId } from './manifest'
+import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
+import {
+  assignableTokenNames,
+  deriveDefaultProps,
+  isCoreToken,
+  rootContainerId,
+  semanticEquivalents,
+} from './manifest'
 import {
   frameLayoutErrors,
   isOffGridSpacingToken,
@@ -38,9 +49,12 @@ const SUPPORTED_VERSION = 1
 
 function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTypeAny {
   let schema: z.ZodTypeAny
-  const tokenNames = prop.tokenGroup ? Object.keys(manifest.tokens[prop.tokenGroup] ?? {}) : []
+  const group = prop.tokenGroup
+  // The layer rule: a token prop can name any tier but core.
+  const tokenNames = group ? assignableTokenNames(manifest, group) : []
+  const options = group && prop.options ? prop.options.filter((o) => !isCoreToken(manifest, group, o)) : prop.options
   const enumValues =
-    prop.options && prop.options.length > 0 ? prop.options : tokenNames.length > 0 ? tokenNames : null
+    options && options.length > 0 ? options : tokenNames.length > 0 ? tokenNames : null
   // Spacing scales are cut to the 8pt grid (`shared/layout/frame.ts`), so an
   // off-grid step is rejected and retried like any other invalid token.
   const spacing = prop.tokenGroup === 'spacing'
@@ -62,6 +76,10 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
   }
 
   let defaultValue = prop.defaultValue
+  if (choices && group && isCoreToken(manifest, group, defaultValue)) {
+    const twin = semanticEquivalents(manifest, group, String(defaultValue)).find((name) => choices.includes(name))
+    defaultValue = twin ?? choices[0]
+  }
   if (choices && spacing && isOffGridSpacingToken(manifest, defaultValue)) {
     defaultValue = snapSpacingName(manifest, choices, defaultValue) ?? defaultValue
   }
@@ -106,6 +124,42 @@ export function compileManifestSchemas(
     out[component.id] = z.object(shape).strict()
   }
   return out
+}
+
+// ---------------------------------------------------------------------------
+// The layer rule's retry message
+// ---------------------------------------------------------------------------
+
+const RAW_VALUE = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch)\(.*\)|-?\d*\.?\d+(px|rem|em|%))$/i
+
+const quoteList = (names: string[]): string => names.map((n) => `"${n}"`).join(' or ')
+
+/**
+ * Why `value` breaks the layer rule on a prop drawing from `group`, as a sentence
+ * the Generator can act on — or `null` when the layer rule isn't what's wrong.
+ */
+export function layerRuleViolation(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+  value: unknown,
+): string | null {
+  if (typeof value !== 'string') return null
+  const dict = manifest.tokens[group] ?? {}
+  if (isCoreToken(manifest, group, value)) {
+    const twins = semanticEquivalents(manifest, group, value)
+    return twins.length > 0
+      ? `is a core token. The layer rule forbids core tokens in a screen — use the semantic token ${quoteList(twins)} (same value).`
+      : `is a core token. The layer rule forbids core tokens in a screen — use the semantic ${group} token that matches the element's role.`
+  }
+  if (!(value in dict) && RAW_VALUE.test(value.trim())) {
+    const same = Object.keys(dict).filter(
+      (name) => !isCoreToken(manifest, group, name) && dict[name].trim().toLowerCase() === value.trim().toLowerCase(),
+    )
+    return same.length > 0
+      ? `is a raw value. The layer rule only allows tokens — use ${quoteList(same)}.`
+      : `is a raw value. The layer rule only allows tokens — use the semantic ${group} token that matches the element's role.`
+  }
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -183,10 +237,13 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
     if (field && !field.safeParse(props[key]).success) {
       // A real spacing token rejected only for sitting off the grid is reported
       // by the frame audit, whose message explains the grid rule.
-      if (
-        component.props[key].tokenGroup === 'spacing' &&
-        isOffGridSpacingToken(ctx.manifest, props[key])
-      ) {
+      const group = component.props[key].tokenGroup
+      if (group === 'spacing' && isOffGridSpacingToken(ctx.manifest, props[key])) {
+        continue
+      }
+      const violation = group ? layerRuleViolation(ctx.manifest, group, props[key]) : null
+      if (violation) {
+        errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
         continue
       }
       errors.push(

@@ -15,6 +15,11 @@ every story are in `tests/visual/baselines/` (`npm run test:visual`).
 A raw value change (a new night blue, say) touches only `tokens.json`. A change of
 intent (focus glows green) repoints one semantic alias. Neither edits a component.
 
+The same three tiers bind the screens the app generates: the design system
+manifest records every token's tier (`layers` in
+`src/shared/design-system/manifest.ts`), the agents get the rule as global law 5,
+and the validator rejects a blueprint that names a core token or a raw value.
+
 ## Baseline — before the refactor (commit `d2a4472`)
 
 | File | Core refs | Semantic refs | Untyped `var()` strings | Raw `.text-*` strings | Measured sizes |

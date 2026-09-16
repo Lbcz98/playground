@@ -19,12 +19,15 @@ import {
   fontSizeScale,
   fontWeightScale,
 } from '@/design-system/primitives'
-import type {
-  DesignSystemManifest,
-  ManifestComponent,
-  ManifestControlKind,
-  ManifestProp,
-  ManifestTokens,
+import {
+  TOKEN_LAYER_RULE,
+  type DesignSystemManifest,
+  type ManifestComponent,
+  type ManifestControlKind,
+  type ManifestProp,
+  type ManifestTokenLayers,
+  type ManifestTokens,
+  type TokenTier,
 } from './manifest'
 
 export const SCREENFLOW_MANIFEST_ID = 'screenflow'
@@ -61,6 +64,26 @@ function screenflowTokens(): ManifestTokens {
     ]),
     radius: { ...radiusScale },
     shadow: { ...shadowScale },
+  }
+}
+
+/**
+ * ScreenFlow's colors are already roles (surface, ink, brand) over `palette`,
+ * which never reaches the manifest — so every color is semantic, and the scales
+ * are layout steps.
+ */
+function screenflowLayers(tokens: ManifestTokens): ManifestTokenLayers {
+  const all = (dict: Record<string, string> | undefined, tier: TokenTier): Record<string, TokenTier> =>
+    Object.fromEntries(Object.keys(dict ?? {}).map((name) => [name, tier]))
+  return {
+    rule: TOKEN_LAYER_RULE,
+    tiers: {
+      colors: all(tokens.colors, 'semantic'),
+      shadow: all(tokens.shadow, 'semantic'),
+      spacing: all(tokens.spacing, 'layout'),
+      radius: all(tokens.radius, 'layout'),
+      typography: all(tokens.typography, 'layout'),
+    },
   }
 }
 
@@ -130,12 +153,14 @@ function screenflowComponents(): Record<string, ManifestComponent> {
 
 /** Build a manifest from an arbitrary catalog-shaped map (kept generic for tests). */
 export function catalogToManifest(): DesignSystemManifest {
+  const tokens = screenflowTokens()
   return {
     id: SCREENFLOW_MANIFEST_ID,
     name: 'ScreenFlow',
     version: '1.0.0',
-    tokens: screenflowTokens(),
+    tokens,
     components: screenflowComponents(),
+    layers: screenflowLayers(tokens),
   }
 }
 

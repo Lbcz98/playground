@@ -71,12 +71,51 @@ export interface ManifestTokens {
   shadow?: Record<string, string>
 }
 
+/**
+ * The layer rule. Tokens live in tiers, and the tier decides who may name a token:
+ *   - `core` holds a raw value (a hex, a px). Only other tokens point at it —
+ *     never a component, never a generated screen.
+ *   - `semantic` names an intent (primary text, elevated surface) and aliases core.
+ *     It is what components and screens name.
+ *   - `layout` is a layout scale (the grid spacing steps, the radius steps), named
+ *     only by layout props: padding, gap, corner radius.
+ * Enforced in code by `npm run tokens:audit` and, for generated screens, by
+ * `manifest-zod.ts` (a core token is rejected) and `promptSpec.ts`.
+ */
+export type TokenTier = 'core' | 'semantic' | 'layout'
+
+export const TOKEN_TIERS: readonly TokenTier[] = ['core', 'semantic', 'layout']
+
+/** What each tier holds and who may name it — the words the agents are given. */
+export const TOKEN_LAYER_RULE: Record<TokenTier, string> = {
+  core: 'Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.',
+  semantic:
+    'Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.',
+  layout:
+    'The grid spacing steps and the radius steps. Assign them only to layout props — padding, gap, corner radius.',
+}
+
+export type TokenTierMap = Partial<Record<keyof ManifestTokens, Record<string, TokenTier>>>
+
+export interface ManifestTokenLayers {
+  /** The rule, tier by tier, as the agents read it. */
+  rule: Record<TokenTier, string>
+  /** The tier of every tiered token, per group. A token missing here has no tier and is assignable. */
+  tiers: TokenTierMap
+}
+
 export interface DesignSystemManifest {
   id: string
   name: string
   version: string
   tokens: ManifestTokens
   components: Record<string, ManifestComponent>
+  /**
+   * The layer rule for this system's tokens. Optional so manifests saved before it
+   * existed still load; without it, tiers are inferred from `core` / `semantic`
+   * segments in the token names (`tokenLayers`).
+   */
+  layers?: ManifestTokenLayers
 }
 
 // ---------------------------------------------------------------------------
@@ -139,12 +178,36 @@ const tokensSchema: z.ZodType<ManifestTokens> = z
   })
   .strict()
 
+const tierSchema = z.enum(['core', 'semantic', 'layout'])
+
+const layersSchema: z.ZodType<ManifestTokenLayers> = z
+  .object({
+    rule: z
+      .object({
+        core: z.string().max(MAX_STR),
+        semantic: z.string().max(MAX_STR),
+        layout: z.string().max(MAX_STR),
+      })
+      .strict(),
+    tiers: z
+      .object({
+        colors: z.record(tierSchema).optional(),
+        spacing: z.record(tierSchema).optional(),
+        typography: z.record(tierSchema).optional(),
+        radius: z.record(tierSchema).optional(),
+        shadow: z.record(tierSchema).optional(),
+      })
+      .strict(),
+  })
+  .strict()
+
 export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
   .object({
     id: idSchema,
     name: shortStr,
     version: z.string().min(1).max(60),
     tokens: tokensSchema,
+    layers: layersSchema.optional(),
     components: z
       .record(componentSchema)
       .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })
@@ -232,4 +295,97 @@ export function rootContainerId(manifest: DesignSystemManifest): string | null {
   const stack = entries.find((c) => c.id === 'Stack' && c.acceptsChildren)
   if (stack) return stack.id
   return entries.find((c) => c.acceptsChildren)?.id ?? null
+}
+
+// ---------------------------------------------------------------------------
+// The layer rule
+// ---------------------------------------------------------------------------
+
+export const TOKEN_GROUPS: ReadonlyArray<keyof ManifestTokens> = [
+  'colors',
+  'spacing',
+  'typography',
+  'radius',
+  'shadow',
+]
+
+const LAYOUT_GROUPS: ReadonlySet<keyof ManifestTokens> = new Set(['spacing', 'radius'])
+const SEMANTIC_SEGMENT = /(^|-)semantic(-|$)/
+const CORE_SEGMENT = /(^|-)(core|primitives?|palette|ref)(-|$)/
+
+/** The tier a raw-value token takes in `group`: spacing and radius steps stay nameable by layout props. */
+export function rawTierFor(group: keyof ManifestTokens): TokenTier {
+  return LAYOUT_GROUPS.has(group) ? 'layout' : 'core'
+}
+
+/**
+ * Tiers read from token names alone, for manifests saved without `layers`. Only a
+ * group that has semantic tokens gets tiers, so a system without a semantic layer
+ * stays unrestricted.
+ */
+export function inferTokenTiers(tokens: ManifestTokens): TokenTierMap {
+  const out: TokenTierMap = {}
+  for (const group of TOKEN_GROUPS) {
+    const names = Object.keys(tokens[group] ?? {})
+    if (!names.some((name) => SEMANTIC_SEGMENT.test(name))) continue
+    const tiers: Record<string, TokenTier> = {}
+    for (const name of names) {
+      if (SEMANTIC_SEGMENT.test(name)) tiers[name] = 'semantic'
+      else if (CORE_SEGMENT.test(name)) tiers[name] = rawTierFor(group)
+    }
+    out[group] = tiers
+  }
+  return out
+}
+
+const inferredLayers = new WeakMap<DesignSystemManifest, ManifestTokenLayers>()
+
+/** The manifest's layer rule: the declared one, or one inferred from its token names. */
+export function tokenLayers(manifest: DesignSystemManifest): ManifestTokenLayers {
+  if (manifest.layers) return manifest.layers
+  let layers = inferredLayers.get(manifest)
+  if (!layers) {
+    layers = { rule: TOKEN_LAYER_RULE, tiers: inferTokenTiers(manifest.tokens) }
+    inferredLayers.set(manifest, layers)
+  }
+  return layers
+}
+
+export function tokenTier(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+  name: string,
+): TokenTier | undefined {
+  return tokenLayers(manifest).tiers[group]?.[name]
+}
+
+export function isCoreToken(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+  value: unknown,
+): boolean {
+  return typeof value === 'string' && tokenTier(manifest, group, value) === 'core'
+}
+
+/** The names a prop drawing from `group` may take under the layer rule: every token but core. */
+export function assignableTokenNames(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+): string[] {
+  return tokenNames(manifest, group).filter((name) => tokenTier(manifest, group, name) !== 'core')
+}
+
+/** The semantic tokens holding exactly `name`'s value — what to name instead of a core token. */
+export function semanticEquivalents(
+  manifest: DesignSystemManifest,
+  group: keyof ManifestTokens,
+  name: string,
+): string[] {
+  const dict = manifest.tokens[group] ?? {}
+  const value = dict[name]
+  if (value === undefined) return []
+  const same = (other: string): boolean => other.trim().toLowerCase() === value.trim().toLowerCase()
+  return Object.keys(dict).filter(
+    (other) => other !== name && tokenTier(manifest, group, other) === 'semantic' && same(dict[other]),
+  )
 }

@@ -17,15 +17,21 @@
  * `background: 'surface'`) and reusing it here would produce a manifest that
  * either fails validation or silently renders the ScreenFlow base colors —
  * see the "Global tokens gotcha" project memory for the full reasoning.
+ *
+ * The layer rule comes from the same file: tokens.json's `core` groups (and
+ * `color.opacity`, a raw group beside `color.semantic`) are core, its `semantic`
+ * groups are semantic, and the raw spacing and radius steps are layout scales.
+ * Every default below is semantic or a layout step — never core.
  */
 
-import type { DesignSystemManifest, ManifestComponent } from './manifest'
-import { mergeTokens, parseDesignTokens } from './token-adapter'
+import { TOKEN_LAYER_RULE, type DesignSystemManifest, type ManifestComponent } from './manifest'
+import { mergeTokens, parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
 import { W3C_TOKEN_SOURCE } from './w3c-token-source'
 
 export const W3C_MANIFEST_ID = 'global-css-tokens'
 
 const tokens = mergeTokens(parseDesignTokens(W3C_TOKEN_SOURCE))
+const tiers = parseDesignTokenTiers(W3C_TOKEN_SOURCE)
 
 const Container: ManifestComponent = {
   id: 'Container',
@@ -105,7 +111,8 @@ const Button: ManifestComponent = {
       name: 'background',
       type: { name: 'enum' },
       required: false,
-      defaultValue: 'core-primary-night-dark',
+      // The kit's primary button surface (src/primitives/Button.tsx).
+      defaultValue: 'semantic-functional-background-elevated',
       tokenGroup: 'colors',
       control: 'select',
     },
@@ -113,7 +120,8 @@ const Button: ManifestComponent = {
       name: 'textColor',
       type: { name: 'enum' },
       required: false,
-      defaultValue: 'core-neutral-white',
+      // White text is text-primary — the layer rule never names core-neutral-white.
+      defaultValue: 'semantic-functional-text-primary',
       tokenGroup: 'colors',
       control: 'select',
     },
@@ -123,7 +131,8 @@ const Button: ManifestComponent = {
 export const W3C_MANIFEST: DesignSystemManifest = {
   id: W3C_MANIFEST_ID,
   name: 'Global CSS Tokens',
-  version: '1.0.0',
+  version: '1.1.0',
   tokens,
   components: { Container, Text, Button },
+  layers: { rule: TOKEN_LAYER_RULE, tiers },
 }

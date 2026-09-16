@@ -17,7 +17,8 @@
  * Framework-free — usable from the Electron main process.
  */
 
-import type { ManifestTokens } from './manifest'
+import type { ManifestTokens, TokenTier, TokenTierMap } from './manifest'
+import { inferTokenTiers, rawTierFor } from './manifest'
 
 export type TokenGroup = keyof ManifestTokens
 
@@ -139,7 +140,16 @@ interface RawToken {
   value: unknown
   type?: string
   ref?: string
+  /** A `{path}` reference that pointed at nothing — the token has no usable value. */
+  unresolved?: boolean
+  /** Read from the tree: under a `semantic` group, or beside one (`core`, `opacity`…). */
+  tier?: 'core' | 'semantic'
 }
+
+/** A group named like this holds the intent tier. */
+const SEMANTIC_KEY = /^semantic$/i
+/** A group named like this holds raw values, even without a `semantic` sibling. */
+const RAW_KEY = /^(core|primitives?|palette|refs?|references?)$/i
 
 const VALUE_KEYS = ['$value', 'value']
 const TYPE_KEYS = ['$type', 'type']
@@ -165,6 +175,7 @@ function walk(
   node: unknown,
   path: string[],
   inheritedType: string | undefined,
+  inheritedTier: RawToken['tier'],
   out: RawToken[],
 ): void {
   if (!isObject(node)) return
@@ -174,16 +185,29 @@ function walk(
     const alias = typeof node.$aliasOf === 'string' ? node.$aliasOf : refString(rawValue)
     const type =
       (readKeyed(node, TYPE_KEYS) as string | undefined) ?? inheritedType
-    out.push({ path, value: rawValue, type: typeof type === 'string' ? type : undefined, ref: alias })
+    out.push({
+      path,
+      value: rawValue,
+      type: typeof type === 'string' ? type : undefined,
+      ref: alias,
+      tier: inheritedTier,
+    })
     return
   }
 
   const groupType = readKeyed(node, TYPE_KEYS)
   const nextType = typeof groupType === 'string' ? groupType : inheritedType
+  const children = Object.entries(node).filter(([key]) => !key.startsWith('$') && key !== 'type')
+  // In a group that has a `semantic` child, every other child is the raw tier.
+  const hasSemantic = children.some(([key]) => SEMANTIC_KEY.test(key))
 
-  for (const [key, child] of Object.entries(node)) {
-    if (key.startsWith('$') || key === 'type') continue
-    walk(child, [...path, key], nextType, out)
+  for (const [key, child] of children) {
+    let tier = inheritedTier
+    if (!tier) {
+      if (SEMANTIC_KEY.test(key)) tier = 'semantic'
+      else if (hasSemantic || RAW_KEY.test(key)) tier = 'core'
+    }
+    walk(child, [...path, key], nextType, tier, out)
   }
 }
 
@@ -232,8 +256,13 @@ export function mergeTokens(...parts: Array<Partial<ManifestTokens> | undefined>
   return acc
 }
 
-export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
-  if (!isObject(raw)) return {}
+interface ParsedTokens {
+  tokens: Partial<ManifestTokens>
+  tiers: TokenTierMap
+}
+
+function parse(raw: unknown): ParsedTokens {
+  if (!isObject(raw)) return { tokens: {}, tiers: {} }
 
   // Shape 1 — already grouped.
   if (looksGrouped(raw)) {
@@ -246,7 +275,7 @@ export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
         )
       }
     }
-    return out
+    return { tokens: out, tiers: inferTokenTiers(mergeTokens(out)) }
   }
 
   // Shape 2/3 — DTCG / Style Dictionary tree, or a flat primitive map.
@@ -254,12 +283,13 @@ export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
   const flatEntries = Object.entries(raw).filter(
     ([, v]) => typeof v === 'string' || typeof v === 'number',
   )
-  if (flatEntries.length === Object.keys(raw).length && flatEntries.length > 0) {
+  const flat = flatEntries.length === Object.keys(raw).length && flatEntries.length > 0
+  if (flat) {
     for (const [key, value] of flatEntries) {
       collected.push({ path: key.split(/[./]/).flatMap((s) => s.split('-')), value })
     }
   } else {
-    walk(raw, [], undefined, collected)
+    walk(raw, [], undefined, undefined, collected)
   }
 
   // Reference resolution — index by dotted path, then resolve up to a few hops.
@@ -274,17 +304,21 @@ export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
         t.value = target.value
         t.type = t.type ?? target.type
         t.ref = target.ref
+        t.unresolved = target.unresolved
         changed = true
       } else {
         t.ref = undefined
+        t.unresolved = true
       }
     }
     if (!changed) break
   }
 
   const result: Partial<ManifestTokens> = {}
+  const tiers: Partial<Record<TokenGroup, Record<string, TokenTier>>> = {}
   for (const t of collected) {
-    if (t.value === undefined || t.value === null) continue
+    // A reference into a part of the file we didn't read is not a CSS value.
+    if (t.unresolved || t.value === undefined || t.value === null) continue
     let group = groupFromType(t.type) ?? groupFromName(t.path)
     const css = valueToCss(t.value, group)
     if (css === null) continue
@@ -292,6 +326,41 @@ export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
     const name = tokenName(t.path)
     if (!name) continue
     ;(result[group] ??= {})[name] = css
+    if (t.tier) (tiers[group] ??= {})[name] = t.tier === 'core' ? rawTierFor(group) : 'semantic'
   }
-  return result
+
+  if (flat) return { tokens: result, tiers: inferTokenTiers(mergeTokens(result)) }
+  // A group is tiered only when it has a semantic layer to point components at.
+  const tiered: TokenTierMap = {}
+  for (const group of GROUPS) {
+    const map = tiers[group]
+    if (map && Object.values(map).includes('semantic')) tiered[group] = map
+  }
+  return { tokens: result, tiers: tiered }
+}
+
+export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
+  return parse(raw).tokens
+}
+
+/**
+ * The layer-rule tier of every token in an export: `semantic` under a `semantic`
+ * group, `core` beside one (or under `core` / `primitives` / `palette`), and
+ * `layout` for raw spacing and radius steps. Empty for a group with no semantic layer.
+ */
+export function parseDesignTokenTiers(raw: unknown): TokenTierMap {
+  return parse(raw).tiers
+}
+
+/** Combine tier maps left-to-right; later parts win per token. */
+export function mergeTokenTiers(...parts: Array<TokenTierMap | undefined>): TokenTierMap {
+  const acc: TokenTierMap = {}
+  for (const part of parts) {
+    if (!part) continue
+    for (const group of GROUPS) {
+      const map = part[group]
+      if (map && Object.keys(map).length > 0) acc[group] = { ...(acc[group] ?? {}), ...map }
+    }
+  }
+  return acc
 }

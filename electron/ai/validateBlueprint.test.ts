@@ -25,7 +25,8 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.some((e) => /"padding" = "10px" is not an allowed value/.test(e))).toBe(true)
+    // A raw value on a token prop is a layer-rule violation, and the message says so.
+    expect(v.errors.some((e) => /"padding" = "10px" is a raw value\. The layer rule only allows tokens/.test(e))).toBe(true)
     expect(v.errors.some((e) => /unknown prop "boxShadow"/.test(e))).toBe(true)
   })
 

@@ -7,33 +7,39 @@
  * fires `updateNodeProps(activeNodeId, { [prop]: value })`, which the canvas
  * re-renders from instantly.
  *
- * Spacing controls only offer on-grid steps, and a direct child of the root gets
- * an extra "Anchor to focus zone" toggle (see `shared/layout/frame.ts`).
+ * Spacing controls only offer on-grid steps, token controls never offer a core
+ * token (the layer rule, `shared/design-system/manifest.ts`), and a direct child
+ * of the root gets an extra "Anchor to focus zone" toggle (see
+ * `shared/layout/frame.ts`).
  */
 
 import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
 import { findNode } from '@/model/nodeTree'
 import type { DesignSystemManifest, ManifestProp } from '@/shared/design-system/manifest'
+import { assignableTokenNames, isCoreToken } from '@/shared/design-system/manifest'
 import { anchorZone, onGridSpacingNames } from '@/shared/layout/frame'
 import { selectActiveNodeId, useFlowStore } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
 import { PropertyControl } from './PropertyControl'
 
-/** The prop as the Inspector should offer it — spacing enums cut to the 8pt grid. */
+/** The prop as the Inspector should offer it — no core tokens, spacing cut to the 8pt grid. */
 function controlProp(manifest: DesignSystemManifest, prop: ManifestProp): ManifestProp {
-  if (prop.tokenGroup !== 'spacing' || !prop.options) return prop
-  return { ...prop, options: onGridSpacingNames(manifest, prop.options) }
+  const group = prop.tokenGroup
+  if (!group || !prop.options) return prop
+  const options = prop.options.filter((option) => !isCoreToken(manifest, group, option))
+  return { ...prop, options: group === 'spacing' ? onGridSpacingNames(manifest, options) : options }
 }
 
-/** The prop's token scale in the active manifest — spacing cut to the 8pt grid. */
+/** The prop's token scale in the active manifest — no core tokens, spacing cut to the 8pt grid. */
 function controlTokens(
   manifest: DesignSystemManifest,
   prop: ManifestProp,
 ): Record<string, string> | undefined {
   if (!prop.tokenGroup) return undefined
   const dict = manifest.tokens[prop.tokenGroup]
-  if (!dict || prop.tokenGroup !== 'spacing') return dict
-  const allowed = new Set(onGridSpacingNames(manifest, Object.keys(dict)))
+  if (!dict) return undefined
+  const names = assignableTokenNames(manifest, prop.tokenGroup)
+  const allowed = new Set(prop.tokenGroup === 'spacing' ? onGridSpacingNames(manifest, names) : names)
   return Object.fromEntries(Object.entries(dict).filter(([name]) => allowed.has(name)))
 }
 
