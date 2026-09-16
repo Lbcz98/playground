@@ -189,7 +189,6 @@
   --dimension-radius-core-lg: 16px;
   --dimension-radius-core-xl: 20px;
   --dimension-radius-core-2xl: 24px;
-  --dimension-radius-core-3xl: 28px;
   --dimension-radius-core-4xl: 32px;
   --dimension-radius-core-5xl: 36px;
   --dimension-radius-core-6xl: 40px;
@@ -202,8 +201,8 @@
   /* ===== Dimension · Radius · Semantic ===== */
   /* Fully rounded ends: pill buttons, status pills, circles */
   --dimension-radius-semantic-pill: var(--dimension-radius-core-full);
-  /* Resting content card */
-  --dimension-radius-semantic-card: var(--dimension-radius-core-3xl);
+  /* Resting content card (24px, as in Figma radius/card) */
+  --dimension-radius-semantic-card: var(--dimension-radius-core-2xl);
   /* Focused or selected content card */
   --dimension-radius-semantic-card-expanded: var(--dimension-radius-core-6xl);
 

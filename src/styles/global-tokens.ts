@@ -102,7 +102,6 @@ export const CSS_VARS = [
   '--dimension-radius-core-lg',
   '--dimension-radius-core-xl',
   '--dimension-radius-core-2xl',
-  '--dimension-radius-core-3xl',
   '--dimension-radius-core-4xl',
   '--dimension-radius-core-5xl',
   '--dimension-radius-core-6xl',

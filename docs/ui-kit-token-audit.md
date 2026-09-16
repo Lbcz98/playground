@@ -116,7 +116,7 @@ node 3730:7871) names only `color.semantic.overlay.scrim` and
 | Before | After |
 | --- | --- |
 | `radius.core.full`, and WideButton's `2xl`/`4xl` | `dimension.radius.semantic.pill` |
-| `radius.core.3xl` / `6xl` | `dimension.radius.semantic.card` / `card-expanded` |
+| `radius.core.3xl` / `6xl` | `dimension.radius.semantic.card` / `card-expanded` (card now aliases `2xl`, 24px — see below) |
 | `radius.core.5xl` (card inner) | derived: `card-expanded` minus `focus-ring` width |
 | `spacing.core.md` / `lg` as card padding | `dimension.spacing.semantic.card-inset` / `card-inset-expanded` |
 | `spacing.core.3xs` as the card ring inset | `dimension.border-width.semantic.focus-ring` |
@@ -209,3 +209,6 @@ Batch 3's changes:
   once in development. MainMenu's `bugFocused` becomes `focusedItem`, the one focused
   item. The only behaviour difference is that a legacy `bugFocused` now also moves
   focus off the program logo, instead of showing two focused items at once.
+- **Card radius (2026-09-16):** code used 28px (`radius.core.3xl`), Figma 24px. Figma
+  is right: `dimension.radius.semantic.card` now aliases `radius.core.2xl` (24px), and
+  the 28px step is gone from both sides. The resting card stories changed on purpose.
