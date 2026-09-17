@@ -9,10 +9,10 @@ every story are in `tests/visual/baselines/` (`npm run test:visual`).
 | Tier | What it holds | Who may reference it |
 | --- | --- | --- |
 | **Core** (`color.core`, `color.opacity`, `gradient.primary/inverse/complementary`, `*.core`) | Raw values: `#414FFD`, `4px`, `0.6` | Only other tokens. Never a component. |
-| **Semantic** (any `semantic` group) | Intent, as an alias to core: `color.semantic.focus.glow → color.core.primary.night.light` | Components, through `token()`, which only type-checks semantic names |
+| **Semantic** (any `semantic` group) | Intent, as an alias to core: `color.semantic.focus.glow → color.core.primary.noite.light` | Components, through `token()`, which only type-checks semantic names |
 | **Layout scales** | The grid spacing steps, the radius steps, and the `.text-*` styles | Only through typed primitive APIs: `spacing()`, `<Box>`/`<Stack>` props, `<Text variant>` |
 
-A raw value change (a new night blue, say) touches only `tokens.json`. A change of
+A raw value change (a new Noite blue, say) touches only `tokens.json`. A change of
 intent (focus glows green) repoints one semantic alias. Neither edits a component.
 
 The same three tiers bind the screens the app generates: the design system
@@ -53,12 +53,12 @@ exact mirror of ↘.
 ## Findings
 
 1. **Components are bound to raw values.** 110 references reach core tokens
-   directly. The worst are the focus colours (`color-core-primary-night-light`,
+   directly. The worst are the focus colours (`color-core-primary-noite-light`,
    `color-core-neutral-charcoal`, `color-opacity-dark-70`) and `color-opacity-background`,
    each re-spelled in 3–4 files.
 2. **Nothing checks the names.** 124 `var(--…)` strings are plain strings, so a typo
    or a core-tier leak compiles fine and renders as nothing.
-3. **Four focus rings, four recipes.** They share only the night gradient:
+3. **Four focus rings, four recipes.** They share only the Noite gradient:
 
    | Component | Inner fill | Glow |
    | --- | --- | --- |
@@ -104,9 +104,9 @@ exact mirror of ↘.
 | `color.core.neutral.white` | `color.semantic.functional.text-primary` (existing, same value) | MainMenu, InteractivityMenu, WideButton |
 | `color.opacity.dark.70` | `color.semantic.focus.inset` | focus rings |
 | `color.core.neutral.charcoal` | `color.semantic.focus.inset-fade` | focus rings |
-| `color.core.primary.night.light` | `color.semantic.focus.glow` | focus rings |
-| `color.semantic.theme.day-dark` | `color.semantic.focus.outline` | MainMenu channel bug |
-| `gradient.primary.night` | `gradient.semantic.focus.ring` | focus rings |
+| `color.core.primary.noite.light` | `color.semantic.focus.glow` | focus rings |
+| `color.semantic.theme.noite-dark` | `color.semantic.focus.outline` | MainMenu channel bug |
+| `gradient.primary.noite` | `gradient.semantic.focus.ring` | focus rings |
 | `gradient.complementary.diagonal-light` | `gradient.semantic.border.default` | card, WideButton rest stroke |
 | `gradient.complementary.live` / `.replay` | `gradient.semantic.status.live` / `.replay` | LabelVideo (focus) |
 
@@ -216,3 +216,10 @@ Batch 3's changes:
 - **Card radius (2026-09-16):** code used 28px (`radius.core.3xl`), Figma 24px. Figma
   is right: `dimension.radius.semantic.card` now aliases `radius.core.2xl` (24px), and
   the 28px step is gone from both sides. The resting card stories changed on purpose.
+- **Theme names (2026-09-16):** the themes are named in Portuguese, by colour —
+  `noite` is blue, `dia` green, `tarde` yellow and orange — in the primitives
+  (`color.core.primary.*`), the gradients (`gradient.primary.*`,
+  `gradient.inverse.*`) and the semantic themes (`color.semantic.theme.*`). The
+  semantic themes used to be shifted against the primitives (`theme.day-*` pointed
+  at `primary.night`); each now takes the name of the colour it always had, so no
+  component changed colour. The tables above use the current names.

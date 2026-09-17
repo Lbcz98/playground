@@ -11,7 +11,7 @@ import { WideButton } from './WideButton'
 const backdrop: CSSProperties = {
   position: 'relative',
   overflow: 'hidden',
-  backgroundColor: token('--color-semantic-theme-day-light'),
+  backgroundColor: token('--color-semantic-theme-noite-light'),
 }
 
 function Screen({ children }: { children: ReactNode }): ReactNode {

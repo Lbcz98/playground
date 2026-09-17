@@ -222,7 +222,7 @@ describe('the token tier rule (law 5)', () => {
 
   it('labels the vocabulary by tier and names the core families it forbids', () => {
     const system = buildSystemPrompt('tool', W3C_MANIFEST)
-    expect(system).toMatch(/colors — semantic \[semantic-theme-day-dark, /)
+    expect(system).toMatch(/colors — semantic \[semantic-theme-noite-dark, /)
     expect(system).toMatch(/spacing — layout scale \[spacing-core-none = 0px, /)
     expect(system).toMatch(/radius — semantic \[radius-semantic-pill, /)
     expect(system).toMatch(/This system's \d+ core tokens \(core-\*, opacity-\*\) are never assigned\./)

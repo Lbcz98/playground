@@ -9,7 +9,7 @@ describe('typed token helpers', () => {
   it('token() takes semantic names only', () => {
     expect(token('--color-semantic-focus-glow')).toBe('var(--color-semantic-focus-glow)')
     // @ts-expect-error — components may not name a core token.
-    token('--color-core-primary-night-light')
+    token('--color-core-primary-noite-light')
   })
 
   it('size() takes semantic size roles only', () => {

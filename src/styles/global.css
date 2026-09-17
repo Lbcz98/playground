@@ -26,12 +26,12 @@
   --color-core-neutral-slate: #2B313A;
 
   /* ===== Color · Core · Primary ===== */
-  --color-core-primary-night-light: #35C7F3;
-  --color-core-primary-night-dark: #414FFD;
-  --color-core-primary-day-light: #00E1C0;
-  --color-core-primary-day-dark: #00E879;
-  --color-core-primary-evening-light: #E7C300;
-  --color-core-primary-evening-dark: #ED6001;
+  --color-core-primary-noite-light: #35C7F3;
+  --color-core-primary-noite-dark: #414FFD;
+  --color-core-primary-dia-light: #00E1C0;
+  --color-core-primary-dia-dark: #00E879;
+  --color-core-primary-tarde-light: #E7C300;
+  --color-core-primary-tarde-dark: #ED6001;
 
   /* ===== Color · Core · Complementary ===== */
   --color-core-complementary-error: #DE2C2C;
@@ -71,18 +71,18 @@
   --color-opacity-greymid-30: #6464644D;
 
   /* ===== Color · Semantic · Theme ===== */
-  /* Figma variable: Dia-Escuro */
-  --color-semantic-theme-day-dark: var(--color-core-primary-night-dark);
-  /* Figma variable: Dia-Claro */
-  --color-semantic-theme-day-light: var(--color-core-primary-night-light);
-  /* Figma variable: Tarde-Escura */
-  --color-semantic-theme-evening-dark: var(--color-core-primary-day-dark);
-  /* Figma variable: Tarde-Clara */
-  --color-semantic-theme-evening-light: var(--color-core-primary-day-light);
-  /* Figma variable: Noite-Escura */
-  --color-semantic-theme-night-dark: var(--color-core-primary-evening-dark);
-  /* Figma variable: Noite-Clara */
-  --color-semantic-theme-night-light: var(--color-core-primary-evening-light);
+  /* Noite theme, dark tone (Figma legacy variable: Noite-Escura) */
+  --color-semantic-theme-noite-dark: var(--color-core-primary-noite-dark);
+  /* Noite theme, light tone (Figma legacy variable: Noite-Clara) */
+  --color-semantic-theme-noite-light: var(--color-core-primary-noite-light);
+  /* Dia theme, dark tone (Figma legacy variable: Dia-Escuro) */
+  --color-semantic-theme-dia-dark: var(--color-core-primary-dia-dark);
+  /* Dia theme, light tone (Figma legacy variable: Dia-Claro) */
+  --color-semantic-theme-dia-light: var(--color-core-primary-dia-light);
+  /* Tarde theme, dark tone (Figma legacy variable: Tarde-Escura) */
+  --color-semantic-theme-tarde-dark: var(--color-core-primary-tarde-dark);
+  /* Tarde theme, light tone (Figma legacy variable: Tarde-Clara) */
+  --color-semantic-theme-tarde-light: var(--color-core-primary-tarde-light);
 
   /* ===== Color · Semantic · Functional ===== */
   /* Default app background */
@@ -118,9 +118,9 @@
   /* Fade layered over the focus ring's inner fill */
   --color-semantic-focus-inset-fade: var(--color-core-neutral-charcoal);
   /* Light pooling inside a focused control */
-  --color-semantic-focus-glow: var(--color-core-primary-night-light);
+  --color-semantic-focus-glow: var(--color-core-primary-noite-light);
   /* Outside focus outline (CSS outline + offset) for content that fills its own hit target, like the channel bug. An outline can't carry the ring's gradient, so it takes the ring's dominant colour. */
-  --color-semantic-focus-outline: var(--color-semantic-theme-day-dark);
+  --color-semantic-focus-outline: var(--color-semantic-theme-noite-dark);
 
   /* ===== Color · Semantic · Overlay ===== */
   /* Base legibility scrim over video or imagery. Every overlay except top-right lays it under its shade (Figma: Overlays). */
@@ -128,7 +128,7 @@
 
   /* ===== Gradient · Semantic · Focus ===== */
   /* The one focus ring, shared by every focusable control */
-  --gradient-semantic-focus-ring: var(--gradient-primary-night);
+  --gradient-semantic-focus-ring: var(--gradient-primary-noite);
 
   /* ===== Gradient · Semantic · Border ===== */
   /* The one resting stroke on every interactive control: cards, pill buttons, round buttons */
@@ -155,14 +155,14 @@
   --gradient-semantic-overlay-top-right: var(--gradient-overlay-top-right);
 
   /* ===== Gradient · Primary ===== */
-  --gradient-primary-night: linear-gradient(180deg, var(--color-core-primary-night-dark) 30%, var(--color-core-primary-night-light) 100%);
-  --gradient-primary-day: linear-gradient(180deg, var(--color-core-primary-day-dark) 30%, var(--color-core-primary-day-light) 100%);
-  --gradient-primary-evening: linear-gradient(180deg, var(--color-core-primary-evening-dark) 30%, var(--color-core-primary-evening-light) 100%);
+  --gradient-primary-noite: linear-gradient(180deg, var(--color-core-primary-noite-dark) 30%, var(--color-core-primary-noite-light) 100%);
+  --gradient-primary-dia: linear-gradient(180deg, var(--color-core-primary-dia-dark) 30%, var(--color-core-primary-dia-light) 100%);
+  --gradient-primary-tarde: linear-gradient(180deg, var(--color-core-primary-tarde-dark) 30%, var(--color-core-primary-tarde-light) 100%);
 
   /* ===== Gradient · Inverse ===== */
-  --gradient-inverse-night: linear-gradient(180deg, var(--color-core-primary-night-light) 0%, var(--color-core-primary-night-dark) 70%);
-  --gradient-inverse-day: linear-gradient(180deg, var(--color-core-primary-day-light) 0%, var(--color-core-primary-day-dark) 100%);
-  --gradient-inverse-evening: linear-gradient(180deg, var(--color-core-primary-evening-light) 0%, var(--color-core-primary-evening-dark) 70%);
+  --gradient-inverse-noite: linear-gradient(180deg, var(--color-core-primary-noite-light) 0%, var(--color-core-primary-noite-dark) 70%);
+  --gradient-inverse-dia: linear-gradient(180deg, var(--color-core-primary-dia-light) 0%, var(--color-core-primary-dia-dark) 100%);
+  --gradient-inverse-tarde: linear-gradient(180deg, var(--color-core-primary-tarde-light) 0%, var(--color-core-primary-tarde-dark) 70%);
 
   /* ===== Gradient · Complementary ===== */
   --gradient-complementary-shiny: linear-gradient(180deg, var(--color-core-neutral-grey-mid) 0%, var(--color-core-neutral-white) 100%);

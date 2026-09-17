@@ -11,7 +11,7 @@ describe('W3C_MANIFEST', () => {
   })
 
   it('carries the real global.css token values, not a re-authored copy', () => {
-    expect(W3C_MANIFEST.tokens.colors['core-primary-night-dark']).toBe('#414FFD')
+    expect(W3C_MANIFEST.tokens.colors['core-primary-noite-dark']).toBe('#414FFD')
     expect(W3C_MANIFEST.tokens.colors['semantic-functional-text-primary']).toBe('#EEEEEE')
     expect(W3C_MANIFEST.tokens.spacing['spacing-core-md']).toBe('20px')
     expect(W3C_MANIFEST.tokens.radius?.['radius-core-md']).toBe('12px')
