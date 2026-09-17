@@ -53,6 +53,7 @@ export const CSS_VARS = [
   '--color-semantic-functional-background-overlay',
   '--color-semantic-functional-text-primary',
   '--color-semantic-functional-text-secondary',
+  '--color-semantic-functional-text-subtle',
   '--color-semantic-functional-text-inverse',
   '--color-semantic-functional-border-subtle',
   '--color-semantic-functional-border-default',

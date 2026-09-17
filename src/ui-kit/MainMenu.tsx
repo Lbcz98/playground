@@ -138,7 +138,7 @@ export function MainMenu({
             <Text variant="body-lg-bold" opacity="title" truncate>
               {weatherTitle}
             </Text>
-            <Text variant="body-md-medium" opacity="text-secondary">
+            <Text variant="body-md-medium" color="subtle">
               {weatherSubtitle}
             </Text>
           </div>
@@ -159,7 +159,7 @@ export function MainMenu({
             <Text variant="body-lg-bold" opacity="title" truncate>
               {programTitle}
             </Text>
-            <Text variant="body-md-medium" opacity="text-secondary">
+            <Text variant="body-md-medium" color="subtle">
               {programSubtitle}
             </Text>
           </div>

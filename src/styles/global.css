@@ -95,6 +95,8 @@
   --color-semantic-functional-text-primary: var(--color-core-neutral-white);
   /* Subdued text, placeholders, captions */
   --color-semantic-functional-text-secondary: var(--color-core-neutral-light-grey);
+  /* Supporting line under a title in the main menu and the dynamic carousel (Figma: color/functional/text-subtle) */
+  --color-semantic-functional-text-subtle: var(--color-core-neutral-grey-mid);
   /* Text on light/accent backgrounds */
   --color-semantic-functional-text-inverse: var(--color-core-neutral-black);
   /* Low-contrast dividers on dark surfaces */
