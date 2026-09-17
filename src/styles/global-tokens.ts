@@ -32,6 +32,7 @@ export const CSS_VARS = [
   '--color-opacity-dark-20',
   '--color-opacity-dark-30',
   '--color-opacity-dark-50',
+  '--color-opacity-dark-60',
   '--color-opacity-dark-70',
   '--color-opacity-dark-80',
   '--color-opacity-dark-90',
