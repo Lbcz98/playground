@@ -20,15 +20,16 @@ import {
   fontWeightScale,
 } from '@/design-system/primitives'
 import {
-  TOKEN_LAYER_RULE,
+  TOKEN_TIER_RULE,
   type DesignSystemManifest,
   type ManifestComponent,
   type ManifestControlKind,
   type ManifestProp,
-  type ManifestTokenLayers,
+  type ManifestTokenTiers,
   type ManifestTokens,
   type TokenTier,
 } from './manifest'
+import { DTV_SCREEN_LAYERS } from './screen-layers'
 
 export const SCREENFLOW_MANIFEST_ID = 'screenflow'
 
@@ -72,11 +73,11 @@ function screenflowTokens(): ManifestTokens {
  * which never reaches the manifest — so every color is semantic, and the scales
  * are layout steps.
  */
-function screenflowLayers(tokens: ManifestTokens): ManifestTokenLayers {
+function screenflowTokenTiers(tokens: ManifestTokens): ManifestTokenTiers {
   const all = (dict: Record<string, string> | undefined, tier: TokenTier): Record<string, TokenTier> =>
     Object.fromEntries(Object.keys(dict ?? {}).map((name) => [name, tier]))
   return {
-    rule: TOKEN_LAYER_RULE,
+    rule: TOKEN_TIER_RULE,
     tiers: {
       colors: all(tokens.colors, 'semantic'),
       shadow: all(tokens.shadow, 'semantic'),
@@ -160,7 +161,9 @@ export function catalogToManifest(): DesignSystemManifest {
     version: '1.0.0',
     tokens,
     components: screenflowComponents(),
-    layers: screenflowLayers(tokens),
+    tokenTiers: screenflowTokenTiers(tokens),
+    // Every screen is a DTV+ TV screen, so the built-in system follows the DTV layer rule.
+    screenLayers: DTV_SCREEN_LAYERS,
   }
 }
 

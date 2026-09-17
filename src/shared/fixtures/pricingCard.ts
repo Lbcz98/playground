@@ -60,6 +60,8 @@ function tier(opts: {
 // and the root and the tier row both sit one gutter ("md") apart.
 export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
   version: 1,
+  // Two modules spanning the frame: a level 1 Home screen, shaded on both sides.
+  screen: { model: 'home', level: 1 },
   root: {
     type: 'Stack',
     props: {
@@ -67,7 +69,7 @@ export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
       gap: 'md',
       padding: 'none',
       align: 'stretch',
-      surface: 'surface',
+      surface: 'none',
     },
     children: [
       {

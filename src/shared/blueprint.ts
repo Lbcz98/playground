@@ -11,7 +11,7 @@
  * generate → validate → retry loop that produces it.
  */
 
-import type { DesignSystemManifest } from './design-system/manifest'
+import type { DesignSystemManifest, ScreenSpec } from './design-system/manifest'
 
 export interface BlueprintNode {
   type: string
@@ -28,6 +28,11 @@ export interface BlueprintNode {
 export interface BlueprintDocument {
   /** Schema/format version so the interpreter can reject incompatible payloads. */
   version: 1
+  /**
+   * The layer rule (Camadas): the model whose shades the engine paints between
+   * the video and this content, and the screen's navigation level.
+   */
+  screen?: ScreenSpec
   root: BlueprintNode
 }
 

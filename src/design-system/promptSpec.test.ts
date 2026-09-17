@@ -4,7 +4,8 @@ import { CATALOG_TYPES, getCatalogEntry } from './catalog'
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
-import { TOKEN_LAYER_RULE, isCoreToken } from '@/shared/design-system/manifest'
+import { TOKEN_TIER_RULE, isCoreToken } from '@/shared/design-system/manifest'
+import { DTV_SCREEN_LAYERS } from '@/shared/design-system/screen-layers'
 
 describe('registry spec / system prompt', () => {
   it('describes every catalog component and no others', () => {
@@ -102,7 +103,7 @@ describe('Phase 7B — token vocabulary for imported systems', () => {
 })
 
 describe('global kernel', () => {
-  it('opens the Generator prompt with the five global laws, every number from the frame constants', () => {
+  it('opens the Generator prompt with the six global laws, every number from the frame constants', () => {
     for (const system of [buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
       expect(system.startsWith(buildGlobalKernel())).toBe(true)
     }
@@ -113,7 +114,8 @@ describe('global kernel', () => {
       '### 2. THE SPATIAL PHYSICS & EXCEPTIONS',
       '### 3. MACRO-LAYOUT & 1280×720 CANVAS BOUNDARIES',
       '### 4. COMPONENT REGISTRY STRICTNESS',
-      '### 5. TOKEN LAYERS — THE LAYER RULE',
+      '### 5. TOKEN TIERS',
+      '### 6. SCREEN LAYERS — THE LAYER RULE (CAMADAS)',
     ]) {
       expect(kernel).toContain(heading)
     }
@@ -162,10 +164,10 @@ describe('global kernel', () => {
   })
 })
 
-describe('design-system binding (§6)', () => {
+describe('design-system binding (§7)', () => {
   it('maps the laws onto the active system’s real names', () => {
     const system = buildSystemPrompt()
-    expect(system).toContain('### 6. ACTIVE DESIGN SYSTEM — ScreenFlow (v1.0.0)')
+    expect(system).toContain('### 7. ACTIVE DESIGN SYSTEM — ScreenFlow (v1.0.0)')
     expect(system).toMatch(/outermost <Stack> sets padding "none"/)
     expect(system).toMatch(/set gap "md"/)
     expect(system).toMatch(/never sets align or justify to "center"/)
@@ -185,15 +187,15 @@ describe('design-system binding (§6)', () => {
   })
 })
 
-describe('the layer rule (law 5)', () => {
+describe('the token tier rule (law 5)', () => {
   const prompts = (m?: DesignSystemManifest) => [buildPlannerPrompt(m), buildSystemPrompt('tool', m), buildSystemPrompt('json', m)]
 
   it('is a global law, in the manifest’s own words, in every prompt', () => {
     for (const prompt of [...prompts(), ...prompts(W3C_MANIFEST)]) {
-      expect(prompt).toContain('### 5. TOKEN LAYERS — THE LAYER RULE')
-      expect(prompt).toContain(TOKEN_LAYER_RULE.core)
-      expect(prompt).toContain(TOKEN_LAYER_RULE.semantic)
-      expect(prompt).toContain(TOKEN_LAYER_RULE.layout)
+      expect(prompt).toContain('### 5. TOKEN TIERS')
+      expect(prompt).toContain(TOKEN_TIER_RULE.core)
+      expect(prompt).toContain(TOKEN_TIER_RULE.semantic)
+      expect(prompt).toContain(TOKEN_TIER_RULE.layout)
       expect(prompt).toContain('A blueprint that names a core token or a raw value is rejected.')
     }
   })
@@ -234,8 +236,64 @@ describe('the layer rule (law 5)', () => {
     expect(buildPlannerPrompt(W3C_MANIFEST)).toContain('never by its look')
   })
 
-  it('adds no layer lines for a system without a core tier', () => {
-    expect(buildSystemPrompt()).not.toContain('**Layer rule:**')
+  it('adds no token tier lines for a system without a core tier', () => {
+    expect(buildSystemPrompt()).not.toContain('**Token tiers:**')
     expect(buildSystemPrompt()).not.toContain('**Core → semantic:**')
+  })
+})
+
+describe('the layer rule (law 6, Camadas)', () => {
+  const prompts = (m?: DesignSystemManifest) => [buildPlannerPrompt(m), buildSystemPrompt('tool', m), buildSystemPrompt('json', m)]
+
+  it('is a global law in every prompt: video → overlay → content, one model per screen', () => {
+    for (const prompt of [...prompts(), ...prompts(W3C_MANIFEST)]) {
+      expect(prompt).toContain('### 6. SCREEN LAYERS — THE LAYER RULE (CAMADAS)')
+      expect(prompt).toContain('**video → overlay → content**')
+      expect(prompt).toContain('"screen": { "model": "<model id>", "level": <navigation level> }')
+      expect(prompt).toContain(DTV_SCREEN_LAYERS.rule)
+    }
+  })
+
+  it('lists every level and every model with its level, side and shades', () => {
+    const system = buildSystemPrompt()
+    for (const level of DTV_SCREEN_LAYERS.levels) expect(system).toContain(`  - ${level.level} · ${level.name} — `)
+    expect(system).toContain('  - 2 · Trilho focado — ')
+    expect(system).toContain('Shows at most 1 content module; may anchor one cluster.')
+    for (const model of DTV_SCREEN_LAYERS.models) expect(system).toContain(`  - "${model.id}" — ${model.name} · level ${model.level}`)
+    expect(system).toContain('"interactivity-cards-right" — Interatividades · Cards Direita · level 3 · right side · shades scrim + bottom-right + right.')
+    expect(system).toContain('"home" — Home · level 1 · spans the frame · shades scrim + bottom + bottom-right + bottom-left.')
+  })
+
+  it('names the root props that obey it in the active system', () => {
+    const system = buildSystemPrompt()
+    expect(system).toContain('under a right model the outermost <Stack> sets align "end"; under a left model, align "start" (a horizontal <Stack>: justify).')
+    expect(system).toContain('the outermost <Stack> sets surface "none"')
+    // The generic Container can't place or clear itself, so those lines are left out.
+    const w3c = buildSystemPrompt('tool', W3C_MANIFEST)
+    expect(w3c).not.toContain('**Content side:**')
+    expect(w3c).not.toContain('**Transparent content layer:**')
+    expect(w3c).toContain('**Layer models (screen.model):**')
+  })
+
+  it('makes "screen" part of the output contract and of the plan', () => {
+    for (const mode of ['tool', 'json'] as const) {
+      const system = buildSystemPrompt(mode)
+      expect(system).toContain('"screen": { "model": "<layer model id>", "level": <that model\'s level> }')
+      expect(system).toContain('The document has exactly three\nfields: "version", "screen" and "root".')
+    }
+    expect(buildPlannerPrompt()).toContain('Screen: model "home", level 1 — ')
+  })
+
+  it('follows a manifest that declares its own models', () => {
+    const custom: DesignSystemManifest = {
+      ...W3C_MANIFEST,
+      screenLayers: {
+        ...DTV_SCREEN_LAYERS,
+        models: [{ id: 'poster-wall', name: 'Poster wall', level: 1, shades: ['scrim'], use: 'A wall of posters.' }],
+      },
+    }
+    const system = buildSystemPrompt('tool', custom)
+    expect(system).toContain('"poster-wall" — Poster wall · level 1')
+    expect(system).not.toContain('"home" — Home')
   })
 })

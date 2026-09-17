@@ -181,18 +181,38 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
   is validated as an enum of the manifest's *real* token names, not a free string,
   and the Property Inspector renders it as a `<select>` of those same names (with a
   color swatch for color tokens) instead of a text field.
-- **The layer rule** (`manifest.layers`, `TOKEN_LAYER_RULE` in `manifest.ts`) is part
-  of every manifest: each token is `core` (a raw value), `semantic` (an intent that
-  aliases core) or `layout` (a grid spacing or radius step, for layout props only).
-  Generated screens follow it without exception — the prompts carry it as global
-  law 5 with the active system's tiers and core → semantic translations (white text
-  is `semantic-functional-text-primary`), the token enums never contain a core
-  token, a core default is swapped for its semantic twin, and a blueprint that names
-  a core token or a raw value is rejected with a retry message naming the semantic
-  token to use. The Property Inspector never offers a core token either. Tiers come
-  from the token tree (`core` / `semantic` groups, and raw groups beside a `semantic`
-  one, like `color.opacity`); a manifest saved without `layers` gets them inferred
-  from `core` / `semantic` segments in its token names.
+- **The layer rule (Camadas)** (`manifest.screenLayers`; the DTV rule is
+  `DTV_SCREEN_LAYERS` in `shared/design-system/screen-layers.ts`) is the rule the
+  whole system is built on. Every screen is three layers, bottom to top: **video →
+  overlay → content**. The overlay is never free-form: a blueprint names one layer
+  model next to its root — `"screen": { "model": "home", "level": 1 }` — and the
+  canvas paints that model's fixed shade combination (the Figma "Overlay" page,
+  section Modelos) between the frame surface, which stands in for the video, and
+  the content. Each model sits on a navigation level (the Figma "Camadas" frame):
+  0 · Transmissão limpa (alert or notification only), 1 · Home, 2 · Trilho focado
+  and 3 · Interatividade única (one content module each, plus an optional anchored
+  cluster where allowed). The prompts carry it as global law 6 with the active
+  system's levels and models; the validator (via the frame QA's `layers` check)
+  rejects a missing or unknown model, a level that doesn't match the model, too
+  many modules for the level, a painted root (the content layer is transparent),
+  and content on the other side from a one-sided model. The interpreter repairs
+  what it can (Home by default, the model's level, a clear root), and the canvas
+  adds a live check: the TV focus must sit on the side the model shades. The Frame
+  panel picks the model by hand. Both built-in systems declare the DTV rule, and
+  it is the fallback for imported ones.
+- **The token tier rule** (`manifest.tokenTiers`, `TOKEN_TIER_RULE` in `manifest.ts`)
+  is part of every manifest: each token is `core` (a raw value), `semantic` (an
+  intent that aliases core) or `layout` (a grid spacing or radius step, for layout
+  props only). Generated screens follow it without exception — the prompts carry it
+  as global law 5 with the active system's tiers and core → semantic translations
+  (white text is `semantic-functional-text-primary`), the token enums never contain
+  a core token, a core default is swapped for its semantic twin, and a blueprint
+  that names a core token or a raw value is rejected with a retry message naming
+  the semantic token to use. The Property Inspector never offers a core token
+  either. Tiers come from the token tree (`core` / `semantic` groups, and raw groups
+  beside a `semantic` one, like `color.opacity`); a manifest saved without
+  `tokenTiers` gets them inferred from `core` / `semantic` segments in its token
+  names, and one saved under the old `layers` key is migrated on load.
 
 ## AI providers (`AI_PROVIDER` in `.env`)
 

@@ -97,7 +97,7 @@ describe('8pt grid', () => {
 describe('auditFrameLayout — the layout QA checklist', () => {
   it('passes the pricing-card fixture on every check', () => {
     const checks = auditFrameLayout(PRICING_CARD_BLUEPRINT, S)
-    expect(checks.map((c) => c.id)).toEqual(['frame', 'margins', 'grid', 'focus'])
+    expect(checks.map((c) => c.id)).toEqual(['frame', 'margins', 'grid', 'focus', 'layers'])
     expect(checks.every((c) => c.ok)).toBe(true)
   })
 
@@ -141,7 +141,7 @@ describe('auditFrameLayout — the layout QA checklist', () => {
       },
     }
     const errors = frameLayoutErrors(
-      { version: 1, root: { type: 'Container', props: { padding: 'spacing-core-none' }, children: [{ type: 'Container' }] } },
+      { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Container', props: { padding: 'spacing-core-none' }, children: [{ type: 'Container' }] } },
       offGridDefault,
     )
     expect(errors).toEqual([
@@ -163,7 +163,7 @@ describe('auditFrameLayout — the layout QA checklist', () => {
     expect(twice.some((e) => /2 children are anchored/.test(e))).toBe(true)
 
     const once = frameLayoutErrors(
-      { version: 1, root: { type: 'Stack', children: [{ type: 'Text' }, { type: 'Button', anchor: true }] } },
+      { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', children: [{ type: 'Text' }, { type: 'Button', anchor: true }] } },
       S,
     )
     expect(once).toEqual([])
@@ -173,6 +173,7 @@ describe('auditFrameLayout — the layout QA checklist', () => {
     const errors = frameLayoutErrors(
       {
         version: 1,
+        screen: { model: 'home', level: 1 },
         root: {
           type: 'Stack',
           props: { align: 'center', justify: 'center' },

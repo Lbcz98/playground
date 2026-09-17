@@ -8,7 +8,7 @@
  * re-renders from instantly.
  *
  * Spacing controls only offer on-grid steps, token controls never offer a core
- * token (the layer rule, `shared/design-system/manifest.ts`), and a direct child
+ * token (the token tier rule, `shared/design-system/manifest.ts`), and a direct child
  * of the root gets an extra "Anchor to focus zone" toggle (see
  * `shared/layout/frame.ts`).
  */

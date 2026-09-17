@@ -17,7 +17,10 @@
  *               bottom-right, or mirrors it to the left margin when the focus is on
  *               the left. Nothing focusable → the bottom-right default. The master
  *               layout itself is never statically centered.
- *   4. QA     — `auditFrameLayout` is the checklist. The strict validator turns
+ *   4. Layers — the layer rule (Camadas, `design-system/screen-layers.ts`): the
+ *               screen names its shade model and navigation level, and its content
+ *               follows them.
+ *   5. QA     — `auditFrameLayout` is the checklist. The strict validator turns
  *               its failures into retry errors; the canvas shows them live.
  */
 
@@ -28,6 +31,7 @@ import type {
   ManifestProp,
 } from '@/shared/design-system/manifest'
 import { defaultForProp, tokenNames } from '@/shared/design-system/manifest'
+import { auditScreenLayers } from '@/shared/design-system/screen-layers'
 
 export const FRAME = {
   /** The layout canvas — what the agent targets and the frame is laid out at. */
@@ -299,7 +303,7 @@ export function isModuleGroup(
 // QA checklist
 // ---------------------------------------------------------------------------
 
-export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus'
+export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers'
 
 export interface FrameCheck {
   id: FrameCheckId
@@ -437,6 +441,7 @@ export function auditFrameLayout(
     check('margins', `${FRAME.margin}px safe-area margins`, margins),
     check('grid', `${FRAME.grid}pt grid · ${FRAME.gutter}px gutters`, grid),
     check('focus', 'Focus alignment — no static centering, one anchored group', focus),
+    check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side', auditScreenLayers(d, manifest)),
   ]
 }
 

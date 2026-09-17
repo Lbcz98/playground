@@ -19,6 +19,8 @@ import {
   focusSideOf,
   readingOrder,
 } from '@/shared/layout/frame'
+import type { ManifestScreenLayers, ManifestScreenModel } from '@/shared/design-system/manifest'
+import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { cx } from '@/lib/cx'
 import { NodeRenderer } from './NodeRenderer'
 
@@ -29,8 +31,13 @@ import { NodeRenderer } from './NodeRenderer'
  * is a pure scale of the same layout, never a re-layout. On top of that the frame
  * is scaled down to fit the stage.
  *
- * The frame owns the safe-area margin and the gutter, and holds two zones, both
- * plain flex (no absolute positioning, no drag-to-place):
+ * The frame stacks the layer rule's three layers (Camadas): the frame surface
+ * stands in for the video, the screen's layer model paints its shades over it
+ * (`ScreenShades`, the only absolutely positioned layer — it fills the frame and
+ * takes no pointer events), and the content sits on top.
+ *
+ * The frame owns the safe-area margin and the gutter, and holds two content
+ * zones, both plain flex (no absolute positioning, no drag-to-place):
  *   - content — the root node, filling the frame
  *   - anchor  — the root's anchored child (the element group), pinned to the
  *               bottom corner on the side the TV focus is on
@@ -81,7 +88,12 @@ export function Canvas(): JSX.Element {
     [tree],
   )
   const zone = anchorZone(focus.side)
-  const checks = useMemo(() => auditFrameLayout({ root: tree }, active, size), [tree, active, size])
+  const layers = screenLayersOf(active)
+  const model = screenModel(layers, tree.screen?.model)
+  const checks = useMemo(
+    () => withFocusSide(auditFrameLayout({ root: tree }, active, size), model, focus),
+    [tree, active, size, model, focus],
+  )
 
   return (
     <div
@@ -96,6 +108,7 @@ export function Canvas(): JSX.Element {
         zone={zone}
         focus={focus}
         checks={checks}
+        screen={describeScreen(active, tree.screen)}
       />
       <div className="shrink-0" style={{ width: shown.width * fit, height: shown.height * fit }}>
         <div
@@ -103,17 +116,23 @@ export function Canvas(): JSX.Element {
           data-canvas-theme="active"
           data-frame-size={size}
           data-focus={focus.side}
-          className="sfs-canvas-surface flex h-frame w-frame origin-top-left flex-col gap-frame-gutter overflow-hidden p-frame-margin font-sans"
+          data-screen-layer="video"
+          className="sfs-canvas-surface relative flex h-frame w-frame origin-top-left flex-col gap-frame-gutter overflow-hidden p-frame-margin font-sans"
           style={{ transform: `scale(${shown.scale * fit})`, backgroundColor: 'var(--sfs-color-surface)' }}
         >
-          <div ref={contentRef} className="grid min-h-none flex-1 grid-cols-1 grid-rows-1">
+          {model ? <ScreenShades layers={layers} model={model} /> : null}
+          <div
+            ref={contentRef}
+            data-screen-layer="content"
+            className="relative grid min-h-none flex-1 grid-cols-1 grid-rows-1"
+          >
             <NodeRenderer node={content} />
           </div>
           {anchored.length > 0 ? (
             <div
               data-anchor-zone={zone}
               className={cx(
-                'flex gap-frame-gutter',
+                'relative flex gap-frame-gutter',
                 zone === 'bottom-left' ? 'justify-start' : 'justify-end',
               )}
             >
@@ -125,6 +144,53 @@ export function Canvas(): JSX.Element {
         </div>
       </div>
     </div>
+  )
+}
+
+const FILL = { position: 'absolute', inset: 0 } as const
+
+/**
+ * The overlay layer: the model's shades, bottom to top. The scrim is a colour,
+ * every other shade a gradient — each one the semantic token the rule names.
+ */
+function ScreenShades({
+  layers,
+  model,
+}: {
+  layers: ManifestScreenLayers
+  model: ManifestScreenModel
+}): JSX.Element {
+  return (
+    <div aria-hidden data-screen-layer="overlay" data-screen-model={model.id} className="pointer-events-none" style={FILL}>
+      {model.shades.map((shade) => (
+        <div
+          key={shade}
+          data-shade={shade}
+          style={{
+            ...FILL,
+            ...(shade === 'scrim'
+              ? { backgroundColor: `var(${layers.shades[shade]})` }
+              : { backgroundImage: `var(${layers.shades[shade]})` }),
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * The live half of the layer check: a model that shades one side needs the TV
+ * focus — and so the content — on that side. Only the rendered screen can say.
+ */
+function withFocusSide(
+  checks: FrameCheck[],
+  model: ManifestScreenModel | undefined,
+  focus: FocusReading,
+): FrameCheck[] {
+  if (!model?.side || focus.side === 'neutral' || focus.side === model.side || !focus.label) return checks
+  const problem = `"${model.id}" (${model.name}) shades the ${model.side} side, but the focus (“${focus.label}”) is on the ${focus.side} — move the content, or pick a ${focus.side} model.`
+  return checks.map((check) =>
+    check.id === 'layers' ? { ...check, ok: false, problems: [...check.problems, problem] } : check,
   )
 }
 
@@ -243,6 +309,7 @@ function FrameStatus({
   zone,
   focus,
   checks,
+  screen,
 }: {
   statusRef: RefObject<HTMLDivElement>
   shown: FrameSize
@@ -250,6 +317,7 @@ function FrameStatus({
   zone: AnchorZone
   focus: FocusReading
   checks: FrameCheck[]
+  screen: string | null
 }): JSX.Element {
   const problems = checks.flatMap((check) => check.problems)
   const passed = checks.filter((check) => check.ok).length
@@ -269,6 +337,7 @@ function FrameStatus({
         <span>
           {focus.label ? `Focus “${focus.label}” · ${focus.side}` : 'Nothing focusable'} → anchor {zone}
         </span>
+        <span>{screen ? `Camadas: ${screen}` : 'No layer model'}</span>
         <span
           title={checks.map((check) => `${check.ok ? '✓' : '✗'} ${check.label}`).join('\n')}
           className={cx(

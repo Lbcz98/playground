@@ -16,13 +16,17 @@ A raw value change (a new night blue, say) touches only `tokens.json`. A change 
 intent (focus glows green) repoints one semantic alias. Neither edits a component.
 
 The same three tiers bind the screens the app generates: the design system
-manifest records every token's tier (`layers` in
+manifest records every token's tier (`tokenTiers` in
 `src/shared/design-system/manifest.ts`), the agents get the rule as global law 5,
 and the validator rejects a blueprint that names a core token or a raw value.
 
-Overlays follow it too: `<Overlay direction>` (`src/ui-kit/Overlay.tsx`, Figma
-node 3730:7871) names only `color.semantic.overlay.scrim` and
-`gradient.semantic.overlay.*`; the raw shades live in `gradient.overlay.*`.
+Overlays follow it too: `<Overlay direction>` and `<ScreenOverlay model>`
+(`src/ui-kit/Overlay.tsx`) name only `color.semantic.overlay.scrim` and
+`gradient.semantic.overlay.*`; the raw shades live in `gradient.overlay.*`. Those
+shades are the pieces of the layer rule (Camadas, `screen-layers.ts`) and follow
+the Figma Sombras set (2072:6605): → and ← fade from 57.45% to 97.16% of the width
+and end at 60% black (`color.opacity.dark.60`), ↗ ends at full black, and ↙ is the
+exact mirror of ↘.
 
 ## Baseline — before the refactor (commit `d2a4472`)
 

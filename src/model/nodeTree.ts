@@ -4,6 +4,8 @@
  * and validated per-node by the matching `ComponentRegistry` entry's Zod schema.
  */
 
+import type { ScreenSpec } from '@/shared/design-system/manifest'
+
 export interface CanvasNode {
   id: string
   type: string
@@ -14,6 +16,11 @@ export interface CanvasNode {
    * the canvas renders it in the focus zone (see `shared/layout/frame.ts`).
    */
   anchor?: boolean
+  /**
+   * The screen's layer model and navigation level (the layer rule). Only on the
+   * root — the canvas paints the model's shades between the video and the content.
+   */
+  screen?: ScreenSpec
 }
 
 export type NodeId = string

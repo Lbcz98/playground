@@ -14,6 +14,9 @@
  *   - the frame rules hold (`shared/layout/frame.ts`): the root adds no outer
  *     margin and is never statically centered, module groups sit one gutter
  *     apart, and at most one direct child of the root stays anchored
+ *   - the root carries a real layer model (the layer rule, Camadas): a missing
+ *     or unknown model falls back to Home, and the level follows the model;
+ *     the root paints no background, so the video and the overlay show through
  *
  * Every deviation is recorded as an `InterpretIssue` so the UI can show the user
  * exactly what was corrected. The store applies the result in a single `commit`,
@@ -22,8 +25,15 @@
 
 import type { z } from 'zod'
 import type { BlueprintDocument } from '@/shared/blueprint'
-import type { DesignSystemManifest, ManifestComponent } from '@/shared/design-system/manifest'
+import type { DesignSystemManifest, ManifestComponent, ScreenSpec } from '@/shared/design-system/manifest'
 import { rootContainerId } from '@/shared/design-system/manifest'
+import {
+  clearBackgroundFor,
+  defaultScreen,
+  paintsBackground,
+  screenLayersOf,
+  screenModel,
+} from '@/shared/design-system/screen-layers'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import {
@@ -109,8 +119,57 @@ export function interpretBlueprint(
   }
 
   repairFrameLayout(root, ctx.manifest, issues)
+  const screen = repairScreen(doc.screen, ctx.manifest, issues)
+  if (screen) {
+    root.screen = screen
+    const painted = paintsBackground(ctx.manifest, root)
+    const clear = clearBackgroundFor(ctx.manifest, root)
+    if (painted !== null && clear) {
+      root.props = { ...root.props, [clear.prop]: clear.clear }
+      issues.push({
+        level: 'info',
+        path: 'root',
+        message: `Set ${clear.prop} to "${clear.clear}" on the root (was ${brief(painted)}) — the content layer is transparent over the video and the overlay.`,
+      })
+    }
+  }
 
   return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
+}
+
+/**
+ * The layer rule: a real model, on its own level. What the content does with it
+ * (module count, side) is left for the canvas QA to show — it isn't guessable.
+ */
+function repairScreen(
+  raw: unknown,
+  manifest: DesignSystemManifest,
+  issues: InterpretIssue[],
+): ScreenSpec | undefined {
+  const layers = screenLayersOf(manifest)
+  const fallback = defaultScreen(layers)
+  if (!fallback) return undefined
+  const model = isObject(raw) ? screenModel(layers, raw.model) : undefined
+  if (!model) {
+    const fallbackName = screenModel(layers, fallback.model)?.name ?? fallback.model
+    issues.push({
+      level: 'warn',
+      path: 'screen',
+      message:
+        raw === undefined
+          ? `The screen named no layer model — used ${fallbackName} (level ${fallback.level}).`
+          : `Unknown layer model ${brief(isObject(raw) ? raw.model : raw)} — used ${fallbackName} (level ${fallback.level}).`,
+    })
+    return fallback
+  }
+  if (isObject(raw) && raw.level !== model.level) {
+    issues.push({
+      level: 'info',
+      path: 'screen',
+      message: `Set the level to ${model.level} — ${model.name} is a level ${model.level} screen (was ${brief(raw.level)}).`,
+    })
+  }
+  return { model: model.id, level: model.level }
 }
 
 function interpretNode(

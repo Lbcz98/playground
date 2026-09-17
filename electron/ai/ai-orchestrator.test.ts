@@ -9,7 +9,7 @@ vi.mock('./providers', async (importActual) => {
 const { resolveProvider } = await import('./providers')
 const { generateUI } = await import('./ai-orchestrator')
 
-const VALID = { version: 1, root: { type: 'Stack', props: { gap: 'md' }, children: [] } }
+const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'md' }, children: [] } }
 const INVALID = { version: 1, root: { type: 'Stack', children: [{ type: 'Carousel' }] } }
 
 const TWO_COMPONENT_MANIFEST = {
@@ -127,7 +127,7 @@ describe('generateUI pipeline', () => {
       .mockResolvedValueOnce({ blueprint: { version: 1, root: { type: 'Stack' } }, model: 'm' })
       // then: valid against the mini manifest
       .mockResolvedValueOnce({
-        blueprint: { version: 1, root: { type: 'Panel', props: { gap: 'lg' }, children: [] } },
+        blueprint: { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Panel', props: { gap: 'lg' }, children: [] } },
         model: 'm',
       })
     const provider = fakeProvider({ renderUi })

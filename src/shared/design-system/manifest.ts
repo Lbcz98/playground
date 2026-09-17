@@ -72,7 +72,7 @@ export interface ManifestTokens {
 }
 
 /**
- * The layer rule. Tokens live in tiers, and the tier decides who may name a token:
+ * The token tier rule. Tokens live in tiers, and the tier decides who may name a token:
  *   - `core` holds a raw value (a hex, a px). Only other tokens point at it —
  *     never a component, never a generated screen.
  *   - `semantic` names an intent (primary text, elevated surface) and aliases core.
@@ -87,7 +87,7 @@ export type TokenTier = 'core' | 'semantic' | 'layout'
 export const TOKEN_TIERS: readonly TokenTier[] = ['core', 'semantic', 'layout']
 
 /** What each tier holds and who may name it — the words the agents are given. */
-export const TOKEN_LAYER_RULE: Record<TokenTier, string> = {
+export const TOKEN_TIER_RULE: Record<TokenTier, string> = {
   core: 'Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.',
   semantic:
     'Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.',
@@ -97,11 +97,81 @@ export const TOKEN_LAYER_RULE: Record<TokenTier, string> = {
 
 export type TokenTierMap = Partial<Record<keyof ManifestTokens, Record<string, TokenTier>>>
 
-export interface ManifestTokenLayers {
+export interface ManifestTokenTiers {
   /** The rule, tier by tier, as the agents read it. */
   rule: Record<TokenTier, string>
   /** The tier of every tiered token, per group. A token missing here has no tier and is assignable. */
   tiers: TokenTierMap
+}
+
+/**
+ * The layer rule (Camadas) — the rule the whole system is built on. Every screen
+ * is three layers, bottom to top: the video, an overlay, and the content. The
+ * overlay is never free-form: each screen type has one fixed combination of shade
+ * pieces, and each screen sits on a navigation level that limits what it shows.
+ * The DTV rule itself lives in `screen-layers.ts`.
+ */
+export type ScreenLayer = 'video' | 'overlay' | 'content'
+
+export const SCREEN_LAYER_STACK: readonly ScreenLayer[] = ['video', 'overlay', 'content']
+
+/** The shade pieces an overlay combination is built from (Figma: Sombras). */
+export type ShadeId = 'scrim' | 'bottom' | 'bottom-right' | 'bottom-left' | 'right' | 'left' | 'top-right'
+
+export const SHADE_IDS: readonly ShadeId[] = [
+  'scrim',
+  'bottom',
+  'bottom-right',
+  'bottom-left',
+  'right',
+  'left',
+  'top-right',
+]
+
+export type NavigationLevel = 0 | 1 | 2 | 3
+
+export const NAVIGATION_LEVELS: readonly NavigationLevel[] = [0, 1, 2, 3]
+
+export type ScreenSide = 'left' | 'right'
+
+export interface ManifestNavigationLevel {
+  level: NavigationLevel
+  name: string
+  /** What a screen on this level shows, as the agents read it. */
+  rule: string
+  /** The most content modules (un-anchored children of the root) it shows; null for no limit. */
+  maxModules: number | null
+  /** Whether it may anchor a floating cluster. */
+  allowsAnchor: boolean
+}
+
+export interface ManifestScreenModel {
+  /** What a blueprint names in `screen.model`. */
+  id: string
+  name: string
+  level: NavigationLevel
+  /** The side its content sits on, when its shades favour one. */
+  side?: ScreenSide
+  /** Its shade pieces, bottom to top. */
+  shades: ShadeId[]
+  /** When to pick it, as the agents read it. */
+  use: string
+}
+
+export interface ManifestScreenLayers {
+  /** The rule, as the agents read it. */
+  rule: string
+  stack: ScreenLayer[]
+  /** The CSS custom property that paints each shade — a semantic token. */
+  shades: Record<ShadeId, string>
+  levels: ManifestNavigationLevel[]
+  models: ManifestScreenModel[]
+}
+
+/** What a screen declares under the layer rule: its model and its navigation level. */
+export interface ScreenSpec {
+  model: string
+  level: NavigationLevel
 }
 
 export interface DesignSystemManifest {
@@ -111,11 +181,16 @@ export interface DesignSystemManifest {
   tokens: ManifestTokens
   components: Record<string, ManifestComponent>
   /**
-   * The layer rule for this system's tokens. Optional so manifests saved before it
+   * The token tier rule for this system's tokens. Optional so manifests saved before it
    * existed still load; without it, tiers are inferred from `core` / `semantic`
-   * segments in the token names (`tokenLayers`).
+   * segments in the token names (`tokenTierRule`).
    */
-  layers?: ManifestTokenLayers
+  tokenTiers?: ManifestTokenTiers
+  /**
+   * The layer rule for this system's screens. Optional; without it, the DTV rule
+   * applies (`screenLayersOf` in `screen-layers.ts`).
+   */
+  screenLayers?: ManifestScreenLayers
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +255,7 @@ const tokensSchema: z.ZodType<ManifestTokens> = z
 
 const tierSchema = z.enum(['core', 'semantic', 'layout'])
 
-const layersSchema: z.ZodType<ManifestTokenLayers> = z
+const tokenTiersSchema: z.ZodType<ManifestTokenTiers> = z
   .object({
     rule: z
       .object({
@@ -201,20 +276,89 @@ const layersSchema: z.ZodType<ManifestTokenLayers> = z
   })
   .strict()
 
-export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
+const MAX_MODELS = 40
+
+const levelSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+const shadeSchema = z.enum(SHADE_IDS as [ShadeId, ...ShadeId[]])
+
+const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
   .object({
-    id: idSchema,
-    name: shortStr,
-    version: z.string().min(1).max(60),
-    tokens: tokensSchema,
-    layers: layersSchema.optional(),
-    components: z
-      .record(componentSchema)
-      .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })
-      .refine((c) => Object.keys(c).length <= MAX_COMPONENTS, {
-        message: `a manifest may declare at most ${MAX_COMPONENTS} components`,
-      }),
+    rule: z.string().max(MAX_STR),
+    stack: z.array(z.enum(SCREEN_LAYER_STACK as [ScreenLayer, ...ScreenLayer[]])).max(SCREEN_LAYER_STACK.length),
+    shades: z
+      .object(Object.fromEntries(SHADE_IDS.map((id) => [id, z.string().min(1).max(200)])) as Record<ShadeId, z.ZodString>)
+      .strict(),
+    levels: z
+      .array(
+        z
+          .object({
+            level: levelSchema,
+            name: shortStr,
+            rule: z.string().max(MAX_STR),
+            maxModules: z.number().int().min(0).nullable(),
+            allowsAnchor: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(NAVIGATION_LEVELS.length),
+    models: z
+      .array(
+        z
+          .object({
+            id: idSchema,
+            name: shortStr,
+            level: levelSchema,
+            side: z.enum(['left', 'right']).optional(),
+            shades: z.array(shadeSchema).min(1).max(SHADE_IDS.length),
+            use: z.string().max(MAX_STR),
+          })
+          .strict(),
+      )
+      .max(MAX_MODELS),
   })
+  .strict()
+  .superRefine((layers, ctx) => {
+    const ids = new Set<string>()
+    const levels = new Set(layers.levels.map((l) => l.level))
+    for (const model of layers.models) {
+      if (ids.has(model.id)) ctx.addIssue({ code: 'custom', message: `duplicate layer model "${model.id}"` })
+      ids.add(model.id)
+      if (!levels.has(model.level)) {
+        ctx.addIssue({ code: 'custom', message: `layer model "${model.id}" is on level ${model.level}, which the rule doesn't define` })
+      }
+    }
+  })
+
+/** Manifests saved before the rename carried the token tiers under `layers`. */
+function migrateLegacyKeys(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return value
+  const { layers, ...rest } = value as Record<string, unknown>
+  if (layers === undefined || 'tokenTiers' in rest) return value
+  return { ...rest, tokenTiers: layers }
+}
+
+export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z.preprocess(
+  migrateLegacyKeys,
+  z
+    .object({
+      id: idSchema,
+      name: shortStr,
+      version: z.string().min(1).max(60),
+      tokens: tokensSchema,
+      tokenTiers: tokenTiersSchema.optional(),
+      screenLayers: screenLayersSchema.optional(),
+      components: z
+        .record(componentSchema)
+        .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })
+        .refine((c) => Object.keys(c).length <= MAX_COMPONENTS, {
+          message: `a manifest may declare at most ${MAX_COMPONENTS} components`,
+        }),
+    })
+    .strict(),
+) as z.ZodType<DesignSystemManifest>
+
+export const screenSpecSchema: z.ZodType<ScreenSpec> = z
+  .object({ model: z.string().min(1).max(120), level: levelSchema })
   .strict()
 
 export function isDesignSystemManifest(value: unknown): value is DesignSystemManifest {
@@ -298,7 +442,7 @@ export function rootContainerId(manifest: DesignSystemManifest): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// The layer rule
+// The token tier rule
 // ---------------------------------------------------------------------------
 
 export const TOKEN_GROUPS: ReadonlyArray<keyof ManifestTokens> = [
@@ -319,7 +463,7 @@ export function rawTierFor(group: keyof ManifestTokens): TokenTier {
 }
 
 /**
- * Tiers read from token names alone, for manifests saved without `layers`. Only a
+ * Tiers read from token names alone, for manifests saved without `tokenTiers`. Only a
  * group that has semantic tokens gets tiers, so a system without a semantic layer
  * stays unrestricted.
  */
@@ -338,17 +482,17 @@ export function inferTokenTiers(tokens: ManifestTokens): TokenTierMap {
   return out
 }
 
-const inferredLayers = new WeakMap<DesignSystemManifest, ManifestTokenLayers>()
+const inferredTiers = new WeakMap<DesignSystemManifest, ManifestTokenTiers>()
 
-/** The manifest's layer rule: the declared one, or one inferred from its token names. */
-export function tokenLayers(manifest: DesignSystemManifest): ManifestTokenLayers {
-  if (manifest.layers) return manifest.layers
-  let layers = inferredLayers.get(manifest)
-  if (!layers) {
-    layers = { rule: TOKEN_LAYER_RULE, tiers: inferTokenTiers(manifest.tokens) }
-    inferredLayers.set(manifest, layers)
+/** The manifest's token tier rule: the declared one, or one inferred from its token names. */
+export function tokenTierRule(manifest: DesignSystemManifest): ManifestTokenTiers {
+  if (manifest.tokenTiers) return manifest.tokenTiers
+  let tiers = inferredTiers.get(manifest)
+  if (!tiers) {
+    tiers = { rule: TOKEN_TIER_RULE, tiers: inferTokenTiers(manifest.tokens) }
+    inferredTiers.set(manifest, tiers)
   }
-  return layers
+  return tiers
 }
 
 export function tokenTier(
@@ -356,7 +500,7 @@ export function tokenTier(
   group: keyof ManifestTokens,
   name: string,
 ): TokenTier | undefined {
-  return tokenLayers(manifest).tiers[group]?.[name]
+  return tokenTierRule(manifest).tiers[group]?.[name]
 }
 
 export function isCoreToken(
@@ -367,7 +511,7 @@ export function isCoreToken(
   return typeof value === 'string' && tokenTier(manifest, group, value) === 'core'
 }
 
-/** The names a prop drawing from `group` may take under the layer rule: every token but core. */
+/** The names a prop drawing from `group` may take under the token tier rule: every token but core. */
 export function assignableTokenNames(
   manifest: DesignSystemManifest,
   group: keyof ManifestTokens,

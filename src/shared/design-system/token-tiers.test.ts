@@ -4,14 +4,14 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { collectTokens, cssVarName } from '../../../scripts/tokens/compile'
 import {
-  TOKEN_LAYER_RULE,
+  TOKEN_TIER_RULE,
   assignableTokenNames,
   deriveDefaultProps,
   inferTokenTiers,
   isCoreToken,
   manifestZodSchema,
   semanticEquivalents,
-  tokenLayers,
+  tokenTierRule,
   tokenTier,
   type DesignSystemManifest,
 } from './manifest'
@@ -69,9 +69,9 @@ const TIERED: DesignSystemManifest = {
 
 const node = (type: string, props: Record<string, unknown>, children: unknown[] = []) => ({ type, props, children })
 // The frame rule keeps the root free of padding.
-const blueprint = (...children: unknown[]) => ({ version: 1, root: node('Box', { padding: 'core-none' }, children) })
+const blueprint = (...children: unknown[]) => ({ version: 1, screen: { model: 'home', level: 1 }, root: node('Box', { padding: 'core-none' }, children) })
 
-describe('the layer rule in the manifest', () => {
+describe('the token tier rule in the manifest', () => {
   it('infers tiers from core / semantic name segments, and only for groups with a semantic layer', () => {
     const tiers = inferTokenTiers(TIERED.tokens)
     expect(tiers.colors).toEqual({
@@ -82,7 +82,7 @@ describe('the layer rule in the manifest', () => {
     })
     // No semantic spacing token, so the spacing scale stays untiered.
     expect(tiers.spacing).toBeUndefined()
-    expect(tokenLayers(TIERED).rule).toEqual(TOKEN_LAYER_RULE)
+    expect(tokenTierRule(TIERED).rule).toEqual(TOKEN_TIER_RULE)
   })
 
   it('never offers a core token, and finds the semantic twin of one', () => {
@@ -93,16 +93,16 @@ describe('the layer rule in the manifest', () => {
   })
 
   it('round-trips through the manifest schema, and rejects an unknown tier', () => {
-    const declared: DesignSystemManifest = { ...TIERED, layers: { rule: TOKEN_LAYER_RULE, tiers: inferTokenTiers(TIERED.tokens) } }
+    const declared: DesignSystemManifest = { ...TIERED, tokenTiers: { rule: TOKEN_TIER_RULE, tiers: inferTokenTiers(TIERED.tokens) } }
     expect(manifestZodSchema.safeParse(declared).success).toBe(true)
-    const bad = { ...declared, layers: { rule: TOKEN_LAYER_RULE, tiers: { colors: { 'core-white': 'raw' } } } }
+    const bad = { ...declared, tokenTiers: { rule: TOKEN_TIER_RULE, tiers: { colors: { 'core-white': 'raw' } } } }
     expect(manifestZodSchema.safeParse(bad).success).toBe(false)
     // Manifests saved before the rule existed still load.
     expect(manifestZodSchema.safeParse(TIERED).success).toBe(true)
   })
 })
 
-describe('the layer rule in the validator', () => {
+describe('the token tier rule in the validator', () => {
   const schemas = compileManifestSchemas(TIERED)
 
   it('compiles token enums without the core tier, options included', () => {
@@ -121,7 +121,7 @@ describe('the layer rule in the validator', () => {
     expect(v.ok).toBe(false)
     if (v.ok) return
     expect(v.errors.join('\n')).toContain(
-      '"color" = "core-white" is a core token. The layer rule forbids core tokens in a screen — use the semantic token "semantic-text-primary" (same value).',
+      '"color" = "core-white" is a core token. The token tier rule forbids core tokens in a screen — use the semantic token "semantic-text-primary" (same value).',
     )
   })
 
@@ -136,7 +136,7 @@ describe('the layer rule in the validator', () => {
     const v = validateBlueprintAgainstManifest(blueprint(node('Label', { color: '#eeeeee' })), TIERED)
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join('\n')).toContain('"#eeeeee" is a raw value. The layer rule only allows tokens — use "semantic-text-primary".')
+    expect(v.errors.join('\n')).toContain('"#eeeeee" is a raw value. The token tier rule only allows tokens — use "semantic-text-primary".')
   })
 
   it('accepts semantic colors and layout steps', () => {
@@ -190,12 +190,12 @@ describe('tiers read from a token tree', () => {
       components: { Btn: { displayName: 'Btn', props: {} } },
       tokens: tree,
     })
-    expect(m.layers?.tiers.colors?.['opacity-dark-10']).toBe('core')
-    expect(m.layers?.rule).toEqual(TOKEN_LAYER_RULE)
+    expect(m.tokenTiers?.tiers.colors?.['opacity-dark-10']).toBe('core')
+    expect(m.tokenTiers?.rule).toEqual(TOKEN_TIER_RULE)
   })
 })
 
-describe('the built-in systems follow the layer rule', () => {
+describe('the built-in systems follow the token tier rule', () => {
   const ROOT = fileURLToPath(new URL('../../..', import.meta.url))
   const source = collectTokens(JSON.parse(readFileSync(join(ROOT, 'tokens/tokens.json'), 'utf8')))
 
@@ -233,8 +233,8 @@ describe('the built-in systems follow the layer rule', () => {
   })
 
   it('ScreenFlow has no core tier, so nothing it offers changes', () => {
-    const layers = tokenLayers(SCREENFLOW_MANIFEST)
-    expect(Object.values(layers.tiers).flatMap((m) => Object.values(m ?? {}))).not.toContain('core')
+    const tierRule = tokenTierRule(SCREENFLOW_MANIFEST)
+    expect(Object.values(tierRule.tiers).flatMap((m) => Object.values(m ?? {}))).not.toContain('core')
     expect(assignableTokenNames(SCREENFLOW_MANIFEST, 'colors')).toEqual(Object.keys(SCREENFLOW_MANIFEST.tokens.colors))
   })
 })

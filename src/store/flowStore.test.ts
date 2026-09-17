@@ -95,3 +95,27 @@ describe('frame anchoring', () => {
     expect(store().past).toHaveLength(0)
   })
 })
+
+describe('the layer rule on the canvas document', () => {
+  it('starts as a Home screen that passes the layout QA', () => {
+    expect(store().tree.screen).toEqual({ model: 'home', level: 1 })
+    expect(frameLayoutErrors({ root: store().tree }, SCREENFLOW_MANIFEST)).toEqual([])
+  })
+
+  it('changes the layer model in one undoable step, and ignores a no-op', () => {
+    store().setScreen({ model: 'home', level: 1 })
+    expect(store().past).toHaveLength(0)
+    store().setScreen({ model: 'interactivity-cards-right', level: 3 })
+    expect(store().tree.screen).toEqual({ model: 'interactivity-cards-right', level: 3 })
+    expect(store().past).toHaveLength(1)
+    store().undo()
+    expect(store().tree.screen).toEqual({ model: 'home', level: 1 })
+  })
+
+  it('takes the generated screen’s model', () => {
+    store().applyAgentBlueprint({ ...PRICING_CARD_BLUEPRINT, screen: { model: 'home-notification', level: 1 } }, 'pricing')
+    expect(store().tree.screen).toEqual({ model: 'home-notification', level: 1 })
+    store().undo()
+    expect(store().tree.screen).toEqual({ model: 'home', level: 1 })
+  })
+})

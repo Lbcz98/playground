@@ -344,7 +344,7 @@ export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
 }
 
 /**
- * The layer-rule tier of every token in an export: `semantic` under a `semantic`
+ * The token-tier tier of every token in an export: `semantic` under a `semantic`
  * group, `core` beside one (or under `core` / `primitives` / `palette`), and
  * `layout` for raw spacing and radius steps. Empty for a group with no semantic layer.
  */

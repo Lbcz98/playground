@@ -17,7 +17,7 @@
  * like any other invalid enum value — closing the loop between "this prop
  * draws from a token scale" and "the value must actually be one of them".
  *
- * The layer rule (`manifest.ts`): those enums hold every token EXCEPT the core
+ * The token tier rule (`manifest.ts`): those enums hold every token EXCEPT the core
  * tier, a core default is swapped for its semantic twin, and a screen that names
  * a core token (or a raw value) is rejected with a message pointing at the
  * semantic token to use instead.
@@ -50,7 +50,7 @@ const SUPPORTED_VERSION = 1
 function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTypeAny {
   let schema: z.ZodTypeAny
   const group = prop.tokenGroup
-  // The layer rule: a token prop can name any tier but core.
+  // The token tier rule: a token prop can name any tier but core.
   const tokenNames = group ? assignableTokenNames(manifest, group) : []
   const options = group && prop.options ? prop.options.filter((o) => !isCoreToken(manifest, group, o)) : prop.options
   const enumValues =
@@ -127,7 +127,7 @@ export function compileManifestSchemas(
 }
 
 // ---------------------------------------------------------------------------
-// The layer rule's retry message
+// The token tier rule's retry message
 // ---------------------------------------------------------------------------
 
 const RAW_VALUE = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch)\(.*\)|-?\d*\.?\d+(px|rem|em|%))$/i
@@ -135,10 +135,10 @@ const RAW_VALUE = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch)\(.*\)|-?\d*\.?\d+(
 const quoteList = (names: string[]): string => names.map((n) => `"${n}"`).join(' or ')
 
 /**
- * Why `value` breaks the layer rule on a prop drawing from `group`, as a sentence
- * the Generator can act on — or `null` when the layer rule isn't what's wrong.
+ * Why `value` breaks the token tier rule on a prop drawing from `group`, as a sentence
+ * the Generator can act on — or `null` when the token tier rule isn't what's wrong.
  */
-export function layerRuleViolation(
+export function tokenTierViolation(
   manifest: DesignSystemManifest,
   group: keyof ManifestTokens,
   value: unknown,
@@ -148,16 +148,16 @@ export function layerRuleViolation(
   if (isCoreToken(manifest, group, value)) {
     const twins = semanticEquivalents(manifest, group, value)
     return twins.length > 0
-      ? `is a core token. The layer rule forbids core tokens in a screen — use the semantic token ${quoteList(twins)} (same value).`
-      : `is a core token. The layer rule forbids core tokens in a screen — use the semantic ${group} token that matches the element's role.`
+      ? `is a core token. The token tier rule forbids core tokens in a screen — use the semantic token ${quoteList(twins)} (same value).`
+      : `is a core token. The token tier rule forbids core tokens in a screen — use the semantic ${group} token that matches the element's role.`
   }
   if (!(value in dict) && RAW_VALUE.test(value.trim())) {
     const same = Object.keys(dict).filter(
       (name) => !isCoreToken(manifest, group, name) && dict[name].trim().toLowerCase() === value.trim().toLowerCase(),
     )
     return same.length > 0
-      ? `is a raw value. The layer rule only allows tokens — use ${quoteList(same)}.`
-      : `is a raw value. The layer rule only allows tokens — use the semantic ${group} token that matches the element's role.`
+      ? `is a raw value. The token tier rule only allows tokens — use ${quoteList(same)}.`
+      : `is a raw value. The token tier rule only allows tokens — use the semantic ${group} token that matches the element's role.`
   }
   return null
 }
@@ -241,7 +241,7 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
       if (group === 'spacing' && isOffGridSpacingToken(ctx.manifest, props[key])) {
         continue
       }
-      const violation = group ? layerRuleViolation(ctx.manifest, group, props[key]) : null
+      const violation = group ? tokenTierViolation(ctx.manifest, group, props[key]) : null
       if (violation) {
         errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
         continue

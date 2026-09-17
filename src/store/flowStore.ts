@@ -20,6 +20,7 @@ import {
 } from '@/model/nodeTree'
 import { interpretBlueprint, type InterpretIssue } from '@/interpreter/interpret'
 import type { BlueprintDocument } from '@/shared/blueprint'
+import type { ScreenSpec } from '@/shared/design-system/manifest'
 import { useDesignSystemStore } from '@/store/designSystemStore'
 
 /** The active hydrated registry — read lazily so a design-system switch is picked up. */
@@ -69,6 +70,8 @@ interface FlowState {
   deleteNode: (id: NodeId) => void
   /** Anchor (or release) a direct child of the root to the focus zone. At most one is anchored. */
   setAnchor: (id: NodeId, anchored: boolean) => void
+  /** Pick the screen's layer model and navigation level (the layer rule). */
+  setScreen: (screen: ScreenSpec) => void
   replaceDocument: (tree: CanvasNode, label: string) => void
   /**
    * Interpret an AI Blueprint against the registry and render it to the canvas as
@@ -82,7 +85,8 @@ function initialTree(): CanvasNode {
   // A frame-compliant starting screen: the root fills the frame with no padding of
   // its own (the frame supplies the outer margin) and a gutter-sized gap. The
   // primary actions stay in the content, where TV focus starts; only a secondary
-  // "Help" cluster is anchored, so it follows the side the focus is on.
+  // "Help" cluster is anchored, so it follows the side the focus is on. Under the
+  // layer rule it's a level 1 Home screen.
   const row = {
     direction: 'horizontal',
     gap: 'sm',
@@ -98,13 +102,14 @@ function initialTree(): CanvasNode {
   return {
     id: ROOT_ID,
     type: 'Stack',
+    screen: { model: 'home', level: 1 },
     props: {
       direction: 'vertical',
       gap: 'md',
       padding: 'none',
       align: 'start',
       justify: 'start',
-      surface: 'surface',
+      surface: 'none',
       radius: 'none',
       shadow: 'none',
       bordered: false,
@@ -256,11 +261,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     )
   },
 
+  setScreen: (screen) => {
+    const current = get().tree.screen
+    if (current?.model === screen.model && current.level === screen.level) return
+    get().commit((draft) => {
+      draft.screen = { ...screen }
+    }, 'Change layer model')
+  },
+
   replaceDocument: (tree, label) =>
     get().commit((draft) => {
       draft.type = tree.type
       draft.props = tree.props
       draft.children = tree.children
+      if (tree.screen) draft.screen = tree.screen
+      else delete draft.screen
     }, label),
 
   applyAgentBlueprint: (blueprint, prompt) => {

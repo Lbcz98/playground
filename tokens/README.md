@@ -30,7 +30,7 @@ resolve, malformed values, and unknown `$type`s.
 
 - **Naming:** a token's path is its CSS name. `dimension.spacing.core.sm` becomes
   `--dimension-spacing-core-sm`, and camelCase segments are kebab-cased.
-- **Layers (the layer rule):** `core` holds raw values. `semantic` holds intent,
+- **Tiers (the token tier rule):** `core` holds raw values. `semantic` holds intent,
   as aliases to core (or, for a measured component size with no matching step, a
   literal). The raw spacing and radius steps are the one exception — layout scales,
   named only by layout props. Components reference semantic tokens only; `npm test`

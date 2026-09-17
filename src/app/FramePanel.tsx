@@ -3,10 +3,14 @@
  * on the 1280×720 TV canvas (the only size the AI agent designs for); this picks
  * how it is shown — at that size, or upscaled 1.5× to 1920×1080. It also shows,
  * read-only, where the canvas reads the TV focus to be, which is what places the
- * anchored group.
+ * anchored group, and picks the screen's layer model (the layer rule, Camadas):
+ * the shade combination the canvas paints between the video and the content.
  */
 
 import { FRAME, FRAME_SIZES, FRAME_SIZE_IDS, anchorZone } from '@/shared/layout/frame'
+import { screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
+import { useFlowStore } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
 import { cx } from '@/lib/cx'
 
@@ -14,6 +18,10 @@ export function FramePanel(): JSX.Element {
   const size = useFrameStore((s) => s.size)
   const setSize = useFrameStore((s) => s.setSize)
   const focus = useFrameStore((s) => s.focus)
+  const screen = useFlowStore((s) => s.tree.screen)
+  const setScreen = useFlowStore((s) => s.setScreen)
+  const layers = screenLayersOf(useActiveDesignSystem())
+  const model = screenModel(layers, screen?.model)
 
   return (
     <section className="flex shrink-0 flex-col gap-sm border-b border-line p-lg">
@@ -58,6 +66,38 @@ export function FramePanel(): JSX.Element {
         )}{' '}
         → anchored group {anchorZone(focus.side)}
       </p>
+
+      {layers.models.length > 0 ? (
+        <label className="flex flex-col gap-xs text-xs font-medium text-ink">
+          Layer model (Camadas)
+          <select
+            value={model?.id ?? ''}
+            onChange={(e) => {
+              const next = screenModel(layers, e.target.value)
+              if (next) setScreen({ model: next.id, level: next.level })
+            }}
+            className="rounded-md border border-line bg-surface px-sm py-xs text-sm font-normal text-ink focus:outline-none focus:ring focus:ring-brand"
+          >
+            {model ? null : <option value="">No layer model</option>}
+            {layers.levels.map((level) => (
+              <optgroup key={level.level} label={`Nível ${level.level} · ${level.name}`}>
+                {layers.models
+                  .filter((m) => m.level === level.level)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <span className="font-normal text-ink-muted">
+            {model
+              ? `Video → ${model.shades.join(' + ')} → content. ${model.use}`
+              : 'Pick the model whose shades sit between the video and this content.'}
+          </span>
+        </label>
+      ) : null}
     </section>
   )
 }

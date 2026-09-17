@@ -19,7 +19,7 @@
  */
 
 import {
-  TOKEN_LAYER_RULE,
+  TOKEN_TIER_RULE,
   inferTokenTiers,
   type DesignSystemManifest,
   type ManifestComponent,
@@ -279,7 +279,7 @@ export function parseStorybookDocgen(
   const name = meta.name ?? nameFromJson ?? 'Imported design system'
   const exports = tokenExports(rawJson)
   const tokens = mergeTokens(...exports.map((c) => parseDesignTokens(c)), meta.tokens)
-  // The layer rule travels with the tokens when the export has a semantic tier.
+  // The token tier rule travels with the tokens when the export has a semantic tier.
   const tiers = mergeTokenTiers(
     ...exports.map((c) => parseDesignTokenTiers(c)),
     meta.tokens ? inferTokenTiers(mergeTokens(meta.tokens)) : undefined,
@@ -290,6 +290,6 @@ export function parseStorybookDocgen(
     version: meta.version ?? versionFromJson ?? '0.0.0',
     tokens,
     components,
-    ...(Object.keys(tiers).length > 0 ? { layers: { rule: TOKEN_LAYER_RULE, tiers } } : {}),
+    ...(Object.keys(tiers).length > 0 ? { tokenTiers: { rule: TOKEN_TIER_RULE, tiers } } : {}),
   }
 }

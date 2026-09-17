@@ -25,8 +25,8 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    // A raw value on a token prop is a layer-rule violation, and the message says so.
-    expect(v.errors.some((e) => /"padding" = "10px" is a raw value\. The layer rule only allows tokens/.test(e))).toBe(true)
+    // A raw value on a token prop is a token-tier violation, and the message says so.
+    expect(v.errors.some((e) => /"padding" = "10px" is a raw value\. The token tier rule only allows tokens/.test(e))).toBe(true)
     expect(v.errors.some((e) => /unknown prop "boxShadow"/.test(e))).toBe(true)
   })
 
@@ -65,7 +65,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
   })
 
   it('rejects a statically centered master layout', () => {
-    const v = validateBlueprint({ version: 1, root: { type: 'Stack', props: { justify: 'center' } } })
+    const v = validateBlueprint({ version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { justify: 'center' } } })
     expect(v.ok).toBe(false)
     if (v.ok) return
     expect(v.errors).toEqual([expect.stringMatching(/justify "center" statically centers the master layout/)])
@@ -74,6 +74,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
   it('accepts one anchored action group', () => {
     const v = validateBlueprint({
       version: 1,
+      screen: { model: 'home', level: 1 },
       root: {
         type: 'Stack',
         children: [
@@ -94,6 +95,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     const v = validateBlueprint(
       {
         version: 1,
+        screen: { model: 'home', level: 1 },
         root: {
           type: 'Container',
           props: { padding: 'spacing-core-none' },

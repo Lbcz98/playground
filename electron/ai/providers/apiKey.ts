@@ -33,6 +33,16 @@ const renderTool: Anthropic.Tool = {
         type: 'object',
         properties: {
           version: { type: 'integer', enum: [1] },
+          screen: {
+            type: 'object',
+            description:
+              'The layer rule (Camadas): the layer model whose shades the engine paints between the video and this content, and its navigation level. Both come from the system prompt.',
+            properties: {
+              model: { type: 'string' },
+              level: { type: 'integer', enum: [0, 1, 2, 3] },
+            },
+            required: ['model', 'level'],
+          },
           root: {
             type: 'object',
             description:
@@ -46,7 +56,7 @@ const renderTool: Anthropic.Tool = {
             required: ['type'],
           },
         },
-        required: ['version', 'root'],
+        required: ['version', 'screen', 'root'],
       },
     },
     required: ['blueprint'],

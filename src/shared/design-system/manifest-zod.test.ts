@@ -116,7 +116,7 @@ describe('compileManifestSchemas', () => {
 describe('validateBlueprintAgainstManifest', () => {
   it('accepts a blueprint built only from manifest components', () => {
     const v = validateBlueprintAgainstManifest(
-      { version: 1, root: { type: 'Box', props: { padding: 'md' }, children: [{ type: 'Chip' }] } },
+      { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Box', props: { padding: 'md' }, children: [{ type: 'Chip' }] } },
       MANIFEST,
     )
     expect(v).toEqual({ ok: true })

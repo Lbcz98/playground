@@ -17,7 +17,7 @@
 
 import { create } from 'zustand'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
-import { TOKEN_LAYER_RULE, manifestZodSchema, tokenLayers } from '@/shared/design-system/manifest'
+import { TOKEN_TIER_RULE, manifestZodSchema, tokenTierRule } from '@/shared/design-system/manifest'
 import {
   SCREENFLOW_MANIFEST,
   SCREENFLOW_MANIFEST_ID,
@@ -167,13 +167,13 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
     if (Object.keys(parsed).length === 0) {
       return { ok: false, error: 'No design tokens found (expected DTCG or Style Dictionary JSON).' }
     }
-    // Re-theming keeps the layer rule: the new export's tiers join the old ones.
-    const tiers = mergeTokenTiers(tokenLayers(target).tiers, parseDesignTokenTiers(rawJson))
+    // Re-theming keeps the token tier rule: the new export's tiers join the old ones.
+    const tiers = mergeTokenTiers(tokenTierRule(target).tiers, parseDesignTokenTiers(rawJson))
     const next: DesignSystemManifest = {
       ...target,
       tokens: mergeTokens(target.tokens, parsed),
       ...(Object.keys(tiers).length > 0
-        ? { layers: { rule: target.layers?.rule ?? TOKEN_LAYER_RULE, tiers } }
+        ? { tokenTiers: { rule: target.tokenTiers?.rule ?? TOKEN_TIER_RULE, tiers } }
         : {}),
     }
     const valid = manifestZodSchema.safeParse(next)

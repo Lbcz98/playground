@@ -5,8 +5,9 @@
  * The Generator's system prompt opens with the GLOBAL KERNEL (`buildGlobalKernel`)
  * — the agent's unbreakable, design-system-agnostic laws: Blueprint JSON + tokens,
  * the 8pt grid, the 1280×720 canvas with its safe area / gutters / focus
- * alignment, registry strictness, and the token layer rule (core → semantic →
- * components; `manifest.ts`). It is kept lean, and every number in it
+ * alignment, registry strictness, the token tier rule (core → semantic →
+ * components; `manifest.ts`) and the layer rule (Camadas: video → overlay →
+ * content; `screen-layers.ts`). It is kept lean, and every number in it
  * comes from `shared/layout/frame.ts`, so the laws can never drift from what the
  * validator enforces. Everything specific to the active design system follows it,
  * compiled from the manifest (`designSystemBinding`, the component list).
@@ -26,17 +27,18 @@
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent, ManifestTokens } from '@/shared/design-system/manifest'
 import {
-  TOKEN_LAYER_RULE,
+  TOKEN_TIER_RULE,
   assignableTokenNames,
   inferControl,
   isCoreToken,
   rootContainerId,
   semanticEquivalents,
-  tokenLayers,
+  tokenTierRule,
   tokenNames,
   tokenTier,
 } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
 import {
   FRAME,
   allowedSpacingNames,
@@ -70,7 +72,7 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
     // Spacing values are cut to the 8pt grid, exactly as the validator compiles them.
     const group = prop.tokenGroup
     const spacing = group === 'spacing'
-    // The layer rule: the model is only ever shown tokens it may name — never core.
+    // The token tier rule: the model is only ever shown tokens it may name — never core.
     const allNames = group ? assignableTokenNames(manifest, group) : []
     const names = spacing ? onGridSpacingNames(manifest, allNames) : allNames
     const allowed = group && prop.options ? prop.options.filter((o) => !isCoreToken(manifest, group, o)) : prop.options
@@ -155,22 +157,35 @@ You must construct the UI using ONLY the provided Blueprint component definition
 }
 
 /**
- * The layer rule — how tokens are tiered and which tier a screen may name. The
- * wording is `TOKEN_LAYER_RULE`, the same text every manifest carries; the
+ * The token tier rule — how tokens are tiered and which tier a screen may name. The
+ * wording is `TOKEN_TIER_RULE`, the same text every manifest carries; the
  * validator rejects a blueprint that breaks it.
  */
-function layerLaw(): string {
-  return `### 5. TOKEN LAYERS — THE LAYER RULE
-Design tokens are layered, and the layer decides whether you may name a token. Follow this without exception:
-* **Core:** ${TOKEN_LAYER_RULE.core}
-* **Semantic:** ${TOKEN_LAYER_RULE.semantic}
-* **Layout scale:** ${TOKEN_LAYER_RULE.layout}
+function tokenTierLaw(): string {
+  return `### 5. TOKEN TIERS
+Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+* **Core:** ${TOKEN_TIER_RULE.core}
+* **Semantic:** ${TOKEN_TIER_RULE.semantic}
+* **Layout scale:** ${TOKEN_TIER_RULE.layout}
 * A blueprint that names a core token or a raw value is rejected. When no semantic token matches a role exactly, pick the closest role — never fall back to a core token.`
 }
 
-/** The Generator's global kernel: identity + the five laws. No design-system specifics. */
+/**
+ * The layer rule (Camadas) — the rule the whole system rests on. The kernel states
+ * it in general; the active system's models and levels follow in its binding.
+ */
+function screenLayerLaw(): string {
+  return `### 6. SCREEN LAYERS — THE LAYER RULE (CAMADAS)
+The whole design system rests on this rule. Every screen is three layers, bottom to top: **video → overlay → content**.
+* **Your blueprint is the content layer only.** The engine paints the video and the overlay under it, so the outermost container stays transparent — never paint a full-screen background, gradient, shade or scrim yourself.
+* **The overlay is never free-form.** Pick ONE layer model for the screen, and the engine paints that model's fixed combination of shades. Declare it next to "root": \`"screen": { "model": "<model id>", "level": <navigation level> }\`.
+* **Pick the model by the screen type and by where its components sit.** A model that shades one side needs the content — and so the TV focus — on that side; a model without a side spans the frame.
+* **Navigation levels limit what a screen shows.** A model fixes the level, and a level that shows one module holds exactly one content container as the only un-anchored child of the outermost container.`
+}
+
+/** The Generator's global kernel: identity + the six laws. No design-system specifics. */
 export function buildGlobalKernel(): string {
-  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw(), layerLaw()].join('\n\n')
+  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw(), tokenTierLaw(), screenLayerLaw()].join('\n\n')
 }
 
 // ---------------------------------------------------------------------------
@@ -208,7 +223,7 @@ const TIER_LABEL = { semantic: 'semantic', layout: 'layout scale' } as const
 
 /**
  * Every token name the active manifest lets a screen name, grouped (Phase 7B) and
- * split by layer tier when the system is tiered. Core tokens are never listed.
+ * split by token tier when the system is tiered. Core tokens are never listed.
  * Spacing is cut to the 8pt grid and shows each step's size, so the model can map
  * the kernel's pixel laws onto token names. Falls back to a plain admonition when
  * every group is empty.
@@ -246,7 +261,7 @@ function tokenVocabulary(manifest: DesignSystemManifest): string {
 function coreFamilies(manifest: DesignSystemManifest): { count: number; families: string[] } {
   const families = new Set<string>()
   let count = 0
-  for (const [group, map] of Object.entries(tokenLayers(manifest).tiers)) {
+  for (const [group, map] of Object.entries(tokenTierRule(manifest).tiers)) {
     for (const [name, tier] of Object.entries(map ?? {})) {
       if (tier !== 'core' || !(name in (manifest.tokens[group as keyof ManifestTokens] ?? {}))) continue
       count++
@@ -270,20 +285,52 @@ function coreTranslations(manifest: DesignSystemManifest): string[] {
   return out
 }
 
-/** The layer rule mapped onto the active system's names — empty for an untiered system. */
-function layerSpecifics(manifest: DesignSystemManifest): string[] {
+/** The token tier rule mapped onto the active system's names — empty for an untiered system. */
+function tokenTierSpecifics(manifest: DesignSystemManifest): string[] {
   const { count, families } = coreFamilies(manifest)
   if (count === 0) return []
-  const layers = tokenLayers(manifest)
+  const tierRule = tokenTierRule(manifest)
   const lines = [
-    `* **Layer rule:** only the semantic and layout-scale tokens listed above may be named. This system's ${count} core tokens (${families.join(', ')}) are never assigned.`,
+    `* **Token tiers:** only the semantic and layout-scale tokens listed above may be named. This system's ${count} core tokens (${families.join(', ')}) are never assigned.`,
   ]
   const translations = coreTranslations(manifest)
   if (translations.length > 0) {
     lines.push(`* **Core → semantic:** these core values already have a semantic name — name that instead: ${translations.join('; ')}.`)
   }
-  const custom = (['core', 'semantic', 'layout'] as const).filter((tier) => layers.rule[tier] !== TOKEN_LAYER_RULE[tier])
-  for (const tier of custom) lines.push(`* **${tier} tier, as this system defines it:** ${layers.rule[tier]}`)
+  const custom = (['core', 'semantic', 'layout'] as const).filter((tier) => tierRule.rule[tier] !== TOKEN_TIER_RULE[tier])
+  for (const tier of custom) lines.push(`* **${tier} tier, as this system defines it:** ${tierRule.rule[tier]}`)
+  return lines
+}
+
+/** The layer rule mapped onto the active system: its levels, its models, and the root props that obey it. */
+function screenLayerSpecifics(manifest: DesignSystemManifest, container: string): string[] {
+  const layers = screenLayersOf(manifest)
+  if (layers.models.length === 0) return []
+  const column = sidePropFor(manifest, { type: container })
+  const row = sidePropFor(manifest, { type: container, props: { direction: 'horizontal' } })
+  const clear = clearBackgroundFor(manifest, { type: container })
+  const levelLimit = (maxModules: number | null, allowsAnchor: boolean): string =>
+    `${maxModules === null ? 'No module limit' : `Shows at most ${maxModules} content module${maxModules === 1 ? '' : 's'}`}; ${allowsAnchor ? 'may anchor one cluster' : 'anchors nothing'}.`
+  const lines = [
+    `* **Layer rule:** ${layers.rule}`,
+    `* **Navigation levels (screen.level):**`,
+    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}`),
+    `* **Layer models (screen.model):**`,
+    ...layers.models.map(
+      (m) =>
+        `  - "${m.id}" — ${m.name} · level ${m.level} · ${m.side ? `${m.side} side` : 'spans the frame'} · shades ${m.shades.join(' + ')}. ${m.use}`,
+    ),
+  ]
+  if (column) {
+    lines.push(
+      `* **Content side:** under a right model the outermost <${container}> sets ${column.prop} "${column.values.right}"; under a left model, ${column.prop} "${column.values.left}"${
+        row && row.prop !== column.prop ? ` (a horizontal <${container}>: ${row.prop})` : ''
+      }.`,
+    )
+  }
+  if (clear) {
+    lines.push(`* **Transparent content layer:** the outermost <${container}> sets ${clear.prop} "${clear.clear}"; surfaces belong to the cards inside it.`)
+  }
   return lines
 }
 
@@ -325,13 +372,14 @@ function designSystemBinding(
   const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
 
   return [
-    `### 6. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
+    `### 7. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
     `The laws above, mapped onto this system's registry and tokens.`,
     `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
     `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
     `* **Tokens:** ${tokenVocabulary(manifest)}. A prop listed below as "a token name" takes exactly one of its listed names, or is omitted.`,
-    ...layerSpecifics(manifest),
+    ...tokenTierSpecifics(manifest),
     ...frameSpecifics(manifest, container),
+    ...screenLayerSpecifics(manifest, container),
     `* **Structure:** group related content in a container, give cards a surface + border + radius + shadow, use text "variant" for hierarchy.`,
   ].join('\n')
 }
@@ -378,10 +426,12 @@ ${spatialLaw()}
 
 ${macroLayoutLaw()}
 
-${layerLaw()}
+${tokenTierLaw()}
+
+${screenLayerLaw()}
 
 In ${manifest.name}:
-${[...layerSpecifics(manifest), ...frameSpecifics(manifest, container)].join('\n')}
+${[...tokenTierSpecifics(manifest), ...frameSpecifics(manifest, container), ...screenLayerSpecifics(manifest, container)].join('\n')}
 
 Accessibility rules:
 - Heading hierarchy must be logical: one prominent heading as the screen title,
@@ -390,7 +440,7 @@ Accessibility rules:
 - Every button label must say what it does ("Create account", not "Submit").
 - Use a muted tone for secondary text, never a faint custom color.
 - Name every color by its role (primary text, elevated surface, default border),
-  never by its look — the layer rule allows semantic tokens only.
+  never by its look — the token tier rule allows semantic tokens only.
 
 Common layout patterns:
 - Card: a vertical container with padding, gap, a surface, a border, a radius and
@@ -406,10 +456,13 @@ Common layout patterns:
 
 # Output format
 
-A numbered list. Each line: the component, its role, its nesting, and its text
-content; mark the anchored group. Keep it under ~15 lines. Example:
+First the screen line — its layer model, its level, and why that model fits where
+the content sits. Then a numbered list. Each line: the component, its role, its
+nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+Example:
 
-1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start) — the screen.
+Screen: model "home", level 1 — a home screen whose content spans the frame.
+1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start, no background) — the content layer.
 2.   Header ${container} (vertical, gap xs).
 3.     A prominent title: "Create your account".
 4.     A muted body line: "It takes less than a minute.".
@@ -436,13 +489,14 @@ export function buildSystemPrompt(
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
 
   const blueprint = `"version": 1,
+  "screen": { "model": "<layer model id>", "level": <that model's level> },
   "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }`
   const output =
     mode === 'tool'
       ? `Return the Blueprint by calling the ${RENDER_TOOL_NAME} tool exactly once with:
 {
   "blueprint": {
-    ${blueprint.replace('\n', '\n  ')}
+    ${blueprint.replaceAll('\n', '\n  ')}
   }
 }`
       : `Respond with ONLY this JSON object and nothing else — no prose, no explanation,
@@ -460,6 +514,7 @@ ${spec.map(describeComponent).join('\n\n')}
 
 # Output
 ${output}
-Omit props you don't need — defaults are applied. Do not include an "id" field on
-any node — besides "type", "props" and "children", the only node field is "anchor".`
+Omit props you don't need — defaults are applied. The document has exactly three
+fields: "version", "screen" and "root". Do not include an "id" field on any node —
+besides "type", "props" and "children", the only node field is "anchor".`
 }
