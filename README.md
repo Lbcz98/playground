@@ -299,8 +299,13 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
   resolveProvider()  ── none ─▶ built-in fixture
        │
   1. provider.complete(buildPlannerPrompt(manifest), [..history, prompt], effort:low)
-       │  └─▶ prose plan (compiled from the ACTIVE manifest's components/tokens)
-  2. ┌── provider.renderUi(buildSystemPrompt('tool'|'json', manifest), ["build this plan: …"])
+       │  └─▶ prose plan (compiled from the ACTIVE manifest's components/tokens),
+       │      opening with "Template: <id>" — which reference screen to start from
+       │
+  1b. chooseTemplate(plan, templatesFor(manifest))   src/shared/templates
+       │  └─▶ the named template, else the one matching the planned screen model;
+       │      "none" is honoured, and an imported design system is offered none
+  2. ┌── provider.renderUi(buildSystemPrompt('tool'|'json', manifest), ["<template JSON> + build this plan: …"])
      │       └─▶ Blueprint JSON
   3. │  validateBlueprint(json, manifest)  ── ok ─▶ return
      │       │ errors

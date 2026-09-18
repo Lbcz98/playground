@@ -25,7 +25,8 @@ import type {
   GenerateUsage,
 } from '@/shared/blueprint'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
-import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
+import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-system/promptSpec'
+import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
@@ -70,14 +71,28 @@ export async function generateUI(
     usage = addUsage(usage, planner.usage)
     model = planner.model
     const planLines = planner.text.split('\n').filter((l) => l.trim().length > 0).length
-    steps.push(`step 1 · planner: ${planLines}-line plan`)
+
+    // The screen this generation starts from: the planner names one, or the model
+    // it planned picks one. Either way the generator gets a screen that is already
+    // valid, instead of composing the same structure again from the laws alone.
+    const choice = chooseTemplate(planner.text, templatesFor(manifest))
+    steps.push(
+      `step 1 · planner: ${planLines}-line plan` +
+        (choice.template ? ` · template: ${choice.template.id} (${choice.reason})` : ` · template: ${choice.reason}`),
+    )
 
     // ── Steps 2 + 3: Generator + validation-retry loop ─────────────────────
     const genSystem = buildSystemPrompt(provider.id === 'api-key' ? 'tool' : 'json', manifest)
+    const reference = choice.template
+      ? `Start from this screen — it is valid, and it is the shape the plan describes.\n` +
+        `Keep its structure and change only what the plan asks for; drop what the plan\n` +
+        `does not mention.\n\nTEMPLATE "${choice.template.id}" (${choice.template.name}):\n` +
+        `${JSON.stringify(choice.template.blueprint, null, 2)}\n\n`
+      : ''
     const genMessages: ChatTurn[] = [
       {
         role: 'user',
-        content: `Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planner.text}`,
+        content: `${reference}Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planner.text}`,
       },
     ]
 

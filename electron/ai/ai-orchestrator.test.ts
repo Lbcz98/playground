@@ -9,7 +9,7 @@ vi.mock('./providers', async (importActual) => {
 const { resolveProvider } = await import('./providers')
 const { generateUI } = await import('./ai-orchestrator')
 
-const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'md' }, children: [] } }
+const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
 const INVALID = { version: 1, root: { type: 'Stack', children: [{ type: 'Carousel' }] } }
 
 const TWO_COMPONENT_MANIFEST = {
@@ -49,6 +49,64 @@ function fakeProvider(overrides: Partial<AiProvider> = {}): AiProvider {
 beforeEach(() => {
   vi.mocked(resolveProvider).mockReset()
   process.env.AI_MAX_VALIDATION_RETRIES = '2'
+})
+
+describe('generateUI — starting from a reference screen', () => {
+  it('hands the generator the template the planner named, and logs the choice', async () => {
+    const provider = fakeProvider({
+      complete: vi.fn(async () => ({
+        text: 'Template: home\nScreen: model "home", level 1\n1. Root Stack',
+        model: 'claude-opus-5',
+      })),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('the home screen')
+
+    const [args] = vi.mocked(provider.renderUi).mock.calls[0]
+    const sent = args.messages[0].content
+    expect(sent).toContain('TEMPLATE "home"')
+    expect(sent).toContain('"model": "home"')
+    expect(sent).toContain('InteractivityMenu') // the real blueprint, not a summary
+    expect(sent).toContain('PLAN:')
+    expect(res.meta.steps?.join('\n')).toContain('template: home (named)')
+  })
+
+  it('falls back to the planned screen model when the planner names no template', async () => {
+    const provider = fakeProvider({
+      complete: vi.fn(async () => ({ text: 'Screen: model "alert", level 0', model: 'claude-opus-5' })),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('a bug on the broadcast')
+
+    const [args] = vi.mocked(provider.renderUi).mock.calls[0]
+    expect(args.messages[0].content).toContain('TEMPLATE "alert"')
+    expect(res.meta.steps?.join('\n')).toContain('template: alert (model)')
+  })
+
+  it('sends no reference when the plan fits none, and none for another design system', async () => {
+    const provider = fakeProvider({
+      complete: vi.fn(async () => ({ text: 'Template: none\n1. Root Stack', model: 'claude-opus-5' })),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('something else entirely')
+    const [args] = vi.mocked(provider.renderUi).mock.calls[0]
+    expect(args.messages[0].content).not.toContain('TEMPLATE')
+    expect(args.messages[0].content).toMatch(/^Build exactly this plan/)
+    expect(res.meta.steps?.join('\n')).toContain('template: none')
+
+    const other = fakeProvider({
+      complete: vi.fn(async () => ({ text: 'Template: home\nScreen: model "home", level 1', model: 'm' })),
+      renderUi: vi.fn(async () => ({ blueprint: { version: 1, root: { type: 'Panel', children: [] } }, model: 'm' })),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(other)
+    const imported = await generateUI('a screen', [], {}, TWO_COMPONENT_MANIFEST as never)
+    const [otherArgs] = vi.mocked(other.renderUi).mock.calls[0]
+    expect(otherArgs.messages[0].content).not.toContain('TEMPLATE')
+    expect(imported.meta.steps?.join('\n')).toContain('template: unavailable')
+  })
 })
 
 describe('generateUI pipeline', () => {

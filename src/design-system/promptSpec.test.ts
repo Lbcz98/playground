@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildGlobalKernel, buildPlannerPrompt, buildSystemPrompt, getRegistrySpec } from './promptSpec'
+import {
+  buildGlobalKernel,
+  buildPlannerPrompt,
+  buildSystemPrompt,
+  getRegistrySpec,
+  templatesFor,
+} from './promptSpec'
+import { SCREEN_TEMPLATES } from '@/shared/templates'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { CATALOG_TYPES, getCatalogEntry } from './catalog'
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
@@ -17,8 +25,8 @@ describe('registry spec / system prompt', () => {
     const stack = getRegistrySpec().find((c) => c.type === 'Stack')!
     const gap = stack.props.find((p) => p.name === 'gap')!
     expect(gap.control).toBe('select')
-    expect(gap.options).toContain('md')
-    expect(gap.default).toBe('md')
+    expect(gap.options).toContain('sm')
+    expect(gap.default).toBe('sm')
   })
 
   it('system prompt names the tool, every component, and every select value', () => {
@@ -139,10 +147,23 @@ describe('global kernel', () => {
 
   it('never asks the model to declare a focus side — the engine reads it', () => {
     for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool'), buildSystemPrompt('json')]) {
-      expect(prompt).not.toMatch(/focus: '(left|right)'|"focus"/)
+      // A focus SIDE is the engine's to read. An element's own focus STATE is the
+      // model's to set — exactly one of them — so `interactionState "focus"` is
+      // expected here and only a side must never appear.
+      expect(prompt).not.toMatch(/focus(Side)?["']?\s*[:=]\s*["']?(left|right|neutral)\b/i)
       expect(prompt).toContain('you never declare a focus side')
       expect(prompt).toContain('"anchor": true')
       expect(prompt).toMatch(/\*\*Bottom-Right\*\*.*\*\*Left\*\* margin/)
+    }
+  })
+
+  it('states the one-focus rule in the active system\u2019s own prop names', () => {
+    for (const prompt of [buildPlannerPrompt(), buildSystemPrompt('tool')]) {
+      expect(prompt).toContain('a TV screen has exactly one focused element')
+      expect(prompt).toContain('interactionState "focus"')
+      expect(prompt).toContain('focusedItem "none"')
+      // The trap a live run fell into: MainMenu arrives focused unless told otherwise.
+      expect(prompt).toMatch(/<MainMenu> focuses its "program" unless you set focusedItem "none"/)
     }
   })
 
@@ -164,12 +185,30 @@ describe('global kernel', () => {
   })
 })
 
+describe('reference screens in the planner prompt', () => {
+  it('lists every template with when to use it, and asks for the choice by id', () => {
+    const planner = buildPlannerPrompt()
+    expect(planner).toContain('# Reference screens')
+    for (const template of SCREEN_TEMPLATES) {
+      expect(planner).toContain(`- ${template.id} — ${template.name}. ${template.when}`)
+    }
+    expect(planner).toMatch(/Template: <id>, or "Template: none"/)
+    expect(planner).toMatch(/First the template line, then the screen line/)
+  })
+
+  it('offers none of them to an imported design system', () => {
+    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme' }
+    expect(templatesFor(imported)).toEqual([])
+    expect(buildPlannerPrompt(imported)).not.toContain('# Reference screens')
+  })
+})
+
 describe('design-system binding (§7)', () => {
   it('maps the laws onto the active system’s real names', () => {
     const system = buildSystemPrompt()
     expect(system).toContain('### 7. ACTIVE DESIGN SYSTEM — ScreenFlow (v1.0.0)')
     expect(system).toMatch(/outermost <Stack> sets padding "none"/)
-    expect(system).toMatch(/set gap "md"/)
+    expect(system).toMatch(/set gap "sm"/)
     expect(system).toMatch(/never sets align or justify to "center"/)
     expect(system).not.toContain('"frame"')
     expect(buildPlannerPrompt()).toMatch(/outermost <Stack> sets padding "none"/)

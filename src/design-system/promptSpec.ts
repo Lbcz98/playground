@@ -29,6 +29,7 @@ import type { DesignSystemManifest, ManifestComponent, ManifestTokens } from '@/
 import {
   TOKEN_TIER_RULE,
   assignableTokenNames,
+  defaultForProp,
   inferControl,
   isCoreToken,
   rootContainerId,
@@ -37,10 +38,13 @@ import {
   tokenNames,
   tokenTier,
 } from '@/shared/design-system/manifest'
-import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { SCREENFLOW_MANIFEST, SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
+import { SCREEN_TEMPLATES, type ScreenTemplate } from '@/shared/templates'
 import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
 import {
   FRAME,
+  focusPropsFor,
+  unfocusedValue,
   allowedSpacingNames,
   centeringPropsFor,
   onGridSpacingNames,
@@ -335,6 +339,40 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
 }
 
 /** The frame laws in the active system's own prop and token names — shared by both agents. */
+/**
+ * The focus rule in this system's own prop names: what puts an element in focus,
+ * what rests it, and which components arrive focused unless told otherwise.
+ */
+function focusSpecific(manifest: DesignSystemManifest): string | null {
+  const puts = new Map<string, string>()
+  const rests = new Map<string, string>()
+  const byDefault: string[] = []
+
+  for (const component of Object.values(manifest.components)) {
+    for (const prop of focusPropsFor(component)) {
+      const resting = unfocusedValue(prop)
+      const isState = prop.options?.includes('focus') ?? false
+      puts.set(prop.name, isState ? `${prop.name} "focus"` : `${prop.name} (any value but "${resting}")`)
+      rests.set(prop.name, `${prop.name} "${resting}"`)
+      const fallback = defaultForProp(prop)
+      const focusedByDefault = isState
+        ? fallback === 'focus'
+        : typeof fallback === 'string' && fallback !== resting
+      if (focusedByDefault) {
+        byDefault.push(`<${component.id}> focuses its ${JSON.stringify(fallback)} unless you set ${rests.get(prop.name)}`)
+      }
+    }
+  }
+  if (puts.size === 0) return null
+
+  return (
+    `* **One focus:** a TV screen has exactly one focused element — the one the viewer is on. ` +
+    `${[...puts.values()].join(', or ')} puts an element in focus; every other element takes its resting value ` +
+    `(${[...rests.values()].join(', ')}).` +
+    (byDefault.length > 0 ? ` Note: ${byDefault.join('; ')}.` : '')
+  )
+}
+
 function frameSpecifics(manifest: DesignSystemManifest, container: string): string[] {
   const component = manifest.components[container]
   const padding = component ? spacingPropFor(component, 'margin') : undefined
@@ -360,6 +398,7 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
         : `the outermost <${container}> is never centered.`
     }`,
     `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen, and only on a secondary floating cluster, never the screen's primary actions.`,
+    ...(focusSpecific(manifest) ? [focusSpecific(manifest) as string] : []),
   ]
 }
 
@@ -389,6 +428,33 @@ function designSystemBinding(
 // ---------------------------------------------------------------------------
 
 /**
+ * The reference screens a design system ships with. Only the built-in one has
+ * any: the templates are DTV screens, and offering them for an imported design
+ * system would be describing components it does not have.
+ */
+export function templatesFor(manifest: DesignSystemManifest): readonly ScreenTemplate[] {
+  return manifest.id === SCREENFLOW_MANIFEST_ID ? SCREEN_TEMPLATES : []
+}
+
+/** The planner's template menu: what exists, and when each one is the right start. */
+function templateSection(templates: readonly ScreenTemplate[]): string {
+  if (templates.length === 0) return ''
+  return `# Reference screens
+
+These screens are already built and already obey every law above. Start from one
+whenever the request is that screen or a variation of it — it is faster and safer
+than composing from nothing, and the next agent is given its JSON to adapt.
+
+${templates.map((t) => `- ${t.id} — ${t.name}. ${t.when}`).join('\n')}
+
+Name your choice on the first line, before the screen line:
+Template: <id>, or "Template: none" when the request is a screen none of these fit.
+Choosing one does not end your job: still write the plan, saying what changes.
+
+`
+}
+
+/**
  * Step 1 of the pipeline — the Planner. Given the user's request and the "Product
  * Blueprint" (guidelines + a11y + layout patterns), it writes a short structural
  * plan in prose that already obeys the kernel's spatial and macro-layout laws. It
@@ -400,6 +466,7 @@ export function buildPlannerPrompt(
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
   const tokens = tokenVocabulary(manifest)
+  const templates = templatesFor(manifest)
   const component = manifest.components[container]
   const padding = component ? spacingPropFor(component, 'margin') : undefined
   const gap = component ? spacingPropFor(component, 'gutter') : undefined
@@ -454,14 +521,14 @@ Common layout patterns:
 - Floating action cluster: a horizontal container of secondary quick actions
   (options, help), anchored so it follows focus — never the screen's primary actions.
 
-# Output format
+${templateSection(templates)}# Output format
 
-First the screen line — its layer model, its level, and why that model fits where
+First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
 nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
 Example:
 
-Screen: model "home", level 1 — a home screen whose content spans the frame.
+${templates.length > 0 ? 'Template: home\n' : ''}Screen: model "home", level 1 — a home screen whose content spans the frame.
 1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start, no background) — the content layer.
 2.   Header ${container} (vertical, gap xs).
 3.     A prominent title: "Create your account".
