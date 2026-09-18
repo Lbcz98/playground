@@ -56,7 +56,7 @@ export function PropertyInspector(): JSX.Element {
   const isRootChild = node ? tree.children.some((child) => child.id === node.id) : false
 
   return (
-    <section className="flex flex-1 flex-col gap-md overflow-auto p-lg">
+    <section className="flex flex-1 flex-col gap-sm overflow-auto p-lg">
       <h2 className="text-xs font-semibold text-ink-muted">Properties</h2>
 
       {!node ? (
@@ -74,7 +74,7 @@ export function PropertyInspector(): JSX.Element {
           </div>
 
           {isRootChild ? (
-            <div className="border-b border-line pb-md">
+            <div className="border-b border-line pb-sm">
               <PropertyControl
                 propName="anchor"
                 propDef={{
@@ -92,7 +92,7 @@ export function PropertyInspector(): JSX.Element {
           {Object.keys(component.props).length === 0 ? (
             <p className="text-sm text-ink-muted">This component has no editable properties.</p>
           ) : (
-            <div className="flex flex-col gap-md">
+            <div className="flex flex-col gap-sm">
               {Object.entries(component.props).map(([name, propDef]) => (
                 <PropertyControl
                   key={name}

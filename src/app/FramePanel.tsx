@@ -24,10 +24,10 @@ export function FramePanel(): JSX.Element {
   const model = screenModel(layers, screen?.model)
 
   return (
-    <section className="flex shrink-0 flex-col gap-sm border-b border-line p-lg">
+    <section className="flex shrink-0 flex-col gap-2xs border-b border-line p-lg">
       <h2 className="text-xs font-semibold text-ink-muted">Frame</h2>
 
-      <div role="radiogroup" aria-label="Frame size" className="grid grid-cols-2 gap-xs">
+      <div role="radiogroup" aria-label="Frame size" className="grid grid-cols-2 gap-3xs">
         {FRAME_SIZE_IDS.map((id) => {
           const option = FRAME_SIZES[id]
           const checked = id === size
@@ -39,7 +39,7 @@ export function FramePanel(): JSX.Element {
               aria-checked={checked}
               onClick={() => setSize(id)}
               className={cx(
-                'flex flex-col items-start gap-xs rounded-md border px-sm py-xs text-left',
+                'flex flex-col items-start gap-3xs rounded-md border px-2xs py-3xs text-left',
                 checked
                   ? 'border-brand bg-brand-subtle text-brand-strong'
                   : 'border-line bg-surface text-ink hover:bg-subtle',
@@ -68,7 +68,7 @@ export function FramePanel(): JSX.Element {
       </p>
 
       {layers.models.length > 0 ? (
-        <label className="flex flex-col gap-xs text-xs font-medium text-ink">
+        <label className="flex flex-col gap-3xs text-xs font-medium text-ink">
           Layer model (Camadas)
           <select
             value={model?.id ?? ''}
@@ -76,7 +76,7 @@ export function FramePanel(): JSX.Element {
               const next = screenModel(layers, e.target.value)
               if (next) setScreen({ model: next.id, level: next.level })
             }}
-            className="rounded-md border border-line bg-surface px-sm py-xs text-sm font-normal text-ink focus:outline-none focus:ring focus:ring-brand"
+            className="rounded-md border border-line bg-surface px-2xs py-3xs text-sm font-normal text-ink focus:outline-none focus:ring focus:ring-brand"
           >
             {model ? null : <option value="">No layer model</option>}
             {layers.levels.map((level) => (

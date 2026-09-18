@@ -89,7 +89,7 @@ function initialTree(): CanvasNode {
   // layer rule it's a level 1 Home screen.
   const row = {
     direction: 'horizontal',
-    gap: 'sm',
+    gap: '2xs',
     padding: 'none',
     align: 'center',
     justify: 'start',
@@ -105,7 +105,7 @@ function initialTree(): CanvasNode {
     screen: { model: 'home', level: 1 },
     props: {
       direction: 'vertical',
-      gap: 'md',
+      gap: 'sm',
       padding: 'none',
       align: 'start',
       justify: 'start',

@@ -35,7 +35,7 @@ export interface PropertyControlProps {
 }
 
 const FIELD_CLASS =
-  'rounded-md border border-line bg-surface px-sm py-xs text-sm text-ink focus:outline-none focus:ring focus:ring-brand'
+  'rounded-md border border-line bg-surface px-2xs py-3xs text-sm text-ink focus:outline-none focus:ring focus:ring-brand'
 
 export function PropertyControl({
   propName,
@@ -54,10 +54,10 @@ export function PropertyControl({
   const isTokenSelect = !propDef.options && !!propDef.tokenGroup && tokenNames.length > 0
 
   return (
-    <div className="flex flex-col gap-xs">
+    <div className="flex flex-col gap-3xs">
       <label
         htmlFor={id}
-        className="flex items-center justify-between gap-sm text-xs font-medium text-ink-muted"
+        className="flex items-center justify-between gap-2xs text-xs font-medium text-ink-muted"
       >
         <span>{label}</span>
         {kind === 'boolean' ? (
@@ -66,7 +66,7 @@ export function PropertyControl({
       </label>
 
       {isTokenSelect ? (
-        <div className="flex items-center gap-xs">
+        <div className="flex items-center gap-3xs">
           {propDef.tokenGroup === 'colors' ? (
             <ColorSwatch value={tokenDict?.[stringValue(currentValue, propDef)]} />
           ) : null}

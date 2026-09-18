@@ -9,22 +9,22 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
   const deleteNode = useFlowStore((s) => s.deleteNode)
   const entry = useHydratedRegistry().get(node.type)
   const isSelected = selectedId === node.id
-  const indent = ['pl-sm', 'pl-md', 'pl-lg', 'pl-xl', 'pl-2xl'][Math.min(depth, 4)]
+  const indent = ['pl-2xs', 'pl-sm', 'pl-lg', 'pl-xl', 'pl-3xl'][Math.min(depth, 4)]
 
   return (
     <>
       <div
         className={cx(
-          'flex items-center justify-between rounded-sm py-xs pr-xs text-sm',
+          'flex items-center justify-between rounded-sm py-3xs pr-3xs text-sm',
           indent,
           isSelected ? 'bg-brand-subtle text-brand-strong' : 'text-ink hover:bg-subtle',
         )}
         onClick={() => select(node.id)}
       >
-        <span className="flex items-center gap-xs">
+        <span className="flex items-center gap-3xs">
           <span className="font-medium">{entry?.label ?? node.type}</span>
           {node.anchor ? (
-            <span className="rounded-full bg-brand-subtle px-xs text-xs text-brand-strong">anchored</span>
+            <span className="rounded-full bg-brand-subtle px-3xs text-xs text-brand-strong">anchored</span>
           ) : null}
         </span>
         {node.id !== ROOT_ID ? (
@@ -34,7 +34,7 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
               event.stopPropagation()
               deleteNode(node.id)
             }}
-            className="rounded-sm px-xs text-xs text-ink-muted hover:text-danger"
+            className="rounded-sm px-3xs text-xs text-ink-muted hover:text-danger"
           >
             Delete
           </button>
@@ -50,7 +50,7 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
 export function LayersPanel(): JSX.Element {
   const tree = useFlowStore((s) => s.tree)
   return (
-    <section className="flex flex-col gap-sm">
+    <section className="flex flex-col gap-2xs">
       <h2 className="text-xs font-semibold text-ink-muted">Layers</h2>
       <div className="flex flex-col">
         <LayerRow node={tree} depth={0} />

@@ -17,7 +17,7 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   const entry = registry.get(node.type)
   if (!entry) {
     return (
-      <div className="rounded-sm border border-danger bg-danger-subtle p-sm text-sm text-danger">
+      <div className="rounded-sm border border-danger bg-danger-subtle p-2xs text-sm text-danger">
         Unknown component: {node.type}
       </div>
     )

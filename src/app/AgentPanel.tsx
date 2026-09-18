@@ -39,12 +39,12 @@ export function AgentPanel(): JSX.Element {
 
   return (
     <section className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-line px-lg py-sm">
-        <div className="flex items-center gap-sm">
+      <div className="flex items-center justify-between border-b border-line px-lg py-2xs">
+        <div className="flex items-center gap-2xs">
           <h2 className="text-xs font-semibold text-ink-muted">AI Agent</h2>
           <span
             className={cx(
-              'rounded-full px-sm py-xs text-xs font-medium',
+              'rounded-full px-2xs py-3xs text-xs font-medium',
               bridge ? 'bg-success-subtle text-success' : 'bg-subtle text-ink-muted',
             )}
           >
@@ -62,20 +62,20 @@ export function AgentPanel(): JSX.Element {
         ) : null}
       </div>
 
-      <div ref={scrollRef} className="flex flex-1 flex-col gap-md overflow-auto p-lg">
+      <div ref={scrollRef} className="flex flex-1 flex-col gap-sm overflow-auto p-lg">
         {messages.length === 0 ? (
-          <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-2xs">
             <p className="text-sm text-ink-muted">
               Describe a screen. The agent builds it from the design system and renders it
               onto the canvas — as one undo step.
             </p>
-            <div className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-3xs">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => void send(s)}
-                  className="rounded-md border border-line bg-surface px-md py-sm text-left text-sm text-ink hover:bg-subtle"
+                  className="rounded-md border border-line bg-surface px-sm py-2xs text-left text-sm text-ink hover:bg-subtle"
                 >
                   {s}
                 </button>
@@ -87,9 +87,9 @@ export function AgentPanel(): JSX.Element {
         )}
       </div>
 
-      <div className="flex flex-col gap-xs border-t border-line p-lg">
+      <div className="flex flex-col gap-3xs border-t border-line p-lg">
         <GenerationControls />
-        <div className="flex gap-xs">
+        <div className="flex gap-3xs">
           <input
             type="text"
             value={draft}
@@ -98,13 +98,13 @@ export function AgentPanel(): JSX.Element {
               if (e.key === 'Enter') submit()
             }}
             placeholder="Describe a screen…"
-            className="flex-1 rounded-md border border-line bg-surface px-sm py-xs text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring focus:ring-brand"
+            className="flex-1 rounded-md border border-line bg-surface px-2xs py-3xs text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring focus:ring-brand"
           />
           <button
             type="button"
             onClick={submit}
             disabled={busy || !draft.trim()}
-            className="rounded-md bg-brand px-md py-xs text-sm font-medium text-ink-inverse hover:bg-brand-hover disabled:opacity-50 disabled:pointer-events-none"
+            className="rounded-md bg-brand px-sm py-3xs text-sm font-medium text-ink-inverse hover:bg-brand-hover disabled:opacity-50 disabled:pointer-events-none"
           >
             {busy ? '…' : 'Send'}
           </button>
@@ -115,7 +115,7 @@ export function AgentPanel(): JSX.Element {
 }
 
 const SELECT_CLASS =
-  'rounded-sm border border-line bg-surface px-xs py-xs text-xs text-ink focus:outline-none focus:ring focus:ring-brand'
+  'rounded-sm border border-line bg-surface px-3xs py-3xs text-xs text-ink focus:outline-none focus:ring focus:ring-brand'
 
 function GenerationControls(): JSX.Element {
   const model = useSettingsStore((s) => s.model)
@@ -125,7 +125,7 @@ function GenerationControls(): JSX.Element {
   const usage = useChatStore((s) => s.sessionUsage)
 
   return (
-    <div className="flex flex-wrap items-center gap-xs">
+    <div className="flex flex-wrap items-center gap-3xs">
       <select
         value={model}
         onChange={(e) => setModel(e.target.value)}
@@ -195,7 +195,7 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
 
   if (message.role === 'user') {
     return (
-      <div className="self-end rounded-md bg-brand-subtle px-md py-sm text-sm text-brand-strong">
+      <div className="self-end rounded-md bg-brand-subtle px-sm py-2xs text-sm text-brand-strong">
         {message.text}
       </div>
     )
@@ -209,21 +209,21 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
   const warnings = run?.issues.filter((i) => i.level === 'warn') ?? []
 
   return (
-    <div className="flex flex-col gap-xs self-start">
+    <div className="flex flex-col gap-3xs self-start">
       <div
         className={cx(
-          'rounded-md px-md py-sm text-sm',
+          'rounded-md px-sm py-2xs text-sm',
           message.status === 'error'
             ? 'bg-danger-subtle text-danger'
             : 'bg-subtle text-ink',
         )}
       >
         {message.text}
-        <span className="ml-xs text-xs text-ink-muted">{providerNote(message)}</span>
+        <span className="ml-3xs text-xs text-ink-muted">{providerNote(message)}</span>
       </div>
 
       {run?.ok ? (
-        <div className="flex flex-wrap items-center gap-sm pl-md">
+        <div className="flex flex-wrap items-center gap-2xs pl-sm">
           <button
             type="button"
             onClick={undo}
@@ -236,7 +236,7 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
               <summary className="cursor-pointer select-none">
                 {warnings.length} correction{warnings.length === 1 ? '' : 's'}
               </summary>
-              <ul className="mt-xs flex flex-col gap-xs">
+              <ul className="mt-3xs flex flex-col gap-3xs">
                 {run.issues.map((issue, i) => (
                   <li key={i}>
                     <span className={issue.level === 'warn' ? 'text-danger' : 'text-ink-muted'}>
@@ -252,11 +252,11 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
       ) : null}
 
       {message.steps && message.steps.length > 0 ? (
-        <details className="pl-md text-xs text-ink-muted">
+        <details className="pl-sm text-xs text-ink-muted">
           <summary className="cursor-pointer select-none">
             pipeline · {message.steps.length} step{message.steps.length === 1 ? '' : 's'}
           </summary>
-          <ol className="mt-xs flex flex-col gap-xs">
+          <ol className="mt-3xs flex flex-col gap-3xs">
             {message.steps.map((step, i) => (
               <li key={i}>— {step}</li>
             ))}

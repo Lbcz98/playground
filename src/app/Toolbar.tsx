@@ -16,7 +16,7 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       className={cx(
-        'rounded-md border border-line bg-surface px-md py-xs text-sm font-medium text-ink',
+        'rounded-md border border-line bg-surface px-sm py-3xs text-sm font-medium text-ink',
         'hover:bg-subtle disabled:opacity-50 disabled:pointer-events-none',
       )}
     >
@@ -34,15 +34,15 @@ export function Toolbar(): JSX.Element {
   const lastActionLabel = useFlowStore((s) => s.lastActionLabel)
 
   return (
-    <header className="flex items-center justify-between border-b border-line bg-surface px-lg py-sm">
-      <div className="flex items-center gap-sm">
+    <header className="flex items-center justify-between border-b border-line bg-surface px-lg py-2xs">
+      <div className="flex items-center gap-2xs">
         <span className="text-md font-semibold text-ink">ScreenFlow Studio</span>
-        <span className="rounded-full bg-brand-subtle px-sm py-xs text-xs font-medium text-brand-strong">
+        <span className="rounded-full bg-brand-subtle px-2xs py-3xs text-xs font-medium text-brand-strong">
           Phase 1
         </span>
       </div>
 
-      <div className="flex items-center gap-sm">
+      <div className="flex items-center gap-2xs">
         <span className="text-xs text-ink-muted">
           {lastActionLabel ? `Last: ${lastActionLabel}` : 'No edits yet'}
         </span>

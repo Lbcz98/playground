@@ -52,7 +52,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
       version: 1,
       root: {
         type: 'Stack',
-        props: { padding: 'lg', gap: 'sm' },
+        props: { padding: 'lg', gap: '2xs' },
         children: [{ type: 'Stack', anchor: true, children: [{ type: 'Button', anchor: true }] }],
       },
     })
@@ -60,7 +60,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     if (v.ok) return
     const text = v.errors.join('\n')
     expect(text).toMatch(/padding "lg" adds 24px .* set padding to "none"/)
-    expect(text).toMatch(/gap "sm" is 8px .* use "md"/)
+    expect(text).toMatch(/gap "2xs" is 8px .* use "sm"/)
     expect(text).toMatch(/only a direct child of the root can be anchored/)
   })
 
@@ -82,7 +82,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
           {
             type: 'Stack',
             anchor: true,
-            props: { direction: 'horizontal', gap: 'xs' },
+            props: { direction: 'horizontal', gap: '3xs' },
             children: [{ type: 'Button', props: { label: 'Watch' } }, { type: 'Button', props: { label: 'Details' } }],
           },
         ],

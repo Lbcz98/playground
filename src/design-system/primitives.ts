@@ -43,16 +43,29 @@ export const palette = {
   },
 } as const
 
-/** Spacing / gap / padding scale. Named steps only — no numeric ladder. */
+/**
+ * Spacing / gap / padding scale. Named steps only — no numeric ladder.
+ *
+ * The names and values are the DTV kit's own spacing scale
+ * (`--dimension-spacing-core-*` in `styles/global.css`), so the canvas, the
+ * Inspector, the agent's vocabulary and the UI Kit components all mean the same
+ * thing by "sm" — and a screen can sit its rail the 40px above the menu that the
+ * kit specifies.
+ */
 export const spacingScale = {
   none: '0px',
-  xs: '4px',
-  sm: '8px',
-  md: '16px',
+  '3xs': '4px',
+  '2xs': '8px',
+  xs: '12px',
+  sm: '16px',
+  md: '20px',
   lg: '24px',
   xl: '32px',
-  '2xl': '48px',
-  '3xl': '64px',
+  '2xl': '40px',
+  '3xl': '48px',
+  '4xl': '64px',
+  '5xl': '80px',
+  '6xl': '96px',
 } as const
 
 export const radiusScale = {

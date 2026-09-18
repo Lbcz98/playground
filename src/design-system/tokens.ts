@@ -90,8 +90,12 @@ export type StackJustify = (typeof STACK_JUSTIFY)[number]
 // and no dynamic string concatenation is required.
 // ---------------------------------------------------------------------------
 
+// Written out rather than built from SPACE_TOKENS: Tailwind only ships a class
+// it can see as a literal string in the source.
 export const GAP_CLASS: Record<SpaceToken, string> = {
   none: 'gap-none',
+  '3xs': 'gap-3xs',
+  '2xs': 'gap-2xs',
   xs: 'gap-xs',
   sm: 'gap-sm',
   md: 'gap-md',
@@ -99,10 +103,15 @@ export const GAP_CLASS: Record<SpaceToken, string> = {
   xl: 'gap-xl',
   '2xl': 'gap-2xl',
   '3xl': 'gap-3xl',
+  '4xl': 'gap-4xl',
+  '5xl': 'gap-5xl',
+  '6xl': 'gap-6xl',
 }
 
 export const PADDING_CLASS: Record<SpaceToken, string> = {
   none: 'p-none',
+  '3xs': 'p-3xs',
+  '2xs': 'p-2xs',
   xs: 'p-xs',
   sm: 'p-sm',
   md: 'p-md',
@@ -110,6 +119,9 @@ export const PADDING_CLASS: Record<SpaceToken, string> = {
   xl: 'p-xl',
   '2xl': 'p-2xl',
   '3xl': 'p-3xl',
+  '4xl': 'p-4xl',
+  '5xl': 'p-5xl',
+  '6xl': 'p-6xl',
 }
 
 export const RADIUS_CLASS: Record<RadiusToken, string> = {

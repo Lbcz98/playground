@@ -23,9 +23,9 @@ export function ComponentPalette(): JSX.Element {
   }
 
   return (
-    <section className="flex flex-col gap-sm">
+    <section className="flex flex-col gap-2xs">
       <h2 className="text-xs font-semibold text-ink-muted">Components</h2>
-      <div className="flex flex-col gap-xs">
+      <div className="flex flex-col gap-3xs">
         {registry.types.map((type) => {
           const entry = registry.get(type)!
           return (
@@ -33,7 +33,7 @@ export function ComponentPalette(): JSX.Element {
               key={type}
               type="button"
               onClick={() => addNode(resolveParentId(), type)}
-              className="flex items-center justify-between rounded-md border border-line bg-surface px-md py-sm text-sm text-ink hover:bg-subtle"
+              className="flex items-center justify-between rounded-md border border-line bg-surface px-sm py-2xs text-sm text-ink hover:bg-subtle"
             >
               <span className="font-medium">{entry.label}</span>
               <span className="text-xs text-ink-muted">{entry.category}</span>

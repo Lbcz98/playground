@@ -60,7 +60,7 @@ describe('interpretBlueprint', () => {
     if (!result.ok) throw new Error('expected ok')
     const p = result.tree.props
     expect(p.direction).toBe('horizontal') // valid -> kept
-    expect(p.gap).toBe('md') // invalid enum -> default
+    expect(p.gap).toBe('sm') // invalid enum -> default
     expect(p.padding).toBe('none') // "10px" rejected -> default
     expect('boxShadow' in p).toBe(false) // unknown prop -> removed
     expect(result.issues.some((i) => /gap=/.test(i.message))).toBe(true)
@@ -133,8 +133,8 @@ describe('interpretBlueprint — frame rules', () => {
     })
     if (!result.ok) throw new Error('expected ok')
     expect(result.tree.props.padding).toBe('none')
-    expect(result.tree.props.gap).toBe('md')
-    expect(result.tree.children[0].props.gap).toBe('md')
+    expect(result.tree.props.gap).toBe('sm')
+    expect(result.tree.children[0].props.gap).toBe('sm')
     expect(result.issues.filter((i) => i.level === 'info')).toHaveLength(3)
   })
 

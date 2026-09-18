@@ -23,7 +23,7 @@ function tier(opts: {
     type: 'Stack',
     props: {
       direction: 'vertical',
-      gap: 'md',
+      gap: 'sm',
       padding: 'lg',
       align: 'stretch',
       surface: opts.highlighted ? 'brand-subtle' : 'surface',
@@ -36,7 +36,7 @@ function tier(opts: {
       { type: 'Text', props: { content: opts.name, variant: 'heading', tone: 'default' } },
       {
         type: 'Stack',
-        props: { direction: 'horizontal', gap: 'xs', align: 'end', justify: 'start' },
+        props: { direction: 'horizontal', gap: '3xs', align: 'end', justify: 'start' },
         children: [
           { type: 'Text', props: { content: opts.price, variant: 'display', tone: 'default' } },
           { type: 'Text', props: { content: opts.cadence, variant: 'caption', tone: 'muted' } },
@@ -66,7 +66,7 @@ export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
     type: 'Stack',
     props: {
       direction: 'vertical',
-      gap: 'md',
+      gap: 'sm',
       padding: 'none',
       align: 'stretch',
       surface: 'none',
@@ -74,7 +74,7 @@ export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
     children: [
       {
         type: 'Stack',
-        props: { direction: 'vertical', gap: 'xs', align: 'center' },
+        props: { direction: 'vertical', gap: '3xs', align: 'center' },
         children: [
           { type: 'Text', props: { content: 'Simple, transparent pricing', variant: 'title', align: 'center' } },
           {
@@ -90,7 +90,7 @@ export const PRICING_CARD_BLUEPRINT: BlueprintDocument = {
       },
       {
         type: 'Stack',
-        props: { direction: 'horizontal', gap: 'md', align: 'stretch', justify: 'between' },
+        props: { direction: 'horizontal', gap: 'sm', align: 'stretch', justify: 'between' },
         children: [
           tier({
             name: 'Starter',

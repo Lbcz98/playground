@@ -99,13 +99,13 @@ export function DesignSystemSwitcher(): JSX.Element {
       .join(' · ')
 
   return (
-    <section className="flex flex-col gap-xs">
+    <section className="flex flex-col gap-3xs">
       <h2 className="text-xs font-semibold text-ink-muted">Design system</h2>
 
       <select
         value={activeId}
         onChange={(e) => void setActive(e.target.value)}
-        className="rounded-md border border-line bg-surface px-sm py-xs text-sm text-ink focus:outline-none focus:ring focus:ring-brand"
+        className="rounded-md border border-line bg-surface px-2xs py-3xs text-sm text-ink focus:outline-none focus:ring focus:ring-brand"
       >
         {library.map((m) => (
           <option key={m.id} value={m.id}>
@@ -114,11 +114,11 @@ export function DesignSystemSwitcher(): JSX.Element {
         ))}
       </select>
 
-      <div className="flex flex-wrap items-center gap-xs">
+      <div className="flex flex-wrap items-center gap-3xs">
         <button
           type="button"
           onClick={() => componentsRef.current?.click()}
-          className="flex-1 rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink hover:bg-subtle"
+          className="flex-1 rounded-md border border-line bg-surface px-2xs py-3xs text-xs font-medium text-ink hover:bg-subtle"
         >
           Import Storybook JSON…
         </button>
@@ -127,7 +127,7 @@ export function DesignSystemSwitcher(): JSX.Element {
             <button
               type="button"
               onClick={() => tokensRef.current?.click()}
-              className="rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink hover:bg-subtle"
+              className="rounded-md border border-line bg-surface px-2xs py-3xs text-xs font-medium text-ink hover:bg-subtle"
             >
               Import tokens…
             </button>
@@ -135,14 +135,14 @@ export function DesignSystemSwitcher(): JSX.Element {
               type="button"
               onClick={() => bundleRef.current?.click()}
               title="A UMD build with react/react-dom external, exporting window.__sfsDesignSystem = { <ComponentId>: Component }"
-              className="rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink hover:bg-subtle"
+              className="rounded-md border border-line bg-surface px-2xs py-3xs text-xs font-medium text-ink hover:bg-subtle"
             >
               Import component bundle…
             </button>
             <button
               type="button"
               onClick={() => void remove(activeId)}
-              className="rounded-md border border-line bg-surface px-sm py-xs text-xs font-medium text-ink-muted hover:text-danger"
+              className="rounded-md border border-line bg-surface px-2xs py-3xs text-xs font-medium text-ink-muted hover:text-danger"
             >
               Remove
             </button>
