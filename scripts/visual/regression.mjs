@@ -27,7 +27,7 @@ const STORYBOOK = (process.env.STORYBOOK_URL ?? 'http://localhost:6006').replace
 const UPDATE = process.argv.includes('--update')
 const ONLY = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length)
 
-const STORY_IDS = /^(ui-kit|primitives)-/
+const STORY_IDS = /^(ui-kit|primitives|templates)-/
 const VIEWPORT = { width: 1280, height: 720 }
 /** Per-channel difference (0–255) treated as anti-aliasing noise, not a change. */
 const CHANNEL_TOLERANCE = 8
