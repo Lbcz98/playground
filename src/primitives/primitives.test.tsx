@@ -25,6 +25,14 @@ describe('token vocabulary', () => {
     expect(GRID_SPACING[0]).toBe('none')
   })
 
+  it('the focus cycle is exactly four steps of the ramp', () => {
+    const ms = (value: string) => Number(value.replace('ms', ''))
+    const motion = tokens.motion.semantic
+    // The loop is noite → dia → tarde → dia; nothing derives one from the other,
+    // so a duration edited without its step would silently shift every leg.
+    expect(ms(motion['focus-cycle-duration'].$value)).toBe(ms(motion['focus-cycle-step'].$value) * 4)
+  })
+
   it('every var() a primitive references is defined by global.css', () => {
     const dir = fileURLToPath(new URL('.', import.meta.url))
     const defined = new Set<string>(CSS_VARS)

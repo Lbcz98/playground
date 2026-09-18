@@ -6,12 +6,20 @@
  * bottom edge across the whole inner area. Every value is a semantic token,
  * so restyling focus across the kit is a tokens.json change.
  *
+ * It also moves. The ring and its glow walk the primary ramps — noite → dia →
+ * tarde → dia — over `motion.semantic.focus-cycle`, and because that is the one
+ * focus treatment, every focusable control in the kit inherits the same motion
+ * without knowing about it. The keyframes live in `primitives.css`; the inline
+ * gradients below stay as the resting state underneath them, which is what a
+ * reduced-motion viewer and the visual-regression freeze both see.
+ *
  * Absolutely positioned: render it as the first child of a `position: relative`
  * control and layer the control's content above it.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
-import { token, type RadiusRole } from './tokens'
+import { size, token, type RadiusRole } from './tokens'
+import './primitives.css'
 
 export interface FocusRingProps {
   /** The control's corner shape. The inner fill follows it, less the ring width. */
@@ -39,15 +47,17 @@ const glow: CSSProperties = {
   position: 'absolute',
   inset: 0,
   opacity: token('--opacity-semantic-focus-glow'),
-  backgroundImage: `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, transparent 70%)`,
+  backgroundImage:
+    `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, ` +
+    `transparent ${size('focus-glow')})`,
 }
 
 export function FocusRing({ shape }: FocusRingProps): ReactNode {
   const outer = token(`--dimension-radius-semantic-${shape}`)
   return (
-    <span aria-hidden style={{ ...frame, borderRadius: outer }}>
+    <span aria-hidden className="sfs-focus-cycle" style={{ ...frame, borderRadius: outer }}>
       <span style={{ ...inner, borderRadius: `calc(${outer} - ${RING_WIDTH})` }}>
-        <span style={glow} />
+        <span className="sfs-focus-glow-cycle" style={glow} />
       </span>
     </span>
   )

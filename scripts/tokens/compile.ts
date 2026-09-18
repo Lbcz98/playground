@@ -41,6 +41,8 @@ export const CSS_EXTENSION = 'com.screenflow.css'
 const SUPPORTED_TYPES = new Set([
   'color',
   'dimension',
+  'duration',
+  'cubicBezier',
   'number',
   'fontWeight',
   'fontFamily',
@@ -69,6 +71,7 @@ const ALIAS = /^\{([^{}]+)\}$/
 const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 const DIMENSION = /^-?(?:\d+|\d*\.\d+)(?:px|rem|em|%)$/
 const ANGLE = /^-?(?:\d+|\d*\.\d+)deg$/
+const DURATION = /^(?:\d+|\d*\.\d+)(?:ms|s)$/
 
 const TYPOGRAPHY_PROPERTIES = ['fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'lineHeight']
 
@@ -148,6 +151,14 @@ export function compileTokens(root: unknown): CompiledTokens {
         return typeof raw === 'string' && HEX_COLOR.test(raw) ? raw : fail('expected a hex color')
       case 'dimension':
         return typeof raw === 'string' && DIMENSION.test(raw) ? raw : fail('expected a dimension like "16px"')
+      case 'duration':
+        return typeof raw === 'string' && DURATION.test(raw) ? raw : fail('expected a duration like "1500ms"')
+      case 'cubicBezier': {
+        const ok =
+          Array.isArray(raw) && raw.length === 4 && raw.every((n) => typeof n === 'number' && Number.isFinite(n))
+        if (!ok) return fail('expected four numbers [x1, y1, x2, y2]')
+        return `cubic-bezier(${(raw as number[]).join(', ')})`
+      }
       case 'number':
       case 'fontWeight':
         return typeof raw === 'number' && Number.isFinite(raw) ? String(raw) : fail('expected a number')

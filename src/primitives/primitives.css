@@ -13,8 +13,112 @@
   animation: sfs-spin 1s linear infinite;
 }
 
+/*
+ * The focused state's one motion, shared by every focusable control: the ring
+ * walks the primary ramps — noite → dia → tarde → dia — and loops, a quarter of
+ * the cycle each, linear. It comes home through dia rather than snapping from
+ * tarde back to noite, so the loop has no cut in it.
+ *
+ * Two things here are deliberate and worth not "tidying":
+ *
+ * 1. The stops are written through `oklch()`. These colours interpolate in
+ *    whatever space they are written in, and in sRGB noite's blue reaches dia's
+ *    green by way of a dead grey — visibly muddy, twice a loop. Read as OKLCH
+ *    the hue bends through cyan instead and the ring stays saturated the whole
+ *    way. The colours themselves are still the tokens; only the space changes.
+ *
+ * 2. The gradients are restated rather than reusing `gradient.semantic.focus.ring`,
+ *    because a token resolves to hex and would take the muddy path. The angle and
+ *    stop positions here must stay in step with `gradient.primary.*`.
+ *
+ * The easing is applied between each pair of colours, not across the whole
+ * loop, so the ring settles onto a colour and leaves it again rather than
+ * sliding through at a constant rate.
+ *
+ * A browser without relative colour syntax drops these keyframes and keeps the
+ * static gradient the component paints underneath — the correct fallback, which
+ * is also what `prefers-reduced-motion` and the visual-regression freeze get.
+ */
+@keyframes sfs-focus-cycle {
+  0%,
+  100% {
+    background-image: linear-gradient(
+      180deg,
+      oklch(from var(--color-semantic-theme-noite-dark) l c h) 30%,
+      oklch(from var(--color-semantic-theme-noite-light) l c h) 100%
+    );
+  }
+  25% {
+    background-image: linear-gradient(
+      180deg,
+      oklch(from var(--color-semantic-theme-dia-dark) l c h) 30%,
+      oklch(from var(--color-semantic-theme-dia-light) l c h) 100%
+    );
+  }
+  50% {
+    background-image: linear-gradient(
+      180deg,
+      oklch(from var(--color-semantic-theme-tarde-dark) l c h) 30%,
+      oklch(from var(--color-semantic-theme-tarde-light) l c h) 100%
+    );
+  }
+  75% {
+    background-image: linear-gradient(
+      180deg,
+      oklch(from var(--color-semantic-theme-dia-dark) l c h) 30%,
+      oklch(from var(--color-semantic-theme-dia-light) l c h) 100%
+    );
+  }
+}
+
+/* The light pooling inside the ring follows the ramp's light tone, on the same
+   clock, so the glow never disagrees with the ring it sits in. */
+@keyframes sfs-focus-glow-cycle {
+  0%,
+  100% {
+    background-image: radial-gradient(
+      ellipse at 50% 100%,
+      oklch(from var(--color-semantic-theme-noite-light) l c h) 0%,
+      transparent var(--dimension-size-semantic-focus-glow)
+    );
+  }
+  25% {
+    background-image: radial-gradient(
+      ellipse at 50% 100%,
+      oklch(from var(--color-semantic-theme-dia-light) l c h) 0%,
+      transparent var(--dimension-size-semantic-focus-glow)
+    );
+  }
+  50% {
+    background-image: radial-gradient(
+      ellipse at 50% 100%,
+      oklch(from var(--color-semantic-theme-tarde-light) l c h) 0%,
+      transparent var(--dimension-size-semantic-focus-glow)
+    );
+  }
+  75% {
+    background-image: radial-gradient(
+      ellipse at 50% 100%,
+      oklch(from var(--color-semantic-theme-dia-light) l c h) 0%,
+      transparent var(--dimension-size-semantic-focus-glow)
+    );
+  }
+}
+
+.sfs-focus-cycle {
+  animation: sfs-focus-cycle var(--motion-semantic-focus-cycle-duration)
+    var(--motion-semantic-focus-cycle-easing) infinite;
+}
+
+.sfs-focus-glow-cycle {
+  animation: sfs-focus-glow-cycle var(--motion-semantic-focus-cycle-duration)
+    var(--motion-semantic-focus-cycle-easing) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .sfs-spin {
+  .sfs-spin,
+  .sfs-focus-cycle,
+  .sfs-focus-glow-cycle {
     animation: none;
   }
 }

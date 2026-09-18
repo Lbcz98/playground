@@ -245,6 +245,8 @@
   --dimension-size-semantic-icon-2xl: var(--dimension-spacing-core-2xl);
   /* Icon inside a resting round button (measured; no step matches) */
   --dimension-size-semantic-icon-round-rest: 28px;
+  /* How far the light reaches inside a focused control before it fades out — the stop on the glow’s radial gradient. */
+  --dimension-size-semantic-focus-glow: 59%;
   /* Pill button height */
   --dimension-size-semantic-control-height: var(--dimension-spacing-core-2xl);
   /* Large pill button height */
@@ -348,10 +350,18 @@
   --opacity-semantic-illumination-strong: var(--opacity-core-80);
   --opacity-semantic-title: var(--opacity-core-90);
   --opacity-semantic-visible: var(--opacity-core-100);
-  /* Glow inside the focus ring */
-  --opacity-semantic-focus-glow: var(--opacity-core-60);
+  /* Glow inside the focus ring. Tuned against the moving ring rather than taken off the opacity scale, which has no step this fine. */
+  --opacity-semantic-focus-glow: 0.49;
   /* Content of a disabled control */
   --opacity-semantic-state-disabled: var(--opacity-core-50);
+
+  /* ===== Motion · Semantic ===== */
+  /* How long the ring takes to travel between two colours of the ramp. The cycle is four of these; a test holds the two in step. */
+  --motion-semantic-focus-cycle-step: 3000ms;
+  /* One full loop: noite → dia → tarde → dia, a quarter each. It returns through dia so the loop never jump-cuts. */
+  --motion-semantic-focus-cycle-duration: 12000ms;
+  /* Applied between each pair of colours, so the ring settles on a colour and leaves it again rather than sliding at a constant rate. */
+  --motion-semantic-focus-cycle-easing: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
 /* ===== Typography · Utility Classes ===== */

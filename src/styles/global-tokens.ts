@@ -137,6 +137,7 @@ export const CSS_VARS = [
   '--dimension-size-semantic-icon-xl',
   '--dimension-size-semantic-icon-2xl',
   '--dimension-size-semantic-icon-round-rest',
+  '--dimension-size-semantic-focus-glow',
   '--dimension-size-semantic-control-height',
   '--dimension-size-semantic-control-height-lg',
   '--dimension-size-semantic-wide-button-width',
@@ -205,6 +206,9 @@ export const CSS_VARS = [
   '--opacity-semantic-visible',
   '--opacity-semantic-focus-glow',
   '--opacity-semantic-state-disabled',
+  '--motion-semantic-focus-cycle-step',
+  '--motion-semantic-focus-cycle-duration',
+  '--motion-semantic-focus-cycle-easing',
 ] as const
 
 export type CssVar = (typeof CSS_VARS)[number]

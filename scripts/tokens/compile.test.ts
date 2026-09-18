@@ -23,6 +23,26 @@ describe('compileTokens', () => {
     expect(css).toContain('--color-semantic-text: var(--color-core-white);')
   })
 
+  it('compiles a duration, and rejects one without a unit', () => {
+    const { css } = compileTokens({
+      motion: { $type: 'duration', semantic: { 'focus-cycle': { $value: '6000ms' } } },
+    })
+    expect(css).toContain('--motion-semantic-focus-cycle: 6000ms;')
+    expect(() =>
+      compileTokens({ motion: { $type: 'duration', semantic: { bad: { $value: '6000' } } } }),
+    ).toThrow(/expected a duration/)
+  })
+
+  it('compiles a cubic-bezier, and rejects one that is not four numbers', () => {
+    const { css } = compileTokens({
+      motion: { semantic: { ease: { $value: [0.45, 0, 0.55, 1], $type: 'cubicBezier' } } },
+    })
+    expect(css).toContain('--motion-semantic-ease: cubic-bezier(0.45, 0, 0.55, 1);')
+    expect(() =>
+      compileTokens({ motion: { semantic: { ease: { $value: [0.45, 0], $type: 'cubicBezier' } } } }),
+    ).toThrow(/expected four numbers/)
+  })
+
   it('inherits $type from the nearest group', () => {
     const { css } = compileTokens({ size: { $type: 'dimension', sm: { $value: '8px' } } })
     expect(css).toContain('--size-sm: 8px;')
@@ -72,7 +92,7 @@ describe('compileTokens', () => {
       ['a malformed color', { a: color('red') }, /expected a hex color/],
       ['a malformed dimension', { a: { $value: '8', $type: 'dimension' } }, /expected a dimension/],
       ['a token with no $type', { a: { $value: '#FFFFFF' } }, /no \$type/],
-      ['an unsupported $type', { a: { $value: '200ms', $type: 'duration' } }, /unsupported \$type/],
+      ['an unsupported $type', { a: { $value: '0 2px 4px #000000', $type: 'shadow' } }, /unsupported \$type/],
       [
         'two tokens that flatten to one name',
         { a: { 'b-c': color('#FFFFFF') }, 'a-b': { c: color('#000000') } },
