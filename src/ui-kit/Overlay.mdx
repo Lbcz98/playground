@@ -1,0 +1,126 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks'
+import { DTV_SCREEN_LAYERS } from '@/shared/design-system/screen-layers'
+import * as ScreenOverlayStories from './ScreenOverlay.stories'
+
+<Meta of={ScreenOverlayStories} name="Camadas" />
+
+# Camadas — the overlay of a screen
+
+{DTV_SCREEN_LAYERS.rule}
+
+An overlay is never chosen shade by shade. Each screen type has one fixed combination,
+set by where its components occupy the screen: a row of buttons along the bottom edge
+darkens the bottom, a column of cards on the right darkens the right, a notification in
+the top-right corner darkens that corner alone. Every piece is pure black, so the pieces
+compose in any order — the result only depends on which ones are on.
+
+## The pieces
+
+`base` is the scrim (10% black over the whole frame) and says "UI is on screen". The six
+shades name the edge or corner the content sits on. The two transient overlays — an alert
+bug and a notification over the clean broadcast — carry no scrim, so the picture behind
+them stays untouched.
+
+<Canvas of={ScreenOverlayStories.AllModels} />
+
+## Which screen uses which
+
+export const DIRECTIONS = ['base', 'bottom', 'bottom-right', 'bottom-left', 'top-right', 'right', 'left']
+
+export const ARROWS = {
+  base: '•',
+  bottom: '↓',
+  'bottom-right': '↘',
+  'bottom-left': '↙',
+  'top-right': '↗',
+  right: '→',
+  left: '←',
+}
+
+{/* The Figma mode that paints each model, in the Overlays variable collection. */}
+export const FIGMA_MODE = {
+  home: 'Home',
+  'home-notification': 'Home + Notificação',
+  'home-buttons-right': 'Home - Botões Direita',
+  'home-buttons-left': 'Home - Botões Esquerda',
+  'interactivity-cards-right': 'Interatividades Cards - Direita',
+  'interactivity-cards-left': 'Interatividades Cards - Esquerda',
+  'interactivity-buttons-right': 'Interatividades Botões - Direita',
+  'interactivity-buttons-left': 'Interatividades Botões - Esquerda',
+  alert: 'Alerta',
+  notification: 'Notificação',
+}
+
+export const cell = {
+  padding: '6px 10px',
+  textAlign: 'center',
+  borderBottom: '1px solid var(--color-semantic-functional-border-subtle)',
+}
+
+export const head = { ...cell, textAlign: 'left', fontWeight: 600 }
+
+<table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
+  <thead>
+    <tr>
+      <th style={head}>Model</th>
+      <th style={head}>Figma mode</th>
+      <th style={cell}>Nível</th>
+      {DIRECTIONS.map((direction) => (
+        <th key={direction} style={cell} title={direction}>
+          {ARROWS[direction]}
+        </th>
+      ))}
+    </tr>
+  </thead>
+  <tbody>
+    {DTV_SCREEN_LAYERS.models.map((model) => (
+      <tr key={model.id}>
+        <td style={{ ...cell, textAlign: 'left' }}>
+          <code>{model.id}</code>
+        </td>
+        <td style={{ ...cell, textAlign: 'left' }}>{FIGMA_MODE[model.id]}</td>
+        <td style={cell}>{model.level}</td>
+        {DIRECTIONS.map((direction) => (
+          <td key={direction} style={cell}>
+            {model.shades.includes(direction === 'base' ? 'scrim' : direction) ? '✓' : ''}
+          </td>
+        ))}
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+The table is read from `DTV_SCREEN_LAYERS`, so it cannot drift from what the engine paints.
+
+## Using it
+
+A screen names its model; the engine paints the shades under the content. A blueprint is
+the content only.
+
+```tsx
+<div style={{ position: 'relative' }}>
+  <video … />
+  <ScreenOverlay model="home" />
+  <MainMenu … />
+</div>
+```
+
+`Overlay` is the single-direction version of the same tokens, for a component that brings
+its own shade rather than a whole screen:
+
+```tsx
+<Overlay direction="bottom-left" />
+```
+
+## Where it comes from
+
+Figma UI Kit `pJorqbzos2jKwZ2n9vaHEY`:
+
+- **Overlay → Modelos** (`6147:23988`) — the screen-by-screen table this page mirrors.
+- **Camadas e profundidade → Sombras** (`2072:6605`) — the shade pieces and their tokens.
+- **Camadas e profundidade → Overlays** (`3730:7871`) — one direction at a time, the
+  `Overlay` component here.
+- **Camadas e profundidade → Overlay de tela** (`6211:15839`) — the whole combination, with
+  every layer's visibility bound to the `direction/*` booleans of the **Overlays** variable
+  collection. Its ten modes are the "Figma mode" column above, so switching the mode on a
+  frame in Figma is the same act as passing `model` here.
