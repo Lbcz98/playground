@@ -231,8 +231,6 @@
   --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-lg);
   /* Gap between a content-filled control's edge and its outside focus outline */
   --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
-  /* Logo inset inside a notification pill — Figma UI Kit node 3292:2847. Measured, and off the layout grid like the card's. */
-  --dimension-spacing-semantic-notification-inset: 18px;
 
   /* ===== Dimension · Size · Semantic ===== */
   /* Inline icon in a control or pill */
@@ -265,20 +263,14 @@
   --dimension-size-semantic-round-button: 88px;
   /* The visible circle inside a round button's hit target */
   --dimension-size-semantic-round-button-circle: 72px;
-  /* Profile avatar in the main menu */
+  /* A round mark at the size the kit sets it: the profile avatar in the main menu, and the programme logo inside a notification */
   --dimension-size-semantic-avatar: var(--dimension-spacing-core-2xl);
   /* Live program logo in the main menu */
   --dimension-size-semantic-program-logo: var(--dimension-spacing-core-3xl);
   /* Channel bug in the main menu */
   --dimension-size-semantic-channel-bug: var(--dimension-spacing-core-4xl);
-  /* Program logo inside a notification */
-  --dimension-size-semantic-notification-logo: 44px;
-  /* Message notification pill — fixed in Figma UI Kit node 3292:2847, so the text sits in the same place whatever it says */
-  --dimension-size-semantic-notification-pill-width: 269px;
-  /* Text column inside a message notification — Figma UI Kit node 3833:6165 */
-  --dimension-size-semantic-notification-text-width: 172px;
-  /* Height of that text column: Figma sets it by hand to the logo's, not to the type scale's line height */
-  --dimension-size-semantic-notification-text-height: 44px;
+  /* Text column inside a message notification. The pill hugs it, so this is the one width the message is laid out to — 21 columns of the 8pt grid. */
+  --dimension-size-semantic-notification-text-width: 168px;
   /* Interactivity alert bug at rest, over the clean broadcast */
   --dimension-size-semantic-alert-bug: var(--dimension-spacing-core-6xl);
   /* Interactivity alert bug once it holds the focus */
@@ -296,9 +288,8 @@
   --dimension-border-width-semantic-card: var(--dimension-border-width-core-hairline);
   /* Snapped from 1.33–1.34px */
   --dimension-border-width-semantic-button: var(--dimension-border-width-core-hairline);
-  --dimension-border-width-semantic-section-focus: var(--dimension-border-width-core-thin);
+  /* The one ring width in the kit. Every focusable control draws this, through <FocusRing> or the outside focusOutline; there is deliberately no second, wider pill variant. */
   --dimension-border-width-semantic-focus-ring: var(--dimension-border-width-core-medium);
-  --dimension-border-width-semantic-pill-focus: var(--dimension-border-width-core-thick);
 
   /* ===== Typography · Font Family ===== */
   /* Names the typeface only. The CSS build appends the resolution chain (bundled variable copy, local install, system sans-serif). */

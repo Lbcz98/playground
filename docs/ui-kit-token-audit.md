@@ -124,7 +124,7 @@ exact mirror of ↘.
 | `radius.core.5xl` (card inner) | derived: `card-expanded` minus `focus-ring` width |
 | `spacing.core.md` / `lg` as card padding | `dimension.spacing.semantic.card-inset` / `card-inset-expanded` |
 | `spacing.core.3xs` as the card ring inset | `dimension.border-width.semantic.focus-ring` |
-| `border-width.core.thin` (channel bug) | `dimension.border-width.semantic.section-focus` (existing) |
+| `border-width.core.thin` (channel bug) | `dimension.spacing.semantic.focus-offset` — the gap between the bug and its outside outline. Planned as `border-width.semantic.section-focus`; that token was never used and has been dropped, along with `pill-focus`, so the kit names exactly one ring width. |
 | icon/avatar sizes spelled as spacing steps | `dimension.size.semantic.icon-*`, `avatar`, `program-logo`, `channel-bug`, `control-height*` |
 | `untokenized.ts` (`CARD`, `ROUNDED`, `WIDE`) | `dimension.size.semantic.card-*`, `round-button*`, `wide-button-width`, `icon-round-rest` — file deleted |
 | on-grid paddings and gaps | typed `spacing()` / `<Box>` / `<Stack>` |

@@ -14,13 +14,18 @@
  * `round-button` (the hit target) around `round-button-circle` (the visible
  * pill), exactly as `RoundButtonShell` builds it.
  *
- * Both boxes inside the pill are fixed, the way Figma draws them rather than the
- * way they would hug: the pill is 269 wide however short the message is, and the
- * text column is 172×44 — a height Figma set to the logo's, not to the type
- * scale's line height. Figma's `Iluminação`, the light pooling in the focused
- * pill, is the glow `<FocusRing>` already carries, so it is not drawn a second
- * time here; what remains of the difference is the ring's own strength, which is
- * kit-wide and lives in `opacity.semantic.focus-glow`.
+ * Every step across the pill comes off the layout grid and the token list — `sm`
+ * inset, `xs` gap, an `avatar`-sized logo — and the pill hugs them, so its width
+ * is the sum of its parts rather than a number of its own. The one measure it
+ * fixes is the text column, `notification-text-width`, which is what keeps a
+ * one-line message and a two-line one the same shape. Figma draws this pill from
+ * hand-set values off the grid (18 inset, a 44 logo, 269 wide); the grid is the
+ * source of truth, and the Figma component is kept to it rather than the reverse.
+ *
+ * Figma's `Iluminação`, the light pooling in the focused pill, is the glow
+ * `<FocusRing>` already carries, so it is not drawn a second time here; what
+ * remains of the difference is the ring's own strength, which is kit-wide and
+ * lives in `opacity.semantic.focus-glow`.
  */
 
 import type { CSSProperties, ReactNode } from 'react'
@@ -71,8 +76,7 @@ const pill: CSSProperties = {
   alignItems: 'center',
   gap: spacing('xs'),
   height: size('round-button-circle'),
-  width: size('notification-pill-width'),
-  paddingInlineStart: token('--dimension-spacing-semantic-notification-inset'),
+  paddingInline: spacing('sm'),
   borderRadius: PILL,
 }
 
@@ -85,30 +89,28 @@ const restPill: CSSProperties = {
 /** `rounded` is the pill closed up around the logo alone. */
 const roundedPill: CSSProperties = {
   width: size('round-button-circle'),
-  paddingInlineStart: 0,
+  paddingInline: 0,
   justifyContent: 'center',
 }
 
 /**
- * Figma's `Texto` frame — a fixed box the message is centred in, so one line and
- * two sit in the same place. `white-space` is inherited, so this is also what
- * lets the title break; and being a flex column it blockifies the `<Text>` span,
- * which is what puts the line box on the text's own line height instead of the
- * one it would otherwise inherit from the page.
+ * The column the message is laid out to, so one line and two give the pill the
+ * same shape. `white-space` is inherited, so this is also what lets the title
+ * break; and being a flex column it blockifies the `<Text>` span, which is what
+ * puts the line box on the text's own line height instead of the one it would
+ * otherwise inherit from the page. It hugs that text, and the pill centres it.
  */
 const titleColumn: CSSProperties = {
   position: 'relative',
   display: 'flex',
   flexDirection: 'column',
-  justifyContent: 'center',
   width: size('notification-text-width'),
-  height: size('notification-text-height'),
   flexShrink: 0,
   whiteSpace: 'pre-line',
 }
 
 function Logo({ src }: { src?: string }): ReactNode {
-  const edge = size('notification-logo')
+  const edge = size('avatar')
   // Positioned, so it paints above `<FocusRing>`, which is: an unpositioned logo
   // goes under the ring's fill and the focused pill loses it altogether.
   const shape: CSSProperties = {
