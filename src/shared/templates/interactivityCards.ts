@@ -2,9 +2,11 @@
  * Interatividades · Cards — nível 3, one interactivity with the screen to itself.
  *
  * The third level clears everything else: one interactivity holds the screen, and
- * the only other thing on it is the button that closes it, anchored in the corner
- * the focus is on. The side matters twice over — the model shades that edge and
- * its bottom corner, and the frame puts the anchored cluster there.
+ * the only other thing on it is the `<CloseButton>` that closes it, anchored in
+ * the corner the focus is on — closing, not stepping back, which is why it is
+ * that control and not the back arrow. The side matters twice over — the model
+ * shades that edge and its bottom corner, and the frame puts the anchored
+ * cluster there.
  *
  * The panel's own contents stand in for the interactivity: the statistics, the
  * line-up and the rest are their own components in Figma and are not ported yet,
@@ -73,9 +75,7 @@ function cardsTemplate(side: Side): ScreenTemplate {
         },
         children: [
           panel(side),
-          // The kit's Close Button is not ported yet, so this is the back control
-          // the kit does have — labelled for what it actually draws.
-          { type: 'RoundedButton', props: { label: 'Voltar', interactionState: 'focus' }, anchor: true },
+          { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
         ],
       },
     },

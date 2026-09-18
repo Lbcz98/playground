@@ -47,6 +47,7 @@ import {
   type TextProps,
   alertBugSchema,
   buttonSchema,
+  closeButtonSchema,
   inputSchema,
   interactivityCardSchema,
   interactivityMenuSchema,
@@ -63,6 +64,7 @@ import { Button as UiKitCard } from '@/ui-kit/Button'
 import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
 import { LabelVideo } from '@/ui-kit/LabelVideo'
 import { MainMenu } from '@/ui-kit/MainMenu'
+import { CloseButton } from '@/ui-kit/CloseButton'
 import { Notification } from '@/ui-kit/Notification'
 import { RoundedButton } from '@/ui-kit/RoundedButton'
 import { WideButton } from '@/ui-kit/WideButton'
@@ -305,6 +307,10 @@ function renderRoundedButton(raw: Record<string, unknown>): ReactElement {
   return <RoundedButton {...roundedButtonSchema.parse(raw)} />
 }
 
+function renderCloseButton(raw: Record<string, unknown>): ReactElement {
+  return <CloseButton {...closeButtonSchema.parse(raw)} />
+}
+
 function renderNotification(raw: Record<string, unknown>): ReactElement {
   return <Notification {...notificationSchema.parse(raw)} />
 }
@@ -545,6 +551,7 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   LabelVideo: renderLabelVideo,
   WideButton: renderWideButton,
   RoundedButton: renderRoundedButton,
+  CloseButton: renderCloseButton,
   Notification: renderNotification,
   AlertBug: renderAlertBug,
 }

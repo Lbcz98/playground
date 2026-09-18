@@ -10,6 +10,7 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
     expect(reg.types.sort()).toEqual([
       'AlertBug',
       'Button',
+      'CloseButton',
       'Input',
       'InteractivityCard',
       'InteractivityMenu',

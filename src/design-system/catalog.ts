@@ -200,6 +200,14 @@ export const roundedButtonSchema = z
   .strict()
 export type RoundedButtonNodeProps = z.infer<typeof roundedButtonSchema>
 
+export const closeButtonSchema = z
+  .object({
+    label: z.string().default('Fechar'),
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+  })
+  .strict()
+export type CloseButtonNodeProps = z.infer<typeof closeButtonSchema>
+
 export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
 
 export const notificationSchema = z
@@ -411,10 +419,23 @@ export const Catalog = {
     type: 'RoundedButton',
     label: 'Rounded Button',
     category: 'form',
-    summary: 'The icon-only round control that closes an interactivity or steps back a level.',
+    summary: 'The icon-only round control that steps back a level. To dismiss an interactivity, use Close Button.',
     acceptsChildren: false,
     schema: roundedButtonSchema,
     defaultProps: roundedButtonSchema.parse({}),
+    controls: {
+      label: { kind: 'text', label: 'Label' },
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+    },
+  },
+  CloseButton: {
+    type: 'CloseButton',
+    label: 'Close Button',
+    category: 'form',
+    summary: 'The icon-only round control that closes an interactivity, anchored in the focused corner.',
+    acceptsChildren: false,
+    schema: closeButtonSchema,
+    defaultProps: closeButtonSchema.parse({}),
     controls: {
       label: { kind: 'text', label: 'Label' },
       interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
