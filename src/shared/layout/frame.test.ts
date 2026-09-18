@@ -94,6 +94,84 @@ describe('8pt grid', () => {
   })
 })
 
+describe('one focused element per screen', () => {
+  // The screen a live generation actually returned: the menu holds the programme
+  // AND a card holds the focus — two focus rings on one TV screen.
+  const twoFocused = {
+    version: 1,
+    screen: { model: 'home', level: 1 },
+    root: {
+      type: 'Stack',
+      props: { direction: 'vertical', justify: 'end', gap: 'sm', padding: 'none' },
+      children: [
+        {
+          type: 'InteractivityMenu',
+          children: [
+            { type: 'InteractivityCard', props: { title: 'Enquete' } },
+            { type: 'InteractivityCard', props: { title: 'Estatísticas', interactionState: 'focus' } },
+          ],
+        },
+        { type: 'MainMenu', props: { focusedItem: 'program' } },
+      ],
+    },
+  }
+
+  it('rejects two focused elements, naming both and how to rest one', () => {
+    const errors = frameLayoutErrors(twoFocused, S)
+    const problem = errors.find((e) => e.includes('elements are focused'))
+    expect(problem).toBeDefined()
+    expect(problem).toContain('<InteractivityCard>: interactionState "focus"')
+    expect(problem).toContain('<MainMenu>: focusedItem "program"')
+    expect(problem).toContain('a TV screen has exactly one')
+    expect(problem).toMatch(/focusedItem "none"/)
+  })
+
+  it('counts a focus the component takes by default, not only a declared one', () => {
+    // MainMenu with no props still focuses the programme — that is what it renders.
+    const implicit = {
+      ...twoFocused,
+      root: { ...twoFocused.root, children: [twoFocused.root.children[0], { type: 'MainMenu' }] },
+    }
+    expect(frameLayoutErrors(implicit, S).some((e) => e.includes('elements are focused'))).toBe(true)
+  })
+
+  it('accepts one focused element, and none at all', () => {
+    const one = {
+      ...twoFocused,
+      root: {
+        ...twoFocused.root,
+        children: [
+          {
+            type: 'InteractivityMenu',
+            children: [{ type: 'InteractivityCard', props: { title: 'Enquete' } }],
+          },
+          { type: 'MainMenu', props: { focusedItem: 'program' } },
+        ],
+      },
+    }
+    expect(frameLayoutErrors(one, S).some((e) => e.includes('elements are focused'))).toBe(false)
+
+    const none = {
+      version: 1,
+      screen: { model: 'alert', level: 0 },
+      root: {
+        type: 'Stack',
+        props: { direction: 'vertical', justify: 'end', align: 'end', gap: 'sm', padding: 'none' },
+        children: [{ type: 'AlertBug', props: { interactionState: 'default' } }],
+      },
+    }
+    expect(frameLayoutErrors(none, S)).toEqual([])
+  })
+
+  it('leaves a design system with no focus props alone', () => {
+    const errors = frameLayoutErrors(
+      { version: 1, root: { type: 'Group', children: [{ type: 'Label' }, { type: 'Label' }] } },
+      W3C_MANIFEST,
+    )
+    expect(errors.some((e) => e.includes('elements are focused'))).toBe(false)
+  })
+})
+
 describe('auditFrameLayout — the layout QA checklist', () => {
   it('passes the pricing-card fixture on every check', () => {
     const checks = auditFrameLayout(PRICING_CARD_BLUEPRINT, S)
@@ -115,13 +193,13 @@ describe('auditFrameLayout — the layout QA checklist', () => {
           props: { gap: 'lg' },
           children: [
             { type: 'Stack', props: { direction: 'horizontal', gap: 'xl' }, children: [{ type: 'Stack' }, { type: 'Stack' }] },
-            { type: 'Stack', props: { direction: 'horizontal', gap: 'xs' }, children: [{ type: 'Button' }, { type: 'Button' }] },
+            { type: 'Stack', props: { direction: 'horizontal', gap: '3xs' }, children: [{ type: 'Button' }, { type: 'Button' }] },
           ],
         },
       },
       S,
     )
-    expect(errors.some((e) => /^root <Stack>: gap "lg" is 24px .*use "md"/.test(e))).toBe(true)
+    expect(errors.some((e) => /^root <Stack>: gap "lg" is 24px .*use "sm"/.test(e))).toBe(true)
     expect(errors.some((e) => /^root › Stack\[0\] <Stack>: gap "xl" is 32px/.test(e))).toBe(true)
     expect(errors.some((e) => e.includes('Stack[1]'))).toBe(false)
   })

@@ -11,12 +11,14 @@
  *               frame itself applies the safe-area margin, so the root container
  *               adds none, and stacked modules / columns sit exactly one gutter
  *               apart. All in layout pixels.
- *   3. Focus  — screens are TV screens, so something is always focused. The
- *               canvas reads it off the rendered screen (`readingOrder`,
- *               `focusSideOf`) and pins the single anchored element group
- *               bottom-right, or mirrors it to the left margin when the focus is on
- *               the left. Nothing focusable → the bottom-right default. The master
- *               layout itself is never statically centered.
+ *   3. Focus  — screens are TV screens, so something is always focused, and only
+ *               one thing is: a screen whose props focus two elements is rejected
+ *               (`focusPropsFor`). WHERE the focus is, the canvas reads off the
+ *               rendered screen (`readingOrder`, `focusSideOf`) and pins the single
+ *               anchored element group bottom-right, or mirrors it to the left
+ *               margin when the focus is on the left. Nothing focusable → the
+ *               bottom-right default. The master layout itself is never statically
+ *               centered.
  *   4. Layers — the layer rule (Camadas, `design-system/screen-layers.ts`): the
  *               screen names its shade model and navigation level, and its content
  *               follows them.
@@ -252,6 +254,51 @@ export function uncenteredValue(prop: ManifestProp): string {
 }
 
 // ---------------------------------------------------------------------------
+// One focused element per screen
+// ---------------------------------------------------------------------------
+
+/** The values a `focusedSomething` prop takes to mean "nothing here is focused". */
+const UNFOCUSED = new Set(['none', 'null', ''])
+
+/**
+ * Which of a component's props can put it in a focus state. Read off the
+ * manifest rather than off component names: either a state prop that can be
+ * `"focus"` (a card, a button), or a prop named for what it focuses, whose
+ * resting value says nothing is (a menu's `focusedItem: "none"`).
+ */
+export function focusPropsFor(component: ManifestComponent): ManifestProp[] {
+  return Object.values(component.props).filter(
+    (prop) => prop.options?.includes('focus') || /^focus/i.test(prop.name),
+  )
+}
+
+/** The resting value of a focus prop — what the elements that lose it get set to. */
+export function unfocusedValue(prop: ManifestProp): string {
+  if (prop.options?.includes('focus')) {
+    return (
+      prop.options.find((option) => option === 'default') ??
+      prop.options.find((option) => option !== 'focus') ??
+      'default'
+    )
+  }
+  return prop.options?.find((option) => UNFOCUSED.has(option)) ?? 'none'
+}
+
+/** Whether this node's props put it in a focus state, and through which prop. */
+function focusedBy(node: FrameNode, component: ManifestComponent): ManifestProp | undefined {
+  for (const prop of focusPropsFor(component)) {
+    const value = propValue(node, prop)
+    if (prop.options?.includes('focus')) {
+      if (value === 'focus') return prop
+      continue
+    }
+    if (value === true) return prop
+    if (typeof value === 'string' && !UNFOCUSED.has(value)) return prop
+  }
+  return undefined
+}
+
+// ---------------------------------------------------------------------------
 // Tree helpers — work on untrusted Blueprint nodes and on CanvasNodes alike
 // ---------------------------------------------------------------------------
 
@@ -330,6 +377,8 @@ export function auditFrameLayout(
   const margins: string[] = []
   const grid: string[] = []
   const focus: string[] = []
+  /** Every node whose props put it in a focus state — a TV screen allows one. */
+  const focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[] = []
 
   for (const [name, px] of [
     ['layout width', FRAME.base.width],
@@ -354,6 +403,11 @@ export function auditFrameLayout(
       }
     }
     if (!component) return
+
+    const focusProp = focusedBy(node, component)
+    if (focusProp) {
+      focused.push({ path, component, prop: focusProp, value: propValue(node, focusProp) })
+    }
 
     for (const prop of Object.values(component.props)) {
       if (prop.tokenGroup !== 'spacing') continue
@@ -422,6 +476,20 @@ export function auditFrameLayout(
         `root: ${anchored.length} children are anchored — anchor at most one element group per frame.`,
       )
     }
+
+    if (focused.length > 1) {
+      const list = focused
+        .map((f) => `${f.path} <${f.component.id}>: ${f.prop.name} ${JSON.stringify(f.value)}`)
+        .join('; ')
+      const resting = focused
+        .slice(1)
+        .map((f) => `${f.prop.name} ${JSON.stringify(unfocusedValue(f.prop))}`)
+        .join(' / ')
+      focus.push(
+        `${focused.length} elements are focused (${list}) — a TV screen has exactly one: the one the viewer is on. ` +
+          `Keep the one the screen is about and rest the others (${resting}).`,
+      )
+    }
   }
 
   const check = (id: FrameCheckId, label: string, problems: string[]): FrameCheck => ({
@@ -440,7 +508,7 @@ export function auditFrameLayout(
     ),
     check('margins', `${FRAME.margin}px safe-area margins`, margins),
     check('grid', `${FRAME.grid}pt grid · ${FRAME.gutter}px gutters`, grid),
-    check('focus', 'Focus alignment — no static centering, one anchored group', focus),
+    check('focus', 'Focus — no static centering, one focused element, one anchored group', focus),
     check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side', auditScreenLayers(d, manifest)),
   ]
 }
