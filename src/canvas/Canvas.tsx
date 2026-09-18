@@ -1,10 +1,9 @@
-import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type RefObject, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasNode } from '@/model/nodeTree'
 import { useFlowStore } from '@/store/flowStore'
 import { type FocusReading, useFrameStore } from '@/store/frameStore'
 import { useActiveDesignSystem, useHydratedRegistry } from '@/design-system/DesignSystemProvider'
 import type { HydratedRegistry } from '@/design-system/registry'
-import { applyTokens, manifestTokensToCssVars, purgeTokens, screenflowBaseVars } from '@/design-system/cssVars'
 import {
   type AnchorZone,
   type FocusBox,
@@ -19,10 +18,11 @@ import {
   focusSideOf,
   readingOrder,
 } from '@/shared/layout/frame'
-import type { ManifestScreenLayers, ManifestScreenModel } from '@/shared/design-system/manifest'
+import type { ManifestScreenModel } from '@/shared/design-system/manifest'
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { cx } from '@/lib/cx'
 import { NodeRenderer } from './NodeRenderer'
+import { ScreenFrame } from './ScreenFrame'
 
 /**
  * The canvas stage. Every screen is laid out on the 1280×720 TV canvas
@@ -31,28 +31,13 @@ import { NodeRenderer } from './NodeRenderer'
  * is a pure scale of the same layout, never a re-layout. On top of that the frame
  * is scaled down to fit the stage.
  *
- * The frame stacks the layer rule's three layers (Camadas): the frame surface
- * stands in for the video, the screen's layer model paints its shades over it
- * (`ScreenShades`, the only absolutely positioned layer — it fills the frame and
- * takes no pointer events), and the content sits on top.
- *
- * The frame owns the safe-area margin and the gutter, and holds two content
- * zones, both plain flex (no absolute positioning, no drag-to-place):
- *   - content — the root node, filling the frame
- *   - anchor  — the root's anchored child (the element group), pinned to the
- *               bottom corner on the side the TV focus is on
- * Clicking the stage background clears the selection.
+ * The frame itself — the layer rule's three layers and the two content zones —
+ * is `ScreenFrame`, which a template story renders too, so what the canvas shows
+ * and what a snapshot shows can't drift apart. Clicking the stage background
+ * clears the selection.
  *
  * The TV focus is read off the rendered content, never chosen by hand (see
  * `useTvFocus`).
- *
- * `data-canvas-theme="active"` is the ONLY place the active design system's
- * tokens land as CSS custom properties (spec §7b — tool/artifact isolation):
- * the app shell (toolbar, sidebars, Property Inspector controls) never sees
- * them and stays on its static Tailwind classes. The built-in ScreenFlow
- * values are seeded first so every `--sfs-*` var the generic renderer reads
- * is always defined, even when an imported system supplies only a partial
- * token set.
  */
 export function Canvas(): JSX.Element {
   const tree = useFlowStore((s) => s.tree)
@@ -71,22 +56,6 @@ export function Canvas(): JSX.Element {
   const fit = useFitScale(stageRef, statusRef, shown)
   useTvFocus(surfaceRef, contentRef, tree, selectedId, size, registry)
 
-  useEffect(() => {
-    const el = surfaceRef.current
-    if (!el) return
-    applyTokens(el, { ...screenflowBaseVars(), ...manifestTokensToCssVars(active.tokens) })
-    return () => purgeTokens(el)
-  }, [active])
-
-  // The anchored group renders in its own zone. Ids are untouched, so selection,
-  // the Layers panel and the Inspector still address the real tree.
-  const { content, anchored } = useMemo(
-    () => ({
-      content: { ...tree, children: tree.children.filter((child) => !child.anchor) },
-      anchored: tree.children.filter((child) => child.anchor),
-    }),
-    [tree],
-  )
   const zone = anchorZone(focus.side)
   const layers = screenLayersOf(active)
   const model = screenModel(layers, tree.screen?.model)
@@ -98,7 +67,7 @@ export function Canvas(): JSX.Element {
   return (
     <div
       ref={stageRef}
-      className="flex h-full min-w-none flex-1 flex-col items-center justify-center gap-sm overflow-hidden bg-page p-2xl"
+      className="flex h-full min-w-none flex-1 flex-col items-center justify-center gap-2xs overflow-hidden bg-page p-3xl"
       onClick={() => select(null)}
     >
       <FrameStatus
@@ -111,69 +80,18 @@ export function Canvas(): JSX.Element {
         screen={describeScreen(active, tree.screen)}
       />
       <div className="shrink-0" style={{ width: shown.width * fit, height: shown.height * fit }}>
-        <div
-          ref={surfaceRef}
-          data-canvas-theme="active"
-          data-frame-size={size}
-          data-focus={focus.side}
-          data-screen-layer="video"
-          className="sfs-canvas-surface relative flex h-frame w-frame origin-top-left flex-col gap-frame-gutter overflow-hidden p-frame-margin font-sans"
-          style={{ transform: `scale(${shown.scale * fit})`, backgroundColor: 'var(--sfs-color-surface)' }}
-        >
-          {model ? <ScreenShades layers={layers} model={model} /> : null}
-          <div
-            ref={contentRef}
-            data-screen-layer="content"
-            className="relative grid min-h-none flex-1 grid-cols-1 grid-rows-1"
-          >
-            <NodeRenderer node={content} />
-          </div>
-          {anchored.length > 0 ? (
-            <div
-              data-anchor-zone={zone}
-              className={cx(
-                'relative flex gap-frame-gutter',
-                zone === 'bottom-left' ? 'justify-start' : 'justify-end',
-              )}
-            >
-              {anchored.map((node) => (
-                <NodeRenderer key={node.id} node={node} />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const FILL = { position: 'absolute', inset: 0 } as const
-
-/**
- * The overlay layer: the model's shades, bottom to top. The scrim is a colour,
- * every other shade a gradient — each one the semantic token the rule names.
- */
-function ScreenShades({
-  layers,
-  model,
-}: {
-  layers: ManifestScreenLayers
-  model: ManifestScreenModel
-}): JSX.Element {
-  return (
-    <div aria-hidden data-screen-layer="overlay" data-screen-model={model.id} className="pointer-events-none" style={FILL}>
-      {model.shades.map((shade) => (
-        <div
-          key={shade}
-          data-shade={shade}
-          style={{
-            ...FILL,
-            ...(shade === 'scrim'
-              ? { backgroundColor: `var(${layers.shades[shade]})` }
-              : { backgroundImage: `var(${layers.shades[shade]})` }),
-          }}
+        <ScreenFrame
+          tree={tree}
+          layers={layers}
+          tokens={active.tokens}
+          focusSide={focus.side}
+          scale={shown.scale * fit}
+          size={size}
+          surfaceRef={surfaceRef}
+          contentRef={contentRef}
+          renderNode={(node) => <NodeRenderer node={node} />}
         />
-      ))}
+      </div>
     </div>
   )
 }
@@ -325,10 +243,10 @@ function FrameStatus({
   return (
     <div
       ref={statusRef}
-      className="flex w-full flex-col items-center gap-xs"
+      className="flex w-full flex-col items-center gap-3xs"
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex flex-wrap items-center justify-center gap-sm text-xs text-ink-muted">
+      <div className="flex flex-wrap items-center justify-center gap-2xs text-xs text-ink-muted">
         <span className="font-medium text-ink">
           Frame {shown.label}
           {shown.scale !== 1 ? ` (${FRAME.base.width}×${FRAME.base.height} × ${shown.scale})` : ''}
@@ -341,7 +259,7 @@ function FrameStatus({
         <span
           title={checks.map((check) => `${check.ok ? '✓' : '✗'} ${check.label}`).join('\n')}
           className={cx(
-            'rounded-full px-sm py-xs font-medium',
+            'rounded-full px-2xs py-3xs font-medium',
             problems.length > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success',
           )}
         >
@@ -349,7 +267,7 @@ function FrameStatus({
         </span>
       </div>
       {problems.length > 0 ? (
-        <ul className="m-none flex list-none flex-col items-center gap-xs p-none text-xs text-danger">
+        <ul className="m-none flex list-none flex-col items-center gap-3xs p-none text-xs text-danger">
           {problems.slice(0, MAX_LISTED_PROBLEMS).map((problem) => (
             <li key={problem}>{problem}</li>
           ))}
