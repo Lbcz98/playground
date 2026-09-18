@@ -231,6 +231,8 @@
   --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-lg);
   /* Gap between a content-filled control's edge and its outside focus outline */
   --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
+  /* Logo inset inside a notification pill — Figma UI Kit node 3292:2847. Measured, and off the layout grid like the card's. */
+  --dimension-spacing-semantic-notification-inset: 18px;
 
   /* ===== Dimension · Size · Semantic ===== */
   /* Inline icon in a control or pill */
@@ -269,6 +271,20 @@
   --dimension-size-semantic-program-logo: var(--dimension-spacing-core-3xl);
   /* Channel bug in the main menu */
   --dimension-size-semantic-channel-bug: var(--dimension-spacing-core-4xl);
+  /* Program logo inside a notification */
+  --dimension-size-semantic-notification-logo: 44px;
+  /* Message notification pill — fixed in Figma UI Kit node 3292:2847, so the text sits in the same place whatever it says */
+  --dimension-size-semantic-notification-pill-width: 269px;
+  /* Text column inside a message notification — Figma UI Kit node 3833:6165 */
+  --dimension-size-semantic-notification-text-width: 172px;
+  /* Height of that text column: Figma sets it by hand to the logo's, not to the type scale's line height */
+  --dimension-size-semantic-notification-text-height: 44px;
+  /* Interactivity alert bug at rest, over the clean broadcast */
+  --dimension-size-semantic-alert-bug: var(--dimension-spacing-core-6xl);
+  /* Interactivity alert bug once it holds the focus */
+  --dimension-size-semantic-alert-bug-focus: 104px;
+  /* Alert bug in its transmission style, the broadcaster's own mark */
+  --dimension-size-semantic-alert-bug-transmission: 128px;
 
   /* ===== Dimension · Border Width · Core ===== */
   --dimension-border-width-core-hairline: 1px;

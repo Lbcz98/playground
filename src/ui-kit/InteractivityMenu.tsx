@@ -16,7 +16,7 @@
  * own interaction state either.
  */
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { Children, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { spacing, Stack, Text } from '@/primitives'
 import { Button, type ButtonState } from './Button'
 
@@ -28,12 +28,25 @@ export interface InteractivityMenuItem {
 }
 
 export interface InteractivityMenuProps {
-  items: InteractivityMenuItem[]
+  /** The rail's cards. Ignored when `children` are given. */
+  items?: InteractivityMenuItem[]
+  /**
+   * The cards, composed instead of described — how the canvas builds the rail,
+   * where each card is its own node carrying its own interaction state. The row
+   * then expands through those children rather than `activeIndex`.
+   */
+  children?: ReactNode
   /** Index of the focused item. `null`/`undefined` = the rail at rest, every
    *  item `default`. Any other index expands the whole row. */
   activeIndex?: number | null
   /** Optional label above the rail, right-aligned to match the source usage. */
   heading?: string
+  /**
+   * Which edge the cards sit on when they don't fill the row. The home screen
+   * keeps its rail on the right, over the anchored side of the menu; a focused
+   * rail (nível 2) starts from the left. Default `start`.
+   */
+  align?: 'start' | 'end'
 }
 
 /** Scrolls horizontally, so it stays a plain element rather than a Stack. */
@@ -51,8 +64,10 @@ function stateFor(index: number, activeIndex: number | null | undefined): Button
 
 export function InteractivityMenu({
   items,
+  children,
   activeIndex = null,
   heading,
+  align = 'start',
 }: InteractivityMenuProps): ReactNode {
   const itemRefs = useRef<Array<HTMLDivElement | null>>([])
 
@@ -72,26 +87,28 @@ export function InteractivityMenu({
           {heading}
         </Text>
       )}
-      <div style={rail}>
-        {items.map((item, index) => (
-          <div
-            key={index}
-            ref={(el) => {
-              itemRefs.current[index] = el
-            }}
-            style={{ flexShrink: 0 }}
-          >
-            <Button
-              interactionState={stateFor(index, activeIndex)}
-              title={item.title}
-              overline=""
-              subtitle=""
-              live={false}
-              thumbnail={item.thumbnail}
-              onClick={item.onClick}
-            />
-          </div>
-        ))}
+      <div style={{ ...rail, justifyContent: align === 'end' ? 'flex-end' : 'flex-start' }}>
+        {children != null
+          ? Children.map(children, (card) => <div style={{ flexShrink: 0 }}>{card}</div>)
+          : (items ?? []).map((item, index) => (
+              <div
+                key={index}
+                ref={(el) => {
+                  itemRefs.current[index] = el
+                }}
+                style={{ flexShrink: 0 }}
+              >
+                <Button
+                  interactionState={stateFor(index, activeIndex)}
+                  title={item.title}
+                  overline=""
+                  subtitle=""
+                  live={false}
+                  thumbnail={item.thumbnail}
+                  onClick={item.onClick}
+                />
+              </div>
+            ))}
       </div>
     </Stack>
   )

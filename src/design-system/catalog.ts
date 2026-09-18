@@ -10,6 +10,13 @@
  */
 
 import { z } from 'zod'
+import type { AlertBugStyle } from '@/ui-kit/AlertBug'
+import type { ButtonState } from '@/ui-kit/Button'
+import type { LabelVideoKind } from '@/ui-kit/LabelVideo'
+import type { MainMenuItem } from '@/ui-kit/MainMenu'
+import type { NotificationKind } from '@/ui-kit/Notification'
+import type { RoundButtonState } from '@/ui-kit/RoundButtonShell'
+import type { WideButtonStatus } from '@/ui-kit/WideButton'
 import {
   BUTTON_VARIANTS,
   CONTROL_SIZES,
@@ -60,7 +67,7 @@ const shadowEnum = z.enum(SHADOW_TOKENS)
 export const stackSchema = z
   .object({
     direction: z.enum(STACK_DIRECTIONS).default('vertical'),
-    gap: spaceEnum.default('md'),
+    gap: spaceEnum.default('sm'),
     padding: spaceEnum.default('none'),
     align: z.enum(STACK_ALIGN).default('stretch'),
     justify: z.enum(STACK_JUSTIFY).default('start'),
@@ -104,6 +111,116 @@ export const inputSchema = z
   })
   .strict()
 export type InputProps = z.infer<typeof inputSchema>
+
+// ===========================================================================
+// DTV UI Kit — the parts a real screen is made of (`src/ui-kit`)
+// ===========================================================================
+
+/**
+ * The option lists mirror each component's own union, `satisfies` proving it at
+ * compile time. The imports are type-only, so this file stays runtime-free for
+ * the Electron main process.
+ */
+export const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly ButtonState[]
+export const CONTROL_STATES = ['default', 'focus'] as const satisfies readonly RoundButtonState[]
+export const WIDE_BUTTON_STATES = [
+  'default',
+  'focus',
+  'loading',
+  'disabled',
+] as const satisfies readonly WideButtonStatus[]
+export const LABEL_VIDEO_KINDS = ['live', 'replay'] as const satisfies readonly LabelVideoKind[]
+/** `none` is focus elsewhere on the screen — the component's `null`. */
+export const MAIN_MENU_ITEMS = [
+  'program',
+  'profile',
+  'schedule',
+  'weather',
+  'channel-bug',
+  'none',
+] as const satisfies readonly (MainMenuItem | 'none')[]
+
+export const mainMenuSchema = z
+  .object({
+    focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
+    programTitle: z.string().default('Copa do Mundo: Equador x Argentina'),
+    programSubtitle: z.string().default('A seguir Central da Copa'),
+    weatherTitle: z.string().default('Previsão do tempo'),
+    weatherSubtitle: z.string().default('São Paulo, SP'),
+  })
+  .strict()
+export type MainMenuNodeProps = z.infer<typeof mainMenuSchema>
+
+export const RAIL_ALIGN = ['start', 'end'] as const
+
+export const interactivityMenuSchema = z
+  .object({
+    heading: z.string().default(''),
+    align: z.enum(RAIL_ALIGN).default('start'),
+  })
+  .strict()
+export type InteractivityMenuNodeProps = z.infer<typeof interactivityMenuSchema>
+
+export const interactivityCardSchema = z
+  .object({
+    title: z.string().default('Title'),
+    overline: z.string().default(''),
+    subtitle: z.string().default(''),
+    live: z.boolean().default(false),
+    check: z.boolean().default(false),
+    interactionState: z.enum(CARD_STATES).default('default'),
+  })
+  .strict()
+export type InteractivityCardProps = z.infer<typeof interactivityCardSchema>
+
+export const labelVideoSchema = z
+  .object({
+    kind: z.enum(LABEL_VIDEO_KINDS).default('live'),
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+    mini: z.boolean().default(false),
+  })
+  .strict()
+export type LabelVideoNodeProps = z.infer<typeof labelVideoSchema>
+
+export const wideButtonSchema = z
+  .object({
+    label: z.string().default('Label'),
+    interactionState: z.enum(WIDE_BUTTON_STATES).default('default'),
+    iconLeft: z.boolean().default(false),
+    iconRight: z.boolean().default(false),
+  })
+  .strict()
+export type WideButtonNodeProps = z.infer<typeof wideButtonSchema>
+
+export const roundedButtonSchema = z
+  .object({
+    label: z.string().default('Voltar'),
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+  })
+  .strict()
+export type RoundedButtonNodeProps = z.infer<typeof roundedButtonSchema>
+
+export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
+
+export const notificationSchema = z
+  .object({
+    kind: z.enum(NOTIFICATION_KINDS).default('message'),
+    title: z.string().default('Paredão formado!\nVote agora para eliminar'),
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+  })
+  .strict()
+export type NotificationNodeProps = z.infer<typeof notificationSchema>
+
+export const ALERT_BUG_STYLES = ['interface', 'transmission'] as const satisfies readonly AlertBugStyle[]
+
+export const alertBugSchema = z
+  .object({
+    bugStyle: z.enum(ALERT_BUG_STYLES).default('interface'),
+    label: z.string().default('Conteúdo interativo'),
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+  })
+  .strict()
+export type AlertBugNodeProps = z.infer<typeof alertBugSchema>
 
 // ===========================================================================
 // Catalog
@@ -177,6 +294,130 @@ export const Catalog = {
       size: { kind: 'select', label: 'Size', options: CONTROL_SIZES },
       state: { kind: 'select', label: 'State', options: ['default', 'error'] },
       helpText: { kind: 'text', label: 'Help text' },
+    },
+  },
+
+  // --- DTV UI Kit ---------------------------------------------------------
+
+  MainMenu: {
+    type: 'MainMenu',
+    label: 'Main Menu',
+    category: 'layout',
+    summary:
+      'The home menu pinned along the bottom edge: profile, schedule and weather on the left, the live program and the channel bug on the right. One screen has at most one, and it belongs in the anchored cluster.',
+    acceptsChildren: false,
+    schema: mainMenuSchema,
+    defaultProps: mainMenuSchema.parse({}),
+    controls: {
+      focusedItem: { kind: 'select', label: 'Focused item', options: MAIN_MENU_ITEMS },
+      programTitle: { kind: 'text', label: 'Program title' },
+      programSubtitle: { kind: 'text', label: 'Program subtitle' },
+      weatherTitle: { kind: 'text', label: 'Weather title' },
+      weatherSubtitle: { kind: 'text', label: 'Weather subtitle' },
+    },
+  },
+  InteractivityMenu: {
+    type: 'InteractivityMenu',
+    label: 'Interactivity Menu',
+    category: 'layout',
+    summary:
+      'A horizontal rail of interactivity cards. On the home screen it carries no heading and sits on the right; once the viewer enters it the whole row expands, the entered card taking the focus and the rest going selected.',
+    acceptsChildren: true,
+    schema: interactivityMenuSchema,
+    defaultProps: interactivityMenuSchema.parse({}),
+    controls: {
+      heading: { kind: 'text', label: 'Heading' },
+      align: { kind: 'select', label: 'Align', options: RAIL_ALIGN },
+    },
+  },
+  InteractivityCard: {
+    type: 'InteractivityCard',
+    label: 'Interactivity Card',
+    category: 'content',
+    summary:
+      'One card in a rail. As an interactivity it is the way into a nível 3 screen and carries its title alone — no overline, no subtitle, no live badge. Overline, subtitle and the live badge belong to the schedule section, where a card stands for a programme.',
+    acceptsChildren: false,
+    schema: interactivityCardSchema,
+    defaultProps: interactivityCardSchema.parse({}),
+    controls: {
+      title: { kind: 'text', label: 'Title' },
+      overline: { kind: 'text', label: 'Overline' },
+      subtitle: { kind: 'text', label: 'Subtitle' },
+      live: { kind: 'boolean', label: 'Live badge' },
+      check: { kind: 'boolean', label: 'Check mark' },
+      interactionState: { kind: 'select', label: 'State', options: CARD_STATES },
+    },
+  },
+  LabelVideo: {
+    type: 'LabelVideo',
+    label: 'Label Video',
+    category: 'content',
+    summary: 'The AO VIVO / REPLAY chip that says what the video behind the screen is.',
+    acceptsChildren: false,
+    schema: labelVideoSchema,
+    defaultProps: labelVideoSchema.parse({}),
+    controls: {
+      kind: { kind: 'select', label: 'Kind', options: LABEL_VIDEO_KINDS },
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+      mini: { kind: 'boolean', label: 'Mini' },
+    },
+  },
+  WideButton: {
+    type: 'WideButton',
+    label: 'Wide Button',
+    category: 'form',
+    summary: 'The pill call-to-action of a screen — "Assistir", "Entrar na sala". Text with optional icons.',
+    acceptsChildren: false,
+    schema: wideButtonSchema,
+    defaultProps: wideButtonSchema.parse({}),
+    controls: {
+      label: { kind: 'text', label: 'Label' },
+      interactionState: { kind: 'select', label: 'State', options: WIDE_BUTTON_STATES },
+      iconLeft: { kind: 'boolean', label: 'Icon left' },
+      iconRight: { kind: 'boolean', label: 'Icon right' },
+    },
+  },
+  Notification: {
+    type: 'Notification',
+    label: 'Notification',
+    category: 'content',
+    summary:
+      'The message that arrives in the top-right corner, over whatever is on screen: the programme logo and a line saying why it came. `rounded` withholds the text and shows the logo alone. It carries no scrim of its own — a screen showing one uses a layer model whose shades include the top-right corner.',
+    acceptsChildren: false,
+    schema: notificationSchema,
+    defaultProps: notificationSchema.parse({}),
+    controls: {
+      kind: { kind: 'select', label: 'Kind', options: NOTIFICATION_KINDS },
+      title: { kind: 'textarea', label: 'Title' },
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+    },
+  },
+  AlertBug: {
+    type: 'AlertBug',
+    label: 'Alert Bug',
+    category: 'content',
+    summary:
+      'The bug in the bottom-right corner that says an interactivity is waiting. It is the whole of a nível 0 screen, over the clean broadcast. `interface` is the kit\u2019s own bug and can hold the focus; `transmission` is the broadcaster\u2019s larger mark and never does.',
+    acceptsChildren: false,
+    schema: alertBugSchema,
+    defaultProps: alertBugSchema.parse({}),
+    controls: {
+      bugStyle: { kind: 'select', label: 'Style', options: ALERT_BUG_STYLES },
+      label: { kind: 'text', label: 'Label' },
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+    },
+  },
+  RoundedButton: {
+    type: 'RoundedButton',
+    label: 'Rounded Button',
+    category: 'form',
+    summary: 'The icon-only round control that closes an interactivity or steps back a level.',
+    acceptsChildren: false,
+    schema: roundedButtonSchema,
+    defaultProps: roundedButtonSchema.parse({}),
+    controls: {
+      label: { kind: 'text', label: 'Label' },
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
     },
   },
 } as const satisfies Record<string, CatalogEntry>

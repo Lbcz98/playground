@@ -7,13 +7,26 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
   const reg = hydrateRegistry(SCREENFLOW_MANIFEST)
 
   it('exposes every manifest component with a real (non-generic) renderer', () => {
-    expect(reg.types.sort()).toEqual(['Button', 'Input', 'Stack', 'Text'])
+    expect(reg.types.sort()).toEqual([
+      'AlertBug',
+      'Button',
+      'Input',
+      'InteractivityCard',
+      'InteractivityMenu',
+      'LabelVideo',
+      'MainMenu',
+      'Notification',
+      'RoundedButton',
+      'Stack',
+      'Text',
+      'WideButton',
+    ])
     for (const t of reg.types) expect(reg.get(t)!.generic).toBe(false)
   })
 
   it('carries compiled schema, default props and synthesised controls', () => {
     const stack = reg.get('Stack')!
-    expect(stack.defaultProps.gap).toBe('md')
+    expect(stack.defaultProps.gap).toBe('sm')
     expect(stack.schema.safeParse(stack.defaultProps).success).toBe(true)
     expect(stack.controls.gap).toEqual({ kind: 'select', label: 'Gap', options: expect.any(Array) })
     expect(stack.controls.bordered).toEqual({ kind: 'boolean', label: 'Bordered' })

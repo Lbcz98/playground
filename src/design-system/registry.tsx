@@ -45,11 +45,27 @@ import {
   type InputProps,
   type StackProps,
   type TextProps,
+  alertBugSchema,
   buttonSchema,
   inputSchema,
+  interactivityCardSchema,
+  interactivityMenuSchema,
+  labelVideoSchema,
+  mainMenuSchema,
+  notificationSchema,
+  roundedButtonSchema,
   stackSchema,
   textSchema,
+  wideButtonSchema,
 } from './catalog'
+import { AlertBug } from '@/ui-kit/AlertBug'
+import { Button as UiKitCard } from '@/ui-kit/Button'
+import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
+import { LabelVideo } from '@/ui-kit/LabelVideo'
+import { MainMenu } from '@/ui-kit/MainMenu'
+import { Notification } from '@/ui-kit/Notification'
+import { RoundedButton } from '@/ui-kit/RoundedButton'
+import { WideButton } from '@/ui-kit/WideButton'
 
 export type { Control, ComponentCategory } from './catalog'
 
@@ -183,9 +199,9 @@ function renderText(raw: Record<string, unknown>): ReactElement {
 // ===========================================================================
 
 const BUTTON_SIZE_CLASS: Record<ButtonProps['size'], string> = {
-  sm: 'text-sm px-sm py-xs gap-xs',
-  md: 'text-md px-md py-sm gap-xs',
-  lg: 'text-lg px-lg py-md gap-sm',
+  sm: 'text-sm px-2xs py-3xs gap-3xs',
+  md: 'text-md px-sm py-2xs gap-3xs',
+  lg: 'text-lg px-lg py-sm gap-2xs',
 }
 const BUTTON_VARIANT_CLASS: Record<ButtonProps['variant'], string> = {
   primary: 'bg-brand text-ink-inverse hover:bg-brand-hover',
@@ -219,9 +235,9 @@ function renderButton(raw: Record<string, unknown>): ReactElement {
 // ===========================================================================
 
 const INPUT_SIZE_CLASS: Record<InputProps['size'], string> = {
-  sm: 'text-sm px-sm py-xs',
-  md: 'text-md px-md py-sm',
-  lg: 'text-lg px-md py-sm',
+  sm: 'text-sm px-2xs py-3xs',
+  md: 'text-md px-sm py-2xs',
+  lg: 'text-lg px-sm py-2xs',
 }
 const INPUT_STATE_CLASS: Record<InputProps['state'], string> = {
   default: 'border-line',
@@ -231,7 +247,7 @@ const INPUT_STATE_CLASS: Record<InputProps['state'], string> = {
 function renderInput(raw: Record<string, unknown>): ReactElement {
   const p = inputSchema.parse(raw)
   return (
-    <div className="flex flex-col gap-xs">
+    <div className="flex flex-col gap-3xs">
       {p.label ? <span className="text-sm font-medium text-ink">{p.label}</span> : null}
       <input
         type="text"
@@ -250,6 +266,51 @@ function renderInput(raw: Record<string, unknown>): ReactElement {
       ) : null}
     </div>
   )
+}
+
+// ===========================================================================
+// DTV UI Kit — the real components, straight from `src/ui-kit`. No styling
+// lives here: each renderer only parses the node's props and hands them over,
+// so the canvas and Storybook draw the very same element.
+// ===========================================================================
+
+function renderMainMenu(raw: Record<string, unknown>): ReactElement {
+  const { focusedItem, ...rest } = mainMenuSchema.parse(raw)
+  return <MainMenu focusedItem={focusedItem === 'none' ? null : focusedItem} {...rest} />
+}
+
+function renderInteractivityMenu(raw: Record<string, unknown>, children: ReactNode): ReactElement {
+  const p = interactivityMenuSchema.parse(raw)
+  return (
+    <InteractivityMenu heading={p.heading || undefined} align={p.align}>
+      {children}
+    </InteractivityMenu>
+  )
+}
+
+function renderInteractivityCard(raw: Record<string, unknown>): ReactElement {
+  const p = interactivityCardSchema.parse(raw)
+  return <UiKitCard {...p} />
+}
+
+function renderLabelVideo(raw: Record<string, unknown>): ReactElement {
+  return <LabelVideo {...labelVideoSchema.parse(raw)} />
+}
+
+function renderWideButton(raw: Record<string, unknown>): ReactElement {
+  return <WideButton {...wideButtonSchema.parse(raw)} />
+}
+
+function renderRoundedButton(raw: Record<string, unknown>): ReactElement {
+  return <RoundedButton {...roundedButtonSchema.parse(raw)} />
+}
+
+function renderNotification(raw: Record<string, unknown>): ReactElement {
+  return <Notification {...notificationSchema.parse(raw)} />
+}
+
+function renderAlertBug(raw: Record<string, unknown>): ReactElement {
+  return <AlertBug {...alertBugSchema.parse(raw)} />
 }
 
 // ===========================================================================
@@ -329,7 +390,7 @@ function makeGenericRenderer(component: ManifestComponent, tokens: ManifestToken
 
     return (
       <div
-        className="flex flex-col gap-xs border border-l-4"
+        className="flex flex-col gap-3xs border border-l-4"
         style={{
           backgroundColor: background,
           color: text,
@@ -388,7 +449,7 @@ function CrashedPlaceholder({
   return (
     <div
       data-node-id={nodeId}
-      className={cx('flex flex-col gap-xs border border-l-4 border-dashed', className)}
+      className={cx('flex flex-col gap-3xs border border-l-4 border-dashed', className)}
       onClick={onClick}
       style={{
         backgroundColor: tokenVar('colors', 'surface'),
@@ -478,6 +539,14 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   Text: renderText,
   Button: renderButton,
   Input: renderInput,
+  MainMenu: renderMainMenu,
+  InteractivityMenu: renderInteractivityMenu,
+  InteractivityCard: renderInteractivityCard,
+  LabelVideo: renderLabelVideo,
+  WideButton: renderWideButton,
+  RoundedButton: renderRoundedButton,
+  Notification: renderNotification,
+  AlertBug: renderAlertBug,
 }
 
 function toControl(component: ManifestComponent, name: string): Control {
