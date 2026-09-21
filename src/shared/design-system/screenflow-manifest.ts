@@ -103,6 +103,8 @@ function propTypeName(control: Control | undefined): { name: string } {
       return { name: 'boolean' }
     case 'select':
       return { name: 'enum' }
+    case 'number':
+      return { name: 'number' }
     default:
       return { name: 'string' }
   }
@@ -131,6 +133,9 @@ function toManifestComponent(type: string): ManifestComponent {
       ...(options ? { options } : {}),
       ...(spacing ? { tokenGroup: 'spacing' as const } : {}),
       ...(controlKind(control) ? { control: controlKind(control) } : {}),
+      ...(control?.kind === 'number' && control.min !== undefined ? { min: control.min } : {}),
+      ...(control?.kind === 'number' && control.max !== undefined ? { max: control.max } : {}),
+      ...(control?.kind === 'number' && control.step !== undefined ? { step: control.step } : {}),
     }
   }
 
@@ -140,6 +145,8 @@ function toManifestComponent(type: string): ManifestComponent {
     description: entry.summary,
     category: entry.category,
     acceptsChildren: entry.acceptsChildren,
+    ...(entry.slots ? { slots: [...entry.slots] } : {}),
+    ...(entry.parents ? { parents: [...entry.parents] } : {}),
     props,
   }
 }

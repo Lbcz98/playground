@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canAddChild,
   defaultForProp,
   deriveDefaultProps,
   inferControl,
   isDesignSystemManifest,
   propLabel,
   rootContainerId,
+  slotInsertIndex,
   tokenCount,
   tokenNames,
   type DesignSystemManifest,
   type ManifestComponent,
   type ManifestProp,
 } from './manifest'
+import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 
 function prop(p: Partial<ManifestProp>): ManifestProp {
   return { name: 'x', type: { name: 'string' }, required: false, ...p }
@@ -122,5 +125,30 @@ describe('isDesignSystemManifest', () => {
     ).toBe(true)
     expect(isDesignSystemManifest({ id: 'm' })).toBe(false)
     expect(isDesignSystemManifest(null)).toBe(false)
+  })
+})
+
+describe('placement — a composed component and its parts', () => {
+  const m = SCREENFLOW_MANIFEST
+  const c = (id: string) => m.components[id]
+
+  it('a zone fits only its own card, and only once', () => {
+    expect(canAddChild(c('ContentCard'), c('ContentCardHeader'), [])).toBe(true)
+    expect(canAddChild(c('ContentCard'), c('ContentCardHeader'), ['ContentCardHeader'])).toBe(false)
+    expect(canAddChild(c('Stack'), c('ContentCardHeader'), [])).toBe(false)
+    expect(canAddChild(c('ContentCard'), c('Stack'), [])).toBe(false)
+    expect(canAddChild(c('ContentCardBody'), c('Stack'), [])).toBe(true)
+  })
+
+  it('lands a new zone in its slot, whatever order it was added in', () => {
+    const card = c('ContentCard')
+    expect(slotInsertIndex(card, [], 'ContentCardBody')).toBe(0)
+    expect(slotInsertIndex(card, ['ContentCardBody', 'ContentCardFooter'], 'ContentCardHeader')).toBe(0)
+    expect(slotInsertIndex(card, ['ContentCardHeader', 'ContentCardFooter'], 'ContentCardBody')).toBe(1)
+    expect(slotInsertIndex(card, ['ContentCardHeader', 'ContentCardBody'], 'ContentCardFooter')).toBe(2)
+  })
+
+  it('never offers a part as the root container', () => {
+    expect(rootContainerId(m)).toBe('Stack')
   })
 })

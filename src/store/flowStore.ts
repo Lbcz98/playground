@@ -63,7 +63,8 @@ interface FlowState {
   redo: () => void
 
   // high-level editing actions (each is one history step)
-  addNode: (parentId: NodeId, type: string) => void
+  /** Add a component under `parentId` — at `index` when given, else last. */
+  addNode: (parentId: NodeId, type: string, index?: number) => void
   updateProps: (id: NodeId, patch: Record<string, unknown>) => void
   /** Spec §8 alias for `updateProps` — the name the Property Inspector uses. */
   updateNodeProps: (id: NodeId, patch: Record<string, unknown>) => void
@@ -218,12 +219,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       }
     }),
 
-  addNode: (parentId, type) => {
+  addNode: (parentId, type, index) => {
     const entry = activeRegistry().get(type)
     if (!entry) return
     const node = makeNode(type, { ...entry.defaultProps })
     get().commit((draft) => {
-      insertChild(draft, parentId, node)
+      insertChild(draft, parentId, node, index)
     }, `Add ${entry.label}`)
     set({ selectedId: node.id })
   },

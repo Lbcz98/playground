@@ -2,6 +2,20 @@
 
 Things worth doing that are deliberately not being done yet. Newest first.
 
+## Button Tall in Figma is behind the Content Card (2026-09-21)
+
+Code ported Figma's "Button Tall" (2472:120292) as `<ContentCard>` with its zones
+as their own components — `ContentCardHeader`, `ContentCardBody`,
+`ContentCardFooter`, in that order, each optional. It keeps Figma's 40 radius
+(`radius/content-card`), but takes the Content Card spec's `lg` inset (24) where
+Figma draws 36×32, and a height that is any 8pt step up to 456.
+
+Figma still has the older inset, and the zones exist there only as the
+Overline / Subtitle / Footer booleans on one component. Closing it means rebuilding
+the set as a frame plus three zone components, so a designer composes it the way
+the code does. `size/content-card-width` and `radius/content-card` are already in
+the file.
+
 ## Figma does not carry the focus motion (2026-09-18)
 
 The kit animates the focused state now — `<FocusRing>` walks noite → dia → tarde

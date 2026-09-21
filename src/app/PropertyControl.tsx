@@ -100,6 +100,9 @@ export function PropertyControl({
         <input
           id={id}
           type="number"
+          min={propDef.min}
+          max={propDef.max}
+          step={propDef.step}
           value={currentValue === undefined || currentValue === null ? '' : String(currentValue)}
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
           className={FIELD_CLASS}

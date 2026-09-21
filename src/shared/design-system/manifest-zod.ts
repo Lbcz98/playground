@@ -33,6 +33,8 @@ import {
   isCoreToken,
   rootContainerId,
   semanticEquivalents,
+  placementError,
+  slotOrderErrors,
 } from './manifest'
 import {
   frameLayoutErrors,
@@ -67,9 +69,14 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
       case 'boolean':
         schema = z.boolean()
         break
-      case 'number':
-        schema = z.number()
+      case 'number': {
+        let n = z.number().finite()
+        if (prop.min !== undefined) n = n.min(prop.min)
+        if (prop.max !== undefined) n = n.max(prop.max)
+        if (prop.step !== undefined) n = n.multipleOf(prop.step)
+        schema = n
         break
+      }
       default:
         schema = z.string()
     }
@@ -192,7 +199,7 @@ export function validateBlueprintAgainstManifest(
     errors.push(`The root node must be a <${rootType}> (got ${JSON.stringify(input.root.type)}).`)
   }
 
-  validateNode(input.root, 'root', { schemas, manifest, allowed }, errors)
+  validateNode(input.root, 'root', { schemas, manifest, allowed }, errors, null)
   // Layout QA: frame margins, the 8pt grid + gutters, focus anchoring.
   errors.push(...frameLayoutErrors(input, manifest))
 
@@ -205,7 +212,13 @@ interface Ctx {
   allowed: string[]
 }
 
-function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): void {
+function validateNode(
+  raw: unknown,
+  path: string,
+  ctx: Ctx,
+  errors: string[],
+  parentType: string | null,
+): void {
   if (!isObject(raw)) {
     errors.push(`${path}: node must be an object.`)
     return
@@ -223,6 +236,14 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
       `${path}: <${type}> is not a real component. Allowed: ${ctx.allowed.join(', ')}.`,
     )
     return
+  }
+
+  // A component that only lives inside another (a card's zones) can't stand alone.
+  if (parentType === null && component.parents) {
+    errors.push(`${path}: <${type}> only goes directly inside ${component.parents.map((t) => `<${t}>`).join(' or ')}.`)
+  } else if (parentType !== null) {
+    const misplaced = placementError(ctx.manifest, parentType, type)
+    if (misplaced) errors.push(`${path}: ${misplaced}`)
   }
 
   const props = isObject(raw.props) ? raw.props : {}
@@ -246,6 +267,17 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
         errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
         continue
       }
+      const spec = component.props[key]
+      if (spec.type.name === 'number' && (spec.min !== undefined || spec.max !== undefined || spec.step !== undefined)) {
+        const range = [
+          spec.step !== undefined ? `a multiple of ${spec.step}` : 'a number',
+          spec.min !== undefined && spec.max !== undefined ? `from ${spec.min} to ${spec.max}` : '',
+          spec.min !== undefined && spec.max === undefined ? `of at least ${spec.min}` : '',
+          spec.max !== undefined && spec.min === undefined ? `of at most ${spec.max}` : '',
+        ].filter(Boolean).join(' ')
+        errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
+        continue
+      }
       errors.push(
         `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} is not an allowed value.`,
       )
@@ -257,6 +289,8 @@ function validateNode(raw: unknown, path: string, ctx: Ctx, errors: string[]): v
     errors.push(`${path} <${type}>: cannot have children.`)
   }
   if (component.acceptsChildren) {
-    children.forEach((child, i) => validateNode(child, `${path} › ${type}[${i}]`, ctx, errors))
+    children.forEach((child, i) => validateNode(child, `${path} › ${type}[${i}]`, ctx, errors, type))
+    const childTypes = children.map((c) => (isObject(c) && typeof c.type === 'string' ? c.type : ''))
+    for (const problem of slotOrderErrors(component, childTypes)) errors.push(`${path}: ${problem}`)
   }
 }

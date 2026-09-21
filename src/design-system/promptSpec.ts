@@ -61,6 +61,10 @@ export interface PropSpec {
   /** Phase 7B: real token names, when this prop draws from a token scale. */
   tokenNames?: string[]
   default: unknown
+  /** Number bounds and grid step, when the prop declares them. */
+  min?: number
+  max?: number
+  step?: number
 }
 
 export interface ComponentSpec {
@@ -68,6 +72,10 @@ export interface ComponentSpec {
   category: string
   summary: string
   acceptsChildren: boolean
+  /** Its only children, in order, each at most once — any may be left out. */
+  slots?: string[]
+  /** The only components it may sit directly inside. */
+  parents?: string[]
   props: PropSpec[]
 }
 
@@ -87,6 +95,9 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
       options,
       ...(names.length > 0 ? { tokenNames: names } : {}),
       default: prop.defaultValue,
+      ...(prop.min !== undefined ? { min: prop.min } : {}),
+      ...(prop.max !== undefined ? { max: prop.max } : {}),
+      ...(prop.step !== undefined ? { step: prop.step } : {}),
     }
   })
 
@@ -95,6 +106,8 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
     category: component.category ?? 'component',
     summary: component.description,
     acceptsChildren: component.acceptsChildren,
+    ...(component.slots ? { slots: component.slots } : {}),
+    ...(component.parents ? { parents: component.parents } : {}),
     props,
   }
 }
@@ -203,14 +216,27 @@ function describeProp(p: PropSpec): string {
     return `      - ${p.name}: a token name, one of [${p.tokenNames.join(', ')}] (default ${def})`
   }
   if (p.control === 'boolean') return `      - ${p.name}: boolean (default ${def})`
-  if (p.control === 'number') return `      - ${p.name}: number (default ${def})`
+  if (p.control === 'number') {
+    const rule = [
+      p.step !== undefined ? `a multiple of ${p.step}` : '',
+      p.min !== undefined && p.max !== undefined ? `from ${p.min} to ${p.max}` : '',
+    ].filter(Boolean).join(' ')
+    return `      - ${p.name}: number${rule ? `, ${rule}` : ''} (default ${def})`
+  }
   return `      - ${p.name}: string (default ${def})`
 }
 
 function describeComponent(c: ComponentSpec): string {
   return [
     `  <${c.type}> — ${c.summary}`,
-    `    accepts children: ${c.acceptsChildren ? 'yes' : 'no'}`,
+    `    accepts children: ${
+      c.slots
+        ? `only ${c.slots.map((t) => `<${t}>`).join(', ')} — in that order, each at most once, any may be left out`
+        : c.acceptsChildren
+          ? 'yes'
+          : 'no'
+    }`,
+    ...(c.parents ? [`    goes only directly inside: ${c.parents.map((t) => `<${t}>`).join(' or ')}`] : []),
     `    props:`,
     ...c.props.map(describeProp),
   ].join('\n')
@@ -407,14 +433,21 @@ function designSystemBinding(
   spec: ComponentSpec[],
   container: string,
 ): string {
-  const containers = spec.filter((c) => c.acceptsChildren).map((c) => c.type)
+  // A composed component (slots) or one of its parts (parents) is not a general
+  // layout container, however it is built — the agent must not reach for it as one.
+  const containers = spec.filter((c) => c.acceptsChildren && !c.slots && !c.parents).map((c) => c.type)
   const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
+  const composed = spec.filter((c) => c.slots)
 
   return [
     `### 7. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
     `The laws above, mapped onto this system's registry and tokens.`,
     `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
     `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
+    ...composed.map(
+      (c) =>
+        `* **<${c.type}> is composed:** its only children are ${c.slots!.map((t) => `<${t}>`).join(', ')} — in that order, each at most once. Leave out any it does not need; never put anything else inside it, and never use those parts anywhere but directly inside a <${c.type}>.`,
+    ),
     `* **Tokens:** ${tokenVocabulary(manifest)}. A prop listed below as "a token name" takes exactly one of its listed names, or is omitted.`,
     ...tokenTierSpecifics(manifest),
     ...frameSpecifics(manifest, container),

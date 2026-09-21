@@ -125,3 +125,18 @@ export const frameSpec = {
   gutter: 16,
   offGridAllowed: [4, 12],
 } as const
+
+/**
+ * Content Card height rule — Figma UI Kit "Button Tall" (2472:120292). The card's
+ * height is a count of grid steps: any multiple of `frameSpec.grid`, from room
+ * for its inset top and bottom up to `maxHeight`. Width is a token
+ * (`dimension.size.semantic.content-card-width`); only the height varies by use.
+ */
+export const contentCardSpec = {
+  /** The height the card ships at in Figma. */
+  height: 440,
+  /** The tallest a card may be. */
+  maxHeight: 456,
+  /** Its inset on every side — the spacing step, so the smallest card is two of these. */
+  inset: 'lg',
+} as const

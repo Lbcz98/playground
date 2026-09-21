@@ -26,7 +26,7 @@
 import type { z } from 'zod'
 import type { BlueprintDocument } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent, ScreenSpec } from '@/shared/design-system/manifest'
-import { rootContainerId } from '@/shared/design-system/manifest'
+import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
   clearBackgroundFor,
   defaultScreen,
@@ -210,6 +210,7 @@ function interpretNode(
     children = rawChildren
       .map((child, i) => interpretNode(child, `${path} › ${type}[${i}]`, depth + 1, ctx, issues))
       .filter((child): child is CanvasNode => child !== null)
+    children = placeChildren(type, children, path, ctx.manifest, issues)
   }
 
   const node: CanvasNode = { id: createNodeId(), type, props, children }
@@ -357,4 +358,41 @@ function isObject(value: unknown): value is Record<string, unknown> {
 function brief(value: unknown): string {
   const str = typeof value === 'string' ? `"${value}"` : JSON.stringify(value)
   return str && str.length > 32 ? `${str.slice(0, 32)}…` : String(str)
+}
+
+/**
+ * Repairs a container's children against the one placement rule the validator
+ * enforces: drop what can't sit here, then — for a component with slots, like a
+ * Content Card — keep the first of each zone and put them back in slot order.
+ */
+function placeChildren(
+  parentType: string,
+  children: CanvasNode[],
+  path: string,
+  manifest: DesignSystemManifest,
+  issues: InterpretIssue[],
+): CanvasNode[] {
+  const placed = children.filter((child) => {
+    const problem = placementError(manifest, parentType, child.type)
+    if (problem) issues.push({ level: 'warn', path, message: `Dropped a child — ${problem}` })
+    return !problem
+  })
+
+  const slots = manifest.components[parentType]?.slots
+  if (!slots) return placed
+
+  const seen = new Set<string>()
+  const unique = placed.filter((child) => {
+    if (!seen.has(child.type)) {
+      seen.add(child.type)
+      return true
+    }
+    issues.push({ level: 'warn', path, message: `Dropped a second <${child.type}> — <${parentType}> takes at most one.` })
+    return false
+  })
+  const ordered = [...unique].sort((a, b) => slots.indexOf(a.type) - slots.indexOf(b.type))
+  if (ordered.some((child, i) => child !== unique[i])) {
+    issues.push({ level: 'warn', path, message: `Put <${parentType}>'s children back in the order ${slots.join(', ')}.` })
+  }
+  return ordered
 }

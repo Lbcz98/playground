@@ -30,6 +30,7 @@ import {
   TEXT_TONES,
   TEXT_VARIANTS,
 } from './tokens'
+import { contentCardSpec, frameSpec, spacingScale } from './primitives'
 
 // ---------------------------------------------------------------------------
 // Inspector control metadata (drives the properties panel UI)
@@ -40,6 +41,7 @@ export type Control =
   | { kind: 'textarea'; label: string }
   | { kind: 'boolean'; label: string }
   | { kind: 'select'; label: string; options: readonly string[] }
+  | { kind: 'number'; label: string; min?: number; max?: number; step?: number }
 
 export type ComponentCategory = 'layout' | 'content' | 'form'
 
@@ -51,6 +53,10 @@ export interface CatalogEntry {
   summary: string
   /** Whether this component slot may contain child nodes. */
   acceptsChildren: boolean
+  /** The only children it takes, in this order, each at most once — any may be left out. */
+  slots?: readonly string[]
+  /** The only components it may sit directly inside. */
+  parents?: readonly string[]
   schema: z.ZodTypeAny
   defaultProps: Record<string, unknown>
   controls: Record<string, Control>
@@ -207,6 +213,46 @@ export const closeButtonSchema = z
   })
   .strict()
 export type CloseButtonNodeProps = z.infer<typeof closeButtonSchema>
+
+const CARD_HEIGHT_MIN = 2 * parseFloat(spacingScale[contentCardSpec.inset])
+
+export const contentCardSchema = z
+  .object({
+    interactionState: z.enum(CONTROL_STATES).default('default'),
+    height: z
+      .number()
+      .min(CARD_HEIGHT_MIN)
+      .max(contentCardSpec.maxHeight)
+      .multipleOf(frameSpec.grid)
+      .default(contentCardSpec.height),
+  })
+  .strict()
+export type ContentCardNodeProps = z.infer<typeof contentCardSchema>
+
+export const contentCardHeaderSchema = z
+  .object({
+    overline: z.string().default(''),
+    title: z.string().default('Título'),
+    subtitle: z.string().default(''),
+  })
+  .strict()
+export type ContentCardHeaderNodeProps = z.infer<typeof contentCardHeaderSchema>
+
+export const contentCardBodySchema = z
+  .object({
+    quote: z.string().default(''),
+  })
+  .strict()
+export type ContentCardBodyNodeProps = z.infer<typeof contentCardBodySchema>
+
+export const contentCardFooterSchema = z
+  .object({
+    caption: z.string().default(''),
+  })
+  .strict()
+export type ContentCardFooterNodeProps = z.infer<typeof contentCardFooterSchema>
+
+const CONTENT_CARD_ZONES = ['ContentCardHeader', 'ContentCardBody', 'ContentCardFooter'] as const
 
 export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
 
@@ -439,6 +485,70 @@ export const Catalog = {
     controls: {
       label: { kind: 'text', label: 'Label' },
       interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+    },
+  },
+  ContentCard: {
+    type: 'ContentCard',
+    label: 'Content Card',
+    category: 'content',
+    summary:
+      'The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need.',
+    acceptsChildren: true,
+    slots: CONTENT_CARD_ZONES,
+    schema: contentCardSchema,
+    defaultProps: contentCardSchema.parse({}),
+    controls: {
+      interactionState: { kind: 'select', label: 'State', options: CONTROL_STATES },
+      height: {
+        kind: 'number',
+        label: 'Height',
+        min: CARD_HEIGHT_MIN,
+        max: contentCardSpec.maxHeight,
+        step: frameSpec.grid,
+      },
+    },
+  },
+  ContentCardHeader: {
+    type: 'ContentCardHeader',
+    label: 'Content Card Header',
+    category: 'content',
+    summary: "A Content Card's top zone: overline, title and subtitle. Only goes inside a Content Card.",
+    acceptsChildren: false,
+    parents: ['ContentCard'],
+    schema: contentCardHeaderSchema,
+    defaultProps: contentCardHeaderSchema.parse({}),
+    controls: {
+      overline: { kind: 'text', label: 'Overline' },
+      title: { kind: 'text', label: 'Title' },
+      subtitle: { kind: 'text', label: 'Subtitle' },
+    },
+  },
+  ContentCardBody: {
+    type: 'ContentCardBody',
+    label: 'Content Card Body',
+    category: 'content',
+    summary:
+      "A Content Card's main zone; it takes the height the others leave. Holds the card's content, and an optional quote under it. Only goes inside a Content Card.",
+    acceptsChildren: true,
+    parents: ['ContentCard'],
+    schema: contentCardBodySchema,
+    defaultProps: contentCardBodySchema.parse({}),
+    controls: {
+      quote: { kind: 'textarea', label: 'Quote' },
+    },
+  },
+  ContentCardFooter: {
+    type: 'ContentCardFooter',
+    label: 'Content Card Footer',
+    category: 'content',
+    summary:
+      "A Content Card's bottom zone, pinned to the bottom edge: a caption, and any controls it holds. Only goes inside a Content Card.",
+    acceptsChildren: true,
+    parents: ['ContentCard'],
+    schema: contentCardFooterSchema,
+    defaultProps: contentCardFooterSchema.parse({}),
+    controls: {
+      caption: { kind: 'text', label: 'Caption' },
     },
   },
 } as const satisfies Record<string, CatalogEntry>

@@ -177,3 +177,42 @@ describe('interpretBlueprint — frame rules', () => {
     expect(result.tree.children[0].props.padding).toBe('sm') // 20px → nearest on-grid step
   })
 })
+
+describe('interpretBlueprint — Content Card repair', () => {
+  const zone = (type: string, props: Record<string, unknown> = {}) => ({ type, props })
+  const doc = (children: unknown[]) => ({
+    version: 1 as const,
+    screen: { model: 'interactivity-cards-right' as const, level: 3 as const },
+    root: { type: 'Stack', children: [{ type: 'ContentCard', children }] },
+  })
+  const cardOf = (r: ReturnType<typeof interpretBlueprint>) => (r.ok ? r.tree.children[0] : null)
+
+  it('puts the zones back in order and drops a second one', () => {
+    const r = interpretBlueprint(
+      doc([zone('ContentCardFooter'), zone('ContentCardHeader'), zone('ContentCardHeader', { title: 'twice' })]),
+    )
+    expect(r.ok).toBe(true)
+    expect(cardOf(r)!.children.map((c) => c.type)).toEqual(['ContentCardHeader', 'ContentCardFooter'])
+    if (!r.ok) return
+    expect(r.issues.some((i) => /second <ContentCardHeader>/.test(i.message))).toBe(true)
+    expect(r.issues.some((i) => /back in the order/.test(i.message))).toBe(true)
+  })
+
+  it('drops a stranger from the card and a zone from outside one', () => {
+    const r = interpretBlueprint({
+      version: 1,
+      screen: { model: 'interactivity-cards-right', level: 3 },
+      root: {
+        type: 'Stack',
+        children: [
+          { type: 'ContentCard', children: [{ type: 'Text' }, zone('ContentCardBody')] },
+          zone('ContentCardHeader'),
+        ],
+      },
+    })
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.tree.children.map((c) => c.type)).toEqual(['ContentCard'])
+    expect(r.tree.children[0].children.map((c) => c.type)).toEqual(['ContentCardBody'])
+  })
+})

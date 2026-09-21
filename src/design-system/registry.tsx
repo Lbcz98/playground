@@ -48,6 +48,10 @@ import {
   alertBugSchema,
   buttonSchema,
   closeButtonSchema,
+  contentCardBodySchema,
+  contentCardFooterSchema,
+  contentCardHeaderSchema,
+  contentCardSchema,
   inputSchema,
   interactivityCardSchema,
   interactivityMenuSchema,
@@ -65,6 +69,12 @@ import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
 import { LabelVideo } from '@/ui-kit/LabelVideo'
 import { MainMenu } from '@/ui-kit/MainMenu'
 import { CloseButton } from '@/ui-kit/CloseButton'
+import {
+  ContentCard,
+  ContentCardBody,
+  ContentCardFooter,
+  ContentCardHeader,
+} from '@/ui-kit/ContentCard'
 import { Notification } from '@/ui-kit/Notification'
 import { RoundedButton } from '@/ui-kit/RoundedButton'
 import { WideButton } from '@/ui-kit/WideButton'
@@ -311,6 +321,22 @@ function renderCloseButton(raw: Record<string, unknown>): ReactElement {
   return <CloseButton {...closeButtonSchema.parse(raw)} />
 }
 
+function renderContentCard(raw: Record<string, unknown>, children: ReactNode): ReactElement {
+  return <ContentCard {...contentCardSchema.parse(raw)}>{children}</ContentCard>
+}
+
+function renderContentCardHeader(raw: Record<string, unknown>): ReactElement {
+  return <ContentCardHeader {...contentCardHeaderSchema.parse(raw)} />
+}
+
+function renderContentCardBody(raw: Record<string, unknown>, children: ReactNode): ReactElement {
+  return <ContentCardBody {...contentCardBodySchema.parse(raw)}>{children}</ContentCardBody>
+}
+
+function renderContentCardFooter(raw: Record<string, unknown>, children: ReactNode): ReactElement {
+  return <ContentCardFooter {...contentCardFooterSchema.parse(raw)}>{children}</ContentCardFooter>
+}
+
 function renderNotification(raw: Record<string, unknown>): ReactElement {
   return <Notification {...notificationSchema.parse(raw)} />
 }
@@ -552,6 +578,10 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   WideButton: renderWideButton,
   RoundedButton: renderRoundedButton,
   CloseButton: renderCloseButton,
+  ContentCard: renderContentCard,
+  ContentCardHeader: renderContentCardHeader,
+  ContentCardBody: renderContentCardBody,
+  ContentCardFooter: renderContentCardFooter,
   Notification: renderNotification,
   AlertBug: renderAlertBug,
 }
@@ -565,6 +595,7 @@ function toControl(component: ManifestComponent, name: string): Control {
   }
   if (kind === 'boolean') return { kind: 'boolean', label }
   if (kind === 'textarea') return { kind: 'textarea', label }
+  if (kind === 'number') return { kind: 'number', label, min: prop.min, max: prop.max, step: prop.step }
   return { kind: 'text', label }
 }
 

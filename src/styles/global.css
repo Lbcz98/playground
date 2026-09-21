@@ -208,6 +208,8 @@
   --dimension-radius-semantic-card: var(--dimension-radius-core-2xl);
   /* Focused or selected content card */
   --dimension-radius-semantic-card-expanded: var(--dimension-radius-core-6xl);
+  /* Content Card — Figma UI Kit "Button Tall" (2472:120292), resting and focused alike */
+  --dimension-radius-semantic-content-card: var(--dimension-radius-core-6xl);
 
   /* ===== Dimension · Spacing · Core ===== */
   --dimension-spacing-core-none: 0px;
@@ -261,6 +263,8 @@
   --dimension-size-semantic-card-expanded-width: 208px;
   /* Focused or selected card */
   --dimension-size-semantic-card-expanded-height: 160px;
+  /* Content Card — Figma UI Kit "Button Tall" (2472:120292). 36 columns of the 8pt grid; its height is a count of grid steps set per use. */
+  --dimension-size-semantic-content-card-width: 288px;
   /* Round button hit target — Figma UI Kit node 2273:96230 */
   --dimension-size-semantic-round-button: 88px;
   /* The visible circle inside a round button's hit target */

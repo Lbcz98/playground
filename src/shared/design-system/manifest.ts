@@ -47,6 +47,12 @@ export interface ManifestProp {
   tokenGroup?: keyof ManifestTokens
   /** Inspector control hint. Inferred from `type` / `options` when omitted. */
   control?: ManifestControlKind
+  /** For a number prop: the smallest value allowed. */
+  min?: number
+  /** For a number prop: the largest value allowed. */
+  max?: number
+  /** For a number prop: values must be a whole multiple of this (a grid step). */
+  step?: number
 }
 
 export interface ManifestComponent {
@@ -57,6 +63,13 @@ export interface ManifestComponent {
   category?: string
   /** Whether this component slot may contain child nodes. */
   acceptsChildren: boolean
+  /**
+   * The only components that may sit directly inside this one — in this order,
+   * each at most once, and any of them may be left out. Absent: any child goes.
+   */
+  slots?: string[]
+  /** The only components this one may sit directly inside. Absent: anywhere. */
+  parents?: string[]
   props: Record<string, ManifestProp>
   /** Storybook module export path — metadata only for now. */
   storybookPath?: string
@@ -224,6 +237,9 @@ const propSchema: z.ZodType<ManifestProp> = z
     description: z.string().max(MAX_STR).optional(),
     tokenGroup: z.enum(['colors', 'spacing', 'typography', 'radius', 'shadow']).optional(),
     control: z.enum(['text', 'textarea', 'select', 'boolean', 'number']).optional(),
+    min: z.number().finite().optional(),
+    max: z.number().finite().optional(),
+    step: z.number().finite().positive().optional(),
   })
   .strict()
 
@@ -234,6 +250,8 @@ const componentSchema: z.ZodType<ManifestComponent> = z
     description: z.string().max(MAX_STR),
     category: shortStr.optional(),
     acceptsChildren: z.boolean(),
+    slots: z.array(idSchema).max(MAX_COMPONENTS).optional(),
+    parents: z.array(idSchema).max(MAX_COMPONENTS).optional(),
     props: z.record(propSchema).refine((p) => Object.keys(p).length <= MAX_PROPS_PER_COMPONENT, {
       message: `a component may declare at most ${MAX_PROPS_PER_COMPONENT} props`,
     }),
@@ -434,11 +452,81 @@ export function tokenCount(tokens: ManifestTokens): number {
 }
 
 /** The component every Blueprint root must be — the first container in the manifest. */
+// ---------------------------------------------------------------------------
+// Placement — which component may sit directly inside which
+// ---------------------------------------------------------------------------
+
+/**
+ * Why a <childType> can't sit directly inside a <parentType>, or null when it can.
+ * One rule for the validator, the interpreter, the palette and the agent's prompt,
+ * so none of them can disagree about a composed component's structure.
+ */
+export function placementError(
+  manifest: DesignSystemManifest,
+  parentType: string,
+  childType: string,
+): string | null {
+  const parent = manifest.components[parentType]
+  const child = manifest.components[childType]
+  if (!parent || !child) return null
+  return placementProblem(parent, child)
+}
+
+/** `placementError` for two components already in hand (the palette has registry entries, not a manifest). */
+export function placementProblem(parent: ManifestComponent, child: ManifestComponent): string | null {
+  if (!parent.acceptsChildren) return `<${parent.id}> cannot have children.`
+  if (parent.slots && !parent.slots.includes(child.id)) {
+    return `<${parent.id}> only takes ${slotList(parent.slots)}, not <${child.id}>.`
+  }
+  if (child.parents && !child.parents.includes(parent.id)) {
+    return `<${child.id}> only goes directly inside ${child.parents.map((p) => `<${p}>`).join(' or ')}, not <${parent.id}>.`
+  }
+  return null
+}
+
+/** Whether one more <child> can go into <parent> as its children stand now — placement, and at most one of each slot. */
+export function canAddChild(parent: ManifestComponent, child: ManifestComponent, siblingTypes: string[]): boolean {
+  if (placementProblem(parent, child)) return false
+  return !(parent.slots && siblingTypes.includes(child.id))
+}
+
+/** Problems with the ORDER and COUNT of a slotted component's children (types already allowed). */
+export function slotOrderErrors(component: ManifestComponent, childTypes: string[]): string[] {
+  const slots = component.slots
+  if (!slots) return []
+  const errors: string[] = []
+  const seen = new Set<string>()
+  let last = -1
+  for (const type of childTypes) {
+    const at = slots.indexOf(type)
+    if (at === -1) continue
+    if (seen.has(type)) errors.push(`<${component.id}> takes at most one <${type}>.`)
+    else if (at < last) errors.push(`<${component.id}>'s children go in the order ${slotList(slots)}; <${type}> is out of place.`)
+    seen.add(type)
+    last = Math.max(last, at)
+  }
+  return errors
+}
+
+/** Where a new <childType> belongs among a slotted parent's current children, so order holds. */
+export function slotInsertIndex(component: ManifestComponent, siblingTypes: string[], childType: string): number {
+  const slots = component.slots
+  if (!slots) return siblingTypes.length
+  const rank = slots.indexOf(childType)
+  const after = siblingTypes.findIndex((type) => slots.indexOf(type) > rank)
+  return after === -1 ? siblingTypes.length : after
+}
+
+function slotList(slots: string[]): string {
+  return `${slots.map((s) => `<${s}>`).join(', ')} (in that order, each at most once — any may be left out)`
+}
+
 export function rootContainerId(manifest: DesignSystemManifest): string | null {
   const entries = Object.values(manifest.components)
   const stack = entries.find((c) => c.id === 'Stack' && c.acceptsChildren)
   if (stack) return stack.id
-  return entries.find((c) => c.acceptsChildren)?.id ?? null
+  // Never a component that only lives inside another, like a card's zones.
+  return entries.find((c) => c.acceptsChildren && !c.parents)?.id ?? null
 }
 
 // ---------------------------------------------------------------------------

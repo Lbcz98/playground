@@ -109,3 +109,77 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     expect(v.errors).toEqual([expect.stringMatching(/"spacing-core-md" is 20px — off the 8pt grid/)])
   })
 })
+
+describe('validateBlueprint — Content Card structure', () => {
+  const ZONES = {
+    header: { type: 'ContentCardHeader', props: { overline: 'Copa do Mundo', title: 'Estatísticas' } },
+    body: { type: 'ContentCardBody', props: { quote: 'Um primeiro tempo de paciência.' }, children: [{ type: 'Text', props: { content: 'Posse 62%' } }] },
+    footer: { type: 'ContentCardFooter', props: { caption: 'Atualizado há 1 min' } },
+  }
+  const screen = (card: Record<string, unknown>) => ({
+    version: 1,
+    screen: { model: 'interactivity-cards-right', level: 3 },
+    root: { type: 'Stack', props: { justify: 'end', align: 'end', grow: true }, children: [card] },
+  })
+  const card = (children: unknown[], props: Record<string, unknown> = {}) => ({ type: 'ContentCard', props, children })
+  const errorsOf = (doc: unknown): string => {
+    const v = validateBlueprint(doc)
+    return v.ok ? '' : v.errors.join(' | ')
+  }
+
+  // Every subset of the three zones, in order — the opt-out the card exists for.
+  const subsets: Array<Array<keyof typeof ZONES>> = [
+    [],
+    ['header'],
+    ['body'],
+    ['footer'],
+    ['header', 'body'],
+    ['header', 'footer'],
+    ['body', 'footer'],
+    ['header', 'body', 'footer'],
+  ]
+  it.each(subsets.map((s) => [s.join(' + ') || 'no zones', s] as const))('accepts %s', (_, zones) => {
+    expect(validateBlueprint(screen(card(zones.map((z) => ZONES[z]))))).toEqual({ ok: true })
+  })
+
+  it('rejects zones out of order, naming the order', () => {
+    expect(errorsOf(screen(card([ZONES.footer, ZONES.header])))).toMatch(
+      /children go in the order <ContentCardHeader>, <ContentCardBody>, <ContentCardFooter>.*<ContentCardHeader> is out of place/,
+    )
+  })
+
+  it('rejects a zone given twice', () => {
+    expect(errorsOf(screen(card([ZONES.header, ZONES.header])))).toMatch(/takes at most one <ContentCardHeader>/)
+  })
+
+  it('rejects anything that is not one of its zones', () => {
+    expect(errorsOf(screen(card([ZONES.header, { type: 'Text', props: { content: 'loose' } }])))).toMatch(
+      /<ContentCard> only takes <ContentCardHeader>, <ContentCardBody>, <ContentCardFooter>.*not <Text>/,
+    )
+  })
+
+  it('rejects a zone outside a card', () => {
+    const doc = screen(ZONES.header)
+    expect(errorsOf(doc)).toMatch(/<ContentCardHeader> only goes directly inside <ContentCard>, not <Stack>/)
+  })
+
+  it('rejects a zone as the root', () => {
+    expect(errorsOf({ version: 1, screen: { model: 'alert', level: 0 }, root: ZONES.body })).toMatch(
+      /<ContentCardBody> only goes directly inside <ContentCard>/,
+    )
+  })
+
+  it('holds the height to the 8pt grid, up to the max', () => {
+    expect(validateBlueprint(screen(card([ZONES.header], { height: 456 })))).toEqual({ ok: true })
+    expect(validateBlueprint(screen(card([ZONES.header], { height: 272 })))).toEqual({ ok: true })
+    expect(errorsOf(screen(card([ZONES.header], { height: 443 })))).toMatch(
+      /prop "height" = 443 must be a multiple of 8 from 48 to 456/,
+    )
+    expect(errorsOf(screen(card([ZONES.header], { height: 464 })))).toMatch(/must be a multiple of 8 from 48 to 456/)
+  })
+
+  it('still lets the body hold any content', () => {
+    const body = { type: 'ContentCardBody', children: [{ type: 'Stack', children: [{ type: 'Text' }, { type: 'Button' }] }] }
+    expect(validateBlueprint(screen(card([body])))).toEqual({ ok: true })
+  })
+})
