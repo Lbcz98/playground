@@ -13,8 +13,12 @@ component now points at the tokens (`motion.semantic.focus-cycle-*`,
 `opacity.semantic.focus-glow`, `dimension.size.semantic.focus-glow`) so anyone
 opening the file knows the static art is intentional, not stale.
 
-Building it as a Smart Animate variant set is still open — not urgent now that
-the file explains itself.
+**Smart Animate demo added (2026-09-21).** A "Kit de Movimento" page now carries
+the motion itself, not just a pointer to it: four frames (0% Noite, 25% Dia, 50%
+Tarde, 75% Dia retorno) looping on a 3s-a-leg Smart Animate cycle, plus a text
+block naming all five tokens with their values. `Notificação`'s own art is
+still static — this documents the motion generically rather than closing the
+gap on that component.
 
 ## The alert bug's `Motion` variant is unimplemented (2026-09-18)
 
