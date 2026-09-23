@@ -17,9 +17,10 @@ names the test that runs it.
 
 | Command | What it runs | Needs |
 | --- | --- | --- |
-| `npm test` | Phases 1–3 (unit and contract tests, 580 tests) | nothing |
+| `npm test` | Phases 1–3 (unit and contract tests, 589 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
+| `npm run dtv:export` | Phase 4: the DTV system as an external import — `dist-dtv/dtv-storybook.json` (Storybook's components manifest cut to UI Kit + Primitives, with `tokens.json` inside) and `dist-dtv/dtv.bundle.js` (the same components as a live bundle) | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
 | `npm run typecheck`, `npm run lint:tokens`, `npm run tokens:check`, `npm run tokens:audit` | The static token gates V4 builds on | nothing |
 
@@ -148,11 +149,16 @@ or `Tokens applied · N warnings`, with the list on hover.
 | E2.1 | `components.json` becomes a schema-valid manifest | zones are components, `Extract<…>` unions become their options, height stays a number with default 440; a story with no component, a duplicate name and a prop-less component each give a warning | throws, drops options, or drops something silently | `storybook-adapter.test.ts` |
 | E2.2 | `argTypes` give the same component | same options and types as E2.1 | — | same |
 | E2.3 | Inherited DOM props are dropped | props declared in a `node_modules` type (react-docgen-typescript `parent` / `declarations`) are removed, and each gives a warning | a DOM attribute reaches the agent | same |
-| E2.4 | Weakly typed props are accepted, not rejected | a non-literal union or an unexpanded alias becomes a `string` with no `options`, plus a warning; a plain `string` gives no warning | a bogus empty enum (the old behaviour), or a rejected import | same |
+| E2.4 | Weakly typed props don't sink the import | a union with a free-text member becomes a `string` with no `options`, plus a warning; a type docgen only knows by name is left out, with a warning (a string in its place could break the component); a plain `string` gives no warning | a bogus empty enum (the old behaviour), or a rejected import | same |
 | E2.5 | No components → a readable error | throws "No component definitions found…"; the store returns `{ ok: false }` and the switcher shows it | crash, or an empty system imported | same, `designSystemStore.test.ts` |
 | E2.6 | An index or docs file says what to import instead | "…Import manifests/components.json instead." | — | `storybook-adapter.test.ts` |
 | E2.7 | An imported manifest holds a Blueprint to its own components | the schemas compile; a Blueprint using only its ids passes; an off-union value fails on that prop; a built-in-only id (`MainMenu`) fails | — | same |
 | E2.8 | Tokens the import leaves out are reported | an alias to a missing token, an alias to a broken one, and a non-CSS value each give a warning naming the token, both in the export (`tokens: {…}`) and through Import tokens…; a clean file gives none | a token dropped silently | `token-adapter.test.ts`, `storybook-adapter.test.ts`, `designSystemStore.test.ts` |
+| E2.9 | Scale steps a prop names are measured | a spacing or radius option (`gap: "lg"`) is recorded under its own name from its core token (`spacing-core-lg`), so margins, gutters and the 8pt grid are checked on an imported screen; an option with no token gives a warning | the frame rules silently skip it | `storybook-adapter.test.ts` |
+| E2.10 | Event handlers and deprecated aliases are left out | a `function` prop and an `@deprecated` prop are dropped, with a warning | the agent sets `onClick` to a string, or reaches for an old alias | same |
+| E2.11 | Lists of text are lists; other shapes are left out | `string[]` imports as a list, `[string, string]` as a list of exactly 2 (validator and prompt both say so); a list of objects, an object, or a type docgen only knows by name is dropped with a warning | a string where the component expects a list or object — it breaks the component | same |
+| E2.12 | A component's words go in its `children` prop | `"props": { "children": "…" }` validates; text in a node's own `children` is rejected with the fix, and the interpreter moves it; the prompt says so | text silently lost | same |
+| E2.13 | Nullable focus props and documented defaults reach the one-focus rule | a `… \| null` union is nullable (`or null` in the prompt, rests at `null`); a JSDoc "Default \`program\`." becomes the default, so an unset menu counts as focused | the validator asks for a value it then rejects | same |
 
 ## Phase 3: Blueprint DSL and AI rules
 
@@ -229,9 +235,32 @@ a real model. They cost roughly $0.15–0.50 per run, so they are opt-in.
 | 4 | Change a token in `tokens/tokens.json`, then `npm run tokens:build` and `npm run test:visual -- --probe` | `tokens:check` passes, V3 still passes (it follows the token), V1 shows exactly the stories the token touches |
 | 5 | `npm run dev`, then prompt "uma tela de estatísticas do jogo, à direita" | AgentPanel steps show `template: interactivity-cards-right`, validation ok, `FRAME RULES []`; the canvas badge shows Layout QA 5/5; the report shows 0 warnings |
 | 6 | Compare the canvas frame with `Templates/Screens › Interatividades · Cards Direita` in Storybook | same zones, same side, card at 288 wide with radius 40, the close button anchored bottom-right |
-| 7 | Import `manifests/components.json` from a Storybook build (Design system › Import Storybook JSON…), then repeat step 5 | the switcher shows the warning count; generation only uses the imported ids |
+| 7 | `npm run dtv:export`; in the app, Design system › Import Storybook JSON… `dist-dtv/dtv-storybook.json`, then Import component bundle… `dist-dtv/dtv.bundle.js`; repeat step 5 | the switcher shows the warning count and "19 live"; generation only uses the imported ids; screens render as the real DTV components |
 
 Undo steps 1 and 4 afterwards.
+
+### Run of 2026-09-23 — the DTV system from Storybook alone
+
+Steps 1–3 passed (the snapshot check caught the new union, P1.4 named it, and
+offering it in the catalog made everything green again). Step 4 was stopped
+before it ran to completion and reverted.
+
+Step 7 was run with the DTV system built **only** from Storybook's export:
+`dtv-storybook.json` (16 story components — 19 with the card zones — and the
+DTCG tokens) imported through the real importer, generated with the real
+pipeline (planner → generator → strict validator → retry, `claude-cli`), and
+drawn by the real `dtv.bundle.js` in the canvas `ScreenFrame`.
+
+| Prompt | Screen model | Validator | Layout QA | Looks right | Cost |
+| --- | --- | --- | --- | --- | --- |
+| Estatísticas Equador x Argentina, à direita | interactivity-cards-right, nível 3 | ok, attempt 1 | 5/5 | yes — match title, three scout rows with value pairs, footer timestamp, close anchored and focused | $0.21 |
+| Classificação do Grupo A, à esquerda | interactivity-cards-left, nível 3 | ok, attempt 1 | 5/5 | mostly — rows, columns and headings right; the header shows the placeholder "Título" | $0.16 |
+| Notificação do paredão | notification, nível 0 | ok, attempt 2 | 5/5 | yes | $0.15 |
+| Home com menu e trilho à direita | home-buttons-right, nível 1 | ok, attempt 2 | 5/5 | **no** — the rail is cut off at the top left, the menu floats mid-screen, cards show "AO VIVO" / "Overline" / "Subtitle" placeholders | $0.10 |
+
+Getting there took five import gaps closed first (see below), and the run itself
+found seven more — all fixed except the two under "Still open". The last round of
+four prompts cost $0.61; the whole session's live runs about $3.
 
 ## What building this found (and fixed)
 
@@ -279,16 +308,70 @@ Undo steps 1 and 4 afterwards.
   sign-up suggestion.
 - **Token imports dropped broken aliases silently.** They are now reported (E2.8).
 
+Found while making the DTV system importable from Storybook alone (Phase 4):
+
+- **Storybook couldn't read the primitives' props.** Box/Stack spacing, background,
+  border and radius, and Text's variant, colour and opacity were types derived
+  from `CssVar`, which react-docgen reads as `unknown`. `npm run tokens:build`
+  now also writes `src/primitives/token-names.ts` — the same families as literal
+  unions — and `primitives/tokens.ts` proves each equals its derived twin.
+  `tokens:check` keeps it current.
+- **Text given as `children` never showed.** The live renderer always passed the
+  Blueprint's child nodes as children, overriding the text. It now keeps the
+  component's `children` prop when there are no child nodes; Heading declares its
+  `children` so docgen sees it.
+- **Two components named `Button` — one was dropped.** The importer now keeps both,
+  named by their story (`PrimitivesButton`, `UiKitButton`).
+- **Token names didn't match prop values**, so the grid rules couldn't measure an
+  imported screen (E2.9).
+- **No way to get real components into an imported system from the repo.**
+  `npm run dtv:export` builds the bundle.
+- **The app rejected any `forwardRef` or `memo` component in a bundle.** Its
+  validator wanted plain functions; the primitive Button is a `forwardRef`. It now
+  accepts React's wrapped component types.
+- **Handlers and deprecated aliases were offered to the agent** (E2.10).
+- **Lists came through as free text.** `readonly` arrays read as `unknown`, so the
+  agent wrote `"62% / 38%"` where the component needs `["62%", "38%"]` — a string
+  there breaks the component. The kit's list props dropped `readonly`, and lists
+  are a prop kind now (E2.11), in the manifest, the validator, the prompt and the
+  Properties panel (a comma-separated field).
+- **The prompt never showed what a prop is for.** Each prop line now carries its
+  description — for an imported system the agent's only guide; the model had
+  used a `team` row where a `scout` row was meant.
+- **Text in a node's `children` was dropped silently** (E2.12).
+- **The one-focus rule asked for a value the prop refused.** An imported MainMenu
+  takes `null` for "focus is elsewhere", but the rule told the model to set
+  `"none"`; the model looped until the retries ran out (E2.13).
+- **An optional prop with no default got its first option.** The interpreter
+  filled `background: "primary"` and `border: "subtle"` into every imported
+  Stack — a painted panel over the video. An optional prop without a default now
+  stays unset, so the component does what it does without it.
+- **Placeholder defaults leaked onto screens.** The prompt now says, beside each
+  text prop with a default, that the text shows unless set to `""`. It helps, but
+  not reliably — see Still open.
+
 ## Still open
 
-- **Phase 4 has not been run against a live model.**
+- **The DTV components default their text to Figma placeholders** — `Título`,
+  `Title`, `Overline`, `Subtitle`, and the live badge on. A prop the model leaves
+  out shows them. The built-in catalog hides this with `defaultOverrides`; an
+  import sees the code's defaults. The clean fix is in the kit: placeholders
+  belong in the stories' `args`, not in the components.
+- **An imported system gets no reference screens,** so composition is the model's
+  alone. The home screen came out wrong (menu beside the rail, not along the
+  bottom) while every rule passed — no rule says where a menu goes.
+- **Gradient tokens aren't parsed by the importer** (28 warnings for `tokens.json`).
+  Screens still render them — the components read `global.css` — but an imported
+  system's token list lacks them.
+- **Step 4 of Phase 4** (a token change through the probe) was stopped before it
+  completed.
 
 To keep in mind: the visual baselines depend on the OS, so re-baseline only after
 proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 580.
+- Tests went from 363 to 589.
 - Visual: 113 stories (11 new `Canvas Kit` baselines, plus the sponsored interactivity card).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;
