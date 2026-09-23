@@ -64,7 +64,9 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   },
   InteractivityCard: {
     component: 'ui-kit-button',
-    codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot', advertising: 'not-in-catalog-yet' },
+    codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot' },
+    // The sponsor's wording; its logo is an image slot the agent can't fill.
+    propMap: { advertisingLabel: ['advertising'] },
     defaultOverrides: {
       interactionState: RESTS,
       live: 'As an interactivity the card carries its title alone; the live badge belongs to the schedule section.',

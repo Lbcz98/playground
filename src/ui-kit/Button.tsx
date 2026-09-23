@@ -42,8 +42,8 @@ export interface ButtonProps {
   live?: boolean
   /** Renders the check mark in the thumbnail's top-right. */
   check?: boolean
-  /** Renders the "Publicidade" row with a partner logo. */
-  advertising?: { label: string; logoSrc: string }
+  /** Renders the sponsor row — its wording ("Publicidade") and, when given, the partner's logo. */
+  advertising?: { label: string; logoSrc?: string }
   /** Fills the thumbnail slot. */
   thumbnail?: ReactNode
   onClick?: () => void
@@ -177,7 +177,9 @@ export function Button({
                 {advertising.label}
               </Text>
             </span>
-            <img src={advertising.logoSrc} alt="" style={{ height: size('icon-lg'), display: 'block' }} />
+            {advertising.logoSrc ? (
+              <img src={advertising.logoSrc} alt="" style={{ height: size('icon-lg'), display: 'block' }} />
+            ) : null}
           </span>
         )}
       </span>

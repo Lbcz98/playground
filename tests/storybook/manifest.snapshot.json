@@ -791,10 +791,10 @@
       "description": "One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge.",
       "props": {
         "advertising": {
-          "type": "{ label: string; logoSrc: string }",
+          "type": "{ label: string; logoSrc?: string }",
           "kind": "object",
           "required": false,
-          "description": "Renders the \"Publicidade\" row with a partner logo."
+          "description": "Renders the sponsor row — its wording (\"Publicidade\") and, when given, the partner's logo."
         },
         "check": {
           "type": "boolean",
@@ -873,6 +873,7 @@
         "ui-kit-button--default",
         "ui-kit-button--focus",
         "ui-kit-button--selected",
+        "ui-kit-button--sponsored",
         "ui-kit-button--with-check"
       ],
       "subcomponents": {}

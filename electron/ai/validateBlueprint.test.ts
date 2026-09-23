@@ -154,6 +154,19 @@ describe('validateBlueprint — Content Card structure', () => {
     }
   })
 
+  it('accepts a sponsored interactivity card', () => {
+    const doc = {
+      version: 1,
+      screen: { model: 'home', level: 1 },
+      root: {
+        type: 'Stack',
+        props: { justify: 'end', grow: true },
+        children: [{ type: 'InteractivityMenu', children: [{ type: 'InteractivityCard', props: { title: 'Quiz', advertisingLabel: 'Publicidade' } }] }],
+      },
+    }
+    expect(errorsOf(doc)).toBe('')
+  })
+
   it('holds the header fields to their types', () => {
     const header = { type: 'ContentCardHeader', props: { partnerVerified: 'yes' } }
     expect(errorsOf(screen(card([header])))).toMatch(/partnerVerified/)

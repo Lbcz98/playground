@@ -145,8 +145,8 @@ function renderInteractivityMenu(raw: Record<string, unknown>, children: ReactNo
 }
 
 function renderInteractivityCard(raw: Record<string, unknown>): ReactElement {
-  const p = interactivityCardSchema.parse(raw)
-  return <UiKitCard {...p} />
+  const { advertisingLabel, ...p } = interactivityCardSchema.parse(raw)
+  return <UiKitCard {...p} advertising={advertisingLabel ? { label: advertisingLabel } : undefined} />
 }
 
 function renderLabelVideo(raw: Record<string, unknown>): ReactElement {

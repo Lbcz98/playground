@@ -17,7 +17,7 @@ names the test that runs it.
 
 | Command | What it runs | Needs |
 | --- | --- | --- |
-| `npm test` | Phases 1–3 (unit and contract tests, 578 tests) | nothing |
+| `npm test` | Phases 1–3 (unit and contract tests, 580 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
@@ -36,7 +36,7 @@ tests follow the repo. These are decisions, not gaps.
 | The Blueprint carries `focus: 'left' \| 'right' \| 'neutral'` | No focus field. The canvas reads focus from the rendered screen, and the model only marks `anchor: true`. | A TV screen always has something focused (decided 2026-09-15). The validator now **rejects** a `focus` key (G3.4). |
 | `.storybook/preview.js` | `.storybook/preview.tsx` | — |
 | `docs.json` | Storybook 10.6 writes `manifests/components.json` (react-docgen per component). No `docs.json` is emitted for this project. | `components.json` is what carries the docgen. The importer tells you to use it if you hand it an index or docs file (E2.6). |
-| Chromatic | The Electron harness `scripts/visual/regression.mjs` (112 baselines, 1280×720) | It is deterministic, offline, and already gates every story. |
+| Chromatic | The Electron harness `scripts/visual/regression.mjs` (113 baselines, 1280×720) | It is deterministic, offline, and already gates every story. |
 | "4-layer widget" | Content Card plus its Header, Body and Footer zones | The screen's layer rule (Camadas: video → overlay → content) is separate and tested in Phase 3. |
 
 ## Phase 0: Storybook metadata export
@@ -72,11 +72,12 @@ An entry can also declare:
 - `valueMap`: catalog values that stand for a different code value (MainMenu's
   `"none"` is the code's `null`);
 - `propMap`: where the registry renderer translates instead of passing props
-  through. Two components use it:
+  through. Three components use it:
   - TableCell's flat catalog fields land in its row props: `cellType` → `type`,
     `lead` → `position`/`number`, `stat1–3` → `stats`, and so on;
   - the Content Card header's `homeTeam`/`awayTeam` → `match`, `stat1–3` → `stats`,
-    `partnerName`/`partnerVerified` → `partner`, `adLabel` → `ad`.
+    `partnerName`/`partnerVerified` → `partner`, `adLabel` → `ad`;
+  - the interactivity card's `advertisingLabel` → `advertising` (its sponsor row).
 - `defaultOverrides`: props whose catalog default deliberately differs from the
   code's, each with a reason. Two reasons exist today:
   - the kit's controls default to their focused Figma variant, but a screen
@@ -103,7 +104,7 @@ The probe runs after each story settles, in the same 1280×720 offscreen window 
 the pixel diff. Every expected value is resolved from the live CSS custom
 properties, which `tokens:check` ties to `tokens.json`. The run prints what it
 measured, because a clean probe that measured nothing proves nothing. Today it
-covers 112 stories, 14 Content Cards and 6 canvas surfaces.
+covers 113 stories, 14 Content Cards and 6 canvas surfaces.
 
 | ID | Check | PASS | FAIL |
 | --- | --- | --- | --- |
@@ -287,8 +288,8 @@ proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 578.
-- Visual: 112 stories (11 new `Canvas Kit` baselines).
+- Tests went from 363 to 580.
+- Visual: 113 stories (11 new `Canvas Kit` baselines, plus the sponsored interactivity card).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;
   - adding `style` to the primitive Button → S0.1 (stale snapshot) and P1.8;

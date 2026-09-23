@@ -44,6 +44,16 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
     expect(el).toBeTruthy()
   })
 
+  it('a sponsored interactivity card: the sponsor row from its wording alone, no broken image', () => {
+    const card = reg.get('InteractivityCard')!
+    const html = (props: Record<string, unknown>) =>
+      renderToStaticMarkup(card.render(card.schema.parse(props) as Record<string, unknown>, null))
+    const sponsored = html({ title: 'Quiz', advertisingLabel: 'Publicidade' })
+    expect(sponsored).toMatch(/Quiz[\s\S]*Publicidade/)
+    expect(sponsored).not.toContain('<img')
+    expect(html({ title: 'Quiz' })).not.toContain('Publicidade')
+  })
+
   describe('the Content Card header builds its richer layouts from flat fields', () => {
     const header = reg.get('ContentCardHeader')!
     const html = (props: Record<string, unknown>) =>

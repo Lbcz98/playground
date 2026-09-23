@@ -23,6 +23,8 @@ export const Focus: Story = { args: { interactionState: 'focus' } }
 export const Selected: Story = { args: { interactionState: 'selected' } }
 export const Default: Story = { args: { interactionState: 'default' } }
 export const WithCheck: Story = { args: { interactionState: 'focus', check: true } }
+/** A sponsored card: the sponsor row under its text. Without a logo it is the wording alone. */
+export const Sponsored: Story = { args: { interactionState: 'focus', advertising: { label: 'Publicidade' } } }
 
 export const AllStates: Story = {
   args: {},

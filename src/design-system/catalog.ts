@@ -164,6 +164,8 @@ export const interactivityCardSchema = z
     live: z.boolean().default(false),
     check: z.boolean().default(false),
     interactionState: z.enum(CARD_STATES).default('default'),
+    /** A sponsored card: the sponsor row's wording, e.g. "Publicidade". Empty: no row. */
+    advertisingLabel: z.string().default(''),
   })
   .strict()
 export type InteractivityCardProps = z.infer<typeof interactivityCardSchema>
@@ -409,7 +411,7 @@ export const Catalog = {
     label: 'Interactivity Card',
     category: 'content',
     summary:
-      'One card in a rail. As an interactivity it is the way into a nível 3 screen and carries its title alone — no overline, no subtitle, no live badge. Overline, subtitle and the live badge belong to the schedule section, where a card stands for a programme.',
+      'One card in a rail. As an interactivity it is the way into a nível 3 screen and carries its title alone — no overline, no subtitle, no live badge. Overline, subtitle and the live badge belong to the schedule section, where a card stands for a programme. A sponsored card sets advertisingLabel (e.g. "Publicidade"), which adds the sponsor row under its text.',
     acceptsChildren: false,
     schema: interactivityCardSchema,
     defaultProps: interactivityCardSchema.parse({}),
@@ -420,6 +422,7 @@ export const Catalog = {
       live: { kind: 'boolean', label: 'Live badge' },
       check: { kind: 'boolean', label: 'Check mark' },
       interactionState: { kind: 'select', label: 'State', options: CARD_STATES },
+      advertisingLabel: { kind: 'text', label: 'Sponsor row' },
     },
   },
   LabelVideo: {
