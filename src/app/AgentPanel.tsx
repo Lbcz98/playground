@@ -8,7 +8,7 @@ import { cx } from '@/lib/cx'
 
 const SUGGESTIONS = [
   'Build a 3-tier pricing card',
-  'Create a sign-up form with name, email and password',
+  'Show the match statistics on the right',
   'Design a settings screen with sections',
 ]
 

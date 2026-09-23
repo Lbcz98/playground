@@ -67,6 +67,42 @@ export interface ScoutCellProps extends TableCellBase {
 
 export type TableCellProps = TeamCellProps | AthleteCellProps | ScoutCellProps
 
+/**
+ * Every prop any row takes, in one flat shape — the implementation signature, and
+ * what Storybook's docgen documents (it can't read a union of props). Callers
+ * still get the strict per-row union through `TableCell`'s one overload.
+ */
+export interface TableCellFields {
+  /** Which row: `team` (the default), `athlete` or `scout`. */
+  type?: 'team' | 'athlete' | 'scout'
+  /** The team or athlete's name (team and athlete rows). */
+  name?: string
+  /** The stat being compared, centred (scout rows). */
+  label?: string
+  /** Standing or group position (team rows). Omitted: not drawn, and the row closes up. */
+  position?: string
+  /** The team's crest or flag (team rows). Omitted: not drawn. */
+  shield?: ReactNode
+  /** Marks the team as the viewer's own (team rows). */
+  favorite?: boolean
+  /** Up to four columns, each one `table-stat-column` wide so they line up down the table (team rows). */
+  stats?: readonly string[]
+  /** Shirt number (athlete rows). Omitted: not drawn. */
+  number?: string
+  /** A yellow card beside the name (athlete rows). */
+  yellowCard?: boolean
+  /** A red card beside the name (athlete rows). */
+  redCard?: boolean
+  /** Goals scored (athlete rows). `0` or omitted: not drawn. */
+  goals?: number
+  /** Who came on for them (athlete rows). Omitted: not drawn. */
+  substitute?: string
+  /** The two sides' values, left and right (scout rows). Omitted: not drawn. */
+  values?: readonly [string, string]
+  /** The rule under the row. Default off — a table draws it under a heading, not every row. */
+  divider?: boolean
+}
+
 const MAX_STATS = 4
 
 function Row({
@@ -257,8 +293,12 @@ function ScoutCell({ label, values, divider }: ScoutCellProps): ReactNode {
 }
 
 /** One table row. `type` picks which row it is; everything optional collapses when left out. */
-export function TableCell(props: TableCellProps): ReactNode {
-  if (props.type === 'athlete') return <AthleteCell {...props} />
-  if (props.type === 'scout') return <ScoutCell {...props} />
-  return <TeamCell {...props} />
+export function TableCell(props: TableCellProps): ReactNode
+/** One table row. `type` picks which row it is; everything optional collapses when left out. */
+export function TableCell(props: TableCellFields): ReactNode {
+  // The overload holds every call to one row's props; the flat signature is for docgen.
+  const row = props as TableCellProps
+  if (row.type === 'athlete') return <AthleteCell {...row} />
+  if (row.type === 'scout') return <ScoutCell {...row} />
+  return <TeamCell {...row} />
 }

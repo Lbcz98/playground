@@ -4,19 +4,14 @@
  * against the committed Storybook snapshot (tests/storybook/manifest.snapshot.json).
  *
  * Every catalog id must appear here, so a new catalog component cannot skip the
- * parity gate: it either names its story component, or says in words why it has
- * none.
+ * parity gate. Each names the component a Storybook title documents (`component`
+ * is the snapshot id; `subcomponent` picks one declared in that story's meta):
  *
- * - `story` — the component a Storybook title documents (`component` is the
- *   snapshot id; `subcomponent` picks one declared in that story's meta).
- *   `codeOnly` lists every prop the code has and the catalog deliberately leaves
+ * - `codeOnly` lists every prop the code has and the catalog deliberately leaves
  *   out, with why; anything else Storybook shows must be in the catalog.
- *   `valueMap` lists catalog values that stand for a different code value.
- * - `docgen-unreadable` — it has a story, but react-docgen cannot read its props.
- *   The parity test checks the snapshot really is empty, so the entry has to be
- *   upgraded the day docgen can read it.
- * - `registry-only` — rendered by a hand-written renderer in registry.tsx and
- *   documented by no story.
+ * - `valueMap` lists catalog values that stand for a different code value.
+ * - `propMap` names the code props a catalog prop lands in, where the registry
+ *   renderer translates rather than hands the props over as they are.
  */
 
 /** Why a prop exists in code but not in the catalog. */
@@ -30,28 +25,20 @@ export type CodeOnlyReason =
   /** Content the catalog does not offer the agent yet. */
   | 'not-in-catalog-yet'
 
-export type StorybookBinding =
-  | {
-      kind: 'story'
-      component: string
-      subcomponent?: string
-      codeOnly?: Record<string, CodeOnlyReason>
-      valueMap?: Record<string, Record<string, 'null'>>
-    }
-  | { kind: 'docgen-unreadable'; component: string; reason: string }
-  | { kind: 'registry-only'; reason: string }
-
-const REGISTRY_ONLY =
-  'Hand-written Tailwind renderer in registry.tsx; no story documents it (src/primitives has its own, different component).'
+export interface StorybookBinding {
+  component: string
+  subcomponent?: string
+  codeOnly?: Record<string, CodeOnlyReason>
+  valueMap?: Record<string, Record<string, 'null'>>
+  propMap?: Record<string, readonly string[]>
+}
 
 export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
-  Stack: { kind: 'registry-only', reason: REGISTRY_ONLY },
-  Text: { kind: 'registry-only', reason: REGISTRY_ONLY },
-  Button: { kind: 'registry-only', reason: REGISTRY_ONLY },
-  Input: { kind: 'registry-only', reason: `${REGISTRY_ONLY} The DTV kit has no input component.` },
+  Stack: { component: 'canvas-kit-stack', codeOnly: { children: 'composition' } },
+  Text: { component: 'canvas-kit-text' },
+  Button: { component: 'canvas-kit-button' },
 
   MainMenu: {
-    kind: 'story',
     component: 'ui-kit-main-menu',
     codeOnly: {
       avatarSrc: 'asset-slot',
@@ -63,25 +50,22 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     valueMap: { focusedItem: { none: 'null' } },
   },
   InteractivityMenu: {
-    kind: 'story',
     component: 'ui-kit-interactivity-menu',
     codeOnly: { items: 'composition', activeIndex: 'composition', children: 'composition' },
   },
   InteractivityCard: {
-    kind: 'story',
     component: 'ui-kit-button',
     codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot', advertising: 'not-in-catalog-yet' },
   },
-  LabelVideo: { kind: 'story', component: 'ui-kit-label-video', codeOnly: { focus: 'deprecated-alias' } },
-  WideButton: { kind: 'story', component: 'ui-kit-wide-button', codeOnly: { status: 'deprecated-alias' } },
-  Notification: { kind: 'story', component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
-  AlertBug: { kind: 'story', component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
-  RoundedButton: { kind: 'story', component: 'ui-kit-rounded-button', codeOnly: { focus: 'deprecated-alias' } },
-  CloseButton: { kind: 'story', component: 'ui-kit-close-button' },
+  LabelVideo: { component: 'ui-kit-label-video', codeOnly: { focus: 'deprecated-alias' } },
+  WideButton: { component: 'ui-kit-wide-button', codeOnly: { status: 'deprecated-alias' } },
+  Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
+  AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
+  RoundedButton: { component: 'ui-kit-rounded-button', codeOnly: { focus: 'deprecated-alias' } },
+  CloseButton: { component: 'ui-kit-close-button' },
 
-  ContentCard: { kind: 'story', component: 'ui-kit-content-card', codeOnly: { children: 'composition' } },
+  ContentCard: { component: 'ui-kit-content-card', codeOnly: { children: 'composition' } },
   ContentCardHeader: {
-    kind: 'story',
     component: 'ui-kit-content-card',
     subcomponent: 'ContentCardHeader',
     codeOnly: {
@@ -93,23 +77,31 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     },
   },
   ContentCardBody: {
-    kind: 'story',
     component: 'ui-kit-content-card',
     subcomponent: 'ContentCardBody',
     codeOnly: { children: 'composition' },
   },
   ContentCardFooter: {
-    kind: 'story',
     component: 'ui-kit-content-card',
     subcomponent: 'ContentCardFooter',
     codeOnly: { children: 'composition' },
   },
 
   TableCell: {
-    kind: 'docgen-unreadable',
     component: 'ui-kit-table-cell',
-    reason:
-      'Its props are a discriminated union (TeamCellProps | AthleteCellProps | ScoutCellProps); react-docgen documents none of them.',
+    codeOnly: { shield: 'asset-slot' },
+    // The catalog flattens the three rows into one set of fields; renderTableCell
+    // hands each to the prop of the row it belongs to.
+    propMap: {
+      cellType: ['type'],
+      label: ['name', 'label'],
+      lead: ['position', 'number'],
+      stat1: ['stats'],
+      stat2: ['stats'],
+      stat3: ['stats'],
+      leftValue: ['values'],
+      rightValue: ['values'],
+    },
   },
 }
 
@@ -119,8 +111,8 @@ export const STORYBOOK_ONLY: Record<string, string> = {
   'ui-kit-overlay': 'The scrim is drawn by the screen model (Camadas), never placed by a Blueprint.',
   'ui-kit-overlay-screen-models': 'The screen model preview; a Blueprint names the model in `screen`, not as a node.',
   'primitives-box': 'Primitive used to build the kit; the catalog exposes Stack instead.',
-  'primitives-button': 'Primitive used to build the kit; the catalog Button is the registry renderer.',
+  'primitives-button': 'Primitive used to build the kit; the catalog Button is Canvas Kit/Button.',
   'primitives-heading': 'Primitive used to build the kit.',
-  'primitives-stack': 'Primitive used to build the kit; the catalog Stack is the registry renderer.',
-  'primitives-text': 'Primitive used to build the kit; the catalog Text is the registry renderer.',
+  'primitives-stack': 'Primitive used to build the kit; the catalog Stack is Canvas Kit/Stack.',
+  'primitives-text': 'Primitive used to build the kit; the catalog Text is Canvas Kit/Text.',
 }

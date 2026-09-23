@@ -2,8 +2,9 @@
  * Visual regression for the Storybook stories — `npm run test:visual`.
  *
  * Runs as an Electron main process (Electron is already a dependency, so there
- * is no browser to download): renders every `UI Kit/*` and `Primitives/*` story
- * offscreen at the 1280×720 frame, compares it pixel by pixel against
+ * is no browser to download): renders every `UI Kit/*`, `Primitives/*`,
+ * `Canvas Kit/*` and `Templates/*` story offscreen at the 1280×720 frame,
+ * compares it pixel by pixel against
  * tests/visual/baselines/, and writes a side-by-side report to
  * tests/visual/.output/report.html.
  *
@@ -49,7 +50,7 @@ const GRID_EXCEPTIONS = [
   },
 ]
 
-const STORY_IDS = /^(ui-kit|primitives|templates)-/
+const STORY_IDS = /^(ui-kit|primitives|canvas-kit|templates)-/
 const VIEWPORT = { width: 1280, height: 720 }
 /** Per-channel difference (0–255) treated as anti-aliasing noise, not a change. */
 const CHANNEL_TOLERANCE = 8

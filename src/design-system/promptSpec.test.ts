@@ -175,7 +175,7 @@ describe('global kernel', () => {
     // The planner's worked example must not anchor a primary button (a live run copied that).
     const planner = buildPlannerPrompt()
     expect(planner).not.toMatch(/— anchored[^\n]*\n\s*\d+\.\s+Primary button/)
-    expect(planner).toMatch(/Primary button: "Create account"\.\n\d+\.\s+Help Stack \(horizontal, gap sm\) — anchored/)
+    expect(planner).toMatch(/Primary button: "Start watching" — first focusable, so it holds initial focus\.\n\d+\.\s+Help Stack \(horizontal, gap sm\) — anchored/)
   })
 
   it('always targets the 1280×720 base — the upscale is the engine’s job', () => {

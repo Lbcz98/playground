@@ -32,19 +32,9 @@ import { inferControl, propLabel } from '@/shared/design-system/manifest'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import type { LiveComponentMap } from './liveBundle'
+import { CanvasButton, CanvasStack, CanvasText } from './canvasKit'
 import {
-  GAP_CLASS,
-  PADDING_CLASS,
-  RADIUS_CLASS,
-  SHADOW_CLASS,
-  SURFACE_CLASS,
-} from './tokens'
-import {
-  type ButtonProps,
   type Control,
-  type InputProps,
-  type StackProps,
-  type TextProps,
   alertBugSchema,
   buttonSchema,
   closeButtonSchema,
@@ -52,7 +42,6 @@ import {
   contentCardFooterSchema,
   contentCardHeaderSchema,
   contentCardSchema,
-  inputSchema,
   interactivityCardSchema,
   interactivityMenuSchema,
   labelVideoSchema,
@@ -118,168 +107,21 @@ export interface HydratedRegistry {
 }
 
 // ===========================================================================
-// Stack
+// Canvas kit — Stack, Text, Button (`canvasKit.tsx`). Called as plain functions,
+// not mounted, so the element returned is the component's own root: the one
+// NodeRenderer decorates with selection and `data-node-id`. They have no hooks.
 // ===========================================================================
-
-const DIRECTION_CLASS: Record<StackProps['direction'], string> = {
-  vertical: 'flex-col',
-  horizontal: 'flex-row',
-}
-const ALIGN_CLASS: Record<StackProps['align'], string> = {
-  start: 'items-start',
-  center: 'items-center',
-  end: 'items-end',
-  stretch: 'items-stretch',
-}
-const JUSTIFY_CLASS: Record<StackProps['justify'], string> = {
-  start: 'justify-start',
-  center: 'justify-center',
-  end: 'justify-end',
-  between: 'justify-between',
-}
 
 function renderStack(raw: Record<string, unknown>, children: ReactNode): ReactElement {
-  const p = stackSchema.parse(raw)
-  return (
-    <div
-      className={cx(
-        'flex min-w-none',
-        DIRECTION_CLASS[p.direction],
-        GAP_CLASS[p.gap],
-        PADDING_CLASS[p.padding],
-        ALIGN_CLASS[p.align],
-        JUSTIFY_CLASS[p.justify],
-        SURFACE_CLASS[p.surface],
-        RADIUS_CLASS[p.radius],
-        SHADOW_CLASS[p.shadow],
-        p.bordered && 'border border-line',
-        p.grow && 'flex-1',
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-// ===========================================================================
-// Text
-// ===========================================================================
-
-const TEXT_VARIANT_CLASS: Record<TextProps['variant'], string> = {
-  display: 'text-2xl font-bold',
-  title: 'text-xl font-semibold',
-  heading: 'text-lg font-semibold',
-  body: 'text-md font-regular',
-  caption: 'text-sm font-regular',
-}
-const TEXT_TONE_CLASS: Record<TextProps['tone'], string> = {
-  default: 'text-ink',
-  muted: 'text-ink-muted',
-  inverse: 'text-ink-inverse',
-  brand: 'text-brand',
-}
-const TEXT_ALIGN_CLASS: Record<TextProps['align'], string> = {
-  start: 'text-left',
-  center: 'text-center',
-  end: 'text-right',
-}
-const TEXT_TAG: Record<TextProps['variant'], 'h1' | 'h2' | 'h3' | 'p' | 'span'> = {
-  display: 'h1',
-  title: 'h2',
-  heading: 'h3',
-  body: 'p',
-  caption: 'span',
+  return CanvasStack({ ...stackSchema.parse(raw), children })
 }
 
 function renderText(raw: Record<string, unknown>): ReactElement {
-  const p = textSchema.parse(raw)
-  const Tag = TEXT_TAG[p.variant]
-  return (
-    <Tag
-      className={cx(
-        'm-none',
-        TEXT_VARIANT_CLASS[p.variant],
-        TEXT_TONE_CLASS[p.tone],
-        TEXT_ALIGN_CLASS[p.align],
-      )}
-    >
-      {p.content}
-    </Tag>
-  )
-}
-
-// ===========================================================================
-// Button
-// ===========================================================================
-
-const BUTTON_SIZE_CLASS: Record<ButtonProps['size'], string> = {
-  sm: 'text-sm px-2xs py-3xs gap-3xs',
-  md: 'text-md px-sm py-2xs gap-3xs',
-  lg: 'text-lg px-lg py-sm gap-2xs',
-}
-const BUTTON_VARIANT_CLASS: Record<ButtonProps['variant'], string> = {
-  primary: 'bg-brand text-ink-inverse hover:bg-brand-hover',
-  secondary: 'bg-surface text-ink border border-line hover:bg-subtle',
-  ghost: 'bg-transparent text-ink hover:bg-subtle',
-  danger: 'bg-danger text-ink-inverse hover:bg-danger-hover',
+  return CanvasText(textSchema.parse(raw))
 }
 
 function renderButton(raw: Record<string, unknown>): ReactElement {
-  const p = buttonSchema.parse(raw)
-  return (
-    <button
-      type="button"
-      disabled={p.disabled}
-      className={cx(
-        'inline-flex items-center justify-center rounded-md font-medium',
-        'transition-colors focus-visible:outline-none focus-visible:ring focus-visible:ring-brand',
-        'disabled:opacity-50 disabled:pointer-events-none',
-        BUTTON_SIZE_CLASS[p.size],
-        BUTTON_VARIANT_CLASS[p.variant],
-        p.fullWidth && 'w-full',
-      )}
-    >
-      {p.label}
-    </button>
-  )
-}
-
-// ===========================================================================
-// Input
-// ===========================================================================
-
-const INPUT_SIZE_CLASS: Record<InputProps['size'], string> = {
-  sm: 'text-sm px-2xs py-3xs',
-  md: 'text-md px-sm py-2xs',
-  lg: 'text-lg px-sm py-2xs',
-}
-const INPUT_STATE_CLASS: Record<InputProps['state'], string> = {
-  default: 'border-line',
-  error: 'border-danger',
-}
-
-function renderInput(raw: Record<string, unknown>): ReactElement {
-  const p = inputSchema.parse(raw)
-  return (
-    <div className="flex flex-col gap-3xs">
-      {p.label ? <span className="text-sm font-medium text-ink">{p.label}</span> : null}
-      <input
-        type="text"
-        placeholder={p.placeholder}
-        className={cx(
-          'w-full rounded-md border bg-surface text-ink',
-          'placeholder:text-ink-muted focus:outline-none focus:ring focus:ring-brand',
-          INPUT_SIZE_CLASS[p.size],
-          INPUT_STATE_CLASS[p.state],
-        )}
-      />
-      {p.helpText ? (
-        <span className={cx('text-xs', p.state === 'error' ? 'text-danger' : 'text-ink-muted')}>
-          {p.helpText}
-        </span>
-      ) : null}
-    </div>
-  )
+  return CanvasButton(buttonSchema.parse(raw))
 }
 
 // ===========================================================================
@@ -605,7 +447,6 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   Stack: renderStack,
   Text: renderText,
   Button: renderButton,
-  Input: renderInput,
   MainMenu: renderMainMenu,
   InteractivityMenu: renderInteractivityMenu,
   InteractivityCard: renderInteractivityCard,

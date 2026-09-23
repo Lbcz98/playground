@@ -2,6 +2,280 @@
   "v": 1,
   "docgen": "react-docgen",
   "components": {
+    "canvas-kit-button": {
+      "name": "CanvasButton",
+      "description": "A text-only call to action.",
+      "props": {
+        "disabled": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Shown but not actionable. Default off."
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Fills its container's width. Default off."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Button",
+          "description": "What it does, e.g. \"Create account\". Default `Button`."
+        },
+        "size": {
+          "type": "'sm' | 'md' | 'lg'",
+          "kind": "enum",
+          "options": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "required": false,
+          "defaultValue": "md",
+          "description": "Control size. Default `md`."
+        },
+        "variant": {
+          "type": "'primary' | 'secondary' | 'ghost' | 'danger'",
+          "kind": "enum",
+          "options": [
+            "primary",
+            "secondary",
+            "ghost",
+            "danger"
+          ],
+          "required": false,
+          "defaultValue": "primary",
+          "description": "Emphasis. Default `primary`."
+        }
+      },
+      "title": "Canvas Kit/Button",
+      "stories": [
+        "canvas-kit-button--disabled",
+        "canvas-kit-button--full-width",
+        "canvas-kit-button--primary",
+        "canvas-kit-button--sizes",
+        "canvas-kit-button--variants"
+      ],
+      "subcomponents": {}
+    },
+    "canvas-kit-stack": {
+      "name": "CanvasStack",
+      "description": "The only layout container: a flexbox row or column with token gap and padding. Nest them to build any layout.",
+      "props": {
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ],
+          "required": false,
+          "defaultValue": "stretch",
+          "description": "Cross-axis alignment. Default `stretch`."
+        },
+        "bordered": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Draws the default border. Default off."
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "direction": {
+          "type": "'vertical' | 'horizontal'",
+          "kind": "enum",
+          "options": [
+            "vertical",
+            "horizontal"
+          ],
+          "required": false,
+          "defaultValue": "vertical",
+          "description": "The main axis. Default `vertical`."
+        },
+        "gap": {
+          "type": "'none' | '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
+          "required": false,
+          "defaultValue": "sm",
+          "description": "Space between children. On the root and between modules it is the frame's gutter. Default `sm`."
+        },
+        "grow": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Takes the free space along its parent's main axis. Default off."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ],
+          "required": false,
+          "defaultValue": "start",
+          "description": "Main-axis distribution. Default `start`."
+        },
+        "padding": {
+          "type": "'none' | '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
+          "required": false,
+          "defaultValue": "none",
+          "description": "Space inside the edge. The root keeps `none` — the frame applies the safe area. Default `none`."
+        },
+        "radius": {
+          "type": "'none' | 'sm' | 'md' | 'lg' | 'full'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "sm",
+            "md",
+            "lg",
+            "full"
+          ],
+          "required": false,
+          "defaultValue": "none",
+          "description": "Corner radius step. Default `none`."
+        },
+        "shadow": {
+          "type": "'none' | 'sm' | 'md' | 'lg'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "sm",
+            "md",
+            "lg"
+          ],
+          "required": false,
+          "defaultValue": "none",
+          "description": "Elevation step. Default `none`."
+        },
+        "surface": {
+          "type": "'none' | 'surface' | 'subtle' | 'brand-subtle'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "surface",
+            "subtle",
+            "brand-subtle"
+          ],
+          "required": false,
+          "defaultValue": "none",
+          "description": "Background role. The root stays `none`, so the video shows through. Default `none`."
+        }
+      },
+      "title": "Canvas Kit/Stack",
+      "stories": [
+        "canvas-kit-stack--card",
+        "canvas-kit-stack--horizontal",
+        "canvas-kit-stack--vertical"
+      ],
+      "subcomponents": {}
+    },
+    "canvas-kit-text": {
+      "name": "CanvasText",
+      "description": "A single run of text.",
+      "props": {
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end"
+          ],
+          "required": false,
+          "defaultValue": "start",
+          "description": "Text alignment. Default `start`."
+        },
+        "content": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Text",
+          "description": "The words. Default `Text`."
+        },
+        "tone": {
+          "type": "'default' | 'muted' | 'inverse' | 'brand'",
+          "kind": "enum",
+          "options": [
+            "default",
+            "muted",
+            "inverse",
+            "brand"
+          ],
+          "required": false,
+          "defaultValue": "default",
+          "description": "Colour role. Default `default`."
+        },
+        "variant": {
+          "type": "'display' | 'title' | 'heading' | 'body' | 'caption'",
+          "kind": "enum",
+          "options": [
+            "display",
+            "title",
+            "heading",
+            "body",
+            "caption"
+          ],
+          "required": false,
+          "defaultValue": "body",
+          "description": "Size and weight; the element follows (display h1, title h2, heading h3, body p, caption span). Default `body`."
+        }
+      },
+      "title": "Canvas Kit/Text",
+      "stories": [
+        "canvas-kit-text--body",
+        "canvas-kit-text--tones",
+        "canvas-kit-text--variants"
+      ],
+      "subcomponents": {}
+    },
     "primitives-box": {
       "name": "Box",
       "description": "",
@@ -1143,7 +1417,97 @@
     "ui-kit-table-cell": {
       "name": "TableCell",
       "description": "One table row. `type` picks which row it is; everything optional collapses when left out.",
-      "props": {},
+      "props": {
+        "divider": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "The rule under the row. Default off — a table draws it under a heading, not every row."
+        },
+        "favorite": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "Marks the team as the viewer's own (team rows)."
+        },
+        "goals": {
+          "type": "number",
+          "kind": "number",
+          "required": false,
+          "description": "Goals scored (athlete rows). `0` or omitted: not drawn."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The stat being compared, centred (scout rows)."
+        },
+        "name": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The team or athlete's name (team and athlete rows)."
+        },
+        "number": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Shirt number (athlete rows). Omitted: not drawn."
+        },
+        "position": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Standing or group position (team rows). Omitted: not drawn, and the row closes up."
+        },
+        "redCard": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "A red card beside the name (athlete rows)."
+        },
+        "shield": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "The team's crest or flag (team rows). Omitted: not drawn."
+        },
+        "stats": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": "Up to four columns, each one `table-stat-column` wide so they line up down the table (team rows)."
+        },
+        "substitute": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Who came on for them (athlete rows). Omitted: not drawn."
+        },
+        "type": {
+          "type": "'team' | 'athlete' | 'scout'",
+          "kind": "enum",
+          "options": [
+            "team",
+            "athlete",
+            "scout"
+          ],
+          "required": false,
+          "description": "Which row: `team` (the default), `athlete` or `scout`."
+        },
+        "values": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": "The two sides' values, left and right (scout rows). Omitted: not drawn."
+        },
+        "yellowCard": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "A yellow card beside the name (athlete rows)."
+        }
+      },
       "title": "UI Kit/Table Cell",
       "stories": [
         "ui-kit-table-cell--as-a-table",

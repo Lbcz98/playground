@@ -15,7 +15,6 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
       'ContentCardBody',
       'ContentCardFooter',
       'ContentCardHeader',
-      'Input',
       'InteractivityCard',
       'InteractivityMenu',
       'LabelVideo',

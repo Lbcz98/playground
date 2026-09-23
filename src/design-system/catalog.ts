@@ -107,17 +107,6 @@ export const buttonSchema = z
   .strict()
 export type ButtonProps = z.infer<typeof buttonSchema>
 
-export const inputSchema = z
-  .object({
-    label: z.string().default(''),
-    placeholder: z.string().default('Enter text'),
-    size: z.enum(CONTROL_SIZES).default('md'),
-    state: z.enum(['default', 'error']).default('default'),
-    helpText: z.string().default(''),
-  })
-  .strict()
-export type InputProps = z.infer<typeof inputSchema>
-
 // ===========================================================================
 // DTV UI Kit — the parts a real screen is made of (`src/ui-kit`)
 // ===========================================================================
@@ -369,23 +358,6 @@ export const Catalog = {
       disabled: { kind: 'boolean', label: 'Disabled' },
     },
   },
-  Input: {
-    type: 'Input',
-    label: 'Input',
-    category: 'form',
-    summary: 'A single-line text field with an optional label and help text.',
-    acceptsChildren: false,
-    schema: inputSchema,
-    defaultProps: inputSchema.parse({}),
-    controls: {
-      label: { kind: 'text', label: 'Label' },
-      placeholder: { kind: 'text', label: 'Placeholder' },
-      size: { kind: 'select', label: 'Size', options: CONTROL_SIZES },
-      state: { kind: 'select', label: 'State', options: ['default', 'error'] },
-      helpText: { kind: 'text', label: 'Help text' },
-    },
-  },
-
   // --- DTV UI Kit ---------------------------------------------------------
 
   MainMenu: {

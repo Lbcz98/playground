@@ -536,7 +536,6 @@ ${[...tokenTierSpecifics(manifest), ...frameSpecifics(manifest, container), ...s
 Accessibility rules:
 - Heading hierarchy must be logical: one prominent heading as the screen title,
   smaller headings for sections, body/caption for supporting copy.
-- Every text input must have a label.
 - Every button label must say what it does ("Create account", not "Submit").
 - Use a muted tone for secondary text, never a faint custom color.
 - Name every color by its role (primary text, elevated surface, default border),
@@ -545,8 +544,6 @@ Accessibility rules:
 Common layout patterns:
 - Card: a vertical container with padding, gap, a surface, a border, a radius and
   a small shadow.
-- Form: a vertical container with one input per field, grouped in a card, with its
-  primary button in the card after the last field.
 - Equal columns / tiers: a horizontal container (align stretch) of child
   containers that each grow.
 - Page header: a vertical container with a title then a muted body line.
@@ -564,12 +561,12 @@ Example:
 ${templates.length > 0 ? 'Template: home\n' : ''}Screen: model "home", level 1 — a home screen whose content spans the frame.
 1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start, no background) — the content layer.
 2.   Header ${container} (vertical, gap xs).
-3.     A prominent title: "Create your account".
-4.     A muted body line: "It takes less than a minute.".
+3.     A prominent title: "Choose your plan".
+4.     A muted body line: "Switch or cancel at any time.".
 5.   Card ${container} (vertical, gap md, padding lg, surface, bordered, radius lg, shadow sm).
-6.     Input, label "Full name" — first focusable, so it holds initial focus.
-7.     Input, label "Email".
-8.     Primary button: "Create account".
+6.     A heading: "Premium".
+7.     A muted body line: "Every channel, live and on demand.".
+8.     Primary button: "Start watching" — first focusable, so it holds initial focus.
 9.   Help ${container} (horizontal, gap sm) — anchored, a secondary floating cluster.
 10.    Ghost button: "Need help?".`
 }

@@ -22,13 +22,10 @@ const SNAPSHOT: StorybookSnapshot = JSON.parse(
 const catalog = SCREENFLOW_MANIFEST.components
 const catalogIds = Object.keys(catalog)
 
-type StoryBinding = Extract<StorybookBinding, { kind: 'story' }>
-const storyBound = Object.entries(STORYBOOK_MAP).filter(
-  (entry): entry is [string, StoryBinding] => entry[1].kind === 'story',
-)
+const bound = Object.entries(STORYBOOK_MAP)
 
-/** The docgen block a story binding points at — the component itself or one of its subcomponents. */
-function docgenFor(binding: StoryBinding): DocgenComponent | undefined {
+/** The docgen block a binding points at — the component itself or one of its subcomponents. */
+function docgenFor(binding: StorybookBinding): DocgenComponent | undefined {
   const component = SNAPSHOT.components[binding.component]
   if (!component) return undefined
   return binding.subcomponent ? component.subcomponents[binding.subcomponent] : component
@@ -44,59 +41,46 @@ function catalogKind(prop: ManifestProp): DocgenProp['kind'] {
 
 const isEventHandler = (name: string, prop: DocgenProp) => /^on[A-Z]/.test(name) && prop.kind === 'function'
 
+/** The code props a catalog prop lands in — itself, unless the binding maps it. */
+const targetsOf = (binding: StorybookBinding, name: string): readonly string[] => binding.propMap?.[name] ?? [name]
+
 describe('P1.1 — every catalog component is accounted for', () => {
   it('each catalog id has a Storybook binding, and the map names no id the catalog lacks', () => {
     expect(Object.keys(STORYBOOK_MAP).sort()).toEqual([...catalogIds].sort())
   })
 
   it('each Storybook component either documents a catalog component or says why not', () => {
-    const referenced = new Set(
-      Object.values(STORYBOOK_MAP).flatMap((b) => (b.kind === 'registry-only' ? [] : [b.component])),
-    )
+    const referenced = new Set(Object.values(STORYBOOK_MAP).map((b) => b.component))
     const unaccounted = Object.keys(SNAPSHOT.components).filter((id) => !referenced.has(id) && !(id in STORYBOOK_ONLY))
     expect(unaccounted).toEqual([])
     const stale = Object.keys(STORYBOOK_ONLY).filter((id) => !(id in SNAPSHOT.components))
     expect(stale).toEqual([])
   })
-
-  it('registry-only components are exactly the four hand-written renderers', () => {
-    const registryOnly = Object.entries(STORYBOOK_MAP)
-      .filter(([, b]) => b.kind === 'registry-only')
-      .map(([id]) => id)
-      .sort()
-    expect(registryOnly).toEqual(['Button', 'Input', 'Stack', 'Text'])
-  })
 })
 
 describe('P1.2 — every bound component has stories and documents cleanly', () => {
-  it.each(Object.entries(STORYBOOK_MAP).filter(([, b]) => b.kind !== 'registry-only'))('%s', (id, binding) => {
-    if (binding.kind === 'registry-only') return
+  it.each(bound)('%s', (id, binding) => {
     const component = SNAPSHOT.components[binding.component]
     expect(component, `${id} → ${binding.component} is not in the snapshot`).toBeDefined()
     expect(component.stories.length).toBeGreaterThan(0)
     expect(component.error).toBeUndefined()
-    if (binding.kind === 'story' && binding.subcomponent) {
+    if (binding.subcomponent) {
       expect(component.subcomponents[binding.subcomponent], `${binding.subcomponent} is not a declared subcomponent`).toBeDefined()
-    }
-  })
-
-  it('docgen-unreadable entries really are unreadable (upgrade the entry once docgen reads them)', () => {
-    for (const binding of Object.values(STORYBOOK_MAP)) {
-      if (binding.kind !== 'docgen-unreadable') continue
-      expect(Object.keys(SNAPSHOT.components[binding.component].props)).toEqual([])
     }
   })
 })
 
-describe.each(storyBound)('%s', (id, binding) => {
+describe.each(bound)('%s', (id, binding) => {
   const docgen = docgenFor(binding)!
   const props = catalog[id].props
 
   it('P1.3 — every catalog prop exists in code, with the same kind of type', () => {
     for (const [name, prop] of Object.entries(props)) {
-      const code = docgen.props[name]
-      expect(code, `${id}.${name} is in catalog.ts but not in the component's props`).toBeDefined()
-      expect(code.kind, `${id}.${name}`).toBe(catalogKind(prop))
+      for (const target of targetsOf(binding, name)) {
+        expect(docgen.props[target], `${id}.${name} lands in "${target}", which the component doesn't take`).toBeDefined()
+      }
+      // A mapped prop changes shape on the way (stat1–3 → stats[]); only a direct one keeps its kind.
+      if (!binding.propMap?.[name]) expect(docgen.props[name].kind, `${id}.${name}`).toBe(catalogKind(prop))
     }
   })
 
@@ -105,23 +89,27 @@ describe.each(storyBound)('%s', (id, binding) => {
       if (!prop.options) continue
       const map = binding.valueMap?.[name] ?? {}
       const catalogValues = prop.options.filter((option) => map[option] !== 'null')
-      expect([...catalogValues].sort(), `${id}.${name}`).toEqual([...(docgen.props[name].options ?? [])].sort())
+      const [target] = targetsOf(binding, name)
+      expect([...catalogValues].sort(), `${id}.${name}`).toEqual([...(docgen.props[target].options ?? [])].sort())
       for (const [value, code] of Object.entries(map)) {
         expect(prop.options, `${id}.${name} maps "${value}" but the catalog does not offer it`).toContain(value)
-        if (code === 'null') expect(docgen.props[name].type, `${id}.${name} maps "${value}" to null`).toMatch(/\bnull\b/)
+        if (code === 'null') expect(docgen.props[target].type, `${id}.${name} maps "${value}" to null`).toMatch(/\bnull\b/)
       }
     }
   })
 
   it('P1.7 — the component and every catalog prop carry a JSDoc description', () => {
     expect(docgen.description, `${id} has no JSDoc on its component`).not.toBe('')
-    const bare = Object.keys(props).filter((name) => !docgen.props[name]?.description)
+    const bare = Object.keys(props)
+      .flatMap((name) => targetsOf(binding, name))
+      .filter((target) => !docgen.props[target]?.description)
     expect(bare, `${id} props with no JSDoc`).toEqual([])
   })
 
   it('P1.8 — every prop the code shows is either in the catalog or declared code-only', () => {
+    const mappedTo = new Set(Object.values(binding.propMap ?? {}).flat())
     const undeclared = Object.entries(docgen.props)
-      .filter(([name, prop]) => !(name in props) && !(name in (binding.codeOnly ?? {})) && !isEventHandler(name, prop))
+      .filter(([name, prop]) => !(name in props) && !mappedTo.has(name) && !(name in (binding.codeOnly ?? {})) && !isEventHandler(name, prop))
       .map(([name]) => name)
     expect(undeclared, `${id}: add each to catalog.ts or to its codeOnly list in storybook-map.ts`).toEqual([])
 
