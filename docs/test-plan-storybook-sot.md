@@ -17,7 +17,7 @@ names the test that runs it.
 
 | Command | What it runs | Needs |
 | --- | --- | --- |
-| `npm test` | Phases 1–3 (unit and contract tests, 553 tests) | nothing |
+| `npm test` | Phases 1–3 (unit and contract tests, 571 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
@@ -74,6 +74,13 @@ An entry can also declare:
 - `propMap`: where the registry renderer translates instead of passing props
   through. TableCell's flat catalog fields land in its row props: `cellType` →
   `type`, `lead` → `position`/`number`, `stat1–3` → `stats`, and so on.
+- `defaultOverrides`: props whose catalog default deliberately differs from the
+  code's, each with a reason. Two reasons exist today:
+  - the kit's controls default to their focused Figma variant, but a screen
+    focuses one element, so the catalog rests them (`interactionState:
+    "default"`);
+  - as an interactivity, the card carries its title alone, so the catalog turns
+    off its overline, subtitle and live badge.
 
 | ID | Check | PASS | FAIL | Where |
 | --- | --- | --- | --- | --- |
@@ -85,6 +92,7 @@ An entry can also declare:
 | P1.6 | The Content Card documents its zones in slot order | Header, Body and Footer are Storybook subcomponents; `slots` = Header, Body, Footer; each zone's `parents` = ContentCard | — | same |
 | P1.7 | JSDoc reaches docgen | every bound component and every catalog prop has a non-empty description in the snapshot | a component or catalog prop is undocumented | same |
 | P1.8 | Nothing leaks | every code prop is in the catalog, a `propMap` target, in `codeOnly`, or an `on*` handler; `codeOnly` entries exist and aren't in the catalog; `deprecated-alias` entries are really `@deprecated`; no component shows an inherited `node_modules` prop, `style`, `className` or `aria-*` | an undeclared prop, a stale entry, or a DOM prop | same |
+| P1.9 | Every catalog default is the code's, or says why not | the code's default is react-docgen's (a destructuring default) or the one its JSDoc states (`` Default `x`. ``); the catalog's equals it, or, where the code leaves the prop unset, is empty (`''`, `false`, `0`); every `defaultOverrides` entry really differs | a default drifted on one side, or an override is stale | same |
 
 ### Visual and token fidelity (`npm run test:visual -- --probe`)
 
@@ -245,6 +253,13 @@ Undo steps 1 and 4 afterwards.
 - **JSDoc was missing.** 10 components had no component-level description, and 11
   catalog props had none. ContentCard's JSDoc sat above a helper instead of the
   component; the others had none. All of them are added.
+- **Rounded Button's label defaulted to English.** It was `'Back'` in code and
+  `'Voltar'` in the catalog, while its sibling Close Button says `'Fechar'`. The
+  code now says `'Voltar'`. Only the accessible label changes, so no pixels
+  move. P1.9 found it.
+- **Docgen defaults kept their escapes.** A string default came through as
+  written (a literal `\n` for a line break). They are now read as the string
+  itself, in the snapshot and in the importer.
 - **TableCell's props were unreadable by docgen.** They are a discriminated union.
   `TableCell` now has one overload with the strict per-row union, so callers stay
   strict, and a flat, documented implementation signature (`TableCellFields`)
@@ -269,7 +284,7 @@ proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 553.
+- Tests went from 363 to 571.
 - Visual: 112 stories (11 new `Canvas Kit` baselines).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;
@@ -279,4 +294,7 @@ proving the drift against committed code.
   - dropping `'scout'` from the catalog's TableCell rows → P1.4 on TableCell,
     through its `propMap`;
   - adding `'baseline'` to the catalog's Stack align → a `tsc` error in
-    `canvasKit.tsx`.
+    `canvasKit.tsx`;
+  - changing the catalog's MainMenu weather title default → P1.9;
+  - removing Close Button's `defaultOverrides` entry → P1.9;
+  - adding an override where catalog and code already agree → P1.9 ("drop it").

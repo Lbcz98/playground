@@ -41,6 +41,18 @@ function catalogKind(prop: ManifestProp): DocgenProp['kind'] {
 
 const isEventHandler = (name: string, prop: DocgenProp) => /^on[A-Z]/.test(name) && prop.kind === 'function'
 
+/**
+ * The default the code gives a prop: react-docgen's (a destructuring default), or
+ * the one its JSDoc states (`Default \`focus\`.`) when the component resolves it
+ * inside. Undefined: the code leaves it unset.
+ */
+function codeDefault(prop: DocgenProp): string | undefined {
+  return prop.defaultValue ?? prop.description.match(/\bDefault `([^`]*)`/)?.[1]
+}
+
+/** An unset optional prop means this: no text, off, nothing. */
+const EMPTY: readonly unknown[] = ['', false, 0, undefined]
+
 /** The code props a catalog prop lands in — itself, unless the binding maps it. */
 const targetsOf = (binding: StorybookBinding, name: string): readonly string[] => binding.propMap?.[name] ?? [name]
 
@@ -96,6 +108,22 @@ describe.each(bound)('%s', (id, binding) => {
         if (code === 'null') expect(docgen.props[target].type, `${id}.${name} maps "${value}" to null`).toMatch(/\bnull\b/)
       }
     }
+  })
+
+  it('P1.9 — every catalog default is the code\'s, or says why not', () => {
+    const overrides = binding.defaultOverrides ?? {}
+    for (const [name, prop] of Object.entries(props)) {
+      // A mapped prop changes shape on the way, so its default does too.
+      if (binding.propMap?.[name]) continue
+      const code = codeDefault(docgen.props[name])
+      const same = code === undefined ? EMPTY.includes(prop.defaultValue) : String(prop.defaultValue) === code
+      if (name in overrides) {
+        expect(same, `${id}.${name} is declared a default override, but catalog and code now agree — drop it`).toBe(false)
+      } else {
+        expect(same, `${id}.${name}: catalog default ${JSON.stringify(prop.defaultValue)}, code ${JSON.stringify(code)}`).toBe(true)
+      }
+    }
+    for (const name of Object.keys(overrides)) expect(props, `${id}.${name} overrides a prop the catalog lacks`).toHaveProperty(name)
   })
 
   it('P1.7 — the component and every catalog prop carry a JSDoc description', () => {

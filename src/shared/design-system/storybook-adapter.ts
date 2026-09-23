@@ -33,7 +33,7 @@ import {
   parseDesignTokensWithReport,
   type TokenWarning,
 } from './token-adapter'
-import { isComponentsManifest, literalOptions, readDocgenProp } from './storybook-components-manifest'
+import { isComponentsManifest, literalOptions, readDocgenProp, unquoteLiteral } from './storybook-components-manifest'
 
 export interface StorybookAdapterMeta {
   id?: string
@@ -86,13 +86,6 @@ function tokenExports(rawJson: unknown): Record<string, unknown>[] {
   return candidates.filter(isObject)
 }
 
-/** Strip the surrounding quotes react-docgen puts around string-literal values. */
-function unquote(value: unknown): string {
-  if (typeof value !== 'string') return String(value)
-  const m = value.match(/^['"](.*)['"]$/)
-  return m ? m[1] : value
-}
-
 function normalizeTypeName(name: unknown): string {
   switch (name) {
     case 'bool':
@@ -113,7 +106,7 @@ function normalizeTypeName(name: unknown): string {
 
 function coerceOptions(raw: unknown): string[] | undefined {
   if (!Array.isArray(raw)) return undefined
-  const opts = raw.map(unquote).filter((s) => typeof s === 'string' && s.length > 0)
+  const opts = raw.map(unquoteLiteral).filter((s) => typeof s === 'string' && s.length > 0)
   return opts.length > 0 ? opts : undefined
 }
 
@@ -157,13 +150,13 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
   // defaultValue: react-docgen `{ value }`, or Storybook `table.defaultValue.summary`
   let defaultValue: unknown
   if (isObject(raw.defaultValue) && 'value' in raw.defaultValue) {
-    defaultValue = unquote(raw.defaultValue.value)
+    defaultValue = unquoteLiteral(raw.defaultValue.value)
   } else if (
     isObject(raw.table) &&
     isObject(raw.table.defaultValue) &&
     'summary' in raw.table.defaultValue
   ) {
-    defaultValue = unquote(raw.table.defaultValue.summary)
+    defaultValue = unquoteLiteral(raw.table.defaultValue.summary)
   }
   if (typeName === 'boolean' && typeof defaultValue === 'string') {
     defaultValue = defaultValue === 'true'

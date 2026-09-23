@@ -84,11 +84,12 @@ export interface StorybookSnapshot {
 // Literal unions
 // ---------------------------------------------------------------------------
 
-/** Strip the quotes react-docgen keeps around a string literal. */
+/** A string literal's value: react-docgen keeps the quotes and the escapes as written. */
 export function unquoteLiteral(value: unknown): string {
   const text = String(value)
-  const m = text.match(/^(['"`])(.*)\1$/)
-  return m ? m[2] : text
+  const m = text.match(/^(['"`])(.*)\1$/s)
+  if (!m) return text
+  return m[2].replace(/\\(.)/g, (_, c: string) => ({ n: '\n', t: '\t', r: '\r' })[c] ?? c)
 }
 
 const NULLISH = new Set(['null', 'undefined', 'void'])

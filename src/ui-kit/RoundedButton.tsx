@@ -25,7 +25,7 @@ export interface RoundedButtonProps {
 export function RoundedButton({
   interactionState,
   focus: legacyFocus,
-  label = 'Back',
+  label = 'Voltar',
   onClick,
 }: RoundedButtonProps): ReactNode {
   const state = resolveInteractionState(

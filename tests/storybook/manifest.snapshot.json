@@ -1295,7 +1295,7 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Paredão formado!\\nVote agora para eliminar",
+          "defaultValue": "Paredão formado!\nVote agora para eliminar",
           "description": "What the notification says. Ignored by `rounded`."
         }
       },
@@ -1396,7 +1396,7 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Back",
+          "defaultValue": "Voltar",
           "description": "Accessible name — the control is icon-only."
         },
         "onClick": {

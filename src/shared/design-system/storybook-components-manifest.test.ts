@@ -6,6 +6,7 @@ import {
   literalOptions,
   readDocgenProp,
   snapshotFromStorybook,
+  unquoteLiteral,
 } from './storybook-components-manifest'
 
 const lit = (value: string) => ({ name: 'literal', value: `'${value}'` })
@@ -38,6 +39,14 @@ describe('literalOptions', () => {
     expect(literalOptions({ name: 'union', elements: [lit('a'), { name: 'string' }] })).toBeNull()
     expect(literalOptions({ name: 'Exclude', elements: [{ name: 'unknown' }, union('md')] })).toBeNull()
     expect(literalOptions({ name: 'SpacingStep' })).toBeNull()
+  })
+})
+
+describe('unquoteLiteral', () => {
+  it('strips the quotes and reads the escapes, as the string itself', () => {
+    expect(unquoteLiteral("'Paredão formado!\\nVote agora'")).toBe('Paredão formado!\nVote agora')
+    expect(unquoteLiteral(String.raw`'it\'s'`)).toBe("it's")
+    expect(unquoteLiteral('440')).toBe('440')
   })
 })
 

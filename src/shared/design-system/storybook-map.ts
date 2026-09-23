@@ -12,6 +12,8 @@
  * - `valueMap` lists catalog values that stand for a different code value.
  * - `propMap` names the code props a catalog prop lands in, where the registry
  *   renderer translates rather than hands the props over as they are.
+ * - `defaultOverrides` names the props whose catalog default deliberately differs
+ *   from the code's, with why; every other default must match.
  */
 
 /** Why a prop exists in code but not in the catalog. */
@@ -31,7 +33,14 @@ export interface StorybookBinding {
   codeOnly?: Record<string, CodeOnlyReason>
   valueMap?: Record<string, Record<string, 'null'>>
   propMap?: Record<string, readonly string[]>
+  defaultOverrides?: Record<string, string>
 }
+
+/**
+ * The kit's controls default to their focused Figma variant; on a screen only
+ * one element holds focus, so one placed without a state rests.
+ */
+const RESTS = 'A screen focuses one element, so a control placed without a state rests.'
 
 export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   Stack: { component: 'canvas-kit-stack', codeOnly: { children: 'composition' } },
@@ -56,13 +65,31 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   InteractivityCard: {
     component: 'ui-kit-button',
     codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot', advertising: 'not-in-catalog-yet' },
+    defaultOverrides: {
+      interactionState: RESTS,
+      live: 'As an interactivity the card carries its title alone; the live badge belongs to the schedule section.',
+      overline: 'As an interactivity the card carries its title alone; the overline belongs to the schedule section.',
+      subtitle: 'As an interactivity the card carries its title alone; the subtitle belongs to the schedule section.',
+    },
   },
-  LabelVideo: { component: 'ui-kit-label-video', codeOnly: { focus: 'deprecated-alias' } },
-  WideButton: { component: 'ui-kit-wide-button', codeOnly: { status: 'deprecated-alias' } },
+  LabelVideo: {
+    component: 'ui-kit-label-video',
+    codeOnly: { focus: 'deprecated-alias' },
+    defaultOverrides: { interactionState: RESTS },
+  },
+  WideButton: {
+    component: 'ui-kit-wide-button',
+    codeOnly: { status: 'deprecated-alias' },
+    defaultOverrides: { interactionState: RESTS },
+  },
   Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
   AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
-  RoundedButton: { component: 'ui-kit-rounded-button', codeOnly: { focus: 'deprecated-alias' } },
-  CloseButton: { component: 'ui-kit-close-button' },
+  RoundedButton: {
+    component: 'ui-kit-rounded-button',
+    codeOnly: { focus: 'deprecated-alias' },
+    defaultOverrides: { interactionState: RESTS },
+  },
+  CloseButton: { component: 'ui-kit-close-button', defaultOverrides: { interactionState: RESTS } },
 
   ContentCard: { component: 'ui-kit-content-card', codeOnly: { children: 'composition' } },
   ContentCardHeader: {
