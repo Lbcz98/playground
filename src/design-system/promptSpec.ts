@@ -55,9 +55,13 @@ import {
 
 export interface PropSpec {
   name: string
-  control: 'text' | 'textarea' | 'select' | 'boolean' | 'number'
+  control: 'text' | 'textarea' | 'select' | 'boolean' | 'number' | 'list'
+  /** What the prop is for, from the component's own docs — the model's only guide to an imported system. */
+  description?: string
   /** Allowed values for a `select` prop. */
   options?: readonly string[]
+  /** It also takes `null`. */
+  nullable?: boolean
   /** Phase 7B: real token names, when this prop draws from a token scale. */
   tokenNames?: string[]
   default: unknown
@@ -92,6 +96,8 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
     return {
       name: prop.name,
       control: inferControl(prop),
+      ...(prop.description ? { description: prop.description.replace(/\s+/g, ' ').trim() } : {}),
+      ...(prop.nullable ? { nullable: true } : {}),
       options,
       ...(names.length > 0 ? { tokenNames: names } : {}),
       default: prop.defaultValue,
@@ -210,8 +216,13 @@ export function buildGlobalKernel(): string {
 // ---------------------------------------------------------------------------
 
 function describeProp(p: PropSpec): string {
+  const about = p.description ? ` — ${p.description}` : ''
+  return `${propType(p)}${about}`
+}
+
+function propType(p: PropSpec): string {
   const def = JSON.stringify(p.default)
-  if (p.options) return `      - ${p.name}: one of [${p.options.join(', ')}] (default ${def})`
+  if (p.options) return `      - ${p.name}: one of [${p.options.join(', ')}]${p.nullable ? ' or null' : ''} (default ${def})`
   if (p.tokenNames) {
     return `      - ${p.name}: a token name, one of [${p.tokenNames.join(', ')}] (default ${def})`
   }
@@ -223,7 +234,26 @@ function describeProp(p: PropSpec): string {
     ].filter(Boolean).join(' ')
     return `      - ${p.name}: number${rule ? `, ${rule}` : ''} (default ${def})`
   }
-  return `      - ${p.name}: string (default ${def})`
+  if (p.control === 'list') {
+    const count =
+      p.min !== undefined && p.min === p.max ? `, exactly ${p.min}` : p.max !== undefined ? `, at most ${p.max}` : ''
+    return `      - ${p.name}: a JSON array of strings${count} (default ${def})`
+  }
+  // A text default is words on the screen — say so where the model reads the prop.
+  const shown = typeof p.default === 'string' && p.default !== '' ? `, shown when left out — set "" for none` : ''
+  return `      - ${p.name}: string (default ${def}${shown})`
+}
+
+/**
+ * A component that takes its words as its React `children` (a Storybook import's
+ * Text, Heading, Button) has a `children` PROP — not to be confused with a node's
+ * "children", which is always a list of nodes.
+ */
+function textChildrenSpecifics(spec: ComponentSpec[]): string[] {
+  if (!spec.some((c) => c.props.some((p) => p.name === 'children' && p.control !== 'list'))) return []
+  return [
+    `* **Text as children:** a component that shows words (its "children" prop says so below) takes them in that prop — "props": { "children": "Atualizado há 1 min" }. A node's own "children" is always a list of nodes, never text.`,
+  ]
 }
 
 function describeComponent(c: ComponentSpec): string {
@@ -378,8 +408,8 @@ function focusSpecific(manifest: DesignSystemManifest): string | null {
     for (const prop of focusPropsFor(component)) {
       const resting = unfocusedValue(prop)
       const isState = prop.options?.includes('focus') ?? false
-      puts.set(prop.name, isState ? `${prop.name} "focus"` : `${prop.name} (any value but "${resting}")`)
-      rests.set(prop.name, `${prop.name} "${resting}"`)
+      puts.set(prop.name, isState ? `${prop.name} "focus"` : `${prop.name} (any value but ${JSON.stringify(resting)})`)
+      rests.set(prop.name, `${prop.name} ${JSON.stringify(resting)}`)
       const fallback = defaultForProp(prop)
       const focusedByDefault = isState
         ? fallback === 'focus'
@@ -444,6 +474,8 @@ function designSystemBinding(
     `The laws above, mapped onto this system's registry and tokens.`,
     `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
     `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
+    ...textChildrenSpecifics(spec),
+    `* **Defaults show:** a prop you leave out renders the default listed beside it — placeholder text included. Set a text prop to "" to leave its text off the screen.`,
     ...composed.map(
       (c) =>
         `* **<${c.type}> is composed:** its only children are ${c.slots!.map((t) => `<${t}>`).join(', ')} — in that order, each at most once. Leave out any it does not need; never put anything else inside it, and never use those parts anywhere but directly inside a <${c.type}>.`,

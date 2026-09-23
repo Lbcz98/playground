@@ -29,7 +29,7 @@ export interface ManifestPropType {
   raw?: string
 }
 
-export type ManifestControlKind = 'text' | 'textarea' | 'select' | 'boolean' | 'number'
+export type ManifestControlKind = 'text' | 'textarea' | 'select' | 'boolean' | 'number' | 'list'
 
 export interface ManifestProp {
   name: string
@@ -47,9 +47,11 @@ export interface ManifestProp {
   tokenGroup?: keyof ManifestTokens
   /** Inspector control hint. Inferred from `type` / `options` when omitted. */
   control?: ManifestControlKind
-  /** For a number prop: the smallest value allowed. */
+  /** It also takes `null` — for a focus prop, "focus is elsewhere". */
+  nullable?: boolean
+  /** For a number prop: the smallest value allowed. For a list (`array`): the fewest items. */
   min?: number
-  /** For a number prop: the largest value allowed. */
+  /** For a number prop: the largest value allowed. For a list (`array`): the most items. */
   max?: number
   /** For a number prop: values must be a whole multiple of this (a grid step). */
   step?: number
@@ -236,7 +238,8 @@ const propSchema: z.ZodType<ManifestProp> = z
     options: z.array(z.string().max(200)).max(MAX_OPTIONS).optional(),
     description: z.string().max(MAX_STR).optional(),
     tokenGroup: z.enum(['colors', 'spacing', 'typography', 'radius', 'shadow']).optional(),
-    control: z.enum(['text', 'textarea', 'select', 'boolean', 'number']).optional(),
+    control: z.enum(['text', 'textarea', 'select', 'boolean', 'number', 'list']).optional(),
+    nullable: z.boolean().optional(),
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
     step: z.number().finite().positive().optional(),
@@ -396,20 +399,29 @@ export function inferControl(prop: ManifestProp): ManifestControlKind {
       return 'boolean'
     case 'number':
       return 'number'
+    case 'array':
+      return 'list'
     default:
       return 'text'
   }
 }
 
-/** A safe default value for a prop — its declared default, else a type-appropriate zero. */
+/**
+ * A prop's default: its declared one. An optional prop that declares none stays
+ * unset — the component then does what it does without it (no background, its
+ * own internal default) — and only a required one gets a type-appropriate stand-in.
+ */
 export function defaultForProp(prop: ManifestProp): unknown {
   if (prop.defaultValue !== undefined) return prop.defaultValue
+  if (!prop.required) return undefined
   if (prop.options && prop.options.length > 0) return prop.options[0]
   switch (prop.type.name) {
     case 'boolean':
       return false
     case 'number':
       return 0
+    case 'array':
+      return []
     default:
       return ''
   }
@@ -418,7 +430,10 @@ export function defaultForProp(prop: ManifestProp): unknown {
 /** The full default props object for a component (every declared prop present). */
 export function deriveDefaultProps(component: ManifestComponent): Record<string, unknown> {
   const out: Record<string, unknown> = {}
-  for (const prop of Object.values(component.props)) out[prop.name] = defaultForProp(prop)
+  for (const prop of Object.values(component.props)) {
+    const value = defaultForProp(prop)
+    if (value !== undefined) out[prop.name] = value
+  }
   return out
 }
 

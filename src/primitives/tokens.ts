@@ -1,13 +1,27 @@
 /**
  * The token vocabulary primitives accept as props.
  *
- * Every name is derived from `CssVar` in `src/styles/global-tokens.ts`, which is
- * generated from `tokens/tokens.json`: a prop can only name a custom property
+ * Every name comes from `tokens/tokens.json`: `npm run tokens:build` writes the
+ * families out as literal unions in `./token-names.ts` (so Storybook's docgen can
+ * read the props), and the checks at the bottom prove each one equals the same
+ * family derived from `CssVar` — a prop can only name a custom property
  * `global.css` really defines, and dropping a token from the contract breaks
  * the build of every primitive that used it.
  */
 
 import { CSS_VARS, type CssVar, type TextStyle } from '@/styles/global-tokens'
+import type * as Generated from './token-names'
+
+export type {
+  BorderColor,
+  GridSpacing,
+  OpacityRole,
+  RadiusStep,
+  SpacingStep,
+  StatusColor,
+  SurfaceColor,
+  TextColor,
+} from './token-names'
 
 /** The part of each `CssVar` that follows `Prefix`. */
 type NamesAfter<Prefix extends string, Var extends string = CssVar> = Var extends `${Prefix}${infer Name}`
@@ -20,14 +34,15 @@ const FUNCTIONAL = '--color-semantic-functional-'
 const OPACITY = '--opacity-semantic-'
 const SIZE = '--dimension-size-semantic-'
 
-export type SpacingStep = NamesAfter<typeof SPACING>
-export type RadiusStep = NamesAfter<typeof RADIUS>
-export type SurfaceColor = NamesAfter<`${typeof FUNCTIONAL}background-`>
-export type BorderColor = NamesAfter<`${typeof FUNCTIONAL}border-`>
-export type StatusColor = NamesAfter<`${typeof FUNCTIONAL}status-`>
+type SpacingStep = Generated.SpacingStep
+type RadiusStep = Generated.RadiusStep
+type SurfaceColor = Generated.SurfaceColor
+type BorderColor = Generated.BorderColor
+type StatusColor = Generated.StatusColor
 /** A functional text role (`primary`, `secondary`, …) or a status colour as `status-<name>`. */
-export type TextColor = NamesAfter<`${typeof FUNCTIONAL}text-`> | `status-${StatusColor}`
-export type OpacityRole = NamesAfter<typeof OPACITY>
+type TextColor = Generated.TextColor
+type OpacityRole = Generated.OpacityRole
+type GridSpacing = Generated.GridSpacing
 
 /** Every custom property in a tokens.json `semantic` group — the tier components may name. */
 export type SemanticVar = Extract<CssVar, `${string}-semantic-${string}`>
@@ -39,7 +54,6 @@ export type SemanticVar = Extract<CssVar, `${string}-semantic-${string}`>
  * so it can't drift.
  */
 export const OFF_GRID_SPACING = ['md'] as const satisfies readonly SpacingStep[]
-export type GridSpacing = Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>
 
 function namesAfter(prefix: string): string[] {
   return CSS_VARS.filter((name) => name.startsWith(prefix)).map((name) => name.slice(prefix.length))
@@ -106,3 +120,19 @@ export function textColor(role: TextColor | 'inherit'): string {
   if (role === 'inherit') return 'inherit'
   return isStatus(role) ? token(`${FUNCTIONAL}${role}`) : token(`${FUNCTIONAL}text-${role}`)
 }
+
+// ---------------------------------------------------------------------------
+// The generated unions are exactly the families `CssVar` defines — a compile
+// error otherwise (run `npm run tokens:build`).
+// ---------------------------------------------------------------------------
+
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+
+true satisfies Same<SpacingStep, NamesAfter<typeof SPACING>>
+true satisfies Same<RadiusStep, NamesAfter<typeof RADIUS>>
+true satisfies Same<SurfaceColor, NamesAfter<`${typeof FUNCTIONAL}background-`>>
+true satisfies Same<BorderColor, NamesAfter<`${typeof FUNCTIONAL}border-`>>
+true satisfies Same<StatusColor, NamesAfter<`${typeof FUNCTIONAL}status-`>>
+true satisfies Same<TextColor, NamesAfter<`${typeof FUNCTIONAL}text-`> | `status-${StatusColor}`>
+true satisfies Same<OpacityRole, NamesAfter<typeof OPACITY>>
+true satisfies Same<GridSpacing, Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>>

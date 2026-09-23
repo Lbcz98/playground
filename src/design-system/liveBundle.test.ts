@@ -1,3 +1,4 @@
+import { forwardRef, memo } from 'react'
 import { describe, expect, it } from 'vitest'
 import { LIVE_BUNDLE_GLOBAL, validateLiveBundleGlobal } from './liveBundle'
 
@@ -25,6 +26,11 @@ describe('validateLiveBundleGlobal (Phase 8B bundle contract)', () => {
     const result = validateLiveBundleGlobal({})
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toMatch(/empty/)
+  })
+
+  it('accepts React\'s wrapped components — forwardRef, memo — not just functions', () => {
+    const result = validateLiveBundleGlobal({ Button, Ref: forwardRef(() => null), Memo: memo(() => null) })
+    expect(result.ok).toBe(true)
   })
 
   it('rejects non-function values, naming which keys are bad', () => {

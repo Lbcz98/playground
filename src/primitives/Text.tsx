@@ -40,6 +40,7 @@ export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style' | '
   truncate?: boolean
   /** Only meaningful with `as="label"`. */
   htmlFor?: string
+  /** The words to show. */
   children?: ReactNode
 }
 

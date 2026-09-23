@@ -272,8 +272,12 @@ export function focusPropsFor(component: ManifestComponent): ManifestProp[] {
   )
 }
 
-/** The resting value of a focus prop — what the elements that lose it get set to. */
-export function unfocusedValue(prop: ManifestProp): string {
+/**
+ * The resting value of a focus prop — what the elements that lose it get set to.
+ * A prop that takes `null` rests at it ("focus is elsewhere") unless it offers a
+ * word for that itself.
+ */
+export function unfocusedValue(prop: ManifestProp): string | null {
   if (prop.options?.includes('focus')) {
     return (
       prop.options.find((option) => option === 'default') ??
@@ -281,7 +285,7 @@ export function unfocusedValue(prop: ManifestProp): string {
       'default'
     )
   }
-  return prop.options?.find((option) => UNFOCUSED.has(option)) ?? 'none'
+  return prop.options?.find((option) => UNFOCUSED.has(option)) ?? (prop.nullable ? null : 'none')
 }
 
 /** Whether this node's props put it in a focus state, and through which prop. */

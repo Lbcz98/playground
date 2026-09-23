@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ContentCardHeader } from '@/ui-kit/ContentCard'
@@ -214,6 +215,20 @@ describe('hydrateRegistry — live components (Phase 8B)', () => {
     const inner = el.props.children
     expect(inner.type).toBe(LiveHero)
     expect(inner.props.title).toBe('Hi')
+  })
+
+  it('keeps a component\'s text children when the Blueprint nests no nodes, and nests nodes when it does', () => {
+    const withText = parseStorybookDocgen(
+      { components: { Label: { displayName: 'Label', props: { children: { tsType: { name: 'ReactNode' } } } } } },
+      { id: 'acme4', name: 'Acme4', version: '1.0.0' },
+    )
+    function LiveLabel({ children }: { children?: ReactNode }) {
+      return <span>{children}</span>
+    }
+    const label = hydrateRegistry(withText, { Label: LiveLabel }).get('Label')!
+    expect(label.acceptsChildren).toBe(true)
+    expect(renderToStaticMarkup(label.render({ children: 'Ao vivo' }, []))).toBe('<span>Ao vivo</span>')
+    expect(renderToStaticMarkup(label.render({ children: 'ignored' }, [<b key="a">nested</b>]))).toBe('<span><b>nested</b></span>')
   })
 
   it('never mistakes the built-in ScreenFlow system for a live-bundle candidate', () => {

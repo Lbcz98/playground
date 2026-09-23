@@ -41,7 +41,7 @@ export interface TeamCellProps extends TableCellBase {
   /** Marks the team as the viewer's own. */
   favorite?: boolean
   /** Up to four columns, each one `table-stat-column` wide so they line up down the table. */
-  stats?: readonly string[]
+  stats?: string[]
 }
 
 export interface AthleteCellProps extends TableCellBase {
@@ -62,7 +62,7 @@ export interface ScoutCellProps extends TableCellBase {
   /** The stat being compared, centred whether or not the values are drawn. */
   label: string
   /** The two sides' values, left and right. Omitted: not drawn. */
-  values?: readonly [string, string]
+  values?: [string, string]
 }
 
 export type TableCellProps = TeamCellProps | AthleteCellProps | ScoutCellProps
@@ -86,7 +86,7 @@ export interface TableCellFields {
   /** Marks the team as the viewer's own (team rows). */
   favorite?: boolean
   /** Up to four columns, each one `table-stat-column` wide so they line up down the table (team rows). */
-  stats?: readonly string[]
+  stats?: string[]
   /** Shirt number (athlete rows). Omitted: not drawn. */
   number?: string
   /** A yellow card beside the name (athlete rows). */
@@ -98,7 +98,7 @@ export interface TableCellFields {
   /** Who came on for them (athlete rows). Omitted: not drawn. */
   substitute?: string
   /** The two sides' values, left and right (scout rows). Omitted: not drawn. */
-  values?: readonly [string, string]
+  values?: [string, string]
   /** The rule under the row. Default off — a table draws it under a heading, not every row. */
   divider?: boolean
 }

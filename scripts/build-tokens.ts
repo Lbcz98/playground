@@ -16,7 +16,7 @@ const check = process.argv.includes('--check')
 const compiled = compileTokens(JSON.parse(readFileSync(join(ROOT, TOKENS_SOURCE), 'utf8')))
 
 const stale: string[] = []
-for (const key of ['css', 'ts'] as const) {
+for (const key of ['css', 'ts', 'names'] as const) {
   const file = join(ROOT, TOKEN_OUTPUTS[key])
   let current = ''
   try {

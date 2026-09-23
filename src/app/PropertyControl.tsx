@@ -107,6 +107,15 @@ export function PropertyControl({
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
           className={FIELD_CLASS}
         />
+      ) : kind === 'list' ? (
+        // A list of text, edited as one comma-separated line.
+        <input
+          id={id}
+          type="text"
+          value={Array.isArray(currentValue) ? currentValue.join(', ') : ''}
+          onChange={(e) => onChange(e.target.value.split(',').map((item) => item.trim()).filter(Boolean))}
+          className={FIELD_CLASS}
+        />
       ) : kind === 'textarea' ? (
         <textarea
           id={id}

@@ -38,15 +38,22 @@ describe('inferControl (drives the PropertyControl factory — spec §8 Step 1)'
 })
 
 describe('default props', () => {
-  it('uses the declared default, else a type-appropriate zero', () => {
+  it('uses the declared default; an optional prop without one stays unset', () => {
     expect(defaultForProp(prop({ defaultValue: 'md', options: ['sm', 'md'] }))).toBe('md')
-    expect(defaultForProp(prop({ options: ['sm', 'md'] }))).toBe('sm')
-    expect(defaultForProp(prop({ type: { name: 'boolean' } }))).toBe(false)
-    expect(defaultForProp(prop({ type: { name: 'number' } }))).toBe(0)
-    expect(defaultForProp(prop({ type: { name: 'string' } }))).toBe('')
+    // Unset, not the first option: a Storybook Stack's `background` must not paint "primary".
+    expect(defaultForProp(prop({ options: ['sm', 'md'] }))).toBeUndefined()
+    expect(defaultForProp(prop({ type: { name: 'boolean' } }))).toBeUndefined()
   })
 
-  it('deriveDefaultProps covers every declared prop', () => {
+  it('gives a required prop without a default a type-appropriate stand-in', () => {
+    expect(defaultForProp(prop({ required: true, options: ['sm', 'md'] }))).toBe('sm')
+    expect(defaultForProp(prop({ required: true, type: { name: 'boolean' } }))).toBe(false)
+    expect(defaultForProp(prop({ required: true, type: { name: 'number' } }))).toBe(0)
+    expect(defaultForProp(prop({ required: true, type: { name: 'string' } }))).toBe('')
+    expect(defaultForProp(prop({ required: true, type: { name: 'array' } }))).toEqual([])
+  })
+
+  it('deriveDefaultProps covers every prop that has a default', () => {
     const component: ManifestComponent = {
       id: 'C',
       name: 'C',
@@ -57,7 +64,7 @@ describe('default props', () => {
         on: prop({ name: 'on', type: { name: 'boolean' } }),
       },
     }
-    expect(deriveDefaultProps(component)).toEqual({ size: 'l', on: false })
+    expect(deriveDefaultProps(component)).toEqual({ size: 'l' })
   })
 })
 

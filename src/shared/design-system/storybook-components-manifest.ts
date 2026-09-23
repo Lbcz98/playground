@@ -50,6 +50,8 @@ export interface DocgenProp {
   /** The default as react-docgen printed it, quotes stripped. */
   defaultValue?: string
   description: string
+  /** Its type is a union with `null` in it. */
+  nullable?: true
   /** Its JSDoc carries `@deprecated` — an alias kept for old call sites. */
   deprecated?: true
   /** Declared in a `node_modules` type (react-docgen-typescript only) — an inherited DOM prop. */
@@ -162,10 +164,15 @@ function kindOf(tsType: Record<string, unknown>): DocgenPropKind {
       return tsType.type === 'object' ? 'object' : 'function'
     case 'Array':
     case 'arrayOf':
+    case 'tuple':
       return 'array'
     default:
       return 'unresolved'
   }
+}
+
+function hasNullMember(tsType: Record<string, unknown>): boolean {
+  return tsType.name === 'union' && Array.isArray(tsType.elements) && tsType.elements.some((e) => isObject(e) && e.name === 'null')
 }
 
 function inheritedFromNodeModules(raw: Record<string, unknown>): boolean {
@@ -200,6 +207,7 @@ export function readDocgenProp(raw: unknown): DocgenProp | null {
     required: raw.required === true,
     ...(defaultValue !== undefined ? { defaultValue } : {}),
     description,
+    ...(tsType && hasNullMember(tsType) ? { nullable: true as const } : {}),
     ...(/@deprecated\b/.test(description) ? { deprecated: true as const } : {}),
     ...(inheritedFromNodeModules(raw) ? { inherited: true as const } : {}),
   }

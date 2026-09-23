@@ -64,7 +64,8 @@ const CASES: Case[] = [
   },
   {
     rule: 'an enum value the catalog does not offer',
-    break: (d) => Object.assign(card(d).props!, { interactionState: 'selected' }),
+    // A value no state list will ever hold, so the case survives the catalog growing.
+    break: (d) => Object.assign(card(d).props!, { interactionState: 'blinking' }),
     rejects: /interactionState/,
     reports: /interactionState/,
     repairs: true,

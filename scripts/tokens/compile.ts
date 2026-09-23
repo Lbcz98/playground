@@ -13,17 +13,38 @@
  *   - `typography` composites become `.text-*` utility classes instead.
  */
 
+import { frameSpec } from '../../src/design-system/primitives'
+
 /** Paths are relative to the project root. */
 export const TOKENS_SOURCE = 'tokens/tokens.json'
 export const TOKEN_OUTPUTS = {
   css: 'src/styles/global.css',
   ts: 'src/styles/global-tokens.ts',
+  names: 'src/primitives/token-names.ts',
 } as const
 
 export interface CompiledTokens {
   css: string
   ts: string
+  names: string
 }
+
+/**
+ * The name families the primitives take as props, each the part of a custom
+ * property after its prefix. Written out as literal unions in
+ * `src/primitives/token-names.ts`, because react-docgen — and so Storybook's
+ * components manifest — can't read a type derived from `CssVar`.
+ * `src/primitives/tokens.ts` proves each one equals its derived twin.
+ */
+const NAME_FAMILIES: ReadonlyArray<{ type: string; prefix: string; doc: string }> = [
+  { type: 'SpacingStep', prefix: '--dimension-spacing-core-', doc: 'A step of the spacing scale.' },
+  { type: 'RadiusStep', prefix: '--dimension-radius-core-', doc: 'A step of the radius scale.' },
+  { type: 'SurfaceColor', prefix: '--color-semantic-functional-background-', doc: 'A functional background role.' },
+  { type: 'BorderColor', prefix: '--color-semantic-functional-border-', doc: 'A functional border role.' },
+  { type: 'StatusColor', prefix: '--color-semantic-functional-status-', doc: 'A status colour.' },
+  { type: 'TextRole', prefix: '--color-semantic-functional-text-', doc: 'A functional text role.' },
+  { type: 'OpacityRole', prefix: '--opacity-semantic-', doc: 'A semantic opacity role.' },
+]
 
 type Json = Record<string, unknown>
 
@@ -222,7 +243,11 @@ export function compileTokens(root: unknown): CompiledTokens {
     vars.push({ token: t, name, value: aliasVar(t.value, t.path, [t.type]) ?? literal(t.type, t.value, t.path) })
   }
 
-  return { css: renderCss(vars, classes), ts: renderTs(vars.map((v) => v.name), classes.map((c) => c.name)) }
+  return {
+    css: renderCss(vars, classes),
+    ts: renderTs(vars.map((v) => v.name), classes.map((c) => c.name)),
+    names: renderNames(vars),
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -295,10 +320,34 @@ ${list(varNames)}
 export type CssVar = (typeof CSS_VARS)[number]
 
 /** Every \`.text-*\` utility class \`global.css\` defines, without the \`text-\` prefix. */
+export type TextStyle =
+${union(classNames.map((name) => name.replace(/^text-/, '')))}
+
 export const TEXT_STYLES = [
 ${list(classNames.map((name) => name.replace(/^text-/, '')))}
-] as const
-
-export type TextStyle = (typeof TEXT_STYLES)[number]
+] as const satisfies readonly TextStyle[]
 `
+}
+
+/** A literal union, one member per line. */
+function union(items: string[]): string {
+  return items.map((item) => `  | '${item}'`).join('\n')
+}
+
+/** On the layout grid: a multiple of it, or one of the allowed exceptions (frameSpec). */
+function onGrid(px: number): boolean {
+  return px % frameSpec.grid === 0 || (frameSpec.offGridAllowed as readonly number[]).includes(px)
+}
+
+function renderNames(vars: ReadonlyArray<{ name: string; value: string }>): string {
+  const after = (prefix: string) => vars.filter((v) => v.name.startsWith(prefix)).map((v) => ({ ...v, rest: v.name.slice(prefix.length) }))
+  const block = (type: string, doc: string, names: string[]) => `/** ${doc} */\nexport type ${type} =\n${union(names)}\n`
+  const blocks = NAME_FAMILIES.map((f) => block(f.type, f.doc, after(f.prefix).map((v) => v.rest)))
+  const spacing = after('--dimension-spacing-core-')
+  const grid = spacing.filter((v) => onGrid(parseFloat(v.value))).map((v) => v.rest)
+  const text = after('--color-semantic-functional-text-').map((v) => v.rest)
+  const status = after('--color-semantic-functional-status-').map((v) => `status-${v.rest}`)
+  blocks.push(block('GridSpacing', 'A spacing step on the layout grid (frameSpec: multiples of 8, plus 4 and 12).', grid))
+  blocks.push(block('TextColor', 'A text role, or a status colour as `status-<name>`.', [...text, ...status]))
+  return `// ${GENERATED_BY}\n//\n// The prop names primitives take, written out so Storybook's docgen can read them.\n\n${blocks.join('\n')}`
 }

@@ -26,6 +26,15 @@ export type LiveBundleResult =
   | { ok: true; components: LiveComponentMap }
   | { ok: false; error: string }
 
+/**
+ * A React component type: a function or class, or one of React's wrapped forms —
+ * `forwardRef`, `memo`, `lazy` — which are objects tagged with `$$typeof`.
+ */
+function isComponentType(value: unknown): boolean {
+  if (typeof value === 'function') return true
+  return typeof value === 'object' && value !== null && typeof (value as { $$typeof?: unknown }).$$typeof === 'symbol'
+}
+
 /** Pure — no DOM. What a bundle left on the global must look like to be usable. */
 export function validateLiveBundleGlobal(value: unknown): LiveBundleResult {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -38,7 +47,7 @@ export function validateLiveBundleGlobal(value: unknown): LiveBundleResult {
   if (entries.length === 0) {
     return { ok: false, error: `window.${LIVE_BUNDLE_GLOBAL} was empty — no components exported.` }
   }
-  const notComponents = entries.filter(([, v]) => typeof v !== 'function').map(([k]) => k)
+  const notComponents = entries.filter(([, v]) => !isComponentType(v)).map(([k]) => k)
   if (notComponents.length > 0) {
     return {
       ok: false,

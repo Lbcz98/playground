@@ -226,6 +226,27 @@ export const CSS_VARS = [
 export type CssVar = (typeof CSS_VARS)[number]
 
 /** Every `.text-*` utility class `global.css` defines, without the `text-` prefix. */
+export type TextStyle =
+  | 'caption-medium'
+  | 'caption-bold'
+  | 'caption-extra-bold'
+  | 'footnote-medium'
+  | 'footnote-bold'
+  | 'body-sm-medium'
+  | 'body-sm-bold'
+  | 'body-sm-extra-bold'
+  | 'body-md-regular'
+  | 'body-md-medium'
+  | 'body-md-bold'
+  | 'body-lg-medium'
+  | 'body-lg-bold'
+  | 'heading-5-medium'
+  | 'heading-5-bold'
+  | 'heading-4-medium'
+  | 'heading-4-bold'
+  | 'heading-3-medium'
+  | 'heading-3-bold'
+
 export const TEXT_STYLES = [
   'caption-medium',
   'caption-bold',
@@ -246,6 +267,4 @@ export const TEXT_STYLES = [
   'heading-4-bold',
   'heading-3-medium',
   'heading-3-bold',
-] as const
-
-export type TextStyle = (typeof TEXT_STYLES)[number]
+] as const satisfies readonly TextStyle[]

@@ -181,6 +181,8 @@ describe('parseStorybookDocgen', () => {
 import COMPONENTS_MANIFEST from './__fixtures__/components-manifest.json'
 import { parseStorybookDocgenWithReport } from './storybook-adapter'
 import { validateBlueprintAgainstManifest, compileManifestSchemas } from './manifest-zod'
+import { buildSystemPrompt } from '@/design-system/promptSpec'
+import { interpretBlueprint } from '@/interpreter/interpret'
 
 describe('Phase 2 — importing an external Storybook', () => {
   const { manifest, warnings } = parseStorybookDocgenWithReport(COMPONENTS_MANIFEST, { name: 'Fixture kit' })
@@ -204,8 +206,12 @@ describe('Phase 2 — importing an external Storybook', () => {
   it('E2.1 — what it could not take is reported, not silently lost', () => {
     // A story with no documentable component.
     expect(warned('Template')[0]?.message).toMatch(/skipped — No component file found/)
-    // Two different components share the name "Button".
-    expect(warned('Button').some((w) => /second component named "Button"/.test(w.message))).toBe(true)
+    // Two different components share the name "Button": both kept, each named by its story.
+    expect(manifest.components).toHaveProperty('PrimitivesButton')
+    expect(manifest.components).toHaveProperty('UiKitButton')
+    expect(manifest.components).not.toHaveProperty('Button')
+    expect(manifest.components.UiKitButton.props).toHaveProperty('live')
+    expect(warned('UiKitButton')[0]?.message).toMatch(/more than one component is named "Button"/)
     // Discriminated-union props react-docgen cannot read.
     expect(warned('TableCell')[0]?.message).toMatch(/documents no props/)
   })
@@ -265,7 +271,10 @@ describe('Phase 2 — importing an external Storybook', () => {
     const props = report.manifest.components.Badge.props
     expect(props.variant).toMatchObject({ type: { name: 'string' } })
     expect(props.variant.options).toBeUndefined()
-    expect(props.tone.options).toBeUndefined()
+    // A type docgen only knows by name could be an object: a string there would
+    // break the component, so it is left out rather than guessed at.
+    expect(props.tone).toBeUndefined()
+    expect(report.warnings.find((w) => w.prop === 'tone')?.message).toMatch(/can't expand/)
     expect(report.warnings.map((w) => w.prop).sort()).toEqual(['tone', 'variant'])
     // A plain string is typed as intended — nothing to warn about.
     expect(report.warnings.some((w) => w.prop === 'label')).toBe(false)
@@ -280,6 +289,159 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(report.warnings).toEqual([
       { component: 'tokens', prop: 'color.accent', message: expect.stringMatching(/\{color\.gone\} points at no token/) },
     ])
+  })
+
+  it('E2.9 — scale steps a prop names (gap "lg") are measured through their core token', () => {
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Stack: {
+          displayName: 'Stack',
+          props: {
+            gap: { tsType: { name: 'union', elements: ['none', 'sm', 'lg', 'huge'].map((v) => ({ name: 'literal', value: `'${v}'` })) } },
+            children: { tsType: { name: 'ReactNode' } },
+          },
+        },
+      },
+      tokens: {
+        dimension: {
+          $type: 'dimension',
+          spacing: {
+            core: { none: { $value: '0px' }, sm: { $value: '16px' }, lg: { $value: '24px' } },
+            semantic: { 'card-lg': { $value: '{dimension.spacing.core.lg}' } },
+          },
+        },
+      },
+    })
+    const spacing = report.manifest.tokens.spacing
+    expect(spacing).toMatchObject({ none: '0px', sm: '16px', lg: '24px' })
+    expect(report.warnings).toContainEqual({
+      component: 'tokens',
+      prop: 'spacing.huge',
+      message: expect.stringMatching(/names no spacing token/),
+    })
+  })
+
+  it('E2.10 — event handlers and deprecated aliases are dropped, with a warning', () => {
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Chip: {
+          displayName: 'Chip',
+          props: {
+            label: { tsType: { name: 'string' } },
+            onClick: { tsType: { name: 'signature', type: 'function', raw: '() => void' } },
+            state: { tsType: { name: 'string' }, description: '@deprecated Use `interactionState`.' },
+          },
+        },
+      },
+    })
+    expect(Object.keys(report.manifest.components.Chip.props)).toEqual(['label'])
+    expect(report.warnings.map((w) => [w.prop, w.message])).toEqual([
+      ['onClick', expect.stringMatching(/event handler/)],
+      ['state', expect.stringMatching(/@deprecated/)],
+    ])
+  })
+
+  it('E2.11 — a list of text comes in as a list; any other list or an object is left out', () => {
+    const str = { name: 'string' }
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Row: {
+          displayName: 'Row',
+          props: {
+            stats: { tsType: { name: 'Array', elements: [str], raw: 'string[]' } },
+            values: { tsType: { name: 'tuple', elements: [str, str], raw: '[string, string]' }, description: 'The two sides, left and right.' },
+            items: { tsType: { name: 'Array', elements: [{ name: 'MenuItem' }], raw: 'MenuItem[]' } },
+            ad: { tsType: { name: 'signature', type: 'object', raw: '{ label: string }' } },
+          },
+        },
+      },
+    })
+    const { props } = report.manifest.components.Row
+    expect(Object.keys(props).sort()).toEqual(['stats', 'values'])
+    expect(props.stats).toMatchObject({ type: { name: 'array' } })
+    expect(props.values).toMatchObject({ type: { name: 'array' }, min: 2, max: 2 })
+    expect(report.warnings.map((w) => w.prop).sort()).toEqual(['ad', 'items'])
+
+    // The validator holds a list prop to a list of text, and a tuple to its length.
+    const doc = (rowProps: Record<string, unknown>) => ({
+      version: 1,
+      screen: { model: 'interactivity-cards-right', level: 3 },
+      root: { type: 'Row', props: rowProps },
+    })
+    const errors = (rowProps: Record<string, unknown>) => {
+      const v = validateBlueprintAgainstManifest(doc(rowProps), report.manifest)
+      return v.ok ? '' : v.errors.join(' | ')
+    }
+    expect(errors({ stats: ['Pts', 'J'], values: ['62%', '38%'] })).not.toMatch(/stats|values/)
+    expect(errors({ stats: 'Pts / J' })).toMatch(/stats/)
+    expect(errors({ values: ['62%'] })).toMatch(/values/)
+
+    // And the prompt says so, with what the prop is for.
+    const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- values:'))
+    expect(line).toMatch(/a JSON array of strings, exactly 2 \(default undefined\) — The two sides, left and right\./)
+  })
+
+  it('E2.12 — a component\'s words go in its children prop; text where the child nodes go is caught', () => {
+    const { manifest: m } = parseStorybookDocgenWithReport({
+      components: {
+        Stack: { displayName: 'Stack', props: { children: { tsType: { name: 'ReactNode' } } } },
+        Label: { displayName: 'Label', props: { children: { tsType: { name: 'ReactNode' }, description: 'The words.' } } },
+      },
+    })
+    const doc = (label: Record<string, unknown>) => ({
+      version: 1,
+      screen: { model: 'interactivity-cards-right', level: 3 },
+      root: { type: 'Stack', children: [{ type: 'Label', ...label }] },
+    })
+    const misplaced = doc({ children: 'Ao vivo' })
+    const v = validateBlueprintAgainstManifest(misplaced, m)
+    expect(v.ok ? '' : v.errors.join(' | ')).toMatch(/"children" is a list of nodes.*set "props": \{ "children": "Ao vivo" \}/)
+
+    const repaired = interpretBlueprint(misplaced, m)
+    expect(repaired.ok && repaired.tree.children[0].props.children).toBe('Ao vivo')
+    expect(repaired.issues.map((i) => i.message)).toContain(`Moved the text in "children" into <Label>'s children prop.`)
+
+    expect(validateBlueprintAgainstManifest(doc({ props: { children: 'Ao vivo' } }), m).ok).toBe(true)
+    expect(buildSystemPrompt('tool', m)).toMatch(/\*\*Text as children:\*\* a component that shows words .* takes them in that prop/)
+  })
+
+  it('E2.13 — a nullable focus prop and a documented default reach the one-focus rule', () => {
+    const lit = (v: string) => ({ name: 'literal', value: `'${v}'` })
+    const { manifest: m } = parseStorybookDocgenWithReport({
+      components: {
+        Stack: { displayName: 'Stack', props: { children: { tsType: { name: 'ReactNode' } } } },
+        Menu: {
+          displayName: 'Menu',
+          props: {
+            focusedItem: {
+              tsType: { name: 'union', raw: "'program' | 'weather' | null", elements: [lit('program'), lit('weather'), { name: 'null' }] },
+              description: '`null` = focus is elsewhere. Default `program`.',
+            },
+          },
+        },
+        Card: {
+          displayName: 'Card',
+          props: { interactionState: { tsType: { name: 'union', elements: [lit('default'), lit('focus')] }, description: 'Default `focus`.' } },
+        },
+      },
+    })
+    expect(m.components.Menu.props.focusedItem).toMatchObject({ nullable: true, defaultValue: 'program', options: ['program', 'weather'] })
+    expect(m.components.Card.props.interactionState.defaultValue).toBe('focus')
+
+    const doc = (menu: Record<string, unknown>) => ({
+      version: 1,
+      screen: { model: 'home', level: 1 },
+      root: { type: 'Stack', children: [{ type: 'Card', props: { interactionState: 'focus' } }, { type: 'Menu', props: menu }] },
+    })
+    // Left unset, the menu focuses "program" — two focused elements, and the fix is null.
+    const twice = validateBlueprintAgainstManifest(doc({}), m)
+    expect(twice.ok ? '' : twice.errors.join(' | ')).toMatch(/focusedItem null/)
+    const rested = validateBlueprintAgainstManifest(doc({ focusedItem: null }), m)
+    expect(rested.ok ? [] : rested.errors.filter((e) => /focus/.test(e))).toEqual([])
+
+    const prompt = buildSystemPrompt('tool', m)
+    expect(prompt).toMatch(/- focusedItem: one of \[program, weather\] or null/)
+    expect(prompt).toMatch(/<Menu> focuses its "program" unless you set focusedItem null/)
   })
 
   it('E2.5 — a payload with no components throws a readable error', () => {

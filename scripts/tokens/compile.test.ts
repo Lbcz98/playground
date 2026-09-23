@@ -107,7 +107,7 @@ describe('compileTokens', () => {
 describe(TOKENS_SOURCE, () => {
   const compiled = compileTokens(JSON.parse(readFileSync(join(ROOT, TOKENS_SOURCE), 'utf8')))
 
-  it.each(['css', 'ts'] as const)('the checked-in %s output is its current build', (key) => {
+  it.each(['css', 'ts', 'names'] as const)('the checked-in %s output is its current build', (key) => {
     const current = readFileSync(join(ROOT, TOKEN_OUTPUTS[key]), 'utf8')
     expect(current === compiled[key], `${TOKEN_OUTPUTS[key]} is stale — run \`npm run tokens:build\``).toBe(true)
   })

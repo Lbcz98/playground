@@ -146,7 +146,7 @@ export interface ContentCardHeaderProps {
   /** Two sides facing each other, instead of a title. */
   match?: ContentCardHeaderMatch
   /** Column headings beside the subtitle, on the same line — `Pts`, `J`, `V`. */
-  stats?: readonly string[]
+  stats?: string[]
   /** Who is presenting the card. */
   partner?: ContentCardHeaderPartner
   /** An advertising tag over a rule: its wording, and the advertiser's mark. */

@@ -14,6 +14,7 @@
  */
 
 import {
+  Children,
   Component,
   cloneElement,
   type ErrorInfo,
@@ -198,7 +199,7 @@ function renderContentCardFooter(raw: Record<string, unknown>, children: ReactNo
 function renderTableCell(raw: Record<string, unknown>): ReactElement {
   const p = tableCellSchema.parse(raw)
   if (p.cellType === 'scout') {
-    const values = p.leftValue || p.rightValue ? ([p.leftValue, p.rightValue] as const) : undefined
+    const values: [string, string] | undefined = p.leftValue || p.rightValue ? [p.leftValue, p.rightValue] : undefined
     return <TableCell type="scout" label={p.label} values={values} divider={p.divider} />
   }
   if (p.cellType === 'athlete') {
@@ -439,13 +440,15 @@ function makeLiveRenderer(
   component: ManifestComponent,
   LiveComponent: LiveComponentMap[string],
 ): RenderFn {
+  // Child nodes when the Blueprint nests some; otherwise the component's own
+  // `children` prop — the text a Storybook component takes as its children.
   return function renderLive(props, children): ReactElement {
     return (
       // Keyed on the props so fixing a bad value in the Property Inspector
       // remounts (and gives the component a fresh chance) rather than being
       // stuck showing a stale crash from before the edit.
       <LiveComponentBoundary component={component} key={JSON.stringify(props)}>
-        <LiveComponent {...props}>{component.acceptsChildren ? children : undefined}</LiveComponent>
+        <LiveComponent {...props}>{component.acceptsChildren && Children.count(children) > 0 ? children : props.children}</LiveComponent>
       </LiveComponentBoundary>
     )
   }

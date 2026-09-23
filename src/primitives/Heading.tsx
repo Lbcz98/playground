@@ -17,6 +17,8 @@ export interface HeadingProps extends Omit<TextProps, 'variant' | 'as' | 'htmlFo
   level?: HeadingLevel
   weight?: HeadingWeight
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+  /** The heading's words. */
+  children?: ReactNode
 }
 
 export function Heading({ level = 3, weight = 'bold', as, ...rest }: HeadingProps): ReactNode {

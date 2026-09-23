@@ -25,6 +25,7 @@ import {
   type ManifestComponent,
   type ManifestProp,
   type ManifestTokens,
+  type TokenTierMap,
 } from './manifest'
 import {
   mergeTokenTiers,
@@ -125,6 +126,16 @@ function inferTokenGroup(name: string): keyof ManifestTokens | undefined {
 // Prop extraction — handles both `props` (react-docgen) and `argTypes` (Storybook)
 // ---------------------------------------------------------------------------
 
+/** A react-docgen list type whose items are all text: `{}`, or `{ count }` for a tuple. */
+function stringList(node: Record<string, unknown>): { count?: number } | undefined {
+  const elements = Array.isArray(node.elements) ? node.elements : []
+  const allText = elements.length > 0 && elements.every((e) => isObject(e) && e.name === 'string')
+  if (node.name === 'Array' && allText) return {}
+  if (node.name === 'tuple' && allText) return { count: elements.length }
+  if (node.name === 'arrayOf' && isObject(node.value) && node.value.name === 'string') return {}
+  return undefined
+}
+
 function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null {
   if (!isObject(raw)) return null
 
@@ -133,16 +144,43 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
     warn('inherited from a node_modules type (a DOM attribute) — dropped', name)
     return null
   }
+  // A Blueprint is data: it can't carry a callback, and it shouldn't reach for an
+  // alias the component has already replaced.
+  if (docgen?.kind === 'function') {
+    warn('an event handler, which a Blueprint cannot carry — dropped', name)
+    return null
+  }
+  if (docgen?.deprecated) {
+    warn('@deprecated in the component — dropped, so screens use what replaced it', name)
+    return null
+  }
 
   const options =
     coerceOptions(raw.options) ?? literalOptions(raw.type) ?? literalOptions(raw.tsType) ?? undefined
 
   const typeNode = isObject(raw.type) ? raw.type : isObject(raw.tsType) ? raw.tsType : undefined
-  const typeName = options ? 'enum' : normalizeTypeName(typeNode?.name)
+  const written = typeNode ? (typeof typeNode.raw === 'string' ? typeNode.raw : String(typeNode.name)) : ''
+  // A list of text (`string[]`, `[string, string]`) is data a Blueprint carries as a
+  // JSON array. Any other list, or an object, has a shape no Blueprint field can
+  // describe — and a string in its place would break the component.
+  const list = !options && typeNode && docgen?.kind === 'array' ? stringList(typeNode) : undefined
+  if (!options && typeNode && docgen?.kind === 'array' && !list) {
+    warn(`a list of \`${written}\`, which a Blueprint field can't describe — left out`, name)
+    return null
+  }
+  if (!options && docgen?.kind === 'object') {
+    warn(`an object (\`${written}\`), which a Blueprint field can't describe — left out`, name)
+    return null
+  }
   if (!options && typeNode && docgen?.kind === 'unresolved') {
-    const written = typeof typeNode.raw === 'string' ? typeNode.raw : String(typeNode.name)
+    if (typeNode.name !== 'union' && typeNode.name !== 'enum') {
+      warn(`type \`${written}\` is one docgen can't expand, so nothing can check a value for it — left out`, name)
+      return null
+    }
+    // A union with a free-text member is still text.
     warn(`type \`${written}\` has no literal values to check — accepted as free text`, name)
   }
+  const typeName = options ? 'enum' : list ? 'array' : normalizeTypeName(typeNode?.name)
 
   const requiredFromType = isObject(typeNode) && typeNode.required === true
   const required = raw.required === true || requiredFromType
@@ -173,13 +211,26 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
         ? raw.table.description
         : undefined
 
-  const tokenGroup = typeName === 'boolean' || typeName === 'number' ? undefined : inferTokenGroup(name)
+  const tokenGroup = typeName === 'boolean' || typeName === 'number' || list ? undefined : inferTokenGroup(name)
+
+  // A component that resolves a default inside (so docgen sees none) states it in
+  // its JSDoc — "Default `program`." — and that is the value it takes when unset.
+  if (defaultValue === undefined && description) {
+    const documented = description.match(/\bDefault `([^`]*)`/)?.[1]
+    if (documented !== undefined) {
+      if (typeName === 'boolean' && (documented === 'true' || documented === 'false')) defaultValue = documented === 'true'
+      else if (typeName === 'number' && documented.trim() !== '' && !Number.isNaN(Number(documented))) defaultValue = Number(documented)
+      else if (options ? options.includes(documented) : typeName === 'string') defaultValue = documented
+    }
+  }
 
   const prop: ManifestProp = {
     name,
     type: { name: typeName, ...(typeof typeNode?.raw === 'string' ? { raw: typeNode.raw } : {}) },
     required,
-    ...(defaultValue !== undefined ? { defaultValue } : {}),
+    ...(docgen?.nullable ? { nullable: true } : {}),
+    ...(defaultValue !== undefined && !list ? { defaultValue } : {}),
+    ...(list?.count !== undefined ? { min: list.count, max: list.count } : {}),
     ...(options ? { options } : {}),
     ...(description ? { description } : {}),
     ...(tokenGroup ? { tokenGroup } : {}),
@@ -231,36 +282,75 @@ function childKeys(raw: Record<string, unknown>): boolean {
   return false
 }
 
+/** One component a Storybook components manifest documents, under the name it imports as. */
+export interface StorybookComponentSource {
+  /** Its name in the imported manifest — qualified by its story when two share a name. */
+  name: string
+  /** The name its react-docgen output gives it, when that differs from `name`. */
+  original: string
+  entry: Record<string, unknown>
+}
+
+/**
+ * Every component of Storybook 10's `manifests/components.json` — one per story
+ * file's component, and one per subcomponent its story meta declares — under the
+ * name the importer gives it. Two stories can document different components that
+ * share a name (a primitive Button and a kit Button): both are kept, each named by
+ * its source (`PrimitivesButton`, `UiKitButton`).
+ */
+export function storybookComponentSources(rawJson: {
+  components: Record<string, Record<string, unknown>>
+}): StorybookComponentSource[] {
+  const found: { name: string; source: string; entry: Record<string, unknown> }[] = []
+  for (const [key, entry] of Object.entries(rawJson.components)) {
+    if (!isObject(entry)) continue
+    found.push({ name: typeof entry.name === 'string' && entry.name ? entry.name : key, source: key, entry })
+    if (isObject(entry.subcomponents)) {
+      for (const [subKey, sub] of Object.entries(entry.subcomponents)) {
+        const name = isObject(sub) && typeof sub.name === 'string' && sub.name ? sub.name : subKey
+        if (isObject(sub)) found.push({ name, source: `${key}-${name}`, entry: sub })
+      }
+    }
+  }
+  const count = new Map<string, number>()
+  for (const f of found) count.set(f.name, (count.get(f.name) ?? 0) + 1)
+  const qualified = (source: string) =>
+    source
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .map((part) => part[0].toUpperCase() + part.slice(1))
+      .join('')
+  return found.map(({ name, source, entry }) => ({
+    name: (count.get(name) ?? 0) > 1 ? qualified(source) : name,
+    original: name,
+    entry,
+  }))
+}
+
 /**
  * Storybook 10's `manifests/components.json` → the docgen-map entries the rest of
- * the adapter reads: one per component, and one per subcomponent its story meta
- * declares. Entries Storybook could not document become warnings.
+ * the adapter reads. Entries Storybook could not document, and renamed clashes,
+ * become warnings.
  */
 function componentsManifestEntries(
   rawJson: { components: Record<string, Record<string, unknown>> },
   warnings: StorybookImportWarning[],
 ): [string, unknown][] {
   const out: [string, unknown][] = []
-  const add = (name: string, entry: Record<string, unknown>) => {
+  for (const { name, original, entry } of storybookComponentSources(rawJson)) {
     const docgen = entry.reactDocgen
     if (!isObject(docgen)) {
       const why = isObject(entry.error) ? String(entry.error.message ?? entry.error.name) : 'no react-docgen output'
       warnings.push({ component: name, message: `skipped — ${why}` })
-      return
+      continue
+    }
+    if (name !== original) {
+      warnings.push({ component: name, message: `more than one component is named "${original}" — imported this one as "${name}"` })
     }
     const description =
       (typeof docgen.description === 'string' && docgen.description) ||
       (typeof entry.description === 'string' ? entry.description : '')
     out.push([name, { displayName: name, description, props: isObject(docgen.props) ? docgen.props : {} }])
-  }
-  for (const [key, entry] of Object.entries(rawJson.components)) {
-    if (!isObject(entry)) continue
-    add(typeof entry.name === 'string' && entry.name ? entry.name : key, entry)
-    if (isObject(entry.subcomponents)) {
-      for (const [subKey, sub] of Object.entries(entry.subcomponents)) {
-        if (isObject(sub)) add(typeof sub.name === 'string' && sub.name ? sub.name : subKey, sub)
-      }
-    }
   }
   return out
 }
@@ -317,6 +407,47 @@ function collectComponents(
 
 // ---------------------------------------------------------------------------
 
+const SCALE_GROUPS = ['spacing', 'radius'] as const
+
+/**
+ * A scale prop offers the step names its component takes (`gap: 'lg'`); a token
+ * file names the same steps by path (`spacing-core-lg`). Record each step under
+ * its own name too — preferring the core scale — so the frame rules (margins,
+ * gutters, the 8pt grid) can measure what a Blueprint sets.
+ */
+function aliasScaleSteps(
+  components: Record<string, ManifestComponent>,
+  tokens: ManifestTokens,
+  tiers: TokenTierMap,
+  warnings: StorybookImportWarning[],
+): void {
+  for (const group of SCALE_GROUPS) {
+    const dict = tokens[group]
+    if (!dict || Object.keys(dict).length === 0) continue
+    const unmatched = new Set<string>()
+    for (const component of Object.values(components)) {
+      for (const prop of Object.values(component.props)) {
+        if (prop.tokenGroup !== group || !prop.options) continue
+        for (const option of prop.options) {
+          if (option in dict) continue
+          const matches = Object.keys(dict).filter((name) => name.endsWith(`-${option}`))
+          const pick = matches.find((name) => /(^|-)core-/.test(name)) ?? (matches.length === 1 ? matches[0] : undefined)
+          if (!pick) {
+            unmatched.add(option)
+            continue
+          }
+          dict[option] = dict[pick]
+          const tier = tiers[group]?.[pick]
+          if (tier) tiers[group] = { ...tiers[group], [option]: tier }
+        }
+      }
+    }
+    for (const option of unmatched) {
+      warnings.push({ component: 'tokens', prop: `${group}.${option}`, message: `"${option}" names no ${group} token, so the frame rules can't measure it` })
+    }
+  }
+}
+
 /** `parseStorybookDocgen`, plus everything the import accepted with a loss. */
 export function parseStorybookDocgenWithReport(
   rawJson: unknown,
@@ -348,6 +479,7 @@ export function parseStorybookDocgenWithReport(
     ...exports.map((c) => parseDesignTokenTiers(c)),
     meta.tokens ? inferTokenTiers(mergeTokens(meta.tokens)) : undefined,
   )
+  aliasScaleSteps(components, tokens, tiers, warnings)
   const manifest: DesignSystemManifest = {
     id: meta.id ?? slug(name),
     name,

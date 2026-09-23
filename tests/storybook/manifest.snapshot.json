@@ -301,14 +301,25 @@
           "description": ""
         },
         "background": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'primary'\n| 'elevated'\n| 'overlay'\n| 'translucent'\n| 'tint'",
+          "kind": "enum",
+          "options": [
+            "primary",
+            "elevated",
+            "overlay",
+            "translucent",
+            "tint"
+          ],
           "required": false,
           "description": ""
         },
         "border": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'subtle'\n| 'default'",
+          "kind": "enum",
+          "options": [
+            "subtle",
+            "default"
+          ],
           "required": false,
           "description": "A hairline border in a functional border colour."
         },
@@ -325,26 +336,85 @@
           "description": "Take the remaining space along the parent Stack's direction."
         },
         "padding": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": ""
         },
         "paddingX": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": "Overrides `padding` on the inline (left/right) edges."
         },
         "paddingY": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": "Overrides `padding` on the block (top/bottom) edges."
         },
         "radius": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'none'\n| 'xs'\n| 'sm'\n| 'md'\n| 'lg'\n| 'xl'\n| '2xl'\n| '4xl'\n| '5xl'\n| '6xl'\n| '7xl'\n| '8xl'\n| '9xl'\n| '10xl'\n| 'full'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "xs",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl",
+            "4xl",
+            "5xl",
+            "6xl",
+            "7xl",
+            "8xl",
+            "9xl",
+            "10xl",
+            "full"
+          ],
           "required": false,
           "description": ""
         }
@@ -467,6 +537,12 @@
           "required": false,
           "description": ""
         },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "The heading's words."
+        },
         "level": {
           "type": "3 | 4 | 5",
           "kind": "enum",
@@ -537,14 +613,25 @@
           "description": ""
         },
         "background": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'primary'\n| 'elevated'\n| 'overlay'\n| 'translucent'\n| 'tint'",
+          "kind": "enum",
+          "options": [
+            "primary",
+            "elevated",
+            "overlay",
+            "translucent",
+            "tint"
+          ],
           "required": false,
           "description": ""
         },
         "border": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'subtle'\n| 'default'",
+          "kind": "enum",
+          "options": [
+            "subtle",
+            "default"
+          ],
           "required": false,
           "description": "A hairline border in a functional border colour."
         },
@@ -566,8 +653,22 @@
           "description": "Default `column`."
         },
         "gap": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": ""
         },
@@ -591,26 +692,85 @@
           "description": "Main-axis distribution. Default `start`."
         },
         "padding": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": ""
         },
         "paddingX": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": "Overrides `padding` on the inline (left/right) edges."
         },
         "paddingY": {
-          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
-          "kind": "unresolved",
+          "type": "| 'none'\n| '3xs'\n| '2xs'\n| 'xs'\n| 'sm'\n| 'lg'\n| 'xl'\n| '2xl'\n| '3xl'\n| '4xl'\n| '5xl'\n| '6xl'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "3xs",
+            "2xs",
+            "xs",
+            "sm",
+            "lg",
+            "xl",
+            "2xl",
+            "3xl",
+            "4xl",
+            "5xl",
+            "6xl"
+          ],
           "required": false,
           "description": "Overrides `padding` on the block (top/bottom) edges."
         },
         "radius": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'none'\n| 'xs'\n| 'sm'\n| 'md'\n| 'lg'\n| 'xl'\n| '2xl'\n| '4xl'\n| '5xl'\n| '6xl'\n| '7xl'\n| '8xl'\n| '9xl'\n| '10xl'\n| 'full'",
+          "kind": "enum",
+          "options": [
+            "none",
+            "xs",
+            "sm",
+            "md",
+            "lg",
+            "xl",
+            "2xl",
+            "4xl",
+            "5xl",
+            "6xl",
+            "7xl",
+            "8xl",
+            "9xl",
+            "10xl",
+            "full"
+          ],
           "required": false,
           "description": ""
         },
@@ -671,11 +831,23 @@
           "type": "ReactNode",
           "kind": "node",
           "required": false,
-          "description": ""
+          "description": "The words to show."
         },
         "color": {
           "type": "TextColor | 'inherit'",
-          "kind": "unresolved",
+          "kind": "enum",
+          "options": [
+            "primary",
+            "secondary",
+            "subtle",
+            "inverse",
+            "muted",
+            "status-error",
+            "status-success",
+            "status-warning",
+            "status-live",
+            "inherit"
+          ],
           "required": false,
           "defaultValue": "primary",
           "description": "A functional text role, a `status-*` colour, or `inherit` to take the parent's."
@@ -687,8 +859,25 @@
           "description": "Only meaningful with `as=\"label\"`."
         },
         "opacity": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "| 'hidden'\n| 'overlay-minimal'\n| 'image-subdued'\n| 'shadow-subtle'\n| 'background-subtle'\n| 'border-subtle'\n| 'content-muted'\n| 'overlay'\n| 'text-secondary'\n| 'statistics-vector'\n| 'illumination-strong'\n| 'title'\n| 'visible'\n| 'focus-glow'\n| 'state-disabled'",
+          "kind": "enum",
+          "options": [
+            "hidden",
+            "overlay-minimal",
+            "image-subdued",
+            "shadow-subtle",
+            "background-subtle",
+            "border-subtle",
+            "content-muted",
+            "overlay",
+            "text-secondary",
+            "statistics-vector",
+            "illumination-strong",
+            "title",
+            "visible",
+            "focus-glow",
+            "state-disabled"
+          ],
           "required": false,
           "description": "A semantic opacity role, e.g. `title` for a 90% headline."
         },
@@ -700,8 +889,29 @@
           "description": "One line, ellipsised."
         },
         "variant": {
-          "type": "(typeof TEXT_STYLES)[number]",
-          "kind": "unresolved",
+          "type": "| 'caption-medium'\n| 'caption-bold'\n| 'caption-extra-bold'\n| 'footnote-medium'\n| 'footnote-bold'\n| 'body-sm-medium'\n| 'body-sm-bold'\n| 'body-sm-extra-bold'\n| 'body-md-regular'\n| 'body-md-medium'\n| 'body-md-bold'\n| 'body-lg-medium'\n| 'body-lg-bold'\n| 'heading-5-medium'\n| 'heading-5-bold'\n| 'heading-4-medium'\n| 'heading-4-bold'\n| 'heading-3-medium'\n| 'heading-3-bold'",
+          "kind": "enum",
+          "options": [
+            "caption-medium",
+            "caption-bold",
+            "caption-extra-bold",
+            "footnote-medium",
+            "footnote-bold",
+            "body-sm-medium",
+            "body-sm-bold",
+            "body-sm-extra-bold",
+            "body-md-regular",
+            "body-md-medium",
+            "body-md-bold",
+            "body-lg-medium",
+            "body-lg-bold",
+            "heading-5-medium",
+            "heading-5-bold",
+            "heading-4-medium",
+            "heading-4-bold",
+            "heading-3-medium",
+            "heading-3-bold"
+          ],
           "required": false,
           "defaultValue": "body-md-regular",
           "description": "A `.text-*` utility class from global.css."
@@ -1023,8 +1233,8 @@
               "description": "Who is presenting the card."
             },
             "stats": {
-              "type": "unknown",
-              "kind": "unresolved",
+              "type": "string[]",
+              "kind": "array",
               "required": false,
               "description": "Column headings beside the subtitle, on the same line — `Pts`, `J`, `V`."
             },
@@ -1054,7 +1264,8 @@
           "kind": "unresolved",
           "required": false,
           "defaultValue": "null",
-          "description": "Index of the focused item. `null`/`undefined` = the rail at rest, every\n item `default`. Any other index expands the whole row."
+          "description": "Index of the focused item. `null`/`undefined` = the rail at rest, every\n item `default`. Any other index expands the whole row.",
+          "nullable": true
         },
         "align": {
           "type": "'start' | 'end'",
@@ -1180,7 +1391,8 @@
             "channel-bug"
           ],
           "required": false,
-          "description": "The one focused item. Default `program` (the live program's logo). `null`\nwhen focus is elsewhere on the screen."
+          "description": "The one focused item. Default `program` (the live program's logo). `null`\nwhen focus is elsewhere on the screen.",
+          "nullable": true
         },
         "logoSrc": {
           "type": "string",
@@ -1474,8 +1686,8 @@
           "description": "The team's crest or flag (team rows). Omitted: not drawn."
         },
         "stats": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "string[]",
+          "kind": "array",
           "required": false,
           "description": "Up to four columns, each one `table-stat-column` wide so they line up down the table (team rows)."
         },
@@ -1497,8 +1709,8 @@
           "description": "Which row: `team` (the default), `athlete` or `scout`."
         },
         "values": {
-          "type": "unknown",
-          "kind": "unresolved",
+          "type": "[string, string]",
+          "kind": "array",
           "required": false,
           "description": "The two sides' values, left and right (scout rows). Omitted: not drawn."
         },

@@ -260,7 +260,19 @@ function interpretNode(
     }
   }
 
-  const props = sanitizeProps(component, ctx.schemas[type], raw.props, path, issues)
+  // Text written where the child nodes go belongs in the component's own
+  // `children` prop, when it has one (a Storybook import's Text, Heading…).
+  let rawProps = raw.props
+  if (raw.children !== undefined && !Array.isArray(raw.children)) {
+    const props = isObject(raw.props) ? raw.props : {}
+    if (typeof raw.children === 'string' && 'children' in component.props && props.children === undefined) {
+      rawProps = { ...props, children: raw.children }
+      issues.push({ level: 'info', path, message: `Moved the text in "children" into <${type}>'s children prop.` })
+    } else {
+      issues.push({ level: 'warn', path, message: `Dropped "children" on <${type}> — it is a list of nodes.` })
+    }
+  }
+  const props = sanitizeProps(component, ctx.schemas[type], rawProps, path, issues)
 
   const rawChildren = Array.isArray(raw.children) ? (raw.children as unknown[]) : []
   let children: CanvasNode[] = []

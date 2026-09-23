@@ -78,10 +78,20 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
         schema = n
         break
       }
+      case 'array': {
+        // A list of text; `min` / `max` bound how many items (a tuple sets both).
+        let list = z.array(z.string())
+        if (prop.min !== undefined) list = list.min(prop.min)
+        if (prop.max !== undefined) list = list.max(prop.max)
+        schema = list
+        break
+      }
       default:
         schema = z.string()
     }
   }
+
+  if (prop.nullable) schema = schema.nullable()
 
   let defaultValue = prop.defaultValue
   if (choices && group && isCoreToken(manifest, group, defaultValue)) {
@@ -295,6 +305,12 @@ function validateNode(
     }
   }
 
+  if (raw.children !== undefined && !Array.isArray(raw.children)) {
+    const text = 'children' in component.props
+      ? ` To give <${type}> its words, set "props": { "children": ${JSON.stringify(raw.children)} }.`
+      : ''
+    errors.push(`${path} <${type}>: "children" is a list of nodes, not ${JSON.stringify(raw.children)}.${text}`)
+  }
   const children = Array.isArray(raw.children) ? raw.children : []
   if (children.length > 0 && !component.acceptsChildren) {
     errors.push(`${path} <${type}>: cannot have children.`)
