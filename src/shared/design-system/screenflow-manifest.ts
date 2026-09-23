@@ -30,6 +30,7 @@ import {
   type TokenTier,
 } from './manifest'
 import { DTV_SCREEN_LAYERS } from './screen-layers'
+import { SCREEN_TEMPLATES } from '@/shared/templates'
 
 export const SCREENFLOW_MANIFEST_ID = 'screenflow'
 
@@ -171,6 +172,7 @@ export function catalogToManifest(): DesignSystemManifest {
     tokenTiers: screenflowTokenTiers(tokens),
     // Every screen is a DTV+ TV screen, so the built-in system follows the DTV layer rule.
     screenLayers: DTV_SCREEN_LAYERS,
+    templates: SCREEN_TEMPLATES,
   }
 }
 

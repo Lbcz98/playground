@@ -14,6 +14,14 @@
  * never places one. `Canvas Kit/*` (ScreenFlow's own Tailwind layout) and
  * `Templates/*` stay out.
  *
+ * The export also carries `templates` — `dtv-templates.ts`'s reference screens,
+ * translated from `src/shared/templates` into the DTV import's own component and
+ * prop names. After writing the file, this script re-imports it through the real
+ * `parseStorybookDocgenWithReport` and fails loudly if any of them no longer
+ * validates against the manifest it ships with — the same gate the importer
+ * itself applies (`storybook-adapter.ts` `screenTemplatesFrom`), run here so a
+ * drift is caught at export time, not silently at generation time.
+ *
  * `--from=<dir>` reads an existing `storybook build` instead of building one.
  */
 import { spawnSync } from 'node:child_process'
@@ -22,8 +30,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'vite'
-import { storybookComponentSources } from '../../src/shared/design-system/storybook-adapter'
+import {
+  parseStorybookDocgenWithReport,
+  storybookComponentSources,
+} from '../../src/shared/design-system/storybook-adapter'
 import { LIVE_BUNDLE_GLOBAL } from '../../src/design-system/liveBundle'
+import { DTV_TEMPLATES } from './dtv-templates'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const OUT = join(ROOT, 'dist-dtv')
@@ -62,7 +74,21 @@ try {
     version: JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version,
     components,
     tokens: JSON.parse(readFileSync(join(ROOT, 'tokens', 'tokens.json'), 'utf8')),
+    templates: DTV_TEMPLATES,
   }
+
+  const { manifest: reimported, warnings } = parseStorybookDocgenWithReport(exported, { id: 'dtv', name: 'DTV' })
+  const kept = new Set((reimported.templates ?? []).map((t) => t.id))
+  const dropped = DTV_TEMPLATES.filter((t) => !kept.has(t.id))
+  if (dropped.length > 0) {
+    console.error(`${dropped.length} reference screen(s) failed to import — fix dtv-templates.ts before shipping:`)
+    for (const t of dropped) {
+      const reason = warnings.find((w) => w.component === 'templates' && w.prop === t.id)?.message ?? 'unknown reason'
+      console.error(`  ${t.id}: ${reason}`)
+    }
+    process.exit(1)
+  }
+
   writeFileSync(join(OUT, 'dtv-storybook.json'), `${JSON.stringify(exported, null, 2)}\n`)
 
   // The bundle maps each component's imported name to the export docgen found it at.
@@ -97,7 +123,10 @@ try {
     },
   })
 
-  console.log(`Wrote dist-dtv/dtv-storybook.json (${Object.keys(components).length} story components) and dist-dtv/dtv.bundle.js (${entries.length} components).`)
+  console.log(
+    `Wrote dist-dtv/dtv-storybook.json (${Object.keys(components).length} story components, ` +
+      `${DTV_TEMPLATES.length} reference screens) and dist-dtv/dtv.bundle.js (${entries.length} components).`,
+  )
 } finally {
   if (!from) rmSync(dir, { recursive: true, force: true })
 }

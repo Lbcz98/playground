@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { SCREEN_TEMPLATES } from '@/shared/templates'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { manifestZodSchema } from './manifest'
 import { compileManifestSchemas } from './manifest-zod'
@@ -38,6 +39,10 @@ describe('SCREENFLOW_MANIFEST (derived from the catalog)', () => {
     expect(SCREENFLOW_MANIFEST.tokens.colors.brand).toBeTypeOf('string')
     expect(SCREENFLOW_MANIFEST.tokens.spacing.md).toBeTypeOf('string')
     expect(Object.keys(SCREENFLOW_MANIFEST.tokens.spacing)).toContain('lg')
+  })
+
+  it('carries the built-in reference screens', () => {
+    expect(SCREENFLOW_MANIFEST.templates).toBe(SCREEN_TEMPLATES)
   })
 
   it('keeps the catalog reachable (rename guard)', () => {

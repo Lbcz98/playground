@@ -24,9 +24,11 @@ import {
   type DesignSystemManifest,
   type ManifestComponent,
   type ManifestProp,
+  type ManifestScreenTemplate,
   type ManifestTokens,
   type TokenTierMap,
 } from './manifest'
+import { validateBlueprintAgainstManifest } from './manifest-zod'
 import {
   mergeTokenTiers,
   mergeTokens,
@@ -488,7 +490,55 @@ export function parseStorybookDocgenWithReport(
     components,
     ...(Object.keys(tiers).length > 0 ? { tokenTiers: { rule: TOKEN_TIER_RULE, tiers } } : {}),
   }
-  return { manifest, warnings }
+  const templates = screenTemplatesFrom(rawJson, manifest, warnings)
+  return { manifest: templates.length > 0 ? { ...manifest, templates } : manifest, warnings }
+}
+
+/**
+ * A Storybook export carries no notion of a reference screen on its own — a
+ * `templates` array alongside `components` is our own extension
+ * (`scripts/storybook/export-dtv.ts` writes one for the DTV system). Each entry
+ * is validated against the very manifest it ships with, so a template invalid
+ * against its own components can never reach the Planner (`templatesFor` in
+ * `promptSpec.ts` reads `manifest.templates` with no further checking).
+ */
+function screenTemplatesFrom(
+  rawJson: unknown,
+  manifest: DesignSystemManifest,
+  warnings: StorybookImportWarning[],
+): ManifestScreenTemplate[] {
+  const raw = isObject(rawJson) && Array.isArray(rawJson.templates) ? rawJson.templates : []
+  const out: ManifestScreenTemplate[] = []
+  const seen = new Set<string>()
+  raw.forEach((entry: unknown, i: number) => {
+    const label = isObject(entry) && typeof entry.id === 'string' ? entry.id : `#${i}`
+    if (
+      !isObject(entry) ||
+      typeof entry.id !== 'string' ||
+      typeof entry.name !== 'string' ||
+      typeof entry.when !== 'string' ||
+      !isObject(entry.blueprint)
+    ) {
+      warnings.push({ component: 'templates', prop: label, message: 'missing id, name, when or blueprint — skipped' })
+      return
+    }
+    if (seen.has(entry.id)) {
+      warnings.push({ component: 'templates', prop: entry.id, message: 'a second template with this id — kept the first' })
+      return
+    }
+    const result = validateBlueprintAgainstManifest(entry.blueprint, manifest)
+    if (!result.ok) {
+      warnings.push({
+        component: 'templates',
+        prop: entry.id,
+        message: `its blueprint does not pass validation against its own manifest — skipped (${result.errors[0]})`,
+      })
+      return
+    }
+    seen.add(entry.id)
+    out.push({ id: entry.id, name: entry.name, when: entry.when, blueprint: entry.blueprint })
+  })
+  return out
 }
 
 /** A token the parse left out, in the importer's warning shape. */

@@ -13,12 +13,13 @@
  */
 
 import type { BlueprintDocument } from '@/shared/blueprint'
+import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 
-export interface ScreenTemplate {
-  /** Stable id — also the story name and the snapshot's filename. */
-  id: string
-  name: string
-  /** One line the planner reads to choose between templates. */
-  when: string
+/**
+ * A built-in reference screen — `ManifestScreenTemplate` with its `blueprint`
+ * typed as the real `BlueprintDocument` this module already has on hand. The id
+ * also serves as the story name and the snapshot's filename.
+ */
+export interface ScreenTemplate extends Omit<ManifestScreenTemplate, 'blueprint'> {
   blueprint: BlueprintDocument
 }

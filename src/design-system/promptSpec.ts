@@ -38,8 +38,8 @@ import {
   tokenNames,
   tokenTier,
 } from '@/shared/design-system/manifest'
-import { SCREENFLOW_MANIFEST, SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
-import { SCREEN_TEMPLATES, type ScreenTemplate } from '@/shared/templates'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
 import {
   FRAME,
@@ -497,12 +497,13 @@ function designSystemBinding(
  * any: the templates are DTV screens, and offering them for an imported design
  * system would be describing components it does not have.
  */
-export function templatesFor(manifest: DesignSystemManifest): readonly ScreenTemplate[] {
-  return manifest.id === SCREENFLOW_MANIFEST_ID ? SCREEN_TEMPLATES : []
+/** The reference screens a design system ships — declared on the manifest itself, so an imported system carries its own. */
+export function templatesFor(manifest: DesignSystemManifest): readonly ManifestScreenTemplate[] {
+  return manifest.templates ?? []
 }
 
 /** The planner's template menu: what exists, and when each one is the right start. */
-function templateSection(templates: readonly ScreenTemplate[]): string {
+function templateSection(templates: readonly ManifestScreenTemplate[]): string {
   if (templates.length === 0) return ''
   return `# Reference screens
 

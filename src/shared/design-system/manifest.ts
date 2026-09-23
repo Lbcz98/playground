@@ -189,6 +189,27 @@ export interface ScreenSpec {
   level: NavigationLevel
 }
 
+/**
+ * A reference screen the agent can start a prototype from — `SCREEN_TEMPLATES`
+ * (`src/shared/templates`) for the built-in system, or whatever a Storybook
+ * export carries under `templates`. `blueprint` is a `BlueprintDocument`, kept
+ * untyped here so this module stays free of a dependency on `shared/blueprint`
+ * (which itself depends on this one, for `ScreenSpec`); the importer validates
+ * it with `validateBlueprintAgainstManifest` before keeping it, and
+ * `ScreenTemplate` (`shared/templates/types.ts`) is the typed shape everywhere
+ * that already has a `BlueprintDocument` to work with. Typed as the bare
+ * minimum (`object`, not `Record<string, unknown>`) so a real `BlueprintDocument`
+ * — which has no index signature — is assignable to it without a cast.
+ */
+export interface ManifestScreenTemplate {
+  /** Stable id — the planner names it on a `Template:` line. */
+  id: string
+  name: string
+  /** One line the planner reads to choose between templates. */
+  when: string
+  blueprint: object
+}
+
 export interface DesignSystemManifest {
   id: string
   name: string
@@ -206,6 +227,11 @@ export interface DesignSystemManifest {
    * applies (`screenLayersOf` in `screen-layers.ts`).
    */
   screenLayers?: ManifestScreenLayers
+  /**
+   * Reference screens for the Planner to start from (`templatesFor` reads this).
+   * Optional; an imported system with none composes every screen from scratch.
+   */
+  templates?: readonly ManifestScreenTemplate[]
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +324,16 @@ const tokenTiersSchema: z.ZodType<ManifestTokenTiers> = z
   .strict()
 
 const MAX_MODELS = 40
+const MAX_TEMPLATES = 40
+
+const manifestScreenTemplateSchema: z.ZodType<ManifestScreenTemplate> = z
+  .object({
+    id: idSchema,
+    name: shortStr,
+    when: z.string().min(1).max(400),
+    blueprint: z.record(z.unknown()),
+  })
+  .strict()
 
 const levelSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
 const shadeSchema = z.enum(SHADE_IDS as [ShadeId, ...ShadeId[]])
@@ -368,6 +404,7 @@ export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z.preprocess(
       tokens: tokensSchema,
       tokenTiers: tokenTiersSchema.optional(),
       screenLayers: screenLayersSchema.optional(),
+      templates: z.array(manifestScreenTemplateSchema).max(MAX_TEMPLATES).optional(),
       components: z
         .record(componentSchema)
         .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })

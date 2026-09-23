@@ -259,6 +259,37 @@ Getting there took five import gaps closed first (see below), and the run itself
 found seven more — all fixed except the two under "Still open". The last round of
 four prompts cost $0.61; the whole session's live runs about $3.
 
+## Phase 5: reference screens for an imported system
+
+Built-in templates (`SCREEN_TEMPLATES`) are now just the built-in manifest's
+`templates` field — `DesignSystemManifest.templates?: ManifestScreenTemplate[]`
+— so any manifest, imported or not, can carry its own. `templatesFor` reads it
+off the active manifest; nothing is special-cased to the built-in id any more.
+
+| ID | Check | PASS | FAIL | Where |
+| --- | --- | --- | --- | --- |
+| T1 | The manifest schema carries reference screens | `templates` round-trips through `manifestZodSchema`; a template missing `id`, `name`, `when` or `blueprint` is rejected | a malformed template is accepted silently | `manifest.test.ts` |
+| T2 | `templatesFor` reads the active manifest, not a hardcoded id | the built-in manifest carries `SCREEN_TEMPLATES`; an imported manifest with none gets none; one that ships its own shows them, exactly like the built-in | an imported system with real templates is still told "none" | `screenflow-manifest.test.ts`, `promptSpec.test.ts` |
+| T3 | `chooseTemplate` works on any manifest's templates | generic over `ManifestScreenTemplate`, so it takes the built-in's typed `ScreenTemplate[]` or an import's own array with no cast, and keeps the stronger type when it has one | a cast papering over a type mismatch | `choose.test.ts` (unchanged — the generic doesn't change behaviour) |
+| T4 | An import's own templates are held to its own manifest | a template that validates is kept; a missing field, a duplicate id, or a Blueprint that fails validation against its own manifest is dropped, each with a warning naming why | a broken reference screen reaches the Planner | `storybook-adapter.test.ts` E2.14 |
+| T5 | `npm run dtv:export` ships DTV's own six reference screens, self-checked | it re-imports its own output through the real importer and refuses to write the file if any of the six no longer validates | a reference screen regresses silently when the kit's components change | `scripts/storybook/dtv-templates.ts`, `export-dtv.ts` |
+| T6 (manual, live) | The home screen composes correctly once the import ships a template | the Planner's `template:` step names `home (named)`; the generated screen's structure matches the reference (rail resting above the menu, menu along the bottom) | the model still invents its own layout despite a reference existing | see below |
+
+**What T5 caught immediately:** the DTV import's `UiKitButton` documents "Default
+`focus`." (a real JSDoc default this session started reading, E2.13) — so a rail
+card with no `interactionState` set focuses itself. The built-in catalog hides
+this behind `interactionState: RESTS` (a `defaultOverrides` entry), but nothing
+rests it for an import. `dtv-templates.ts`'s home screen now sets
+`interactionState: "default"` on every un-entered card explicitly. Before this
+was fixed, the self-check refused to write the export: "5 elements are focused."
+
+**T6, run live (2026-09-23):** the same home prompt from Phase 4's run — the one
+that previously scored 5/5 on layout QA while still looking wrong (menu floating
+mid-screen, rail cropped) — now shows `template: home (named)` in the Planner's
+step log, validates on attempt 1, and the rendered screen matches the reference:
+the rail's three cards rest above the main menu, the first one focused with its
+ring, the menu's weather and programme text along the bottom edge. $0.13.
+
 ## What building this found (and fixed)
 
 - **The importer couldn't read Storybook 10's own export.** Handing it
@@ -304,6 +335,10 @@ four prompts cost $0.61; the whole session's live runs about $3.
   sign-up card) and its form pattern went with it, and so did the AgentPanel's
   sign-up suggestion.
 - **Token imports dropped broken aliases silently.** They are now reported (E2.8).
+- **An imported system had no reference screens to start from**, so its
+  composition was the model's alone — this is what made the home screen's rail
+  and menu land in the wrong places despite passing every rule. Templates are
+  now a manifest field any system can carry (Phase 5).
 
 Found while making the DTV system importable from Storybook alone (Phase 4):
 
@@ -357,9 +392,6 @@ Found while making the DTV system importable from Storybook alone (Phase 4):
 
 ## Still open
 
-- **An imported system gets no reference screens,** so composition is the model's
-  alone. The home screen came out wrong (menu beside the rail, not along the
-  bottom) while every rule passed — no rule says where a menu goes.
 - **Gradient tokens aren't parsed by the importer** (28 warnings for `tokens.json`).
   Screens still render them — the components read `global.css` — but an imported
   system's token list lacks them.
@@ -371,7 +403,7 @@ proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 589.
+- Tests went from 363 to 594.
 - Visual: 113 stories (11 new `Canvas Kit` baselines, plus the sponsored interactivity card).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;

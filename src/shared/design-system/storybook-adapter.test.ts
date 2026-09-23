@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { parseStorybookDocgen } from './storybook-adapter'
 import { manifestZodSchema } from './manifest'
+import { templatesFor } from '@/design-system/promptSpec'
+import { chooseTemplate } from '@/shared/templates'
 
 /**
  * A mock Storybook / react-docgen extraction for a Button + a Card, mixed in with
@@ -447,6 +449,45 @@ describe('Phase 2 — importing an external Storybook', () => {
   it('E2.5 — a payload with no components throws a readable error', () => {
     expect(() => parseStorybookDocgen({ components: {} })).toThrow(/No component definitions found/)
     expect(() => parseStorybookDocgen('not json at all')).toThrow(/No component definitions found/)
+  })
+
+  it('E2.14 — an export can carry its own reference screens, each held to its own manifest', () => {
+    const dtv = {
+      components: {
+        Stack: { displayName: 'Stack', props: { children: { tsType: { name: 'ReactNode' } } } },
+      },
+      templates: [
+        {
+          id: 'home',
+          name: 'Home',
+          when: 'The home screen.',
+          blueprint: { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack' } },
+        },
+        // Malformed — missing `when`.
+        { id: 'broken', name: 'Broken', blueprint: { version: 1, root: { type: 'Stack' } } },
+        // A second "home" — kept the first.
+        { id: 'home', name: 'Home again', when: 'Also the home screen.', blueprint: { version: 1, root: { type: 'Stack' } } },
+        // Fails validation against its own manifest — no such component.
+        {
+          id: 'no-such-component',
+          name: 'Ghost',
+          when: 'Never matches.',
+          blueprint: { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Ghost' } },
+        },
+      ],
+    }
+    const { manifest: m, warnings } = parseStorybookDocgenWithReport(dtv, { id: 'dtv', name: 'DTV' })
+    expect(m.templates?.map((t) => t.id)).toEqual(['home'])
+    expect(warnings.filter((w) => w.component === 'templates').map((w) => w.prop)).toEqual([
+      'broken',
+      'home',
+      'no-such-component',
+    ])
+
+    // It reaches the planner and the retry loop exactly like the built-in ones.
+    expect(templatesFor(m)).toEqual(m.templates)
+    const choice = chooseTemplate('Template: home', templatesFor(m))
+    expect(choice).toEqual({ template: m.templates![0], reason: 'named' })
   })
 
   it('E2.6 — a docs or index file says which file to import instead', () => {

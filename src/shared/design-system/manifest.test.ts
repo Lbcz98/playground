@@ -135,6 +135,36 @@ describe('isDesignSystemManifest', () => {
   })
 })
 
+describe('templates', () => {
+  const base = {
+    id: 'm',
+    name: 'm',
+    version: '1',
+    tokens: { colors: {}, spacing: {}, typography: {} },
+    components: { Stack: { id: 'Stack', name: 'Stack', description: '', acceptsChildren: true, props: {} } },
+  }
+
+  it('accepts a manifest with reference screens, blueprint untyped and unvalidated by this schema', () => {
+    const withTemplates = {
+      ...base,
+      templates: [{ id: 'home', name: 'Home', when: 'The home screen.', blueprint: { version: 1, root: { type: 'Stack' } } }],
+    }
+    expect(isDesignSystemManifest(withTemplates)).toBe(true)
+    expect(isDesignSystemManifest(base)).toBe(true)
+  })
+
+  it('rejects a template missing id, name, when or blueprint', () => {
+    for (const bad of [
+      { name: 'Home', when: 'x', blueprint: {} },
+      { id: 'home', when: 'x', blueprint: {} },
+      { id: 'home', name: 'Home', blueprint: {} },
+      { id: 'home', name: 'Home', when: 'x' },
+    ]) {
+      expect(isDesignSystemManifest({ ...base, templates: [bad] })).toBe(false)
+    }
+  })
+})
+
 describe('placement — a composed component and its parts', () => {
   const m = SCREENFLOW_MANIFEST
   const c = (id: string) => m.components[id]

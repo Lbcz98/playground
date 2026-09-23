@@ -196,10 +196,24 @@ describe('reference screens in the planner prompt', () => {
     expect(planner).toMatch(/First the template line, then the screen line/)
   })
 
-  it('offers none of them to an imported design system', () => {
-    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme' }
+  it('offers none of them to an imported design system that ships none', () => {
+    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme', templates: undefined }
     expect(templatesFor(imported)).toEqual([])
     expect(buildPlannerPrompt(imported)).not.toContain('# Reference screens')
+  })
+
+  it('lists an imported design system\'s own templates, same as the built-in ones', () => {
+    const template = {
+      id: 'acme-home',
+      name: 'Acme Home',
+      when: 'The Acme home screen — a menu on the left, content on the right.',
+      blueprint: { version: 1 as const, root: { type: 'Stack' as const } },
+    }
+    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme', templates: [template] }
+    expect(templatesFor(imported)).toEqual([template])
+    const planner = buildPlannerPrompt(imported)
+    expect(planner).toContain('# Reference screens')
+    expect(planner).toContain(`- ${template.id} — ${template.name}. ${template.when}`)
   })
 })
 

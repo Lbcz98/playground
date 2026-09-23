@@ -11,7 +11,7 @@
  * not exist.
  */
 
-import type { ScreenTemplate } from './types'
+import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 
 /** `Template: home` → `home`; `Template: none` → `none`; nothing → `undefined`. */
 export function parseTemplateLine(planText: string): string | undefined {
@@ -25,16 +25,29 @@ export function parseScreenModel(planText: string): string | undefined {
   return match ? match[1].toLowerCase() : undefined
 }
 
-export interface TemplateChoice {
-  template?: ScreenTemplate
+export interface TemplateChoice<T extends ManifestScreenTemplate = ManifestScreenTemplate> {
+  template?: T
   /** How it was chosen, for the pipeline's step log. */
   reason: 'named' | 'model' | 'none' | 'unavailable'
 }
 
-export function chooseTemplate(
+/**
+ * The layer model a template's blueprint declares. Read defensively — a
+ * template's `blueprint` is only a typed `BlueprintDocument` for the built-in
+ * system (`ScreenTemplate`); an imported system's is whatever its export
+ * carried, validated once at import time but not typed here.
+ */
+function screenModelOf(blueprint: object): string | undefined {
+  const screen = (blueprint as Record<string, unknown>).screen
+  if (typeof screen !== 'object' || screen === null) return undefined
+  const model = (screen as Record<string, unknown>).model
+  return typeof model === 'string' ? model : undefined
+}
+
+export function chooseTemplate<T extends ManifestScreenTemplate>(
   planText: string,
-  templates: readonly ScreenTemplate[],
-): TemplateChoice {
+  templates: readonly T[],
+): TemplateChoice<T> {
   if (templates.length === 0) return { reason: 'unavailable' }
 
   const named = parseTemplateLine(planText)
@@ -46,7 +59,7 @@ export function chooseTemplate(
 
   const model = parseScreenModel(planText)
   if (model) {
-    const match = templates.find((t) => t.blueprint.screen?.model === model)
+    const match = templates.find((t) => screenModelOf(t.blueprint) === model)
     if (match) return { template: match, reason: 'model' }
   }
 
