@@ -25,6 +25,7 @@ import {
 import { W3C_MANIFEST, W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
 import {
   parseStorybookDocgenWithReport,
+  tokenImportWarning,
   type StorybookAdapterMeta,
   type StorybookImportWarning,
 } from '@/shared/design-system/storybook-adapter'
@@ -32,7 +33,7 @@ import {
   mergeTokenTiers,
   mergeTokens,
   parseDesignTokenTiers,
-  parseDesignTokens,
+  parseDesignTokensWithReport,
 } from '@/shared/design-system/token-adapter'
 import { hydrateRegistry, type HydratedRegistry } from '@/design-system/registry'
 import { loadLiveComponents, type LiveComponentMap } from '@/design-system/liveBundle'
@@ -171,7 +172,7 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
     if (BUILT_IN_IDS.has(target.id)) {
       return { ok: false, error: 'This built-in design system cannot be re-themed.' }
     }
-    const parsed = parseDesignTokens(rawJson)
+    const { tokens: parsed, warnings } = parseDesignTokensWithReport(rawJson)
     if (Object.keys(parsed).length === 0) {
       return { ok: false, error: 'No design tokens found (expected DTCG or Style Dictionary JSON).' }
     }
@@ -188,7 +189,8 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
     if (!valid.success) {
       return { ok: false, error: valid.error.issues[0]?.message ?? 'Merged manifest is invalid' }
     }
-    return persistAndAdd(valid.data, set, get)
+    const result = await persistAndAdd(valid.data, set, get)
+    return result.ok && warnings.length > 0 ? { ...result, warnings: warnings.map(tokenImportWarning) } : result
   },
 
   importBundle: async (code) => {

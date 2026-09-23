@@ -26,7 +26,13 @@ import {
   type ManifestProp,
   type ManifestTokens,
 } from './manifest'
-import { mergeTokenTiers, mergeTokens, parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
+import {
+  mergeTokenTiers,
+  mergeTokens,
+  parseDesignTokenTiers,
+  parseDesignTokensWithReport,
+  type TokenWarning,
+} from './token-adapter'
 import { isComponentsManifest, literalOptions, readDocgenProp } from './storybook-components-manifest'
 
 export interface StorybookAdapterMeta {
@@ -39,6 +45,7 @@ export interface StorybookAdapterMeta {
 
 /** Something the import accepted with a loss the author should know about. */
 export interface StorybookImportWarning {
+  /** The component — or `tokens`, with the token's path as `prop`. */
   component: string
   prop?: string
   message: string
@@ -340,7 +347,9 @@ export function parseStorybookDocgenWithReport(
 
   const name = meta.name ?? nameFromJson ?? 'Imported design system'
   const exports = tokenExports(rawJson)
-  const tokens = mergeTokens(...exports.map((c) => parseDesignTokens(c)), meta.tokens)
+  const parsedTokens = exports.map((c) => parseDesignTokensWithReport(c))
+  warnings.push(...parsedTokens.flatMap((p) => p.warnings.map(tokenImportWarning)))
+  const tokens = mergeTokens(...parsedTokens.map((p) => p.tokens), meta.tokens)
   // The token tier rule travels with the tokens when the export has a semantic tier.
   const tiers = mergeTokenTiers(
     ...exports.map((c) => parseDesignTokenTiers(c)),
@@ -355,6 +364,11 @@ export function parseStorybookDocgenWithReport(
     ...(Object.keys(tiers).length > 0 ? { tokenTiers: { rule: TOKEN_TIER_RULE, tiers } } : {}),
   }
   return { manifest, warnings }
+}
+
+/** A token the parse left out, in the importer's warning shape. */
+export function tokenImportWarning(w: TokenWarning): StorybookImportWarning {
+  return { component: 'tokens', prop: w.token, message: w.message }
 }
 
 export function parseStorybookDocgen(

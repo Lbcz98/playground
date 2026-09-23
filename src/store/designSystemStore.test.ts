@@ -101,6 +101,18 @@ describe('designSystemStore', () => {
       expect(store().active.tokens.radius).toEqual({ md: '8px' })
     })
 
+    it('hands back the tokens it had to leave out', async () => {
+      const result = await store().importTokens({
+        color: { $type: 'color', brand: { $value: '#0055ff' }, accent: { $value: '{color.gone}' } },
+      })
+      expect(result).toEqual({
+        ok: true,
+        id: 'acme',
+        warnings: [{ component: 'tokens', prop: 'color.accent', message: expect.stringMatching(/points at no token/) }],
+      })
+      expect(store().active.tokens.colors).toEqual({ brand: '#0055ff' })
+    })
+
     it('rejects when nothing parses as a token', async () => {
       expect((await store().importTokens({ not: 'tokens', deeply: { nested: true } })).ok).toBe(false)
     })

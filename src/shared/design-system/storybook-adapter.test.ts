@@ -271,6 +271,17 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(report.warnings.some((w) => w.prop === 'label')).toBe(false)
   })
 
+  it('E2.8 — tokens carried in the export that the parse leaves out are reported too', () => {
+    const report = parseStorybookDocgenWithReport({
+      components: { Chip: { displayName: 'Chip', props: { label: { tsType: { name: 'string' } } } } },
+      tokens: { color: { $type: 'color', brand: { $value: '#0055ff' }, accent: { $value: '{color.gone}' } } },
+    })
+    expect(report.manifest.tokens.colors).toEqual({ brand: '#0055ff' })
+    expect(report.warnings).toEqual([
+      { component: 'tokens', prop: 'color.accent', message: expect.stringMatching(/\{color\.gone\} points at no token/) },
+    ])
+  })
+
   it('E2.5 — a payload with no components throws a readable error', () => {
     expect(() => parseStorybookDocgen({ components: {} })).toThrow(/No component definitions found/)
     expect(() => parseStorybookDocgen('not json at all')).toThrow(/No component definitions found/)

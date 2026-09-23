@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDesignTokens } from './token-adapter'
+import { parseDesignTokens, parseDesignTokensWithReport } from './token-adapter'
 
 describe('parseDesignTokens — W3C Design Tokens (DTCG)', () => {
   const tokens = parseDesignTokens({
@@ -87,5 +87,33 @@ describe('parseDesignTokens — other shapes', () => {
     expect(parseDesignTokens(null)).toEqual({})
     expect(parseDesignTokens('nope')).toEqual({})
     expect(parseDesignTokens({})).toEqual({})
+  })
+})
+
+describe('parseDesignTokensWithReport — what the parse leaves out', () => {
+  it('reports an alias that points at no token, and a value that is not CSS', () => {
+    const { tokens, warnings } = parseDesignTokensWithReport({
+      color: {
+        $type: 'color',
+        brand: { $value: '#0055ff' },
+        accent: { $value: '{color.missing}' },
+        chain: { $value: '{color.accent}' },
+      },
+      space: { $type: 'dimension', md: { $value: '16px' }, odd: { $value: { weird: true } } },
+    })
+    expect(tokens.colors).toEqual({ brand: '#0055ff' })
+    expect(tokens.spacing).toEqual({ md: '16px' })
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        { token: 'color.accent', message: expect.stringMatching(/\{color\.missing\} points at no token/) },
+        { token: 'color.chain', message: expect.stringMatching(/\{color\.accent\} leads to a token that does not resolve/) },
+        { token: 'space.odd', message: expect.stringMatching(/not a CSS value/) },
+      ]),
+    )
+    expect(warnings).toHaveLength(3)
+  })
+
+  it('reports nothing for a clean file', () => {
+    expect(parseDesignTokensWithReport({ color: { $type: 'color', brand: { $value: '#0055ff' } } }).warnings).toEqual([])
   })
 })

@@ -140,6 +140,8 @@ interface RawToken {
   value: unknown
   type?: string
   ref?: string
+  /** The reference as written, kept for the report once `ref` has been followed. */
+  alias?: string
   /** A `{path}` reference that pointed at nothing — the token has no usable value. */
   unresolved?: boolean
   /** Read from the tree: under a `semantic` group, or beside one (`core`, `opacity`…). */
@@ -190,6 +192,7 @@ function walk(
       value: rawValue,
       type: typeof type === 'string' ? type : undefined,
       ref: alias,
+      alias,
       tier: inheritedTier,
     })
     return
@@ -256,13 +259,20 @@ export function mergeTokens(...parts: Array<Partial<ManifestTokens> | undefined>
   return acc
 }
 
+/** A token the import had to leave out, and why. */
+export interface TokenWarning {
+  token: string
+  message: string
+}
+
 interface ParsedTokens {
   tokens: Partial<ManifestTokens>
   tiers: TokenTierMap
+  warnings: TokenWarning[]
 }
 
 function parse(raw: unknown): ParsedTokens {
-  if (!isObject(raw)) return { tokens: {}, tiers: {} }
+  if (!isObject(raw)) return { tokens: {}, tiers: {}, warnings: [] }
 
   // Shape 1 — already grouped.
   if (looksGrouped(raw)) {
@@ -275,7 +285,7 @@ function parse(raw: unknown): ParsedTokens {
         )
       }
     }
-    return { tokens: out, tiers: inferTokenTiers(mergeTokens(out)) }
+    return { tokens: out, tiers: inferTokenTiers(mergeTokens(out)), warnings: [] }
   }
 
   // Shape 2/3 — DTCG / Style Dictionary tree, or a flat primitive map.
@@ -316,12 +326,23 @@ function parse(raw: unknown): ParsedTokens {
 
   const result: Partial<ManifestTokens> = {}
   const tiers: Partial<Record<TokenGroup, Record<string, TokenTier>>> = {}
+  const warnings: TokenWarning[] = []
   for (const t of collected) {
+    const token = t.path.join('.')
     // A reference into a part of the file we didn't read is not a CSS value.
-    if (t.unresolved || t.value === undefined || t.value === null) continue
+    if (t.unresolved) {
+      const exists = t.alias !== undefined && (byPath.has(t.alias) || byPath.has(t.alias.replace(/\//g, '.')))
+      const why = exists ? 'leads to a token that does not resolve' : 'points at no token in the file'
+      warnings.push({ token, message: `its alias {${t.alias}} ${why} — left out` })
+      continue
+    }
+    if (t.value === undefined || t.value === null) continue
     let group = groupFromType(t.type) ?? groupFromName(t.path)
     const css = valueToCss(t.value, group)
-    if (css === null) continue
+    if (css === null) {
+      warnings.push({ token, message: `its value ${JSON.stringify(t.value)} is not a CSS value — left out` })
+      continue
+    }
     group = group ?? groupFromValue(css) ?? 'spacing'
     const name = tokenName(t.path)
     if (!name) continue
@@ -329,18 +350,27 @@ function parse(raw: unknown): ParsedTokens {
     if (t.tier) (tiers[group] ??= {})[name] = t.tier === 'core' ? rawTierFor(group) : 'semantic'
   }
 
-  if (flat) return { tokens: result, tiers: inferTokenTiers(mergeTokens(result)) }
+  if (flat) return { tokens: result, tiers: inferTokenTiers(mergeTokens(result)), warnings }
   // A group is tiered only when it has a semantic layer to point components at.
   const tiered: TokenTierMap = {}
   for (const group of GROUPS) {
     const map = tiers[group]
     if (map && Object.values(map).includes('semantic')) tiered[group] = map
   }
-  return { tokens: result, tiers: tiered }
+  return { tokens: result, tiers: tiered, warnings }
 }
 
 export function parseDesignTokens(raw: unknown): Partial<ManifestTokens> {
   return parse(raw).tokens
+}
+
+/** `parseDesignTokens`, plus every token the parse had to leave out and why. */
+export function parseDesignTokensWithReport(raw: unknown): {
+  tokens: Partial<ManifestTokens>
+  warnings: TokenWarning[]
+} {
+  const { tokens, warnings } = parse(raw)
+  return { tokens, warnings }
 }
 
 /**

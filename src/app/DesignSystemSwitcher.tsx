@@ -1,7 +1,26 @@
 import { useRef, useState } from 'react'
-import { selectActiveBundleState, useDesignSystemStore } from '@/store/designSystemStore'
+import { type ImportResult, selectActiveBundleState, useDesignSystemStore } from '@/store/designSystemStore'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import { cx } from '@/lib/cx'
+
+interface Status {
+  kind: 'error' | 'ok'
+  text: string
+  /** Every warning, one per line — shown on hover. */
+  detail?: string
+}
+
+/** An import's outcome as one status line; what it had to leave out is counted, and listed on hover. */
+function importStatus(result: ImportResult, done: (id: string) => string): Status {
+  if (!result.ok) return { kind: 'error', text: result.error }
+  const warnings = result.warnings ?? []
+  if (warnings.length === 0) return { kind: 'ok', text: `${done(result.id)}.` }
+  return {
+    kind: 'ok',
+    text: `${done(result.id)} · ${warnings.length} warning${warnings.length === 1 ? '' : 's'} (hover for details).`,
+    detail: warnings.map((w) => `${w.component}${w.prop ? `.${w.prop}` : ''}: ${w.message}`).join('\n'),
+  }
+}
 
 /**
  * Switch the active design system, import new ones from a Storybook / react-docgen
@@ -23,7 +42,7 @@ export function DesignSystemSwitcher(): JSX.Element {
   const componentsRef = useRef<HTMLInputElement>(null)
   const tokensRef = useRef<HTMLInputElement>(null)
   const bundleRef = useRef<HTMLInputElement>(null)
-  const [status, setStatus] = useState<{ kind: 'error' | 'ok'; text: string; detail?: string } | null>(null)
+  const [status, setStatus] = useState<Status | null>(null)
 
   async function readJson(file: File): Promise<unknown | undefined> {
     setStatus(null)
@@ -39,29 +58,14 @@ export function DesignSystemSwitcher(): JSX.Element {
     const json = await readJson(file)
     if (json === undefined) return
     const result = await importStorybook(json, { name: file.name.replace(/\.json$/i, '') })
-    if (!result.ok) {
-      setStatus({ kind: 'error', text: result.error })
-      return
-    }
-    const warnings = result.warnings ?? []
-    setStatus({
-      kind: 'ok',
-      text: warnings.length
-        ? `Imported "${result.id}" · ${warnings.length} warning${warnings.length === 1 ? '' : 's'} (hover for details).`
-        : `Imported "${result.id}".`,
-      detail: warnings.map((w) => `${w.component}${w.prop ? `.${w.prop}` : ''}: ${w.message}`).join('\n') || undefined,
-    })
+    setStatus(importStatus(result, (id) => `Imported "${id}"`))
   }
 
   async function onTokensFile(file: File): Promise<void> {
     const json = await readJson(file)
     if (json === undefined) return
     const result = await importTokens(json)
-    setStatus(
-      result.ok
-        ? { kind: 'ok', text: 'Tokens applied.' }
-        : { kind: 'error', text: result.error },
-    )
+    setStatus(importStatus(result, () => 'Tokens applied'))
   }
 
   async function onBundleFile(file: File): Promise<void> {
