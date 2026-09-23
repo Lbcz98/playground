@@ -172,3 +172,135 @@ describe('parseStorybookDocgen', () => {
     expect(m.tokens.spacing).toEqual({ md: '16px' })
   })
 })
+
+// ---------------------------------------------------------------------------
+// Test plan Phase 2 — the external importer (E2.1–E2.7,
+// docs/test-plan-storybook-sot.md).
+// ---------------------------------------------------------------------------
+
+import COMPONENTS_MANIFEST from './__fixtures__/components-manifest.json'
+import { parseStorybookDocgenWithReport } from './storybook-adapter'
+import { validateBlueprintAgainstManifest, compileManifestSchemas } from './manifest-zod'
+
+describe('Phase 2 — importing an external Storybook', () => {
+  const { manifest, warnings } = parseStorybookDocgenWithReport(COMPONENTS_MANIFEST, { name: 'Fixture kit' })
+  const warned = (component: string, prop?: string) =>
+    warnings.filter((w) => w.component === component && (prop === undefined || w.prop === prop))
+
+  it('E2.1 — Storybook 10 manifests/components.json becomes a schema-valid manifest', () => {
+    expect(manifestZodSchema.safeParse(manifest).success).toBe(true)
+    // Subcomponents come in as components of their own.
+    expect(Object.keys(manifest.components)).toEqual(
+      expect.arrayContaining(['ContentCard', 'ContentCardHeader', 'ContentCardBody', 'ContentCardFooter', 'LabelVideo']),
+    )
+    // Literal unions, including Extract<…> around them, become the option list.
+    expect(manifest.components.ContentCard.props.interactionState.options).toEqual(['default', 'focus'])
+    expect(manifest.components.LabelVideo.props.kind.options).toEqual(['live', 'replay'])
+    expect(manifest.components.ContentCard.props.height).toMatchObject({ type: { name: 'number' }, defaultValue: 440 })
+    expect(manifest.components.ContentCard.acceptsChildren).toBe(true)
+    expect(manifest.components.ContentCardHeader.props.title.description).not.toBe('')
+  })
+
+  it('E2.1 — what it could not take is reported, not silently lost', () => {
+    // A story with no documentable component.
+    expect(warned('Template')[0]?.message).toMatch(/skipped — No component file found/)
+    // Two different components share the name "Button".
+    expect(warned('Button').some((w) => /second component named "Button"/.test(w.message))).toBe(true)
+    // Discriminated-union props react-docgen cannot read.
+    expect(warned('TableCell')[0]?.message).toMatch(/documents no props/)
+  })
+
+  it('E2.2 — Storybook argTypes give the same component as the docgen export', () => {
+    const fromArgTypes = parseStorybookDocgen({
+      components: {
+        LabelVideo: {
+          displayName: 'LabelVideo',
+          argTypes: {
+            kind: { options: ['live', 'replay'], control: 'select', table: { defaultValue: { summary: "'live'" } } },
+            mini: { type: { name: 'boolean' } },
+          },
+        },
+      },
+    })
+    expect(fromArgTypes.components.LabelVideo.props.kind.options).toEqual(manifest.components.LabelVideo.props.kind.options)
+    expect(fromArgTypes.components.LabelVideo.props.mini.type.name).toBe(manifest.components.LabelVideo.props.mini.type.name)
+  })
+
+  it('E2.3 — DOM props inherited from node_modules types are dropped, with a warning', () => {
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Chip: {
+          displayName: 'Chip',
+          props: {
+            tone: { tsType: { name: 'union', elements: [{ name: 'literal', value: "'info'" }, { name: 'literal', value: "'warn'" }] } },
+            onMouseEnter: {
+              tsType: { name: 'signature', type: 'function', raw: '() => void' },
+              parent: { fileName: 'node_modules/@types/react/index.d.ts', name: 'DOMAttributes' },
+            },
+            'aria-label': {
+              tsType: { name: 'string' },
+              declarations: [{ fileName: 'node_modules/@types/react/index.d.ts', name: 'AriaAttributes' }],
+            },
+          },
+        },
+      },
+    })
+    expect(Object.keys(report.manifest.components.Chip.props)).toEqual(['tone'])
+    expect(report.warnings.map((w) => w.prop).sort()).toEqual(['aria-label', 'onMouseEnter'])
+  })
+
+  it('E2.4 — a prop with no literal values is accepted as free text, with a warning — not rejected', () => {
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Badge: {
+          displayName: 'Badge',
+          props: {
+            variant: { tsType: { name: 'union', raw: "'a' | string", elements: [{ name: 'literal', value: "'a'" }, { name: 'string' }] } },
+            tone: { tsType: { name: 'BadgeTone' } },
+            label: { tsType: { name: 'string' } },
+          },
+        },
+      },
+    })
+    const props = report.manifest.components.Badge.props
+    expect(props.variant).toMatchObject({ type: { name: 'string' } })
+    expect(props.variant.options).toBeUndefined()
+    expect(props.tone.options).toBeUndefined()
+    expect(report.warnings.map((w) => w.prop).sort()).toEqual(['tone', 'variant'])
+    // A plain string is typed as intended — nothing to warn about.
+    expect(report.warnings.some((w) => w.prop === 'label')).toBe(false)
+  })
+
+  it('E2.5 — a payload with no components throws a readable error', () => {
+    expect(() => parseStorybookDocgen({ components: {} })).toThrow(/No component definitions found/)
+    expect(() => parseStorybookDocgen('not json at all')).toThrow(/No component definitions found/)
+  })
+
+  it('E2.6 — a docs or index file says which file to import instead', () => {
+    expect(() => parseStorybookDocgen({ v: 5, entries: {} })).toThrow(/Import manifests\/components\.json instead/)
+  })
+
+  it('E2.7 — the imported manifest compiles, and holds a Blueprint to its own components', () => {
+    expect(Object.keys(compileManifestSchemas(manifest))).toContain('ContentCard')
+    // The layer rule (Camadas) holds for an imported system too, so the screen names its model.
+    const screen = { model: 'interactivity-cards-right', level: 3 }
+    const own = {
+      version: 1,
+      screen,
+      root: {
+        type: 'ContentCard',
+        props: { interactionState: 'focus', height: 440 },
+        children: [{ type: 'ContentCardHeader', props: { title: 'Estatísticas' } }],
+      },
+    }
+    const result = validateBlueprintAgainstManifest(own, manifest)
+    expect(result.ok ? [] : result.errors).toEqual([])
+
+    const offCatalog = { version: 1, screen, root: { type: 'ContentCard', props: { interactionState: 'selected' } } }
+    const offResult = validateBlueprintAgainstManifest(offCatalog, manifest)
+    expect(offResult.ok ? '' : offResult.errors.join('\n')).toMatch(/interactionState/)
+    const builtInOnly = { version: 1, screen, root: { type: 'MainMenu' } }
+    const builtInResult = validateBlueprintAgainstManifest(builtInOnly, manifest)
+    expect(builtInResult.ok ? '' : builtInResult.errors.join('\n')).toMatch(/MainMenu/)
+  })
+})

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import COMPONENTS_MANIFEST from '@/shared/design-system/__fixtures__/components-manifest.json'
 import { useDesignSystemStore } from './designSystemStore'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import { W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
@@ -47,6 +48,14 @@ describe('designSystemStore', () => {
     expect(store().activeId).toBe('acme')
     expect(store().registry.manifestId).toBe('acme')
     expect(store().registry.get('Button')!.generic).toBe(true)
+  })
+
+  it('imports a Storybook components manifest and hands back what it could not take', async () => {
+    const result = await store().importStorybook(COMPONENTS_MANIFEST, { id: 'kit', name: 'Kit' })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.warnings?.map((w) => w.component)).toEqual(expect.arrayContaining(['Template', 'TableCell']))
+    expect(store().registry.get('ContentCardHeader')).toBeDefined()
   })
 
   it('rejects an unparseable Storybook payload', async () => {

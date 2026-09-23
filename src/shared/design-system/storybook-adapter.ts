@@ -27,6 +27,7 @@ import {
   type ManifestTokens,
 } from './manifest'
 import { mergeTokenTiers, mergeTokens, parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
+import { isComponentsManifest, literalOptions, readDocgenProp } from './storybook-components-manifest'
 
 export interface StorybookAdapterMeta {
   id?: string
@@ -35,6 +36,20 @@ export interface StorybookAdapterMeta {
   /** Optional token dictionary to attach (docgen JSON never carries tokens). */
   tokens?: Partial<ManifestTokens>
 }
+
+/** Something the import accepted with a loss the author should know about. */
+export interface StorybookImportWarning {
+  component: string
+  prop?: string
+  message: string
+}
+
+export interface StorybookImportReport {
+  manifest: DesignSystemManifest
+  warnings: StorybookImportWarning[]
+}
+
+type Warn = (message: string, prop?: string) => void
 
 // ---------------------------------------------------------------------------
 
@@ -78,28 +93,15 @@ function normalizeTypeName(name: unknown): string {
       return 'boolean'
     case 'number':
       return 'number'
+    // A union with no literal options to capture — nothing to build an enum from.
     case 'enum':
     case 'union':
-      return 'enum'
+      return 'string'
     case 'string':
       return 'string'
     default:
       return typeof name === 'string' && name ? name : 'string'
   }
-}
-
-/** Pull enum options out of a react-docgen `type` node, if it is one. */
-function optionsFromDocgenType(type: unknown): string[] | undefined {
-  if (!isObject(type)) return undefined
-  const value = type.value
-  if (!Array.isArray(value)) return undefined
-  const opts = value
-    .map((entry) => {
-      if (isObject(entry) && 'value' in entry) return unquote(entry.value)
-      return unquote(entry)
-    })
-    .filter((s): s is string => typeof s === 'string' && s.length > 0 && s !== 'undefined' && s !== 'null')
-  return opts.length > 0 ? opts : undefined
 }
 
 function coerceOptions(raw: unknown): string[] | undefined {
@@ -123,16 +125,24 @@ function inferTokenGroup(name: string): keyof ManifestTokens | undefined {
 // Prop extraction — handles both `props` (react-docgen) and `argTypes` (Storybook)
 // ---------------------------------------------------------------------------
 
-function parseProp(name: string, raw: unknown): ManifestProp | null {
+function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null {
   if (!isObject(raw)) return null
 
+  const docgen = readDocgenProp(raw)
+  if (docgen?.inherited) {
+    warn('inherited from a node_modules type (a DOM attribute) — dropped', name)
+    return null
+  }
+
   const options =
-    coerceOptions(raw.options) ??
-    optionsFromDocgenType(raw.type) ??
-    optionsFromDocgenType(isObject(raw.tsType) ? raw.tsType : undefined)
+    coerceOptions(raw.options) ?? literalOptions(raw.type) ?? literalOptions(raw.tsType) ?? undefined
 
   const typeNode = isObject(raw.type) ? raw.type : isObject(raw.tsType) ? raw.tsType : undefined
   const typeName = options ? 'enum' : normalizeTypeName(typeNode?.name)
+  if (!options && typeNode && docgen?.kind === 'unresolved') {
+    const written = typeof typeNode.raw === 'string' ? typeNode.raw : String(typeNode.name)
+    warn(`type \`${written}\` has no literal values to check — accepted as free text`, name)
+  }
 
   const requiredFromType = isObject(typeNode) && typeNode.required === true
   const required = raw.required === true || requiredFromType
@@ -177,7 +187,7 @@ function parseProp(name: string, raw: unknown): ManifestProp | null {
   return prop
 }
 
-function propsFromComponent(raw: Record<string, unknown>): Record<string, ManifestProp> {
+function propsFromComponent(raw: Record<string, unknown>, warn: Warn): Record<string, ManifestProp> {
   const source =
     (isObject(raw.props) && raw.props) ||
     (isObject(raw.argTypes) && raw.argTypes) ||
@@ -187,7 +197,7 @@ function propsFromComponent(raw: Record<string, unknown>): Record<string, Manife
   const out: Record<string, ManifestProp> = {}
   for (const [name, value] of Object.entries(source)) {
     if (name.startsWith('__')) continue
-    const parsed = parseProp(name, value)
+    const parsed = parseProp(name, value, warn)
     if (parsed) out[name] = parsed
   }
   return out
@@ -221,11 +231,51 @@ function childKeys(raw: Record<string, unknown>): boolean {
   return false
 }
 
-function collectComponents(rawJson: unknown): Record<string, ManifestComponent> {
-  // Accept: top-level array, `{ components: [...] | {...} }`, or a flat docgen map.
+/**
+ * Storybook 10's `manifests/components.json` → the docgen-map entries the rest of
+ * the adapter reads: one per component, and one per subcomponent its story meta
+ * declares. Entries Storybook could not document become warnings.
+ */
+function componentsManifestEntries(
+  rawJson: { components: Record<string, Record<string, unknown>> },
+  warnings: StorybookImportWarning[],
+): [string, unknown][] {
+  const out: [string, unknown][] = []
+  const add = (name: string, entry: Record<string, unknown>) => {
+    const docgen = entry.reactDocgen
+    if (!isObject(docgen)) {
+      const why = isObject(entry.error) ? String(entry.error.message ?? entry.error.name) : 'no react-docgen output'
+      warnings.push({ component: name, message: `skipped — ${why}` })
+      return
+    }
+    const description =
+      (typeof docgen.description === 'string' && docgen.description) ||
+      (typeof entry.description === 'string' ? entry.description : '')
+    out.push([name, { displayName: name, description, props: isObject(docgen.props) ? docgen.props : {} }])
+  }
+  for (const [key, entry] of Object.entries(rawJson.components)) {
+    if (!isObject(entry)) continue
+    add(typeof entry.name === 'string' && entry.name ? entry.name : key, entry)
+    if (isObject(entry.subcomponents)) {
+      for (const [subKey, sub] of Object.entries(entry.subcomponents)) {
+        if (isObject(sub)) add(typeof sub.name === 'string' && sub.name ? sub.name : subKey, sub)
+      }
+    }
+  }
+  return out
+}
+
+function collectComponents(
+  rawJson: unknown,
+  warnings: StorybookImportWarning[],
+): Record<string, ManifestComponent> {
+  // Accept: Storybook's components manifest, a top-level array,
+  // `{ components: [...] | {...} }`, or a flat docgen map.
   let entries: [string, unknown][] = []
 
-  if (Array.isArray(rawJson)) {
+  if (isComponentsManifest(rawJson)) {
+    entries = componentsManifestEntries(rawJson, warnings)
+  } else if (Array.isArray(rawJson)) {
     entries = rawJson.map((v, i) => [String((isObject(v) && (v.displayName ?? v.name)) || i), v])
   } else if (isObject(rawJson) && (Array.isArray(rawJson.components) || isObject(rawJson.components))) {
     const comps = rawJson.components
@@ -243,15 +293,22 @@ function collectComponents(rawJson: unknown): Record<string, ManifestComponent> 
     if (!looksLikeComponent(raw)) continue
     const name = componentName(key, raw)
     const id = name.replace(/[^A-Za-z0-9_]/g, '') || slug(key)
-    if (seen.has(id)) continue
+    if (seen.has(id)) {
+      warnings.push({ component: name, message: `a second component named "${id}" — kept the first` })
+      continue
+    }
     seen.add(id)
+
+    const warn: Warn = (message, prop) => warnings.push({ component: id, ...(prop ? { prop } : {}), message })
+    const props = propsFromComponent(raw, warn)
+    if (Object.keys(props).length === 0) warn('documents no props — a Blueprint can only place it as is')
 
     out[id] = {
       id,
       name,
       description: typeof raw.description === 'string' ? raw.description : '',
       acceptsChildren: childKeys(raw),
-      props: propsFromComponent(raw),
+      props,
     }
   }
 
@@ -260,14 +317,19 @@ function collectComponents(rawJson: unknown): Record<string, ManifestComponent> 
 
 // ---------------------------------------------------------------------------
 
-export function parseStorybookDocgen(
+/** `parseStorybookDocgen`, plus everything the import accepted with a loss. */
+export function parseStorybookDocgenWithReport(
   rawJson: unknown,
   meta: StorybookAdapterMeta = {},
-): DesignSystemManifest {
-  const components = collectComponents(rawJson)
+): StorybookImportReport {
+  const warnings: StorybookImportWarning[] = []
+  const components = collectComponents(rawJson, warnings)
   if (Object.keys(components).length === 0) {
+    const docsOnly = isObject(rawJson) && !('components' in rawJson) && ('docs' in rawJson || 'entries' in rawJson)
     throw new Error(
-      'No component definitions found in the Storybook JSON (expected react-docgen `props` or Storybook `argTypes`).',
+      docsOnly
+        ? 'This looks like a Storybook docs or index file, which carries no component docgen. Import manifests/components.json instead.'
+        : 'No component definitions found in the Storybook JSON (expected manifests/components.json, react-docgen `props` or Storybook `argTypes`).',
     )
   }
 
@@ -284,7 +346,7 @@ export function parseStorybookDocgen(
     ...exports.map((c) => parseDesignTokenTiers(c)),
     meta.tokens ? inferTokenTiers(mergeTokens(meta.tokens)) : undefined,
   )
-  return {
+  const manifest: DesignSystemManifest = {
     id: meta.id ?? slug(name),
     name,
     version: meta.version ?? versionFromJson ?? '0.0.0',
@@ -292,4 +354,12 @@ export function parseStorybookDocgen(
     components,
     ...(Object.keys(tiers).length > 0 ? { tokenTiers: { rule: TOKEN_TIER_RULE, tiers } } : {}),
   }
+  return { manifest, warnings }
+}
+
+export function parseStorybookDocgen(
+  rawJson: unknown,
+  meta: StorybookAdapterMeta = {},
+): DesignSystemManifest {
+  return parseStorybookDocgenWithReport(rawJson, meta).manifest
 }

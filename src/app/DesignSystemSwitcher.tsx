@@ -23,7 +23,7 @@ export function DesignSystemSwitcher(): JSX.Element {
   const componentsRef = useRef<HTMLInputElement>(null)
   const tokensRef = useRef<HTMLInputElement>(null)
   const bundleRef = useRef<HTMLInputElement>(null)
-  const [status, setStatus] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null)
+  const [status, setStatus] = useState<{ kind: 'error' | 'ok'; text: string; detail?: string } | null>(null)
 
   async function readJson(file: File): Promise<unknown | undefined> {
     setStatus(null)
@@ -39,11 +39,18 @@ export function DesignSystemSwitcher(): JSX.Element {
     const json = await readJson(file)
     if (json === undefined) return
     const result = await importStorybook(json, { name: file.name.replace(/\.json$/i, '') })
-    setStatus(
-      result.ok
-        ? { kind: 'ok', text: `Imported "${result.id}".` }
-        : { kind: 'error', text: result.error },
-    )
+    if (!result.ok) {
+      setStatus({ kind: 'error', text: result.error })
+      return
+    }
+    const warnings = result.warnings ?? []
+    setStatus({
+      kind: 'ok',
+      text: warnings.length
+        ? `Imported "${result.id}" · ${warnings.length} warning${warnings.length === 1 ? '' : 's'} (hover for details).`
+        : `Imported "${result.id}".`,
+      detail: warnings.map((w) => `${w.component}${w.prop ? `.${w.prop}` : ''}: ${w.message}`).join('\n') || undefined,
+    })
   }
 
   async function onTokensFile(file: File): Promise<void> {
@@ -194,7 +201,10 @@ export function DesignSystemSwitcher(): JSX.Element {
       {summary ? <p className="text-xs text-ink-muted">{summary}</p> : null}
 
       {status ? (
-        <p className={cx('text-xs', status.kind === 'error' ? 'text-danger' : 'text-ink-muted')}>
+        <p
+          className={cx('text-xs', status.kind === 'error' ? 'text-danger' : 'text-ink-muted')}
+          title={status.detail}
+        >
           {status.text}
         </p>
       ) : null}

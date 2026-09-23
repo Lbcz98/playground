@@ -23,7 +23,11 @@ import {
   SCREENFLOW_MANIFEST_ID,
 } from '@/shared/design-system/screenflow-manifest'
 import { W3C_MANIFEST, W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
-import { parseStorybookDocgen, type StorybookAdapterMeta } from '@/shared/design-system/storybook-adapter'
+import {
+  parseStorybookDocgenWithReport,
+  type StorybookAdapterMeta,
+  type StorybookImportWarning,
+} from '@/shared/design-system/storybook-adapter'
 import {
   mergeTokenTiers,
   mergeTokens,
@@ -33,7 +37,9 @@ import {
 import { hydrateRegistry, type HydratedRegistry } from '@/design-system/registry'
 import { loadLiveComponents, type LiveComponentMap } from '@/design-system/liveBundle'
 
-export type ImportResult = { ok: true; id: string } | { ok: false; error: string }
+export type ImportResult =
+  | { ok: true; id: string; warnings?: StorybookImportWarning[] }
+  | { ok: false; error: string }
 
 /** Per-manifest-id cache entry: not yet asked for, mid-load, failed, or resolved. */
 type LiveBundleState = LiveComponentMap | 'loading' | 'error'
@@ -146,8 +152,9 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
 
   importStorybook: async (rawJson, meta) => {
     let manifest: DesignSystemManifest
+    let warnings: StorybookImportWarning[]
     try {
-      manifest = parseStorybookDocgen(rawJson, meta)
+      ;({ manifest, warnings } = parseStorybookDocgenWithReport(rawJson, meta))
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) }
     }
@@ -155,7 +162,8 @@ export const useDesignSystemStore = create<DesignSystemState>((set, get) => ({
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? 'Adapter produced an invalid manifest' }
     }
-    return persistAndAdd(parsed.data, set, get)
+    const result = await persistAndAdd(parsed.data, set, get)
+    return result.ok && warnings.length > 0 ? { ...result, warnings } : result
   },
 
   importTokens: async (rawJson) => {
