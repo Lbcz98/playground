@@ -1,4 +1,6 @@
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { ContentCardHeader } from '@/ui-kit/ContentCard'
 import { hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { parseStorybookDocgen } from '@/shared/design-system/storybook-adapter'
@@ -40,6 +42,38 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
   it('renders without throwing', () => {
     const el = reg.get('Button')!.render({ label: 'Go', variant: 'primary', size: 'md' }, null)
     expect(el).toBeTruthy()
+  })
+
+  describe('the Content Card header builds its richer layouts from flat fields', () => {
+    const header = reg.get('ContentCardHeader')!
+    const html = (props: Record<string, unknown>) =>
+      renderToStaticMarkup(header.render(header.schema.parse(props) as Record<string, unknown>, null))
+
+    it('a match, only when both sides are named', () => {
+      expect(html({ title: '', homeTeam: 'EQU', awayTeam: 'ARG' })).toMatch(/EQU[\s\S]*ARG/)
+      expect(html({ title: '', homeTeam: 'EQU' })).not.toContain('EQU')
+    })
+
+    it('a table heading: the column headings beside the subtitle, empty ones left out', () => {
+      const out = html({ title: 'Grupo A', subtitle: 'Classificação', stat1: 'Pts', stat3: 'V' })
+      expect(out).toMatch(/Classificação[\s\S]*Pts[\s\S]*V/)
+      expect(out.match(/table-stat-column/g)).toHaveLength(2)
+    })
+
+    it('a partner above the title, with the verified tick only when asked', () => {
+      const plain = html({ partnerName: 'Nubank' })
+      expect(plain).toMatch(/Nubank[\s\S]*Título/)
+      expect(plain).not.toContain('<svg')
+      expect(html({ partnerName: 'Nubank', partnerVerified: true })).toContain('<svg')
+    })
+
+    it('an ad tag under the header, over its rule', () => {
+      expect(html({ adLabel: 'Publicidade' })).toMatch(/Título[\s\S]*Publicidade/)
+    })
+
+    it('none of them when the fields are empty — the plain header is unchanged', () => {
+      expect(html({})).toBe(renderToStaticMarkup(<ContentCardHeader title="Título" overline="" subtitle="" />))
+    })
   })
 })
 

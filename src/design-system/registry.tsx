@@ -169,8 +169,21 @@ function renderContentCard(raw: Record<string, unknown>, children: ReactNode): R
   return <ContentCard {...contentCardSchema.parse(raw)}>{children}</ContentCard>
 }
 
+/** The catalog's flat header fields → the kit's match / stats / partner / ad shapes. */
 function renderContentCardHeader(raw: Record<string, unknown>): ReactElement {
-  return <ContentCardHeader {...contentCardHeaderSchema.parse(raw)} />
+  const p = contentCardHeaderSchema.parse(raw)
+  const stats = [p.stat1, p.stat2, p.stat3].filter(Boolean)
+  return (
+    <ContentCardHeader
+      overline={p.overline}
+      title={p.title}
+      subtitle={p.subtitle}
+      match={p.homeTeam && p.awayTeam ? { home: { name: p.homeTeam }, away: { name: p.awayTeam } } : undefined}
+      stats={stats.length ? stats : undefined}
+      partner={p.partnerName ? { name: p.partnerName, verified: p.partnerVerified } : undefined}
+      ad={p.adLabel ? { label: p.adLabel } : undefined}
+    />
+  )
 }
 
 function renderContentCardBody(raw: Record<string, unknown>, children: ReactNode): ReactElement {

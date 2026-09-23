@@ -95,12 +95,18 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   ContentCardHeader: {
     component: 'ui-kit-content-card',
     subcomponent: 'ContentCardHeader',
-    codeOnly: {
-      icon: 'asset-slot',
-      ad: 'not-in-catalog-yet',
-      match: 'not-in-catalog-yet',
-      partner: 'not-in-catalog-yet',
-      stats: 'not-in-catalog-yet',
+    // The badges and logos inside match / partner / ad are image slots the agent can't fill.
+    codeOnly: { icon: 'asset-slot' },
+    // The catalog's flat fields; renderContentCardHeader builds the kit's shapes from them.
+    propMap: {
+      homeTeam: ['match'],
+      awayTeam: ['match'],
+      stat1: ['stats'],
+      stat2: ['stats'],
+      stat3: ['stats'],
+      partnerName: ['partner'],
+      partnerVerified: ['partner'],
+      adLabel: ['ad'],
     },
   },
   ContentCardBody: {

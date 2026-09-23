@@ -221,8 +221,21 @@ export type ContentCardNodeProps = z.infer<typeof contentCardSchema>
 export const contentCardHeaderSchema = z
   .object({
     overline: z.string().default(''),
+    /** Empty: not drawn — a header may be only a match, a partner or an ad tag. */
     title: z.string().default('Título'),
     subtitle: z.string().default(''),
+    /** A match: the two sides' short names, facing each other. Drawn only when both are set. */
+    homeTeam: z.string().default(''),
+    awayTeam: z.string().default(''),
+    /** Column headings beside the subtitle, over a table's team columns. Empty ones are not drawn. */
+    stat1: z.string().default(''),
+    stat2: z.string().default(''),
+    stat3: z.string().default(''),
+    /** Who presents the card, above the title; `partnerVerified` adds the verified tick. */
+    partnerName: z.string().default(''),
+    partnerVerified: z.boolean().default(false),
+    /** An advertising tag under the header, over a rule. */
+    adLabel: z.string().default(''),
   })
   .strict()
 export type ContentCardHeaderNodeProps = z.infer<typeof contentCardHeaderSchema>
@@ -519,7 +532,8 @@ export const Catalog = {
     type: 'ContentCardHeader',
     label: 'Content Card Header',
     category: 'content',
-    summary: "A Content Card's top zone: overline, title and subtitle. Only goes inside a Content Card.",
+    summary:
+      "A Content Card's top zone; everything is optional and collapses when empty. Plain: overline, title, subtitle. A match: homeTeam and awayTeam face each other above the title (set title to \"\" to show the match alone). A table heading: subtitle with stat1–stat3 as the column headings over the Table Cell team rows' stat1–stat3. A partner: partnerName above the title, partnerVerified adds the verified tick. An ad: adLabel, a tag under the header over a rule. Only goes inside a Content Card.",
     acceptsChildren: false,
     parents: ['ContentCard'],
     schema: contentCardHeaderSchema,
@@ -528,6 +542,14 @@ export const Catalog = {
       overline: { kind: 'text', label: 'Overline' },
       title: { kind: 'text', label: 'Title' },
       subtitle: { kind: 'text', label: 'Subtitle' },
+      homeTeam: { kind: 'text', label: 'Home team' },
+      awayTeam: { kind: 'text', label: 'Away team' },
+      stat1: { kind: 'text', label: 'Column 1 heading' },
+      stat2: { kind: 'text', label: 'Column 2 heading' },
+      stat3: { kind: 'text', label: 'Column 3 heading' },
+      partnerName: { kind: 'text', label: 'Partner' },
+      partnerVerified: { kind: 'boolean', label: 'Partner verified' },
+      adLabel: { kind: 'text', label: 'Ad tag' },
     },
   },
   ContentCardBody: {

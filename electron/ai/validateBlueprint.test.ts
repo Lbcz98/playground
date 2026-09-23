@@ -142,6 +142,23 @@ describe('validateBlueprint — Content Card structure', () => {
     expect(validateBlueprint(screen(card(zones.map((z) => ZONES[z]))))).toEqual({ ok: true })
   })
 
+  it('accepts every richer header — a match, a table heading, a partner, an ad tag', () => {
+    const headers = [
+      { title: '', homeTeam: 'EQU', awayTeam: 'ARG', subtitle: '1º tempo' },
+      { title: 'Grupo A', subtitle: 'Classificação', stat1: 'Pts', stat2: 'J', stat3: 'V' },
+      { partnerName: 'Nubank', partnerVerified: true },
+      { adLabel: 'Publicidade' },
+    ]
+    for (const props of headers) {
+      expect(validateBlueprint(screen(card([{ type: 'ContentCardHeader', props }, ZONES.body])))).toEqual({ ok: true })
+    }
+  })
+
+  it('holds the header fields to their types', () => {
+    const header = { type: 'ContentCardHeader', props: { partnerVerified: 'yes' } }
+    expect(errorsOf(screen(card([header])))).toMatch(/partnerVerified/)
+  })
+
   it('rejects zones out of order, naming the order', () => {
     expect(errorsOf(screen(card([ZONES.footer, ZONES.header])))).toMatch(
       /children go in the order <ContentCardHeader>, <ContentCardBody>, <ContentCardFooter>.*<ContentCardHeader> is out of place/,

@@ -17,7 +17,7 @@ names the test that runs it.
 
 | Command | What it runs | Needs |
 | --- | --- | --- |
-| `npm test` | Phases 1–3 (unit and contract tests, 571 tests) | nothing |
+| `npm test` | Phases 1–3 (unit and contract tests, 578 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
@@ -72,8 +72,11 @@ An entry can also declare:
 - `valueMap`: catalog values that stand for a different code value (MainMenu's
   `"none"` is the code's `null`);
 - `propMap`: where the registry renderer translates instead of passing props
-  through. TableCell's flat catalog fields land in its row props: `cellType` →
-  `type`, `lead` → `position`/`number`, `stat1–3` → `stats`, and so on.
+  through. Two components use it:
+  - TableCell's flat catalog fields land in its row props: `cellType` → `type`,
+    `lead` → `position`/`number`, `stat1–3` → `stats`, and so on;
+  - the Content Card header's `homeTeam`/`awayTeam` → `match`, `stat1–3` → `stats`,
+    `partnerName`/`partnerVerified` → `partner`, `adLabel` → `ad`.
 - `defaultOverrides`: props whose catalog default deliberately differs from the
   code's, each with a reason. Two reasons exist today:
   - the kit's controls default to their focused Figma variant, but a screen
@@ -284,7 +287,7 @@ proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 571.
+- Tests went from 363 to 578.
 - Visual: 112 stories (11 new `Canvas Kit` baselines).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;
