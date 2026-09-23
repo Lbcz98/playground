@@ -24,8 +24,14 @@
  */
 
 import type { z } from 'zod'
-import type { BlueprintDocument } from '@/shared/blueprint'
-import type { DesignSystemManifest, ManifestComponent, ScreenSpec } from '@/shared/design-system/manifest'
+import {
+  BLUEPRINT_DOCUMENT_KEYS,
+  BLUEPRINT_NODE_KEYS,
+  type BlueprintDocument,
+  type BlueprintNode,
+  unknownBlueprintKeyReason,
+} from '@/shared/blueprint'
+import type { DesignSystemManifest, ManifestComponent, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
   clearBackgroundFor,
@@ -33,6 +39,7 @@ import {
   paintsBackground,
   screenLayersOf,
   screenModel,
+  sidePropFor,
 } from '@/shared/design-system/screen-layers'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
@@ -40,7 +47,10 @@ import {
   FRAME,
   allowedSpacingNames,
   centeringPropsFor,
+  focusedBy,
+  frameLayoutErrors,
   isModuleGroup,
+  unfocusedValue,
   uncenteredValue,
   spacingNameForPx,
   spacingPropFor,
@@ -90,6 +100,12 @@ export function interpretBlueprint(
     return { ok: false, error: 'Blueprint has no root node.', issues }
   }
 
+  for (const key of Object.keys(input)) {
+    if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
+      issues.push({ level: 'info', path: 'document', message: `Ignored "${key}" — ${unknownBlueprintKeyReason(key)}.` })
+    }
+  }
+
   const rootType = rootContainerId(manifest)
   if (!rootType) {
     return { ok: false, error: 'The active design system has no container component.', issues }
@@ -118,8 +134,10 @@ export function interpretBlueprint(
     root = makeNode(ctx.rootType, compiledDefaultProps(container, ctx.schemas[ctx.rootType]), [root])
   }
 
-  repairFrameLayout(root, ctx.manifest, issues)
   const screen = repairScreen(doc.screen, ctx.manifest, issues)
+  const side = screen ? screenModel(screenLayersOf(ctx.manifest), screen.model)?.side : undefined
+  repairFrameLayout(root, ctx.manifest, issues, side)
+  repairFocus(root, ctx.manifest, issues)
   if (screen) {
     root.screen = screen
     const painted = paintsBackground(ctx.manifest, root)
@@ -134,7 +152,48 @@ export function interpretBlueprint(
     }
   }
 
+  // What is left is not guessable (a second content module, a side the model
+  // doesn't shade) — say so, so the agent report matches the canvas QA badge.
+  for (const problem of frameLayoutErrors(treeToBlueprint(root), ctx.manifest)) {
+    issues.push({ level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem}` })
+  }
+
   return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
+}
+
+/** A canvas tree back to the wire format — ids dropped, the screen spec lifted to the document. */
+export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
+  const strip = (node: CanvasNode): BlueprintNode => ({
+    type: node.type,
+    props: node.props,
+    ...(node.children.length ? { children: node.children.map(strip) } : {}),
+    ...(node.anchor ? { anchor: true } : {}),
+  })
+  return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
+}
+
+/** One focused element per screen: keep the first in reading order, rest the others. */
+function repairFocus(root: CanvasNode, manifest: DesignSystemManifest, issues: InterpretIssue[]): void {
+  let kept: CanvasNode | null = null
+  const visit = (node: CanvasNode): void => {
+    const component = manifest.components[node.type]
+    const prop = component ? focusedBy(node, component) : undefined
+    if (prop) {
+      if (!kept) {
+        kept = node
+      } else {
+        const rest = unfocusedValue(prop)
+        node.props = { ...node.props, [prop.name]: rest }
+        issues.push({
+          level: 'warn',
+          path: 'root',
+          message: `Set ${prop.name} to "${rest}" on <${node.type}> — a TV screen focuses one element, and <${kept.type}> already has it.`,
+        })
+      }
+    }
+    node.children.forEach(visit)
+  }
+  visit(root)
 }
 
 /**
@@ -194,6 +253,11 @@ function interpretNode(
   if (!component) {
     issues.push({ level: 'warn', path, message: `Dropped unknown component <${type}>.` })
     return null
+  }
+  for (const key of Object.keys(raw)) {
+    if (!BLUEPRINT_NODE_KEYS.includes(key)) {
+      issues.push({ level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
+    }
   }
 
   const props = sanitizeProps(component, ctx.schemas[type], raw.props, path, issues)
@@ -285,6 +349,7 @@ function repairFrameLayout(
   root: CanvasNode,
   manifest: DesignSystemManifest,
   issues: InterpretIssue[],
+  side?: ScreenSide,
 ): void {
   const component = manifest.components[root.type]
   const padding = component ? spacingPropFor(component, 'margin') : undefined
@@ -301,9 +366,12 @@ function repairFrameLayout(
     }
   }
 
+  // Un-centering the prop that picks the content's side lands on the side the
+  // screen model shades, so the repair can't break the layer rule.
+  const sideProp = side ? sidePropFor(manifest, root) : null
   for (const prop of component ? centeringPropsFor(component) : []) {
     if (root.props[prop.name] !== 'center') continue
-    const value = uncenteredValue(prop)
+    const value = side && sideProp?.prop === prop.name ? sideProp.values[side] : uncenteredValue(prop)
     issues.push({
       level: 'info',
       path: 'root',

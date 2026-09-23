@@ -285,7 +285,7 @@ export function unfocusedValue(prop: ManifestProp): string {
 }
 
 /** Whether this node's props put it in a focus state, and through which prop. */
-function focusedBy(node: FrameNode, component: ManifestComponent): ManifestProp | undefined {
+export function focusedBy(node: FrameNode, component: ManifestComponent): ManifestProp | undefined {
   for (const prop of focusPropsFor(component)) {
     const value = propValue(node, prop)
     if (prop.options?.includes('focus')) {

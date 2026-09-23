@@ -36,6 +36,22 @@ export interface BlueprintDocument {
   root: BlueprintNode
 }
 
+/** Every key a Blueprint document may carry. Anything else is a key the engine would ignore. */
+export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'screen', 'root'] satisfies (keyof BlueprintDocument)[]
+/** Every key a Blueprint node may carry. */
+export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'children', 'anchor'] satisfies (keyof BlueprintNode)[]
+
+/**
+ * Why a key the DSL does not have is refused. Focus gets its own reason: a TV
+ * screen always has something focused, and the engine reads which from the
+ * rendered screen — a Blueprint never declares it.
+ */
+export function unknownBlueprintKeyReason(key: string): string {
+  return /^focus/i.test(key)
+    ? 'the engine reads focus off the rendered screen, so a Blueprint never declares it'
+    : 'the Blueprint DSL has no such key'
+}
+
 // ---------------------------------------------------------------------------
 // IPC contract
 // ---------------------------------------------------------------------------

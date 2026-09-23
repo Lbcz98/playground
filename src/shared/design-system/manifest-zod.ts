@@ -26,6 +26,7 @@
  */
 
 import { z } from 'zod'
+import { BLUEPRINT_DOCUMENT_KEYS, BLUEPRINT_NODE_KEYS, unknownBlueprintKeyReason } from '../blueprint'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -189,6 +190,11 @@ export function validateBlueprintAgainstManifest(
   const rootType = rootContainerId(manifest)
 
   if (!isObject(input)) return { ok: false, errors: ['Blueprint must be a JSON object.'] }
+  for (const key of Object.keys(input)) {
+    if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
+      errors.push(`Unknown key "${key}" next to "root" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
+    }
+  }
   if (input.version !== SUPPORTED_VERSION) {
     errors.push(`"version" must be ${SUPPORTED_VERSION} (got ${JSON.stringify(input.version)}).`)
   }
@@ -236,6 +242,11 @@ function validateNode(
       `${path}: <${type}> is not a real component. Allowed: ${ctx.allowed.join(', ')}.`,
     )
     return
+  }
+  for (const key of Object.keys(raw)) {
+    if (!BLUEPRINT_NODE_KEYS.includes(key)) {
+      errors.push(`${path} <${type}>: unknown node key "${key}" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
+    }
   }
 
   // A component that only lives inside another (a card's zones) can't stand alone.
