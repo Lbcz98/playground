@@ -254,6 +254,41 @@ export type ContentCardFooterNodeProps = z.infer<typeof contentCardFooterSchema>
 
 const CONTENT_CARD_ZONES = ['ContentCardHeader', 'ContentCardBody', 'ContentCardFooter'] as const
 
+export const TABLE_CELL_TYPES = ['team', 'athlete', 'scout'] as const
+
+/**
+ * One row of a Content Card's table. The row type decides which props are drawn;
+ * the rest are ignored, so a row is described by filling in only what it shows.
+ * The crest is a slot in code and has no canvas counterpart, so a row built here
+ * names its team rather than badging it.
+ */
+export const tableCellSchema = z
+  .object({
+    cellType: z.enum(TABLE_CELL_TYPES).default('team'),
+    /** Team short name, athlete name, or the stat a scout row compares. */
+    label: z.string().default('SAO'),
+    /** Standing position on a team row, shirt number on an athlete row. */
+    lead: z.string().default(''),
+    /** Team row columns, left to right. Empty ones are not drawn. */
+    stat1: z.string().default(''),
+    stat2: z.string().default(''),
+    stat3: z.string().default(''),
+    /** Scout row: the two sides' values. */
+    leftValue: z.string().default(''),
+    rightValue: z.string().default(''),
+    /** Athlete row marks. */
+    yellowCard: z.boolean().default(false),
+    redCard: z.boolean().default(false),
+    goals: z.number().int().min(0).max(9).default(0),
+    substitute: z.string().default(''),
+    /** Team row: marks the viewer's own team. */
+    favorite: z.boolean().default(false),
+    /** The rule under the row — a table draws it under a heading, not every row. */
+    divider: z.boolean().default(false),
+  })
+  .strict()
+export type TableCellNodeProps = z.infer<typeof tableCellSchema>
+
 export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
 
 export const notificationSchema = z
@@ -549,6 +584,33 @@ export const Catalog = {
     defaultProps: contentCardFooterSchema.parse({}),
     controls: {
       caption: { kind: 'text', label: 'Caption' },
+    },
+  },
+  TableCell: {
+    type: 'TableCell',
+    label: 'Table Cell',
+    category: 'content',
+    summary:
+      "One row of a table inside a Content Card's body: a team and its columns, an athlete and their marks, or a scout row naming a stat between the two sides' values. Stack them to build the table. Only goes inside a Content Card Body.",
+    acceptsChildren: false,
+    parents: ['ContentCardBody'],
+    schema: tableCellSchema,
+    defaultProps: tableCellSchema.parse({}),
+    controls: {
+      cellType: { kind: 'select', label: 'Row', options: TABLE_CELL_TYPES },
+      label: { kind: 'text', label: 'Name' },
+      lead: { kind: 'text', label: 'Position / number' },
+      stat1: { kind: 'text', label: 'Stat 1' },
+      stat2: { kind: 'text', label: 'Stat 2' },
+      stat3: { kind: 'text', label: 'Stat 3' },
+      leftValue: { kind: 'text', label: 'Left value' },
+      rightValue: { kind: 'text', label: 'Right value' },
+      yellowCard: { kind: 'boolean', label: 'Yellow card' },
+      redCard: { kind: 'boolean', label: 'Red card' },
+      goals: { kind: 'number', label: 'Goals', min: 0, max: 9, step: 1 },
+      substitute: { kind: 'text', label: 'Substitute' },
+      favorite: { kind: 'boolean', label: 'Favourite' },
+      divider: { kind: 'boolean', label: 'Divider' },
     },
   },
 } as const satisfies Record<string, CatalogEntry>

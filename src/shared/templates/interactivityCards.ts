@@ -8,10 +8,12 @@
  * shades that edge and its bottom corner, and the frame puts the anchored
  * cluster there.
  *
- * The panel's own contents stand in for the interactivity: the statistics, the
- * line-up and the rest are their own components in Figma and are not ported yet,
- * so a template shows the shape of a nível 3 screen rather than pretending to be
- * one of them. Text sits in `inverse` so it reads over the shade.
+ * The interactivity is a real `<ContentCard>`: a header naming it, a body of
+ * `<TableCell>` rows — the scout row heading the two sides, then a row per side —
+ * and a footer saying how fresh the numbers are. The card carries its own
+ * surface, so the screen does not dress it: the template only decides which side
+ * it sits on. Focus stays on the close button, because a TV screen has exactly
+ * one focused element and on this level that is the way out.
  *
  * Both sides are the same screen mirrored, which is the point: a template per
  * side, because the side is a design decision the model has to agree with.
@@ -22,34 +24,47 @@ import type { ScreenTemplate } from './types'
 
 type Side = 'left' | 'right'
 
-function statRow(label: string, value: string, side: Side): BlueprintNode {
+/** The heading row: the stat named between the two sides' values. */
+function scoutRow(label: string, left: string, right: string): BlueprintNode {
   return {
-    type: 'Stack',
-    props: { direction: 'horizontal', justify: 'between', gap: 'lg', align: 'center' },
-    children: [
-      { type: 'Text', props: { content: label, variant: 'body', tone: 'inverse', align: side === 'right' ? 'end' : 'start' } },
-      { type: 'Text', props: { content: value, variant: 'body', tone: 'inverse' } },
-    ],
+    type: 'TableCell',
+    props: { cellType: 'scout', label, leftValue: left, rightValue: right, divider: true },
   }
 }
 
-function panel(side: Side): BlueprintNode {
+/** One side of the match: its position, short name and the columns beside it. */
+function teamRow(name: string, position: string, stats: readonly [string, string, string]): BlueprintNode {
   return {
-    type: 'Stack',
-    props: { direction: 'vertical', gap: 'sm', align: side === 'right' ? 'end' : 'start' },
+    type: 'TableCell',
+    props: {
+      cellType: 'team',
+      label: name,
+      lead: position,
+      stat1: stats[0],
+      stat2: stats[1],
+      stat3: stats[2],
+    },
+  }
+}
+
+function card(): BlueprintNode {
+  return {
+    type: 'ContentCard',
+    props: { interactionState: 'default', height: 272 },
     children: [
       {
-        type: 'Text',
-        props: {
-          content: 'Estatísticas',
-          variant: 'title',
-          tone: 'inverse',
-          align: side === 'right' ? 'end' : 'start',
-        },
+        type: 'ContentCardHeader',
+        props: { title: 'Estatísticas', subtitle: '1º tempo' },
       },
-      statRow('Posse de bola', '62% · 38%', side),
-      statRow('Finalizações', '11 · 7', side),
-      statRow('Escanteios', '5 · 3', side),
+      {
+        type: 'ContentCardBody',
+        children: [
+          scoutRow('Posse de bola', '62%', '38%'),
+          teamRow('EQU', '1', ['11', '5', '2']),
+          teamRow('ARG', '2', ['7', '3', '1']),
+        ],
+      },
+      { type: 'ContentCardFooter', props: { caption: 'Atualizado há 1 min' } },
     ],
   }
 }
@@ -74,7 +89,7 @@ function cardsTemplate(side: Side): ScreenTemplate {
           grow: true,
         },
         children: [
-          panel(side),
+          card(),
           { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
         ],
       },

@@ -60,6 +60,7 @@ import {
   notificationSchema,
   roundedButtonSchema,
   stackSchema,
+  tableCellSchema,
   textSchema,
   wideButtonSchema,
 } from './catalog'
@@ -75,6 +76,7 @@ import {
   ContentCardFooter,
   ContentCardHeader,
 } from '@/ui-kit/ContentCard'
+import { TableCell } from '@/ui-kit/TableCell'
 import { Notification } from '@/ui-kit/Notification'
 import { RoundedButton } from '@/ui-kit/RoundedButton'
 import { WideButton } from '@/ui-kit/WideButton'
@@ -337,6 +339,39 @@ function renderContentCardFooter(raw: Record<string, unknown>, children: ReactNo
   return <ContentCardFooter {...contentCardFooterSchema.parse(raw)}>{children}</ContentCardFooter>
 }
 
+/** The flat row props the canvas edits, resolved to the row the type actually draws. */
+function renderTableCell(raw: Record<string, unknown>): ReactElement {
+  const p = tableCellSchema.parse(raw)
+  if (p.cellType === 'scout') {
+    const values = p.leftValue || p.rightValue ? ([p.leftValue, p.rightValue] as const) : undefined
+    return <TableCell type="scout" label={p.label} values={values} divider={p.divider} />
+  }
+  if (p.cellType === 'athlete') {
+    return (
+      <TableCell
+        type="athlete"
+        number={p.lead || undefined}
+        name={p.label}
+        yellowCard={p.yellowCard}
+        redCard={p.redCard}
+        goals={p.goals || undefined}
+        substitute={p.substitute || undefined}
+        divider={p.divider}
+      />
+    )
+  }
+  const stats = [p.stat1, p.stat2, p.stat3].filter(Boolean)
+  return (
+    <TableCell
+      position={p.lead || undefined}
+      name={p.label}
+      favorite={p.favorite}
+      stats={stats.length ? stats : undefined}
+      divider={p.divider}
+    />
+  )
+}
+
 function renderNotification(raw: Record<string, unknown>): ReactElement {
   return <Notification {...notificationSchema.parse(raw)} />
 }
@@ -582,6 +617,7 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   ContentCardHeader: renderContentCardHeader,
   ContentCardBody: renderContentCardBody,
   ContentCardFooter: renderContentCardFooter,
+  TableCell: renderTableCell,
   Notification: renderNotification,
   AlertBug: renderAlertBug,
 }

@@ -119,19 +119,82 @@ export function ContentCard({ interactionState, height = contentCardSpec.height,
 // Zones
 // ---------------------------------------------------------------------------
 
+export interface ContentCardHeaderMatch {
+  /** The home side: its crest or flag, and its short name. */
+  home: { badge?: ReactNode; name: string }
+  /** The away side, drawn mirrored against the right edge. */
+  away: { badge?: ReactNode; name: string }
+}
+
+export interface ContentCardHeaderPartner {
+  logo?: ReactNode
+  name: string
+  /** Draws the verified tick after the name. */
+  verified?: boolean
+}
+
 export interface ContentCardHeaderProps {
   /** Small line above the title. Omitted or empty: not drawn. */
   overline?: string
-  /** Default `Título`. Empty: not drawn. */
+  /** Default `Título`. Empty: not drawn — a header may be only a partner or an ad tag. */
   title?: string
   /** Small line under the title. Omitted or empty: not drawn. */
   subtitle?: string
+  /** A badge beside the title and subtitle — a flag, a crest, a channel mark. */
+  icon?: ReactNode
+  /** Two sides facing each other, instead of a title. */
+  match?: ContentCardHeaderMatch
+  /** Column headings beside the subtitle, on the same line — `Pts`, `J`, `V`. */
+  stats?: readonly string[]
+  /** Who is presenting the card. */
+  partner?: ContentCardHeaderPartner
+  /** An advertising tag over a rule: its wording, and the advertiser's mark. */
+  ad?: { label: string; logo?: ReactNode }
 }
 
-/** The top zone: overline, title and subtitle, held together by the `3xs` micro-gap. */
-export function ContentCardHeader({ overline, title = 'Título', subtitle }: ContentCardHeaderProps): ReactNode {
+const badgeSlot: CSSProperties = { display: 'flex', alignItems: 'center', flexShrink: 0 }
+const rowGap: CSSProperties = { display: 'flex', alignItems: 'center', gap: spacing('2xs'), minWidth: 0 }
+
+function VerifiedTick(): ReactNode {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing('3xs'), flexShrink: 0 }}>
+    <span style={{ ...badgeSlot, color: token('--color-semantic-functional-status-live') }} aria-hidden>
+      <svg viewBox="0 0 12 12" style={{ height: '1em', width: 'auto', display: 'block' }} fill="none">
+        <circle cx="6" cy="6" r="6" fill="currentColor" />
+        <path
+          d="M3.4 6.2 5.1 7.9 8.6 4.4"
+          stroke={token('--color-semantic-functional-text-inverse')}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  )
+}
+
+/**
+ * The top zone. Everything in it is optional and collapses when left out, so one
+ * component covers the header the card actually needs:
+ *
+ *   plain text      `title`, with `overline` / `subtitle`
+ *   with a badge    `icon` beside the text
+ *   a match         `match`, the two sides facing each other
+ *   a table heading `subtitle` + `stats`, the columns beside the second line
+ *   a partner       `partner`, instead of the title
+ *   an ad           `ad`, a tag over its rule
+ */
+export function ContentCardHeader({
+  overline,
+  title = 'Título',
+  subtitle,
+  icon,
+  match,
+  stats,
+  partner,
+  ad,
+}: ContentCardHeaderProps): ReactNode {
+  const text = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing('3xs'), minWidth: 0, flex: '1 1 auto' }}>
       {overline ? (
         <Text as="span" variant="body-sm-medium" color="muted">
           {overline}
@@ -142,10 +205,79 @@ export function ContentCardHeader({ overline, title = 'Título', subtitle }: Con
           {title}
         </Text>
       ) : null}
-      {subtitle ? (
-        <Text as="span" variant="body-sm-medium" color="muted">
-          {subtitle}
-        </Text>
+      {subtitle || stats?.length ? (
+        <div style={{ ...rowGap, justifyContent: 'space-between' }}>
+          {subtitle ? (
+            <Text as="span" variant="body-sm-medium" color="muted">
+              {subtitle}
+            </Text>
+          ) : null}
+          {stats?.length ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs'), flexShrink: 0 }}>
+              {stats.map((stat, i) => (
+                <span key={i} style={{ display: 'block', width: size('table-stat-column') }}>
+                  <Text as="span" variant="body-sm-medium" color="subtle" align="center">
+                    {stat}
+                  </Text>
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing('2xs'), flexShrink: 0 }}>
+      {match ? (
+        <div style={{ ...rowGap, justifyContent: 'space-between' }}>
+          <div style={rowGap}>
+            {match.home.badge ? <span style={badgeSlot}>{match.home.badge}</span> : null}
+            <Text as="span" variant="body-sm-bold" truncate>
+              {match.home.name}
+            </Text>
+          </div>
+          <div style={rowGap}>
+            <Text as="span" variant="body-sm-bold" truncate>
+              {match.away.name}
+            </Text>
+            {match.away.badge ? <span style={badgeSlot}>{match.away.badge}</span> : null}
+          </div>
+        </div>
+      ) : null}
+
+      {partner ? (
+        <div style={rowGap}>
+          {partner.logo ? <span style={badgeSlot}>{partner.logo}</span> : null}
+          <Text as="span" variant="body-sm-bold" truncate>
+            {partner.name}
+          </Text>
+          {partner.verified ? <VerifiedTick /> : null}
+        </div>
+      ) : null}
+
+      {overline || title || subtitle || stats?.length || icon ? (
+        <div style={{ ...rowGap, gap: spacing('sm') }}>
+          {icon ? <span style={badgeSlot}>{icon}</span> : null}
+          {text}
+        </div>
+      ) : null}
+
+      {ad ? (
+        <div
+          style={{
+            ...rowGap,
+            gap: spacing('2xs'),
+            paddingBottom: spacing('2xs'),
+            borderBottom: `${token('--dimension-border-width-semantic-divider')} solid ${token('--color-semantic-functional-border-subtle')}`,
+          }}
+        >
+          <Text as="span" variant="caption-medium" color="muted">
+            {ad.label}
+          </Text>
+          {ad.logo ? <span style={badgeSlot}>{ad.logo}</span> : null}
+        </div>
       ) : null}
     </div>
   )

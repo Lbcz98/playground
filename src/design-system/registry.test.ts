@@ -23,6 +23,7 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
       'Notification',
       'RoundedButton',
       'Stack',
+      'TableCell',
       'Text',
       'WideButton',
     ])

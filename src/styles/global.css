@@ -277,6 +277,24 @@
   --dimension-size-semantic-channel-bug: var(--dimension-spacing-core-4xl);
   /* Text column inside a message notification. The pill hugs it, so this is the one width the message is laid out to — 21 columns of the 8pt grid. */
   --dimension-size-semantic-notification-text-width: 168px;
+  /* Content Card header, one line: a title on its own, or an ad tag over its rule. */
+  --dimension-size-semantic-header-sm: var(--dimension-spacing-core-lg);
+  /* Content Card header holding a badge beside its text — a match line-up, or a partner logo and name. */
+  --dimension-size-semantic-header-md: var(--dimension-spacing-core-xl);
+  /* Content Card header of two text lines, with or without stat columns beside the second. */
+  --dimension-size-semantic-header-lg: var(--dimension-spacing-core-2xl);
+  /* Content Card header at its tallest — two lines above a badge that outgrows them. */
+  --dimension-size-semantic-header-xl: var(--dimension-spacing-core-3xl);
+  /* Table row carrying one line of text — an athlete and the marks against their name. */
+  --dimension-size-semantic-table-cell-sm: var(--dimension-spacing-core-sm);
+  /* Table row carrying a badge beside its text — a team, its position and its stats. */
+  --dimension-size-semantic-table-cell-md: var(--dimension-spacing-core-lg);
+  /* Table row that reads as a heading — a stat named between the two sides' values. */
+  --dimension-size-semantic-table-cell-lg: var(--dimension-spacing-core-2xl);
+  /* One stat column in a table row. Every column is this wide, so the numbers line up down the table. */
+  --dimension-size-semantic-table-stat-column: var(--dimension-spacing-core-lg);
+  /* The value at either end of a scout row. Both ends are this wide, so the name between them stays centred. */
+  --dimension-size-semantic-table-value-column: var(--dimension-spacing-core-xl);
   /* Interactivity alert bug at rest, over the clean broadcast */
   --dimension-size-semantic-alert-bug: var(--dimension-spacing-core-6xl);
   /* Interactivity alert bug once it holds the focus */
@@ -292,6 +310,8 @@
 
   /* ===== Dimension · Border Width · Semantic ===== */
   --dimension-border-width-semantic-card: var(--dimension-border-width-core-hairline);
+  /* The rule under a table row or an ad tag — the thinnest line the kit draws. */
+  --dimension-border-width-semantic-divider: var(--dimension-border-width-core-hairline);
   /* Snapped from 1.33–1.34px */
   --dimension-border-width-semantic-button: var(--dimension-border-width-core-hairline);
   /* The one ring width in the kit. Every focusable control draws this, through <FocusRing> or the outside focusOutline; there is deliberately no second, wider pill variant. */
