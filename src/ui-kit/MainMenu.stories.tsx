@@ -6,6 +6,12 @@ const meta = {
   title: 'UI Kit/Main Menu',
   component: MainMenu,
   parameters: { layout: 'fullscreen' },
+  args: {
+    weatherTitle: 'Previsão do tempo',
+    weatherSubtitle: 'São Paulo, SP',
+    programTitle: 'Copa do Mundo: Equador x Argentina',
+    programSubtitle: 'A seguir Central da Copa',
+  },
   decorators: [
     (Story) => (
       <Box padding="lg" background="primary">

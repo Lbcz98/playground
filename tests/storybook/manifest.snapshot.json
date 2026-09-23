@@ -1028,7 +1028,7 @@
           "type": "boolean",
           "kind": "boolean",
           "required": false,
-          "defaultValue": "true",
+          "defaultValue": "false",
           "description": "Renders the \"AO VIVO\" badge."
         },
         "onClick": {
@@ -1041,7 +1041,6 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Overline",
           "description": "Small line above the title (schedule section only)."
         },
         "state": {
@@ -1060,7 +1059,6 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Subtitle",
           "description": "Small line under the title (schedule section only)."
         },
         "thumbnail": {
@@ -1073,7 +1071,6 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Title",
           "description": "The card’s title — as an interactivity, the only text it carries."
         }
       },
@@ -1248,8 +1245,7 @@
               "type": "string",
               "kind": "string",
               "required": false,
-              "defaultValue": "Título",
-              "description": "Default `Título`. Empty: not drawn — a header may be only a partner or an ad tag."
+              "description": "Omitted or empty: not drawn — a header may be only a match, a partner or an ad tag."
             }
           }
         }
@@ -1434,28 +1430,24 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "A seguir Central da Copa",
           "description": "The line under the program’s name, e.g. its time slot."
         },
         "programTitle": {
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Copa do Mundo: Equador x Argentina",
           "description": "The live program’s name."
         },
         "weatherSubtitle": {
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "São Paulo, SP",
           "description": "The weather item’s second line, e.g. the city."
         },
         "weatherTitle": {
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Previsão do tempo",
           "description": "The weather item’s first line."
         }
       },
@@ -1508,7 +1500,6 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Paredão formado!\nVote agora para eliminar",
           "description": "What the notification says. Ignored by `rounded`."
         }
       },
@@ -1769,7 +1760,6 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "defaultValue": "Label",
           "description": "The call to action, e.g. \"Assistir\"."
         },
         "onClick": {

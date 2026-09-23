@@ -81,7 +81,7 @@ function centerFor(state: WideButtonStatus): CSSProperties {
 export function WideButton({
   interactionState,
   status,
-  label = 'Label',
+  label,
   iconLeft = false,
   iconRight = false,
   onClick,

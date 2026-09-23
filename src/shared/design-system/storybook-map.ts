@@ -67,12 +67,7 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot' },
     // The sponsor's wording; its logo is an image slot the agent can't fill.
     propMap: { advertisingLabel: ['advertising'] },
-    defaultOverrides: {
-      interactionState: RESTS,
-      live: 'As an interactivity the card carries its title alone; the live badge belongs to the schedule section.',
-      overline: 'As an interactivity the card carries its title alone; the overline belongs to the schedule section.',
-      subtitle: 'As an interactivity the card carries its title alone; the subtitle belongs to the schedule section.',
-    },
+    defaultOverrides: { interactionState: RESTS },
   },
   LabelVideo: {
     component: 'ui-kit-label-video',

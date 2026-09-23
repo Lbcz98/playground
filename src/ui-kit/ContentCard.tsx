@@ -137,7 +137,7 @@ export interface ContentCardHeaderPartner {
 export interface ContentCardHeaderProps {
   /** Small line above the title. Omitted or empty: not drawn. */
   overline?: string
-  /** Default `Título`. Empty: not drawn — a header may be only a partner or an ad tag. */
+  /** Omitted or empty: not drawn — a header may be only a match, a partner or an ad tag. */
   title?: string
   /** Small line under the title. Omitted or empty: not drawn. */
   subtitle?: string
@@ -186,7 +186,7 @@ function VerifiedTick(): ReactNode {
  */
 export function ContentCardHeader({
   overline,
-  title = 'Título',
+  title,
   subtitle,
   icon,
   match,

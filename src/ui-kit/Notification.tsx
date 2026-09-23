@@ -132,7 +132,7 @@ function Logo({ src }: { src?: string }): ReactNode {
 export function Notification({
   kind = 'message',
   interactionState,
-  title = 'Paredão formado!\nVote agora para eliminar',
+  title,
   logoSrc,
   onClick,
 }: NotificationProps): ReactNode {

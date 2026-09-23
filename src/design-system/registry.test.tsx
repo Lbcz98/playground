@@ -72,18 +72,19 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
     })
 
     it('a partner above the title, with the verified tick only when asked', () => {
-      const plain = html({ partnerName: 'Nubank' })
-      expect(plain).toMatch(/Nubank[\s\S]*Título/)
+      const plain = html({ partnerName: 'Nubank', title: 'Ofertas' })
+      expect(plain).toMatch(/Nubank[\s\S]*Ofertas/)
       expect(plain).not.toContain('<svg')
       expect(html({ partnerName: 'Nubank', partnerVerified: true })).toContain('<svg')
     })
 
     it('an ad tag under the header, over its rule', () => {
-      expect(html({ adLabel: 'Publicidade' })).toMatch(/Título[\s\S]*Publicidade/)
+      expect(html({ title: 'Ofertas', adLabel: 'Publicidade' })).toMatch(/Ofertas[\s\S]*Publicidade/)
     })
 
     it('none of them when the fields are empty — the plain header is unchanged', () => {
-      expect(html({})).toBe(renderToStaticMarkup(<ContentCardHeader title="Título" overline="" subtitle="" />))
+      const plain = { title: 'Grupo A', overline: 'Copa', subtitle: 'Classificação' }
+      expect(html(plain)).toBe(renderToStaticMarkup(<ContentCardHeader {...plain} />))
     })
   })
 })

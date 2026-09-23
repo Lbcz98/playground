@@ -80,12 +80,9 @@ An entry can also declare:
     `partnerName`/`partnerVerified` → `partner`, `adLabel` → `ad`;
   - the interactivity card's `advertisingLabel` → `advertising` (its sponsor row).
 - `defaultOverrides`: props whose catalog default deliberately differs from the
-  code's, each with a reason. Two reasons exist today:
-  - the kit's controls default to their focused Figma variant, but a screen
-    focuses one element, so the catalog rests them (`interactionState:
-    "default"`);
-  - as an interactivity, the card carries its title alone, so the catalog turns
-    off its overline, subtitle and live badge.
+  code's, each with a reason. One reason exists today: the kit's controls default
+  to their focused Figma variant, but a screen focuses one element, so the catalog
+  rests them (`interactionState: "default"`).
 
 | ID | Check | PASS | FAIL | Where |
 | --- | --- | --- | --- | --- |
@@ -254,9 +251,9 @@ drawn by the real `dtv.bundle.js` in the canvas `ScreenFrame`.
 | Prompt | Screen model | Validator | Layout QA | Looks right | Cost |
 | --- | --- | --- | --- | --- | --- |
 | Estatísticas Equador x Argentina, à direita | interactivity-cards-right, nível 3 | ok, attempt 1 | 5/5 | yes — match title, three scout rows with value pairs, footer timestamp, close anchored and focused | $0.21 |
-| Classificação do Grupo A, à esquerda | interactivity-cards-left, nível 3 | ok, attempt 1 | 5/5 | mostly — rows, columns and headings right; the header shows the placeholder "Título" | $0.16 |
+| Classificação do Grupo A, à esquerda | interactivity-cards-left, nível 3 | ok, attempt 1 | 5/5 | mostly — rows, columns and headings right; the header showed the placeholder "Título" (fixed since: no placeholder defaults) | $0.16 |
 | Notificação do paredão | notification, nível 0 | ok, attempt 2 | 5/5 | yes | $0.15 |
-| Home com menu e trilho à direita | home-buttons-right, nível 1 | ok, attempt 2 | 5/5 | **no** — the rail is cut off at the top left, the menu floats mid-screen, cards show "AO VIVO" / "Overline" / "Subtitle" placeholders | $0.10 |
+| Home com menu e trilho à direita | home-buttons-right, nível 1 | ok, attempt 2 | 5/5 | **no** — the rail is cut off at the top left and the menu floats mid-screen (the "AO VIVO" / "Overline" / "Subtitle" placeholders it also showed are fixed since) | $0.10 |
 
 Getting there took five import gaps closed first (see below), and the run itself
 found seven more — all fixed except the two under "Still open". The last round of
@@ -346,17 +343,20 @@ Found while making the DTV system importable from Storybook alone (Phase 4):
   filled `background: "primary"` and `border: "subtle"` into every imported
   Stack — a painted panel over the video. An optional prop without a default now
   stays unset, so the component does what it does without it.
-- **Placeholder defaults leaked onto screens.** The prompt now says, beside each
-  text prop with a default, that the text shows unless set to `""`. It helps, but
-  not reliably — see Still open.
+- **Placeholder defaults leaked onto screens.** The kit's components defaulted
+  their copy to Figma placeholders — the card's `Title`/`Overline`/`Subtitle` and
+  live badge, the header's `Título`, the notification's text, the menu's weather
+  and programme lines, the pill's `Label` — so a prop the model left out showed
+  them. Flagging text defaults in the prompt helped but not reliably, so the
+  placeholders moved into the stories' `args`: the components now default to no
+  text (the live badge off), the catalog's defaults follow (P1.9 holds them
+  together), and the home templates name their menu's weather line. Every
+  story and template is pixel-identical; a live rerun of the two screens that
+  leaked shows none. The icon controls' accessible labels (`Fechar`, `Voltar`,
+  `Conteúdo interativo`) stay: they are meaning, not placeholders.
 
 ## Still open
 
-- **The DTV components default their text to Figma placeholders** — `Título`,
-  `Title`, `Overline`, `Subtitle`, and the live badge on. A prop the model leaves
-  out shows them. The built-in catalog hides this with `defaultOverrides`; an
-  import sees the code's defaults. The clean fix is in the kit: placeholders
-  belong in the stories' `args`, not in the components.
 - **An imported system gets no reference screens,** so composition is the model's
   alone. The home screen came out wrong (menu beside the rail, not along the
   bottom) while every rule passed — no rule says where a menu goes.

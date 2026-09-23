@@ -138,10 +138,10 @@ export const MAIN_MENU_ITEMS = [
 export const mainMenuSchema = z
   .object({
     focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
-    programTitle: z.string().default('Copa do Mundo: Equador x Argentina'),
-    programSubtitle: z.string().default('A seguir Central da Copa'),
-    weatherTitle: z.string().default('Previsão do tempo'),
-    weatherSubtitle: z.string().default('São Paulo, SP'),
+    programTitle: z.string().default(''),
+    programSubtitle: z.string().default(''),
+    weatherTitle: z.string().default(''),
+    weatherSubtitle: z.string().default(''),
   })
   .strict()
 export type MainMenuNodeProps = z.infer<typeof mainMenuSchema>
@@ -158,7 +158,7 @@ export type InteractivityMenuNodeProps = z.infer<typeof interactivityMenuSchema>
 
 export const interactivityCardSchema = z
   .object({
-    title: z.string().default('Title'),
+    title: z.string().default(''),
     overline: z.string().default(''),
     subtitle: z.string().default(''),
     live: z.boolean().default(false),
@@ -181,7 +181,7 @@ export type LabelVideoNodeProps = z.infer<typeof labelVideoSchema>
 
 export const wideButtonSchema = z
   .object({
-    label: z.string().default('Label'),
+    label: z.string().default(''),
     interactionState: z.enum(WIDE_BUTTON_STATES).default('default'),
     iconLeft: z.boolean().default(false),
     iconRight: z.boolean().default(false),
@@ -224,7 +224,7 @@ export const contentCardHeaderSchema = z
   .object({
     overline: z.string().default(''),
     /** Empty: not drawn — a header may be only a match, a partner or an ad tag. */
-    title: z.string().default('Título'),
+    title: z.string().default(''),
     subtitle: z.string().default(''),
     /** A match: the two sides' short names, facing each other. Drawn only when both are set. */
     homeTeam: z.string().default(''),
@@ -298,7 +298,7 @@ export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies read
 export const notificationSchema = z
   .object({
     kind: z.enum(NOTIFICATION_KINDS).default('message'),
-    title: z.string().default('Paredão formado!\nVote agora para eliminar'),
+    title: z.string().default(''),
     interactionState: z.enum(CONTROL_STATES).default('default'),
   })
   .strict()
