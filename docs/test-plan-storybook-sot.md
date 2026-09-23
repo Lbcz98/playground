@@ -17,7 +17,7 @@ names the test that runs it.
 
 | Command | What it runs | Needs |
 | --- | --- | --- |
-| `npm test` | Phases 1–3 (unit and contract tests, 529 tests) | nothing |
+| `npm test` | Phases 1–3 (unit and contract tests, 553 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
@@ -36,7 +36,7 @@ tests follow the repo. These are decisions, not gaps.
 | The Blueprint carries `focus: 'left' \| 'right' \| 'neutral'` | No focus field. The canvas reads focus from the rendered screen, and the model only marks `anchor: true`. | A TV screen always has something focused (decided 2026-09-15). The validator now **rejects** a `focus` key (G3.4). |
 | `.storybook/preview.js` | `.storybook/preview.tsx` | — |
 | `docs.json` | Storybook 10.6 writes `manifests/components.json` (react-docgen per component). No `docs.json` is emitted for this project. | `components.json` is what carries the docgen. The importer tells you to use it if you hand it an index or docs file (E2.6). |
-| Chromatic | The Electron harness `scripts/visual/regression.mjs` (101 baselines, 1280×720) | It is deterministic, offline, and already gates every story. |
+| Chromatic | The Electron harness `scripts/visual/regression.mjs` (112 baselines, 1280×720) | It is deterministic, offline, and already gates every story. |
 | "4-layer widget" | Content Card plus its Header, Body and Footer zones | The screen's layer rule (Camadas: video → overlay → content) is separate and tested in Phase 3. |
 
 ## Phase 0: Storybook metadata export
@@ -58,25 +58,33 @@ no source change is byte-identical.
 ## Phase 1: `catalog.ts` ↔ Storybook
 
 `src/shared/design-system/storybook-map.ts` joins the two sides: every catalog id
-maps to its Storybook component, and every Storybook component maps back. An
-entry is one of three kinds:
+maps to the Storybook component that renders it, and every Storybook component
+maps back. Every catalog component has a story:
 
-- `story`: it lists the props the code has and the catalog leaves out on purpose
-  (`codeOnly`, each with a reason), and any values the catalog translates
-  (`valueMap`: MainMenu's `"none"` is the code's `null`).
-- `docgen-unreadable`: TableCell, see Known gaps.
-- `registry-only`: Stack, Text, Button and Input.
+- the DTV UI Kit components are under `UI Kit/*`;
+- the layout Stack, Text and Button are under `Canvas Kit/*`
+  (`src/design-system/canvasKit.tsx`, the very components the canvas draws).
+
+An entry can also declare:
+
+- `codeOnly`: props the code has and the catalog leaves out on purpose, each with
+  a reason;
+- `valueMap`: catalog values that stand for a different code value (MainMenu's
+  `"none"` is the code's `null`);
+- `propMap`: where the registry renderer translates instead of passing props
+  through. TableCell's flat catalog fields land in its row props: `cellType` →
+  `type`, `lead` → `position`/`number`, `stat1–3` → `stats`, and so on.
 
 | ID | Check | PASS | FAIL | Where |
 | --- | --- | --- | --- | --- |
-| P1.1 | Every catalog component is accounted for | the map's keys equal the catalog's ids; every snapshot component is mapped or listed in `STORYBOOK_ONLY` with a reason; registry-only is exactly Button, Input, Stack, Text | a new catalog id, or a new story, with no decision | `catalog-storybook-parity.test.ts` |
-| P1.2 | Every bound component documents cleanly | ≥1 story, no Storybook error, and the declared subcomponent exists; docgen-unreadable entries really have 0 props | missing, erroring, or an entry that docgen can now read (upgrade it) | same |
-| P1.3 | Every catalog prop exists in code, with the same kind of type | enum ↔ enum, string ↔ string, boolean ↔ boolean, number ↔ number | the catalog offers a prop the component doesn't take | same |
-| P1.4 | Every catalog enum offers exactly the code's literal union | set-equal both ways, after `valueMap` | the agent could send a value the component ignores, or can't send one it has | same |
+| P1.1 | Every catalog component is accounted for | the map's keys equal the catalog's ids; every snapshot component is mapped or listed in `STORYBOOK_ONLY` with a reason | a new catalog id, or a new story, with no decision | `catalog-storybook-parity.test.ts` |
+| P1.2 | Every catalog component has a story and documents cleanly | ≥1 story, no Storybook error, and the declared subcomponent exists | missing or erroring | same |
+| P1.3 | Every catalog prop exists in code, with the same kind of type | each prop (or each `propMap` target) is a real code prop; a direct prop keeps its kind: enum ↔ enum, string ↔ string, boolean ↔ boolean, number ↔ number | the catalog offers a prop the component doesn't take | same |
+| P1.4 | Every catalog enum offers exactly the code's literal union | set-equal both ways, after `valueMap` and `propMap` | the agent could send a value the component ignores, or can't send one it has | same |
 | P1.5 | Numbers agree with the grid and the spec | ContentCard `height`: step = `frameSpec.grid`, min = two insets rounded up to the grid, max = `contentCardSpec.maxHeight`, default = `contentCardSpec.height` in catalog **and** docgen; every number prop has min, max and step | — | same |
 | P1.6 | The Content Card documents its zones in slot order | Header, Body and Footer are Storybook subcomponents; `slots` = Header, Body, Footer; each zone's `parents` = ContentCard | — | same |
 | P1.7 | JSDoc reaches docgen | every bound component and every catalog prop has a non-empty description in the snapshot | a component or catalog prop is undocumented | same |
-| P1.8 | Nothing leaks | every code prop is in the catalog, in `codeOnly`, or an `on*` handler; `codeOnly` entries exist and aren't in the catalog; `deprecated-alias` entries are really `@deprecated`; no component shows an inherited `node_modules` prop, `style`, `className` or `aria-*` | an undeclared prop, a stale entry, or a DOM prop | same |
+| P1.8 | Nothing leaks | every code prop is in the catalog, a `propMap` target, in `codeOnly`, or an `on*` handler; `codeOnly` entries exist and aren't in the catalog; `deprecated-alias` entries are really `@deprecated`; no component shows an inherited `node_modules` prop, `style`, `className` or `aria-*` | an undeclared prop, a stale entry, or a DOM prop | same |
 
 ### Visual and token fidelity (`npm run test:visual -- --probe`)
 
@@ -84,7 +92,7 @@ The probe runs after each story settles, in the same 1280×720 offscreen window 
 the pixel diff. Every expected value is resolved from the live CSS custom
 properties, which `tokens:check` ties to `tokens.json`. The run prints what it
 measured, because a clean probe that measured nothing proves nothing. Today it
-covers 101 stories, 14 Content Cards and 6 canvas surfaces.
+covers 112 stories, 14 Content Cards and 6 canvas surfaces.
 
 | ID | Check | PASS | FAIL |
 | --- | --- | --- | --- |
@@ -105,14 +113,23 @@ The static gates back V4 up: `lint:tokens` (no raw hex or px in `src/`) and
 `tokens:audit` (0 core refs, 0 untyped `var(--`, 0 raw `.text-*`, 0 measured
 sizes).
 
+The Canvas Kit adds one compile-time gate. react-docgen can't read a type derived
+from a scale's keys, so `canvasKit.tsx` writes each union out, and
+`true satisfies Same<…>` pins it to the catalog's schema type. A value added to
+one side and not the other is a `tsc` error.
+
 ## Phase 2: external importer
 
 `parseStorybookDocgenWithReport(raw, meta)` returns
 `{ manifest, warnings }`. `parseStorybookDocgen` is a thin wrapper around it. It
 reads three shapes: Storybook 10's `components.json` (subcomponents become
 components of their own), a react-docgen `props` map, and Storybook `argTypes`.
-Every literal union goes through the same resolver as Phase 0. The switcher shows
-`Imported "x" · N warnings`, with the list on hover.
+Every literal union goes through the same resolver as Phase 0.
+
+Token imports report too: `parseDesignTokensWithReport` names every token it
+leaves out, either an alias that points at no token (or at one that doesn't
+resolve) or a value that isn't CSS. The switcher shows `Imported "x" · N warnings`
+or `Tokens applied · N warnings`, with the list on hover.
 
 | ID | Check | PASS | FAIL | Where |
 | --- | --- | --- | --- | --- |
@@ -123,6 +140,7 @@ Every literal union goes through the same resolver as Phase 0. The switcher show
 | E2.5 | No components → a readable error | throws "No component definitions found…"; the store returns `{ ok: false }` and the switcher shows it | crash, or an empty system imported | same, `designSystemStore.test.ts` |
 | E2.6 | An index or docs file says what to import instead | "…Import manifests/components.json instead." | — | `storybook-adapter.test.ts` |
 | E2.7 | An imported manifest holds a Blueprint to its own components | the schemas compile; a Blueprint using only its ids passes; an off-union value fails on that prop; a built-in-only id (`MainMenu`) fails | — | same |
+| E2.8 | Tokens the import leaves out are reported | an alias to a missing token, an alias to a broken one, and a non-CSS value each give a warning naming the token, both in the export (`tokens: {…}`) and through Import tokens…; a clean file gives none | a token dropped silently | `token-adapter.test.ts`, `storybook-adapter.test.ts`, `designSystemStore.test.ts` |
 
 ## Phase 3: Blueprint DSL and AI rules
 
@@ -227,29 +245,38 @@ Undo steps 1 and 4 afterwards.
 - **JSDoc was missing.** 10 components had no component-level description, and 11
   catalog props had none. ContentCard's JSDoc sat above a helper instead of the
   component; the others had none. All of them are added.
+- **TableCell's props were unreadable by docgen.** They are a discriminated union.
+  `TableCell` now has one overload with the strict per-row union, so callers stay
+  strict, and a flat, documented implementation signature (`TableCellFields`)
+  for docgen to read. Parity runs through a `propMap`.
+- **Stack, Text and Button had no story.** They were hand-written renderers inside
+  `registry.tsx`. They are now the `Canvas Kit` components, each with a story. The
+  registry calls them as plain functions, so the canvas still decorates their own
+  root element. The canvas DOM is unchanged: the 101 existing baselines are
+  pixel-identical.
+- **Input was in the catalog, but the DTV kit has no input component.** It is
+  retired from the catalog and the registry. The planner's worked example (a
+  sign-up card) and its form pattern went with it, and so did the AgentPanel's
+  sign-up suggestion.
+- **Token imports dropped broken aliases silently.** They are now reported (E2.8).
 
-## Known gaps
+## Still open
 
-- **TableCell props are unreadable by docgen.** They are a discriminated union
-  (`TeamCellProps | AthleteCellProps | ScoutCellProps`), so catalog parity for
-  TableCell rests on `validateBlueprint.test.ts` and the story's visual baseline.
-  P1.2 fails the day docgen can read it, so the entry gets upgraded.
-- **Four catalog components have no story.** Stack, Text, Button and Input are
-  rendered by hand-written Tailwind renderers in `registry.tsx`, and Storybook
-  documents different primitives under those names. The DTV kit has no input
-  component, yet `Input` is still in the catalog. Retire it, or port the
-  renderers onto `src/primitives`, so every catalog component has a story.
-- **Token-alias warnings are not implemented.** An imported token file with an
-  unresolvable `{alias}` is still dropped silently by `parseDesignTokenTiers`.
-- **The visual baselines depend on the OS.** Re-baseline only after proving the
-  drift against committed code.
-- **Phase 4 has not been run against a live model** as part of this plan.
+- **Phase 4 has not been run against a live model.**
+
+To keep in mind: the visual baselines depend on the OS, so re-baseline only after
+proving the drift against committed code.
 
 ## Numbers
 
-- Tests went from 363 to 529.
+- Tests went from 363 to 553.
+- Visual: 112 stories (11 new `Canvas Kit` baselines).
 - Each negative check below was run once and reverted. Each turned its test red:
   - dropping `'replay'` from the catalog's LabelVideo kinds → P1.4;
   - adding `style` to the primitive Button → S0.1 (stale snapshot) and P1.8;
   - setting a story gap to the 20px step → V1 and V2;
-  - giving a template `focus: 'left'` → G3.0 and `templates.test.ts`.
+  - giving a template `focus: 'left'` → G3.0 and `templates.test.ts`;
+  - dropping `'scout'` from the catalog's TableCell rows → P1.4 on TableCell,
+    through its `propMap`;
+  - adding `'baseline'` to the catalog's Stack align → a `tsc` error in
+    `canvasKit.tsx`.
