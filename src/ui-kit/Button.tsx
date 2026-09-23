@@ -32,8 +32,11 @@ export interface ButtonProps {
   interactionState?: ButtonState
   /** @deprecated Use `interactionState` — same values. */
   state?: ButtonState
+  /** The card’s title — as an interactivity, the only text it carries. */
   title?: string
+  /** Small line above the title (schedule section only). */
   overline?: string
+  /** Small line under the title (schedule section only). */
   subtitle?: string
   /** Renders the "AO VIVO" badge. */
   live?: boolean
@@ -87,6 +90,7 @@ const layer: CSSProperties = { position: 'relative' }
 /** Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
 const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' }
 
+/** One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge. */
 export function Button({
   interactionState,
   state: legacyState,

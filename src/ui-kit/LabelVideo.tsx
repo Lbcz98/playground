@@ -24,6 +24,7 @@ import volumeOnIcon from './icons/volume-on.svg'
 export type LabelVideoKind = 'live' | 'replay'
 
 export interface LabelVideoProps {
+  /** `live` says AO VIVO, `replay` says REPLAY. */
   kind?: LabelVideoKind
   /** Focused: gradient fill with the volume icon. Default: translucent chip. Default `focus`. */
   interactionState?: Extract<InteractionState, 'default' | 'focus'>
@@ -56,6 +57,7 @@ function fillFor(kind: LabelVideoKind, focus: boolean): CSSProperties {
     : { backgroundImage: token('--gradient-semantic-status-replay') }
 }
 
+/** The AO VIVO / REPLAY chip that says what the video behind the screen is. */
 export function LabelVideo({
   kind = 'live',
   interactionState,

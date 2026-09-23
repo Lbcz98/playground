@@ -61,6 +61,7 @@ function edgeFor(bugStyle: AlertBugStyle, focus: boolean): string {
   return focus ? size('alert-bug-focus') : size('alert-bug')
 }
 
+/** The corner bug that says an interactivity is waiting — the kit’s own (`interface`, focusable) or the broadcaster’s (`transmission`). */
 export function AlertBug({
   bugStyle = 'interface',
   interactionState,

@@ -21,6 +21,7 @@ export interface RoundedButtonProps {
   onClick?: () => void
 }
 
+/** The icon-only round control that steps back a level. */
 export function RoundedButton({
   interactionState,
   focus: legacyFocus,

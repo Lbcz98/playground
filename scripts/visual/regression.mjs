@@ -10,6 +10,11 @@
  *   npm run test:visual                    compare; exits 1 on any change
  *   npm run test:visual -- --only=wide     just the stories whose id contains "wide"
  *   npm run test:visual:update             accept the current renders as baselines
+ *   npm run test:visual -- --probe         also measure every story: the 8pt grid on
+ *                                          padding and gaps, the Content Card's geometry
+ *                                          against its tokens, literal values in inline
+ *                                          styles, and where the canvas injects --sfs-*
+ *                                          (test plan V2–V5, docs/test-plan-storybook-sot.md)
  *
  * Accept only after reading the report. Needs Storybook running
  * (`npm run storybook`, or point STORYBOOK_URL at one).
@@ -26,6 +31,23 @@ const OUTPUT = join(ROOT, 'tests', 'visual', '.output')
 const STORYBOOK = (process.env.STORYBOOK_URL ?? 'http://localhost:6006').replace(/\/$/, '')
 const UPDATE = process.argv.includes('--update')
 const ONLY = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length)
+const PROBE = process.argv.includes('--probe')
+
+/**
+ * Off-grid spacing the kit draws on purpose, keyed by the token the element's
+ * inline style takes it from — so the exception is the token's decision, not a
+ * story's. A new off-grid value fails until it is fixed or its token is listed.
+ */
+const GRID_EXCEPTIONS = [
+  {
+    token: '--dimension-border-width-',
+    why: 'A stroke, not spacing: RestingBorder draws its gradient border as padding under a mask.',
+  },
+  {
+    token: '--dimension-spacing-semantic-card-inset',
+    why: 'tokens.json: "Figma-exact and internal to the card, so it may sit off the layout grid."',
+  },
+]
 
 const STORY_IDS = /^(ui-kit|primitives|templates)-/
 const VIEWPORT = { width: 1280, height: 720 }
@@ -67,6 +89,112 @@ async function settle(freezeCss) {
   }
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   return { error: null }
+}
+
+/**
+ * Runs inside the story page after `settle`: measures what the pixels can't say.
+ * Every expected value is read back from the live CSS custom properties, so the
+ * probe checks the render against the tokens, never against numbers of its own.
+ */
+function probe() {
+  const root = document.getElementById('storybook-root')
+  const round = (v) => Math.round(parseFloat(v) * 100) / 100
+  const onGrid = (n) => n === 0 || n === 4 || n === 12 || n % 8 === 0
+  const where = (el) => {
+    const parts = []
+    for (let node = el; node && node !== root && parts.length < 4; node = node.parentElement) {
+      const index = node.parentElement ? [...node.parentElement.children].indexOf(node) : 0
+      parts.unshift(`${node.tagName.toLowerCase()}[${index}]`)
+    }
+    return parts.join(' > ')
+  }
+  /** A CSS length through its custom-property chain, in px, via a throwaway element. */
+  const resolve = (prop, value) => {
+    const el = document.createElement('div')
+    el.style.position = 'absolute'
+    el.style.setProperty(prop, value)
+    document.body.append(el)
+    const px = round(getComputedStyle(el).getPropertyValue(prop))
+    el.remove()
+    return px
+  }
+  const stripVars = (text) => {
+    let out = text
+    for (let i = 0; i < 10 && /var\(/.test(out); i++) out = out.replace(/var\([^()]*\)/g, '')
+    return out
+  }
+
+  const grid = []
+  const literals = []
+  for (const el of root.querySelectorAll('*')) {
+    if (el.closest('svg')) continue
+    const cs = getComputedStyle(el)
+    for (const side of ['top', 'right', 'bottom', 'left']) {
+      const px = round(cs.getPropertyValue(`padding-${side}`))
+      if (!onGrid(px)) grid.push({ at: where(el), prop: `padding-${side}`, px, style: el.getAttribute('style') ?? '' })
+    }
+    if (/flex|grid/.test(cs.display)) {
+      for (const prop of ['row-gap', 'column-gap']) {
+        const value = cs.getPropertyValue(prop)
+        if (value === 'normal') continue
+        const px = round(value)
+        if (!onGrid(px)) grid.push({ at: where(el), prop, px, style: el.getAttribute('style') ?? '' })
+      }
+    }
+    // Uses only: a `--name: value` declaration is where a token is defined (the
+    // canvas surface injects the active system's --sfs-* this way), not a use.
+    const declarations = (el.getAttribute('style') ?? '').split(';').filter((d) => !d.trim().startsWith('--'))
+    const inline = stripVars(declarations.join(';'))
+    // A zero needs no token (the browser writes React's 0 as "0px").
+    const literal = inline.match(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|(?<![\w.-])(?!0*\.?0+px)\d*\.?\d+px\b/i)
+    if (literal) literals.push({ at: where(el), literal: literal[0], style: el.getAttribute('style') })
+  }
+
+  // The card itself — a story may also size a wrapper off the same token.
+  const CARD_WIDTH = 'var(--dimension-size-semantic-content-card-width)'
+  const cards = [...root.querySelectorAll('[style*="--dimension-size-semantic-content-card-width"]')]
+    .filter((el) => el.style.width === CARD_WIDTH)
+    .map((el) => {
+      const cs = getComputedStyle(el)
+      const expected = {
+        width: resolve('width', 'var(--dimension-size-semantic-content-card-width)'),
+        radius: resolve('border-top-left-radius', 'var(--dimension-radius-semantic-content-card)'),
+        inset: resolve('padding-top', 'var(--dimension-spacing-core-lg)'),
+      }
+      const actual = {
+        width: round(cs.width),
+        radius: round(cs.borderTopLeftRadius),
+        inset: Math.min(...['top', 'right', 'bottom', 'left'].map((s) => round(cs.getPropertyValue(`padding-${s}`)))),
+        insetMax: Math.max(...['top', 'right', 'bottom', 'left'].map((s) => round(cs.getPropertyValue(`padding-${s}`)))),
+      }
+      return { at: where(el), expected, actual }
+    })
+
+  const sfs = (el) => (el ? [...el.style].filter((name) => name.startsWith('--sfs-')).length : 0)
+  const surface = document.querySelector('[data-canvas-theme="active"]')
+  const theme = surface ? { onSurface: sfs(surface), onRoot: sfs(document.documentElement) } : null
+
+  return { grid, literals, cards, theme }
+}
+
+/** Probe findings for one story → the failures, as short lines. */
+function probeFailures(id, found) {
+  const failures = []
+  for (const g of found.grid) {
+    const excused = GRID_EXCEPTIONS.some((e) => g.style.includes(e.token))
+    if (!excused) failures.push(`V2 off-grid ${g.prop} ${g.px}px at ${g.at}`)
+  }
+  for (const c of found.cards) {
+    const { expected: e, actual: a } = c
+    if (a.width !== e.width) failures.push(`V3 card width ${a.width}px ≠ token ${e.width}px at ${c.at}`)
+    if (a.radius !== e.radius) failures.push(`V3 card radius ${a.radius}px ≠ token ${e.radius}px at ${c.at}`)
+    if (a.inset !== e.inset || a.insetMax !== e.inset) failures.push(`V3 card inset ${a.inset}–${a.insetMax}px ≠ token ${e.inset}px at ${c.at}`)
+  }
+  for (const l of found.literals) failures.push(`V4 literal ${l.literal} in an inline style at ${l.at}`)
+  if (found.theme && (found.theme.onSurface === 0 || found.theme.onRoot > 0)) {
+    failures.push(`V5 --sfs-* vars: ${found.theme.onSurface} on the canvas surface, ${found.theme.onRoot} on :root`)
+  }
+  return failures
 }
 
 function compare(baseline, current) {
@@ -129,7 +257,7 @@ function writeReport(results) {
 <style>
 body{font:14px system-ui,sans-serif;margin:24px;background:#fafafa;color:#111}
 table{border-collapse:collapse;margin-bottom:32px}td{padding:4px 12px;border-bottom:1px solid #ddd}
-tr.changed td,tr.error td,tr.new td,tr.removed td,tr.deprecated td{background:#fde8e8}
+tr.changed td,tr.error td,tr.new td,tr.removed td,tr.deprecated td,tr.probe td{background:#fde8e8}
 .shots{display:flex;gap:12px;overflow-x:auto}figure{margin:0}img{max-width:640px;border:1px solid #ccc}
 </style>
 <h1>Visual regression — ${new Date().toISOString()}</h1>
@@ -166,6 +294,8 @@ async function run() {
   })
 
   const results = []
+  /** What the probe actually measured — a clean run that measured nothing proves nothing. */
+  const coverage = { stories: 0, cards: 0, surfaces: 0 }
   for (const id of ids) {
     deprecations = []
     await win.loadURL(`${STORYBOOK}/iframe.html?id=${encodeURIComponent(id)}&viewMode=story`)
@@ -173,6 +303,14 @@ async function run() {
     if (error) {
       results.push({ id, status: 'error', note: error })
       continue
+    }
+    let probed = []
+    if (PROBE) {
+      const found = await win.webContents.executeJavaScript(`(${probe})()`)
+      coverage.stories++
+      coverage.cards += found.cards.length
+      coverage.surfaces += found.theme ? 1 : 0
+      probed = probeFailures(id, found)
     }
     const current = await win.webContents.capturePage()
     const file = join(BASELINES, `${id}.png`)
@@ -191,6 +329,11 @@ async function run() {
       last.status = 'deprecated'
       last.note = [...new Set(deprecations)].join(' ')
     }
+    if (probed.length) {
+      const last = results[results.length - 1]
+      last.status = last.status === 'same' || last.status === 'updated' ? 'probe' : last.status
+      last.note = [last.note, ...probed].filter(Boolean).join(' · ')
+    }
   }
 
   if (!ONLY) {
@@ -204,10 +347,15 @@ async function run() {
 
   writeReport(results)
   const count = (status) => results.filter((r) => r.status === status).length
-  const failing = results.filter((r) => ['changed', 'new', 'error', 'removed', 'deprecated'].includes(r.status))
+  const failing = results.filter((r) => ['changed', 'new', 'error', 'removed', 'deprecated', 'probe'].includes(r.status))
   for (const r of failing) {
-    const detail = r.changed ? `${r.changed} px (${(r.ratio * 100).toFixed(3)}%)` : r.note ?? ''
+    const detail = [r.changed ? `${r.changed} px (${(r.ratio * 100).toFixed(3)}%)` : '', r.note ?? ''].filter(Boolean).join(' · ')
     console.log(`  ${r.status.padEnd(8)} ${r.id} ${detail}`)
+  }
+  if (PROBE) {
+    console.log(
+      `Probe: ${coverage.stories} stories, ${coverage.cards} Content Cards measured, ${coverage.surfaces} canvas surfaces checked.`,
+    )
   }
   console.log(
     UPDATE

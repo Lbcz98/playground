@@ -26,6 +26,7 @@ export interface CloseButtonProps {
   onClick?: () => void
 }
 
+/** The icon-only round control that closes an interactivity. */
 export function CloseButton({
   interactionState,
   label = 'Fechar',

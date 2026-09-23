@@ -10,6 +10,11 @@ const config: StorybookConfig = {
     "@storybook/addon-docs",
     "@storybook/addon-mcp"
   ],
-  "framework": "@storybook/react-vite"
+  "framework": "@storybook/react-vite",
+  // Emits manifests/components.json (react-docgen per component) on build —
+  // the metadata `npm run storybook:manifest` snapshots for the catalog parity tests.
+  "features": {
+    "componentsManifest": true
+  }
 };
 export default config;

@@ -19,6 +19,8 @@
     "test:visual": "electron scripts/visual/regression.mjs",
     "test:visual:update": "electron scripts/visual/regression.mjs --update",
     "storybook": "storybook dev -p 6006",
+    "storybook:manifest": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts",
+    "storybook:manifest:check": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts -- --check",
     "build-storybook": "storybook build"
   },
   "dependencies": {

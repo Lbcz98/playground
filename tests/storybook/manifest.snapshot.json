@@ -1,0 +1,1230 @@
+{
+  "v": 1,
+  "docgen": "react-docgen",
+  "components": {
+    "primitives-box": {
+      "name": "Box",
+      "description": "",
+      "props": {
+        "as": {
+          "type": "| 'div'\n| 'section'\n| 'article'\n| 'header'\n| 'footer'\n| 'nav'\n| 'main'\n| 'aside'\n| 'ul'\n| 'ol'\n| 'li'\n| 'span'",
+          "kind": "enum",
+          "options": [
+            "div",
+            "section",
+            "article",
+            "header",
+            "footer",
+            "nav",
+            "main",
+            "aside",
+            "ul",
+            "ol",
+            "li",
+            "span"
+          ],
+          "required": false,
+          "description": ""
+        },
+        "background": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "border": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": "A hairline border in a functional border colour."
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "grow": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "Take the remaining space along the parent Stack's direction."
+        },
+        "padding": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "paddingX": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": "Overrides `padding` on the inline (left/right) edges."
+        },
+        "paddingY": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": "Overrides `padding` on the block (top/bottom) edges."
+        },
+        "radius": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        }
+      },
+      "title": "Primitives/Box",
+      "stories": [
+        "primitives-box--default",
+        "primitives-box--padding-scale",
+        "primitives-box--surfaces"
+      ],
+      "subcomponents": {}
+    },
+    "primitives-button": {
+      "name": "Button",
+      "description": "",
+      "props": {
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": true,
+          "description": "The label."
+        },
+        "iconLeft": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "iconRight": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "loading",
+            "disabled"
+          ],
+          "required": false,
+          "description": "Default `default`."
+        },
+        "size": {
+          "type": "'md' | 'lg'",
+          "kind": "enum",
+          "options": [
+            "md",
+            "lg"
+          ],
+          "required": false,
+          "defaultValue": "md",
+          "description": ""
+        },
+        "status": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "loading",
+            "disabled"
+          ],
+          "required": false,
+          "description": "@deprecated Use `interactionState` — same values.",
+          "deprecated": true
+        },
+        "type": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "defaultValue": "button",
+          "description": ""
+        },
+        "variant": {
+          "type": "'primary' | 'secondary' | 'ghost'",
+          "kind": "enum",
+          "options": [
+            "primary",
+            "secondary",
+            "ghost"
+          ],
+          "required": false,
+          "defaultValue": "primary",
+          "description": ""
+        }
+      },
+      "title": "Primitives/Button",
+      "stories": [
+        "primitives-button--all-states",
+        "primitives-button--disabled",
+        "primitives-button--focus",
+        "primitives-button--ghost",
+        "primitives-button--large",
+        "primitives-button--loading",
+        "primitives-button--primary",
+        "primitives-button--secondary",
+        "primitives-button--with-icons"
+      ],
+      "subcomponents": {}
+    },
+    "primitives-heading": {
+      "name": "Heading",
+      "description": "",
+      "props": {
+        "as": {
+          "type": "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'",
+          "kind": "enum",
+          "options": [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6"
+          ],
+          "required": false,
+          "description": ""
+        },
+        "level": {
+          "type": "3 | 4 | 5",
+          "kind": "enum",
+          "options": [
+            "3",
+            "4",
+            "5"
+          ],
+          "required": false,
+          "defaultValue": "3",
+          "description": ""
+        },
+        "weight": {
+          "type": "'medium' | 'bold'",
+          "kind": "enum",
+          "options": [
+            "medium",
+            "bold"
+          ],
+          "required": false,
+          "defaultValue": "bold",
+          "description": ""
+        }
+      },
+      "title": "Primitives/Heading",
+      "stories": [
+        "primitives-heading--all-levels",
+        "primitives-heading--default"
+      ],
+      "subcomponents": {}
+    },
+    "primitives-stack": {
+      "name": "Stack",
+      "description": "",
+      "props": {
+        "align": {
+          "type": "'start' | 'center' | 'end' | 'stretch' | 'baseline'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "required": false,
+          "defaultValue": "stretch",
+          "description": "Cross-axis alignment. Default `stretch`."
+        },
+        "as": {
+          "type": "| 'div'\n| 'section'\n| 'article'\n| 'header'\n| 'footer'\n| 'nav'\n| 'main'\n| 'aside'\n| 'ul'\n| 'ol'\n| 'li'\n| 'span'",
+          "kind": "enum",
+          "options": [
+            "div",
+            "section",
+            "article",
+            "header",
+            "footer",
+            "nav",
+            "main",
+            "aside",
+            "ul",
+            "ol",
+            "li",
+            "span"
+          ],
+          "required": false,
+          "description": ""
+        },
+        "background": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "border": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": "A hairline border in a functional border colour."
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "direction": {
+          "type": "'row' | 'column'",
+          "kind": "enum",
+          "options": [
+            "row",
+            "column"
+          ],
+          "required": false,
+          "defaultValue": "column",
+          "description": "Default `column`."
+        },
+        "gap": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "grow": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "Take the remaining space along the parent Stack's direction."
+        },
+        "justify": {
+          "type": "'start' | 'center' | 'end' | 'between'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ],
+          "required": false,
+          "defaultValue": "start",
+          "description": "Main-axis distribution. Default `start`."
+        },
+        "padding": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "paddingX": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": "Overrides `padding` on the inline (left/right) edges."
+        },
+        "paddingY": {
+          "type": "Exclude<SpacingStep, (typeof OFF_GRID_SPACING)[number]>",
+          "kind": "unresolved",
+          "required": false,
+          "description": "Overrides `padding` on the block (top/bottom) edges."
+        },
+        "radius": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": ""
+        },
+        "wrap": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": ""
+        }
+      },
+      "title": "Primitives/Stack",
+      "stories": [
+        "primitives-stack--column",
+        "primitives-stack--gaps",
+        "primitives-stack--row"
+      ],
+      "subcomponents": {}
+    },
+    "primitives-text": {
+      "name": "Text",
+      "description": "",
+      "props": {
+        "align": {
+          "type": "'start' | 'center' | 'end'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "center",
+            "end"
+          ],
+          "required": false,
+          "description": ""
+        },
+        "as": {
+          "type": "| 'span'\n| 'p'\n| 'div'\n| 'label'\n| 'strong'\n| 'em'\n| 'small'\n| 'h1'\n| 'h2'\n| 'h3'\n| 'h4'\n| 'h5'\n| 'h6'",
+          "kind": "enum",
+          "options": [
+            "span",
+            "p",
+            "div",
+            "label",
+            "strong",
+            "em",
+            "small",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6"
+          ],
+          "required": false,
+          "defaultValue": "span",
+          "description": ""
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": ""
+        },
+        "color": {
+          "type": "TextColor | 'inherit'",
+          "kind": "unresolved",
+          "required": false,
+          "defaultValue": "primary",
+          "description": "A functional text role, a `status-*` colour, or `inherit` to take the parent's."
+        },
+        "htmlFor": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Only meaningful with `as=\"label\"`."
+        },
+        "opacity": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "description": "A semantic opacity role, e.g. `title` for a 90% headline."
+        },
+        "truncate": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "One line, ellipsised."
+        },
+        "variant": {
+          "type": "(typeof TEXT_STYLES)[number]",
+          "kind": "unresolved",
+          "required": false,
+          "defaultValue": "body-md-regular",
+          "description": "A `.text-*` utility class from global.css."
+        }
+      },
+      "title": "Primitives/Text",
+      "stories": [
+        "primitives-text--default",
+        "primitives-text--secondary",
+        "primitives-text--status",
+        "primitives-text--type-scale"
+      ],
+      "subcomponents": {}
+    },
+    "templates-screens": {
+      "name": "Template",
+      "description": "",
+      "props": {},
+      "error": "No component file found for the \"Template\" component.\n  51 | }\n  52 |\n> 53 | const meta = {\n     | ^\n  54 |   title: 'Templates/Screens',\n  55 |   component: Template,\n  56 |   parameters: { layout: 'fullscreen' },\n\n./src/canvas/ScreenTemplates.stories.tsx:\nimport { cloneElement, isValidElement, type ReactNode } from 'react'\nimport type { Meta, StoryObj } from '@storybook/react-vite'\nimport type { CanvasNode } from '@/model/nodeTree'\nimport { hydrateRegistry } from '@/design-system/registry'\nimport { interpretBlueprint } from '@/interpreter/interpret'\nimport { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'\nimport { screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'\nimport { SCREEN_TEMPLATES, type ScreenTemplate, screenTemplate } from '@/shared/templates'\nimport { ScreenFrame } from './ScreenFrame'\n\n/**\n * The screen templates, each rendered through the very frame the canvas uses\n * (`ScreenFrame`) from the very blueprint the agent copies — so the snapshot the\n * visual run writes is the screen, not an illustration of it.\n */\nconst REGISTRY = hydrateRegistry(SCREENFLOW_MANIFEST)\nconst LAYERS = screenLayersOf(SCREENFLOW_MANIFEST)\n\n/** The canvas renderer without the editing chrome — no selection, no rings. */\nfunction renderNode(node: CanvasNode): ReactNode {\n  const entry = REGISTRY.get(node.type)\n  if (!entry) return null\n  const parsed = entry.schema.safeParse(node.props)\n  const props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps\n  // Keyed like the canvas does it — on the component's own element, so no\n  // wrapper ever lands between a container and its children.\n  const children = entry.acceptsChildren\n    ? node.children.map((child) => {\n        const rendered = renderNode(child)\n        return isValidElement(rendered) ? cloneElement(rendered, { key: child.id }) : rendered\n      })\n    : null\n  return entry.render(props, children)\n}\n\nfunction Template({ id }: { id: string }): ReactNode {\n  const template = screenTemplate(id) as ScreenTemplate\n  const result = interpretBlueprint(template.blueprint, SCREENFLOW_MANIFEST)\n  if (!result.ok) return <pre>{result.error}</pre>\n  const { tree } = result\n  const model = screenModel(LAYERS, template.blueprint.screen?.model)\n  return (\n    <ScreenFrame\n      tree={tree}\n      layers={LAYERS}\n      tokens={SCREENFLOW_MANIFEST.tokens}\n      focusSide={model?.side ?? 'neutral'}\n      renderNode={renderNode}\n    />\n  )\n}\n\nconst meta = {\n  title: 'Templates/Screens',\n  component: Template,\n  parameters: { layout: 'fullscreen' },\n  argTypes: { id: { control: 'select', options: SCREEN_TEMPLATES.map((t) => t.id) } },\n} satisfies Meta<typeof Template>\n\nexport default meta\ntype Story = StoryObj<typeof meta>\n\n/** Nível 1 — the home screen: interactivity rail at rest, main menu, focus on the programme. */\nexport const Home: Story = { args: { id: 'home' } }\n/** Nível 1 — the same screen while a notification shows in the top-right corner. */\nexport const HomeNotificacao: Story = { name: 'Home + Notificação', args: { id: 'home-notification' } }\n/** Nível 2 — the rail entered: no menu, one card focused, the rest selected. */\nexport const InteratividadesBotoes: Story = {\n  name: 'Interatividades · Botões Direita',\n  args: { id: 'interactivity-buttons-right' },\n}\n/** Nível 3 — one interactivity on the right, its close button anchored. */\nexport const InteratividadesCardsDireita: Story = {\n  name: 'Interatividades · Cards Direita',\n  args: { id: 'interactivity-cards-right' },\n}\n/** Nível 3 — the same screen mirrored to the left. */\nexport const InteratividadesCardsEsquerda: Story = {\n  name: 'Interatividades · Cards Esquerda',\n  args: { id: 'interactivity-cards-left' },\n}\n/** Nível 0 — the clean broadcast with the interactivity alert bug. */\nexport const Alerta: Story = { args: { id: 'alert' } }\n",
+      "title": "Templates/Screens",
+      "stories": [
+        "templates-screens--alerta",
+        "templates-screens--home",
+        "templates-screens--home-notificacao",
+        "templates-screens--interatividades-botoes",
+        "templates-screens--interatividades-cards-direita",
+        "templates-screens--interatividades-cards-esquerda"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-alert-bug": {
+      "name": "AlertBug",
+      "description": "The corner bug that says an interactivity is waiting — the kit’s own (`interface`, focusable) or the broadcaster’s (`transmission`).",
+      "props": {
+        "bugStyle": {
+          "type": "'interface' | 'transmission'",
+          "kind": "enum",
+          "options": [
+            "interface",
+            "transmission"
+          ],
+          "required": false,
+          "defaultValue": "interface",
+          "description": "Whose mark this is. Default `interface`."
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Only the interface bug takes focus. Default `default`."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Conteúdo interativo",
+          "description": "Accessible name — the bug is artwork-only."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "src": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The mark itself. A neutral circle stands in when there is none."
+        }
+      },
+      "title": "UI Kit/Alert Bug",
+      "stories": [
+        "ui-kit-alert-bug--all-styles",
+        "ui-kit-alert-bug--interface",
+        "ui-kit-alert-bug--interface-focus",
+        "ui-kit-alert-bug--transmission"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-button": {
+      "name": "Button",
+      "description": "One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge.",
+      "props": {
+        "advertising": {
+          "type": "{ label: string; logoSrc: string }",
+          "kind": "object",
+          "required": false,
+          "description": "Renders the \"Publicidade\" row with a partner logo."
+        },
+        "check": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Renders the check mark in the thumbnail's top-right."
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "selected"
+          ],
+          "required": false,
+          "description": "Default `focus`."
+        },
+        "live": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "true",
+          "description": "Renders the \"AO VIVO\" badge."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "overline": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Overline",
+          "description": "Small line above the title (schedule section only)."
+        },
+        "state": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "selected"
+          ],
+          "required": false,
+          "description": "@deprecated Use `interactionState` — same values.",
+          "deprecated": true
+        },
+        "subtitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Subtitle",
+          "description": "Small line under the title (schedule section only)."
+        },
+        "thumbnail": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "Fills the thumbnail slot."
+        },
+        "title": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Title",
+          "description": "The card’s title — as an interactivity, the only text it carries."
+        }
+      },
+      "title": "UI Kit/Button",
+      "stories": [
+        "ui-kit-button--all-states",
+        "ui-kit-button--default",
+        "ui-kit-button--focus",
+        "ui-kit-button--selected",
+        "ui-kit-button--with-check"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-close-button": {
+      "name": "CloseButton",
+      "description": "The icon-only round control that closes an interactivity.",
+      "props": {
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Default `focus`."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Fechar",
+          "description": "Accessible name — the control is icon-only."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        }
+      },
+      "title": "UI Kit/Close Button",
+      "stories": [
+        "ui-kit-close-button--both-states",
+        "ui-kit-close-button--focus",
+        "ui-kit-close-button--rest"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-content-card": {
+      "name": "ContentCard",
+      "description": "The tall card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order.",
+      "props": {
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order."
+        },
+        "height": {
+          "type": "number",
+          "kind": "number",
+          "required": false,
+          "defaultValue": "440",
+          "description": "Total height in px, a multiple of the 8pt grid up to `contentCardSpec.maxHeight`.\nAnything else is snapped onto the grid and held inside the range. Default 440."
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Default `default`."
+        }
+      },
+      "title": "UI Kit/Content Card",
+      "stories": [
+        "ui-kit-content-card--default",
+        "ui-kit-content-card--focus",
+        "ui-kit-content-card--headers",
+        "ui-kit-content-card--heights",
+        "ui-kit-content-card--opt-outs",
+        "ui-kit-content-card--sports-table"
+      ],
+      "subcomponents": {
+        "ContentCardBody": {
+          "name": "ContentCardBody",
+          "description": "The main zone. It takes the height the header and footer leave and clips at the\ncard's inset rather than pushing past it.",
+          "props": {
+            "children": {
+              "type": "ReactNode",
+              "kind": "node",
+              "required": false,
+              "description": "The card's content — rows of Table Cells, or any stack of kit text."
+            },
+            "quote": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "description": "A quote under the body's content. Omitted or empty: not drawn."
+            }
+          }
+        },
+        "ContentCardFooter": {
+          "name": "ContentCardFooter",
+          "description": "The bottom zone, pinned to the card's bottom edge even when there is no body above it.",
+          "props": {
+            "caption": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "description": "A centred caption, drawn at 70% like Figma's. Omitted or empty: not drawn."
+            },
+            "children": {
+              "type": "ReactNode",
+              "kind": "node",
+              "required": false,
+              "description": "Controls or a call to action, laid out beside the caption."
+            }
+          }
+        },
+        "ContentCardHeader": {
+          "name": "ContentCardHeader",
+          "description": "The top zone. Everything in it is optional and collapses when left out, so one\ncomponent covers the header the card actually needs:\n\n  plain text      `title`, with `overline` / `subtitle`\n  with a badge    `icon` beside the text\n  a match         `match`, the two sides facing each other\n  a table heading `subtitle` + `stats`, the columns beside the second line\n  a partner       `partner`, instead of the title\n  an ad           `ad`, a tag over its rule",
+          "props": {
+            "ad": {
+              "type": "{ label: string; logo?: ReactNode }",
+              "kind": "object",
+              "required": false,
+              "description": "An advertising tag over a rule: its wording, and the advertiser's mark."
+            },
+            "icon": {
+              "type": "ReactNode",
+              "kind": "node",
+              "required": false,
+              "description": "A badge beside the title and subtitle — a flag, a crest, a channel mark."
+            },
+            "match": {
+              "type": "ContentCardHeaderMatch",
+              "kind": "unresolved",
+              "required": false,
+              "description": "Two sides facing each other, instead of a title."
+            },
+            "overline": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "description": "Small line above the title. Omitted or empty: not drawn."
+            },
+            "partner": {
+              "type": "ContentCardHeaderPartner",
+              "kind": "unresolved",
+              "required": false,
+              "description": "Who is presenting the card."
+            },
+            "stats": {
+              "type": "unknown",
+              "kind": "unresolved",
+              "required": false,
+              "description": "Column headings beside the subtitle, on the same line — `Pts`, `J`, `V`."
+            },
+            "subtitle": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "description": "Small line under the title. Omitted or empty: not drawn."
+            },
+            "title": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "defaultValue": "Título",
+              "description": "Default `Título`. Empty: not drawn — a header may be only a partner or an ad tag."
+            }
+          }
+        }
+      }
+    },
+    "ui-kit-interactivity-menu": {
+      "name": "InteractivityMenu",
+      "description": "A horizontal rail of interactivity cards; entering it focuses one card and selects the rest.",
+      "props": {
+        "activeIndex": {
+          "type": "number | null",
+          "kind": "unresolved",
+          "required": false,
+          "defaultValue": "null",
+          "description": "Index of the focused item. `null`/`undefined` = the rail at rest, every\n item `default`. Any other index expands the whole row."
+        },
+        "align": {
+          "type": "'start' | 'end'",
+          "kind": "enum",
+          "options": [
+            "start",
+            "end"
+          ],
+          "required": false,
+          "defaultValue": "start",
+          "description": "Which edge the cards sit on when they don't fill the row. The home screen\nkeeps its rail on the right, over the anchored side of the menu; a focused\nrail (nível 2) starts from the left. Default `start`."
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "The cards, composed instead of described — how the canvas builds the rail,\nwhere each card is its own node carrying its own interaction state. The row\nthen expands through those children rather than `activeIndex`."
+        },
+        "heading": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Optional label above the rail, right-aligned to match the source usage."
+        },
+        "items": {
+          "type": "InteractivityMenuItem[]",
+          "kind": "array",
+          "required": false,
+          "description": "The rail's cards. Ignored when `children` are given."
+        }
+      },
+      "title": "UI Kit/Interactivity Menu",
+      "stories": [
+        "ui-kit-interactivity-menu--at-rest",
+        "ui-kit-interactivity-menu--focus-in-middle",
+        "ui-kit-interactivity-menu--focus-on-first",
+        "ui-kit-interactivity-menu--focus-on-last"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-label-video": {
+      "name": "LabelVideo",
+      "description": "The AO VIVO / REPLAY chip that says what the video behind the screen is.",
+      "props": {
+        "focus": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "@deprecated Use `interactionState` (`focus` or `default`).",
+          "deprecated": true
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Focused: gradient fill with the volume icon. Default: translucent chip. Default `focus`."
+        },
+        "kind": {
+          "type": "'live' | 'replay'",
+          "kind": "enum",
+          "options": [
+            "live",
+            "replay"
+          ],
+          "required": false,
+          "defaultValue": "live",
+          "description": "`live` says AO VIVO, `replay` says REPLAY."
+        },
+        "mini": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Compact chip — live only, no icon."
+        }
+      },
+      "title": "UI Kit/Label Video",
+      "stories": [
+        "ui-kit-label-video--all-variants",
+        "ui-kit-label-video--live-focus",
+        "ui-kit-label-video--live-mini",
+        "ui-kit-label-video--live-rest",
+        "ui-kit-label-video--replay-focus",
+        "ui-kit-label-video--replay-rest"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-main-menu": {
+      "name": "MainMenu",
+      "description": "The home menu along the bottom edge: profile, schedule and weather, then the live program and the channel bug.",
+      "props": {
+        "avatarSrc": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        },
+        "bugFocused": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "@deprecated Use `focusedItem=\"channel-bug\"`. Like that, it moves focus off the\nprogram logo — a TV screen has one focused item.",
+          "deprecated": true
+        },
+        "bugSrc": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        },
+        "focusedItem": {
+          "type": "MainMenuItem | null",
+          "kind": "enum",
+          "options": [
+            "profile",
+            "schedule",
+            "weather",
+            "program",
+            "channel-bug"
+          ],
+          "required": false,
+          "description": "The one focused item. Default `program` (the live program's logo). `null`\nwhen focus is elsewhere on the screen."
+        },
+        "logoSrc": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        },
+        "onAvatarClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "onBugClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "onLogoClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "onScheduleClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "onWeatherClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "programSubtitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "A seguir Central da Copa",
+          "description": "The line under the program’s name, e.g. its time slot."
+        },
+        "programTitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Copa do Mundo: Equador x Argentina",
+          "description": "The live program’s name."
+        },
+        "weatherSubtitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "São Paulo, SP",
+          "description": "The weather item’s second line, e.g. the city."
+        },
+        "weatherTitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Previsão do tempo",
+          "description": "The weather item’s first line."
+        }
+      },
+      "title": "UI Kit/Main Menu",
+      "stories": [
+        "ui-kit-main-menu--bug-focused",
+        "ui-kit-main-menu--custom-content",
+        "ui-kit-main-menu--default"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-notification": {
+      "name": "Notification",
+      "description": "The message that arrives in the top-right corner: the programme logo and a line saying why it came.",
+      "props": {
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Default `default`."
+        },
+        "kind": {
+          "type": "'message' | 'rounded'",
+          "kind": "enum",
+          "options": [
+            "message",
+            "rounded"
+          ],
+          "required": false,
+          "defaultValue": "message",
+          "description": "`message` carries the text; `rounded` is the logo alone. Default `message`."
+        },
+        "logoSrc": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The programme's logo. A neutral circle stands in when there is none."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "title": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Paredão formado!\\nVote agora para eliminar",
+          "description": "What the notification says. Ignored by `rounded`."
+        }
+      },
+      "title": "UI Kit/Notification",
+      "stories": [
+        "ui-kit-notification--all-variants",
+        "ui-kit-notification--message",
+        "ui-kit-notification--message-focus",
+        "ui-kit-notification--rounded",
+        "ui-kit-notification--rounded-focus"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-overlay": {
+      "name": "Overlay",
+      "description": "",
+      "props": {
+        "direction": {
+          "type": "| 'base'\n| 'bottom'\n| 'left'\n| 'right'\n| 'bottom-right'\n| 'bottom-left'\n| 'top-right'",
+          "kind": "enum",
+          "options": [
+            "base",
+            "bottom",
+            "left",
+            "right",
+            "bottom-right",
+            "bottom-left",
+            "top-right"
+          ],
+          "required": false,
+          "defaultValue": "bottom",
+          "description": "The edge the content sits on. Default `bottom`."
+        }
+      },
+      "title": "UI Kit/Overlay",
+      "stories": [
+        "ui-kit-overlay--all-directions",
+        "ui-kit-overlay--base",
+        "ui-kit-overlay--bottom",
+        "ui-kit-overlay--bottom-left",
+        "ui-kit-overlay--bottom-right",
+        "ui-kit-overlay--in-a-template",
+        "ui-kit-overlay--left",
+        "ui-kit-overlay--right",
+        "ui-kit-overlay--top-right"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-overlay-screen-models": {
+      "name": "ScreenOverlay",
+      "description": "",
+      "props": {
+        "model": {
+          "type": "string",
+          "kind": "string",
+          "required": true,
+          "description": "A layer model id, e.g. `home` or `interactivity-cards-right`."
+        }
+      },
+      "title": "UI Kit/Overlay/Screen models",
+      "stories": [
+        "ui-kit-overlay-screen-models--alerta",
+        "ui-kit-overlay-screen-models--all-models",
+        "ui-kit-overlay-screen-models--home",
+        "ui-kit-overlay-screen-models--home-botoes-direita",
+        "ui-kit-overlay-screen-models--home-botoes-esquerda",
+        "ui-kit-overlay-screen-models--home-notificacao",
+        "ui-kit-overlay-screen-models--interatividades-botoes-direita",
+        "ui-kit-overlay-screen-models--interatividades-botoes-esquerda",
+        "ui-kit-overlay-screen-models--interatividades-cards-direita",
+        "ui-kit-overlay-screen-models--interatividades-cards-esquerda",
+        "ui-kit-overlay-screen-models--notificacao"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-rounded-button": {
+      "name": "RoundedButton",
+      "description": "The icon-only round control that steps back a level.",
+      "props": {
+        "focus": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "description": "@deprecated Use `interactionState` (`focus` or `default`).",
+          "deprecated": true
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus"
+          ],
+          "required": false,
+          "description": "Default `focus`."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Back",
+          "description": "Accessible name — the control is icon-only."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        }
+      },
+      "title": "UI Kit/Rounded Button",
+      "stories": [
+        "ui-kit-rounded-button--both-states",
+        "ui-kit-rounded-button--focus",
+        "ui-kit-rounded-button--rest"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-table-cell": {
+      "name": "TableCell",
+      "description": "One table row. `type` picks which row it is; everything optional collapses when left out.",
+      "props": {},
+      "title": "UI Kit/Table Cell",
+      "stories": [
+        "ui-kit-table-cell--as-a-table",
+        "ui-kit-table-cell--athlete",
+        "ui-kit-table-cell--athlete-marks",
+        "ui-kit-table-cell--heights",
+        "ui-kit-table-cell--scout",
+        "ui-kit-table-cell--scout-label-only",
+        "ui-kit-table-cell--team",
+        "ui-kit-table-cell--team-collapsing",
+        "ui-kit-table-cell--team-everything"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-wide-button": {
+      "name": "WideButton",
+      "description": "The pill call-to-action of a screen — text with optional icons.",
+      "props": {
+        "iconLeft": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Shows the icon before the label."
+        },
+        "iconRight": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Shows the icon after the label."
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "loading",
+            "disabled"
+          ],
+          "required": false,
+          "description": "Default `focus`."
+        },
+        "label": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "defaultValue": "Label",
+          "description": "The call to action, e.g. \"Assistir\"."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "status": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "loading",
+            "disabled"
+          ],
+          "required": false,
+          "description": "@deprecated Use `interactionState` — same values.",
+          "deprecated": true
+        }
+      },
+      "title": "UI Kit/Wide Button",
+      "stories": [
+        "ui-kit-wide-button--all-statuses",
+        "ui-kit-wide-button--default",
+        "ui-kit-wide-button--disabled",
+        "ui-kit-wide-button--focus",
+        "ui-kit-wide-button--loading",
+        "ui-kit-wide-button--with-icons"
+      ],
+      "subcomponents": {}
+    }
+  }
+}

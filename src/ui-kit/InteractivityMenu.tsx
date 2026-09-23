@@ -62,6 +62,7 @@ function stateFor(index: number, activeIndex: number | null | undefined): Button
   return index === activeIndex ? 'focus' : 'selected'
 }
 
+/** A horizontal rail of interactivity cards; entering it focuses one card and selects the rest. */
 export function InteractivityMenu({
   items,
   children,

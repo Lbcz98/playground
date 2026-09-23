@@ -74,6 +74,7 @@ function gridHeight(px: number): string {
   return `calc(${steps} * ${spacing('2xs')})`
 }
 
+/** The tall card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. */
 export function ContentCard({ interactionState, height = contentCardSpec.height, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
     'ui-kit/ContentCard',
@@ -286,6 +287,7 @@ export function ContentCardHeader({
 export interface ContentCardBodyProps {
   /** A quote under the body's content. Omitted or empty: not drawn. */
   quote?: string
+  /** The card's content — rows of Table Cells, or any stack of kit text. */
   children?: ReactNode
 }
 

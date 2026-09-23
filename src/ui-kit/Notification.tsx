@@ -128,6 +128,7 @@ function Logo({ src }: { src?: string }): ReactNode {
   )
 }
 
+/** The message that arrives in the top-right corner: the programme logo and a line saying why it came. */
 export function Notification({
   kind = 'message',
   interactionState,

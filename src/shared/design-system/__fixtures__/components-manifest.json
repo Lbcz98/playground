@@ -1,0 +1,860 @@
+{
+  "v": 0,
+  "meta": {
+    "docgen": "react-docgen"
+  },
+  "components": {
+    "ui-kit-content-card": {
+      "id": "ui-kit-content-card",
+      "name": "ContentCard",
+      "path": "./src/ui-kit/ContentCard.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "ui-kit-content-card--default",
+          "name": "Default"
+        },
+        {
+          "id": "ui-kit-content-card--focus",
+          "name": "Focus"
+        }
+      ],
+      "reactDocgen": {
+        "description": "The tall card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order.",
+        "displayName": "ContentCard",
+        "actualName": "ContentCard",
+        "exportName": "ContentCard",
+        "props": {
+          "interactionState": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus'>"
+            },
+            "description": "Default `default`."
+          },
+          "height": {
+            "required": false,
+            "tsType": {
+              "name": "number"
+            },
+            "description": "Total height in px, a multiple of the 8pt grid up to `contentCardSpec.maxHeight`.\nAnything else is snapped onto the grid and held inside the range. Default 440.",
+            "defaultValue": {
+              "value": "440",
+              "computed": false
+            }
+          },
+          "children": {
+            "required": false,
+            "tsType": {
+              "name": "ReactNode"
+            },
+            "description": "Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order."
+          }
+        }
+      },
+      "subcomponents": {
+        "ContentCardHeader": {
+          "name": "ContentCardHeader",
+          "path": "./src/ui-kit/ContentCard.tsx",
+          "description": "The top zone. Everything in it is optional and collapses when left out, so one\ncomponent covers the header the card actually needs:\n\n  plain text      `title`, with `overline` / `subtitle`\n  with a badge    `icon` beside the text\n  a match         `match`, the two sides facing each other\n  a table heading `subtitle` + `stats`, the columns beside the second line\n  a partner       `partner`, instead of the title\n  an ad           `ad`, a tag over its rule",
+          "reactDocgen": {
+            "description": "The top zone. Everything in it is optional and collapses when left out, so one\ncomponent covers the header the card actually needs:\n\n  plain text      `title`, with `overline` / `subtitle`\n  with a badge    `icon` beside the text\n  a match         `match`, the two sides facing each other\n  a table heading `subtitle` + `stats`, the columns beside the second line\n  a partner       `partner`, instead of the title\n  an ad           `ad`, a tag over its rule",
+            "displayName": "ContentCardHeader",
+            "actualName": "ContentCardHeader",
+            "exportName": "ContentCardHeader",
+            "props": {
+              "overline": {
+                "required": false,
+                "tsType": {
+                  "name": "string"
+                },
+                "description": "Small line above the title. Omitted or empty: not drawn."
+              },
+              "title": {
+                "required": false,
+                "tsType": {
+                  "name": "string"
+                },
+                "description": "Default `Título`. Empty: not drawn — a header may be only a partner or an ad tag.",
+                "defaultValue": {
+                  "value": "'Título'",
+                  "computed": false
+                }
+              },
+              "subtitle": {
+                "required": false,
+                "tsType": {
+                  "name": "string"
+                },
+                "description": "Small line under the title. Omitted or empty: not drawn."
+              },
+              "icon": {
+                "required": false,
+                "tsType": {
+                  "name": "ReactNode"
+                },
+                "description": "A badge beside the title and subtitle — a flag, a crest, a channel mark."
+              },
+              "match": {
+                "required": false,
+                "tsType": {
+                  "name": "ContentCardHeaderMatch"
+                },
+                "description": "Two sides facing each other, instead of a title."
+              },
+              "stats": {
+                "required": false,
+                "tsType": {
+                  "name": "unknown"
+                },
+                "description": "Column headings beside the subtitle, on the same line — `Pts`, `J`, `V`."
+              },
+              "partner": {
+                "required": false,
+                "tsType": {
+                  "name": "ContentCardHeaderPartner"
+                },
+                "description": "Who is presenting the card."
+              },
+              "ad": {
+                "required": false,
+                "tsType": {
+                  "name": "signature",
+                  "type": "object",
+                  "raw": "{ label: string; logo?: ReactNode }",
+                  "signature": {
+                    "properties": [
+                      {
+                        "key": "label",
+                        "value": {
+                          "name": "string",
+                          "required": true
+                        }
+                      },
+                      {
+                        "key": "logo",
+                        "value": {
+                          "name": "ReactNode",
+                          "required": false
+                        }
+                      }
+                    ]
+                  }
+                },
+                "description": "An advertising tag over a rule: its wording, and the advertiser's mark."
+              }
+            }
+          }
+        },
+        "ContentCardBody": {
+          "name": "ContentCardBody",
+          "path": "./src/ui-kit/ContentCard.tsx",
+          "description": "The main zone. It takes the height the header and footer leave and clips at the\ncard's inset rather than pushing past it.",
+          "reactDocgen": {
+            "description": "The main zone. It takes the height the header and footer leave and clips at the\ncard's inset rather than pushing past it.",
+            "displayName": "ContentCardBody",
+            "actualName": "ContentCardBody",
+            "exportName": "ContentCardBody",
+            "props": {
+              "quote": {
+                "required": false,
+                "tsType": {
+                  "name": "string"
+                },
+                "description": "A quote under the body's content. Omitted or empty: not drawn."
+              },
+              "children": {
+                "required": false,
+                "tsType": {
+                  "name": "ReactNode"
+                },
+                "description": "The card's content — rows of Table Cells, or any stack of kit text."
+              }
+            }
+          }
+        },
+        "ContentCardFooter": {
+          "name": "ContentCardFooter",
+          "path": "./src/ui-kit/ContentCard.tsx",
+          "description": "The bottom zone, pinned to the card's bottom edge even when there is no body above it.",
+          "reactDocgen": {
+            "description": "The bottom zone, pinned to the card's bottom edge even when there is no body above it.",
+            "displayName": "ContentCardFooter",
+            "actualName": "ContentCardFooter",
+            "exportName": "ContentCardFooter",
+            "props": {
+              "caption": {
+                "required": false,
+                "tsType": {
+                  "name": "string"
+                },
+                "description": "A centred caption, drawn at 70% like Figma's. Omitted or empty: not drawn."
+              },
+              "children": {
+                "required": false,
+                "tsType": {
+                  "name": "ReactNode"
+                },
+                "description": "Controls or a call to action, laid out beside the caption."
+              }
+            }
+          }
+        }
+      }
+    },
+    "ui-kit-label-video": {
+      "id": "ui-kit-label-video",
+      "name": "LabelVideo",
+      "path": "./src/ui-kit/LabelVideo.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "ui-kit-label-video--live-focus",
+          "name": "Live Focus"
+        },
+        {
+          "id": "ui-kit-label-video--live-rest",
+          "name": "Live Rest"
+        }
+      ],
+      "reactDocgen": {
+        "description": "The AO VIVO / REPLAY chip that says what the video behind the screen is.",
+        "displayName": "LabelVideo",
+        "actualName": "LabelVideo",
+        "exportName": "LabelVideo",
+        "props": {
+          "kind": {
+            "required": false,
+            "tsType": {
+              "name": "union",
+              "raw": "'live' | 'replay'",
+              "elements": [
+                {
+                  "name": "literal",
+                  "value": "'live'"
+                },
+                {
+                  "name": "literal",
+                  "value": "'replay'"
+                }
+              ]
+            },
+            "description": "`live` says AO VIVO, `replay` says REPLAY.",
+            "defaultValue": {
+              "value": "'live'",
+              "computed": false
+            }
+          },
+          "interactionState": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus'>"
+            },
+            "description": "Focused: gradient fill with the volume icon. Default: translucent chip. Default `focus`."
+          },
+          "focus": {
+            "required": false,
+            "tsType": {
+              "name": "boolean"
+            },
+            "description": "@deprecated Use `interactionState` (`focus` or `default`)."
+          },
+          "mini": {
+            "required": false,
+            "tsType": {
+              "name": "boolean"
+            },
+            "description": "Compact chip — live only, no icon.",
+            "defaultValue": {
+              "value": "false",
+              "computed": false
+            }
+          }
+        }
+      }
+    },
+    "ui-kit-button": {
+      "id": "ui-kit-button",
+      "name": "Button",
+      "path": "./src/ui-kit/Button.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "ui-kit-button--focus",
+          "name": "Focus"
+        },
+        {
+          "id": "ui-kit-button--selected",
+          "name": "Selected"
+        }
+      ],
+      "reactDocgen": {
+        "description": "One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge.",
+        "displayName": "Button",
+        "actualName": "Button",
+        "exportName": "Button",
+        "props": {
+          "interactionState": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus' | 'selected'>"
+            },
+            "description": "Default `focus`."
+          },
+          "state": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus' | 'selected'>"
+            },
+            "description": "@deprecated Use `interactionState` — same values."
+          },
+          "title": {
+            "required": false,
+            "tsType": {
+              "name": "string"
+            },
+            "description": "The card’s title — as an interactivity, the only text it carries.",
+            "defaultValue": {
+              "value": "'Title'",
+              "computed": false
+            }
+          },
+          "overline": {
+            "required": false,
+            "tsType": {
+              "name": "string"
+            },
+            "description": "Small line above the title (schedule section only).",
+            "defaultValue": {
+              "value": "'Overline'",
+              "computed": false
+            }
+          },
+          "subtitle": {
+            "required": false,
+            "tsType": {
+              "name": "string"
+            },
+            "description": "Small line under the title (schedule section only).",
+            "defaultValue": {
+              "value": "'Subtitle'",
+              "computed": false
+            }
+          },
+          "live": {
+            "required": false,
+            "tsType": {
+              "name": "boolean"
+            },
+            "description": "Renders the \"AO VIVO\" badge.",
+            "defaultValue": {
+              "value": "true",
+              "computed": false
+            }
+          },
+          "check": {
+            "required": false,
+            "tsType": {
+              "name": "boolean"
+            },
+            "description": "Renders the check mark in the thumbnail's top-right.",
+            "defaultValue": {
+              "value": "false",
+              "computed": false
+            }
+          },
+          "advertising": {
+            "required": false,
+            "tsType": {
+              "name": "signature",
+              "type": "object",
+              "raw": "{ label: string; logoSrc: string }",
+              "signature": {
+                "properties": [
+                  {
+                    "key": "label",
+                    "value": {
+                      "name": "string",
+                      "required": true
+                    }
+                  },
+                  {
+                    "key": "logoSrc",
+                    "value": {
+                      "name": "string",
+                      "required": true
+                    }
+                  }
+                ]
+              }
+            },
+            "description": "Renders the \"Publicidade\" row with a partner logo."
+          },
+          "thumbnail": {
+            "required": false,
+            "tsType": {
+              "name": "ReactNode"
+            },
+            "description": "Fills the thumbnail slot."
+          },
+          "onClick": {
+            "required": false,
+            "tsType": {
+              "name": "signature",
+              "type": "function",
+              "raw": "() => void",
+              "signature": {
+                "arguments": [],
+                "return": {
+                  "name": "void"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "primitives-button": {
+      "id": "primitives-button",
+      "name": "Button",
+      "path": "./src/primitives/Button.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "primitives-button--primary",
+          "name": "Primary"
+        },
+        {
+          "id": "primitives-button--focus",
+          "name": "Focus"
+        }
+      ],
+      "reactDocgen": {
+        "description": "",
+        "displayName": "Button",
+        "actualName": "Button",
+        "exportName": "Button",
+        "props": {
+          "variant": {
+            "required": false,
+            "tsType": {
+              "name": "union",
+              "raw": "'primary' | 'secondary' | 'ghost'",
+              "elements": [
+                {
+                  "name": "literal",
+                  "value": "'primary'"
+                },
+                {
+                  "name": "literal",
+                  "value": "'secondary'"
+                },
+                {
+                  "name": "literal",
+                  "value": "'ghost'"
+                }
+              ]
+            },
+            "description": "",
+            "defaultValue": {
+              "value": "'primary'",
+              "computed": false
+            }
+          },
+          "size": {
+            "required": false,
+            "tsType": {
+              "name": "union",
+              "raw": "'md' | 'lg'",
+              "elements": [
+                {
+                  "name": "literal",
+                  "value": "'md'"
+                },
+                {
+                  "name": "literal",
+                  "value": "'lg'"
+                }
+              ]
+            },
+            "description": "",
+            "defaultValue": {
+              "value": "'md'",
+              "computed": false
+            }
+          },
+          "interactionState": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>"
+            },
+            "description": "Default `default`."
+          },
+          "status": {
+            "required": false,
+            "tsType": {
+              "name": "Extract",
+              "elements": [
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'selected' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'selected'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                },
+                {
+                  "name": "union",
+                  "raw": "'default' | 'focus' | 'loading' | 'disabled'",
+                  "elements": [
+                    {
+                      "name": "literal",
+                      "value": "'default'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'focus'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'loading'"
+                    },
+                    {
+                      "name": "literal",
+                      "value": "'disabled'"
+                    }
+                  ]
+                }
+              ],
+              "raw": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>"
+            },
+            "description": "@deprecated Use `interactionState` — same values."
+          },
+          "iconLeft": {
+            "required": false,
+            "tsType": {
+              "name": "ReactNode"
+            },
+            "description": ""
+          },
+          "iconRight": {
+            "required": false,
+            "tsType": {
+              "name": "ReactNode"
+            },
+            "description": ""
+          },
+          "children": {
+            "required": true,
+            "tsType": {
+              "name": "ReactNode"
+            },
+            "description": "The label."
+          },
+          "type": {
+            "defaultValue": {
+              "value": "'button'",
+              "computed": false
+            },
+            "required": false
+          }
+        },
+        "composes": [
+          "Omit"
+        ]
+      }
+    },
+    "ui-kit-table-cell": {
+      "id": "ui-kit-table-cell",
+      "name": "TableCell",
+      "path": "./src/ui-kit/TableCell.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "ui-kit-table-cell--team",
+          "name": "Team"
+        },
+        {
+          "id": "ui-kit-table-cell--team-everything",
+          "name": "Team Everything"
+        }
+      ],
+      "reactDocgen": {
+        "description": "One table row. `type` picks which row it is; everything optional collapses when left out.",
+        "displayName": "TableCell",
+        "actualName": "TableCell",
+        "exportName": "TableCell"
+      }
+    },
+    "templates-screens": {
+      "id": "templates-screens",
+      "name": "Template",
+      "path": "./src/canvas/ScreenTemplates.stories.tsx",
+      "jsDocTags": {},
+      "stories": [
+        {
+          "id": "templates-screens--home",
+          "name": "Home"
+        },
+        {
+          "id": "templates-screens--home-notificacao",
+          "name": "Home + Notificação"
+        }
+      ],
+      "error": {
+        "name": "No component import found",
+        "message": "No component file found for the \"Template\" component."
+      }
+    }
+  }
+}

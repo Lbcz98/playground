@@ -29,8 +29,11 @@ export interface WideButtonProps {
   interactionState?: WideButtonStatus
   /** @deprecated Use `interactionState` — same values. */
   status?: WideButtonStatus
+  /** The call to action, e.g. "Assistir". */
   label?: string
+  /** Shows the icon before the label. */
   iconLeft?: boolean
+  /** Shows the icon after the label. */
   iconRight?: boolean
   onClick?: () => void
 }
@@ -74,6 +77,7 @@ function centerFor(state: WideButtonStatus): CSSProperties {
   return { ...center, backgroundColor: token('--color-semantic-functional-background-translucent') }
 }
 
+/** The pill call-to-action of a screen — text with optional icons. */
 export function WideButton({
   interactionState,
   status,

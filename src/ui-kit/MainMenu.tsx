@@ -44,11 +44,15 @@ export interface MainMenuProps {
 
   onScheduleClick?: () => void
 
+  /** The weather item’s first line. */
   weatherTitle?: string
+  /** The weather item’s second line, e.g. the city. */
   weatherSubtitle?: string
   onWeatherClick?: () => void
 
+  /** The live program’s name. */
   programTitle?: string
+  /** The line under the program’s name, e.g. its time slot. */
   programSubtitle?: string
   logoSrc?: string
   onLogoClick?: () => void
@@ -91,6 +95,7 @@ function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: 
   )
 }
 
+/** The home menu along the bottom edge: profile, schedule and weather, then the live program and the channel bug. */
 export function MainMenu({
   focusedItem,
   bugFocused,

@@ -43,6 +43,8 @@ const footer = <ContentCardFooter caption="Atualizado há 1 min" />
 const meta = {
   title: 'UI Kit/Content Card',
   component: ContentCard,
+  // The zones, so the components manifest documents them with the card.
+  subcomponents: { ContentCardHeader, ContentCardBody, ContentCardFooter },
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
