@@ -538,7 +538,35 @@ export function auditFrameLayout(
     check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side, where focus starts', [
       ...auditScreenLayers(d, manifest),
       ...levelFocusProblems(manifest, screenOf(d), focused, seen),
+      ...levelRootProblems(manifest, screenOf(d), isObject(d.root) ? d.root : undefined),
     ]),
+  ]
+}
+
+/** The container prop that places its children along the main axis (`justify`), when it has an `end`. */
+export function justifyPropFor(component: ManifestComponent): ManifestProp | undefined {
+  return Object.values(component.props).find(
+    (prop) => /^justify(Content)?$/i.test(prop.name) && prop.options?.includes('end'),
+  )
+}
+
+/** Levels whose stack always sits at the end of the frame: the outermost container's `justify` is `end`. */
+export function levelRootProblems(
+  manifest: DesignSystemManifest,
+  screen: unknown,
+  root: FrameNode | undefined,
+): string[] {
+  const layers = screenLayersOf(manifest)
+  const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+  const level = model ? navigationLevel(layers, model.level) : undefined
+  if (!level?.rootEnd || !root || typeof root.type !== 'string') return []
+  const component = manifest.components[root.type]
+  const prop = component ? justifyPropFor(component) : undefined
+  if (!component || !prop) return []
+  const value = propValue(root, prop)
+  if (value === 'end') return []
+  return [
+    `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
   ]
 }
 

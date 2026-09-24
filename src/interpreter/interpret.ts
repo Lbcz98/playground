@@ -53,6 +53,7 @@ import {
   centeringPropsFor,
   focusedBy,
   focusPropsFor,
+  justifyPropFor,
   frameLayoutErrors,
   isModuleGroup,
   unfocusedValue,
@@ -144,6 +145,7 @@ export function interpretBlueprint(
   const screen = repairScreen(doc.screen, ctx.manifest, issues)
   const side = screen ? screenModel(screenLayersOf(ctx.manifest), screen.model)?.side : undefined
   repairFrameLayout(root, ctx.manifest, issues, side)
+  repairLevelRoot(root, ctx.manifest, screen, issues)
   repairLevelFocus(root, ctx.manifest, screen, issues)
   repairFocus(root, ctx.manifest, issues)
   if (screen) {
@@ -281,6 +283,27 @@ export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
     ...(node.goTo ? { goTo: node.goTo } : {}),
   })
   return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
+}
+
+/** On the levels whose stack sits at the end of the frame, the root's `justify` is `end`. */
+function repairLevelRoot(
+  root: CanvasNode,
+  manifest: DesignSystemManifest,
+  screen: ScreenSpec | undefined,
+  issues: InterpretIssue[],
+): void {
+  const layers = screenLayersOf(manifest)
+  const model = screen ? screenModel(layers, screen.model) : undefined
+  const level = model ? layers.levels.find((l) => l.level === model.level) : undefined
+  const component = manifest.components[root.type]
+  const prop = level?.rootEnd && component ? justifyPropFor(component) : undefined
+  if (!prop || root.props[prop.name] === 'end') return
+  issues.push({
+    level: 'info',
+    path: 'root',
+    message: `Set ${prop.name} to "end" on the root (was ${brief(root.props[prop.name])}) — the stack on level ${level?.level} sits at the end of the frame.`,
+  })
+  root.props = { ...root.props, [prop.name]: 'end' }
 }
 
 /**

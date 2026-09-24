@@ -164,6 +164,8 @@ export interface ManifestNavigationLevel {
    * on the rounded button = the third). Absent: the level says nothing about focus.
    */
   initialFocus?: ManifestInitialFocus
+  /** The outermost container sits at the end of the frame (the bottom): its `justify` is `end`. */
+  rootEnd?: boolean
 }
 
 export interface ManifestInitialFocus {
@@ -371,6 +373,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
             rule: z.string().max(MAX_STR),
             maxModules: z.number().int().min(0).nullable(),
             allowsAnchor: z.boolean(),
+            rootEnd: z.boolean().optional(),
             initialFocus: z
               .object({
                 on: z.array(idSchema).min(1).max(8),

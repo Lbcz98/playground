@@ -248,8 +248,12 @@ function useTvFocus(
     // On a level whose focus starts on the anchored control (the third level's
     // rounded button) the anchored zone holds the focus. It can't place itself, so
     // its side is the layer model's.
-    const anchoredId = held ? null : anchoredFocusId(tree, manifest)
-    const anchoredEl = anchoredId ? frame.querySelector(`[data-anchor-zone] [data-node-id="${CSS.escape(anchoredId)}"]`) : null
+    const hostOf = (id: string | null): Element | null =>
+      id ? frame.querySelector(`[data-anchor-zone] [data-node-id="${CSS.escape(id)}"]`) : null
+    // A focus the viewer put on an anchored control (arrow keys, a click) wins; else the level's own.
+    const anchoredHost = hostOf(selectedId) ?? (held ? null : hostOf(anchoredFocusId(tree, manifest)))
+    // The node's element may be a box-less host around the real control.
+    const anchoredEl = anchoredHost ? (anchoredHost.matches(FOCUSABLE) ? anchoredHost : anchoredHost.querySelector(FOCUSABLE)) : null
     if (anchoredEl) {
       const model = screenModel(screenLayersOf(manifest), tree.screen?.model)
       lastFocusedId.current = null

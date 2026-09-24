@@ -64,6 +64,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
     {
       level: 2,
       name: 'Trilho focado',
+      rootEnd: true,
       rule: 'The second level: the viewer moved up into a content rail (or focused profile, schedule or alerts). The rest of the menu is hidden and the screen is cleared around that one rail.',
       maxModules: 1,
       allowsAnchor: true,
@@ -76,13 +77,14 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
     {
       level: 3,
       name: 'Interatividade única',
+      rootEnd: true,
       rule: 'The third level: one interactivity needs more room (statistics, a line-up, a VOD page). Every other element is cleared; only that interactivity remains, with its close button as the anchored cluster.',
       maxModules: 1,
       allowsAnchor: true,
       initialFocus: {
         on: ['CloseButton', 'RoundedButton'],
         required: true,
-        hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself.',
+        hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself. The content card is focusable — the viewer moves the focus onto it from the rounded button.',
       },
     },
   ],

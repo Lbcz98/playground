@@ -94,3 +94,30 @@ describe('the pages that are told by their focus must have it', () => {
     expect(errors(d)).toEqual([])
   })
 })
+
+describe('levels 2 and 3 — the stack always sits at the end of the frame', () => {
+  it('the templates do, left models included (they stay on the left through their module)', () => {
+    for (const id of ['interactivity-buttons-right', 'interactivity-cards-right', 'interactivity-cards-left']) {
+      expect(doc(id).root.props!.justify).toBe('end')
+      expect(errors(doc(id))).toEqual([])
+    }
+  })
+
+  it('rejects a root that sits anywhere else, and the interpreter sets it', () => {
+    for (const id of ['interactivity-buttons-right', 'interactivity-cards-left']) {
+      const d = doc(id)
+      d.root.props = { ...d.root.props, justify: 'start' }
+      expect(errors(d).join()).toMatch(/the stack sits at the end of the frame.*use "end"/)
+      const r = interpretPrototype(d, S)
+      if (!r.ok) throw new Error(r.error)
+      expect(r.screens[0].tree.props.justify).toBe('end')
+      expect(r.issues.some((i) => /sits at the end of the frame/.test(i.message))).toBe(true)
+    }
+  })
+
+  it('leaves Home and the clean broadcast alone', () => {
+    const d = doc('home')
+    d.root.props = { ...d.root.props, justify: 'start' }
+    expect(errors(d).join()).not.toMatch(/end of the frame/)
+  })
+})

@@ -96,6 +96,7 @@ export function ContentCard({ interactionState, height = contentCardSpec.height,
     overflow: 'hidden',
     flexShrink: 0,
     backgroundColor: focus ? undefined : token('--color-semantic-functional-background-translucent'),
+    outline: 'none',
   }
 
   const zones: CSSProperties = {
@@ -109,7 +110,8 @@ export function ContentCard({ interactionState, height = contentCardSpec.height,
   }
 
   return (
-    <div style={frame}>
+    // Focusable: the viewer moves the TV focus onto the card from the rounded button.
+    <div tabIndex={0} style={frame}>
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
       <div style={zones}>{children}</div>
     </div>

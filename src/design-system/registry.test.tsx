@@ -103,6 +103,13 @@ describe('the decoration host', () => {
   })
 })
 
+describe('the content card is focusable', () => {
+  it('takes a tab stop, so the TV focus can move onto it', () => {
+    const entry = hydrateRegistry(SCREENFLOW_MANIFEST).get('ContentCard')!
+    expect(renderToStaticMarkup(entry.render({}, null))).toContain('tabindex="0"')
+  })
+})
+
 describe('hydrateRegistry — imported design system', () => {
   const imported = parseStorybookDocgen(
     {
