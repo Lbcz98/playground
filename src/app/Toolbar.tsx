@@ -41,9 +41,6 @@ export function Toolbar(): JSX.Element {
     <header className="flex items-center justify-between border-b border-line bg-surface px-lg py-2xs">
       <div className="flex items-center gap-2xs">
         <span className="text-md font-semibold text-ink">ScreenFlow Studio</span>
-        <span className="rounded-full bg-brand-subtle px-2xs py-3xs text-xs font-medium text-brand-strong">
-          Phase 1
-        </span>
       </div>
 
       <div role="group" aria-label="Mode" className="flex overflow-hidden rounded-md border border-line text-sm font-medium">

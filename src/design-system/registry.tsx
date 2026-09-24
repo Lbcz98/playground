@@ -21,6 +21,8 @@ import {
   type MouseEvent,
   type ReactElement,
   type ReactNode,
+  useLayoutEffect,
+  useRef,
 } from 'react'
 import { z } from 'zod'
 import { cx } from '@/lib/cx'
@@ -472,10 +474,27 @@ export function DecorationHost({
   children?: ReactNode
   onClick?: (event: MouseEvent) => void
   'data-node-id'?: string
+  /** Edit mode's chrome: `selected` rings the kit's own root, `editable` rings it on hover. */
+  'data-selected'?: boolean
+  'data-editable'?: boolean
   className?: string
 }): ReactElement {
+  const host = useRef<HTMLSpanElement>(null)
+  const selected = rest['data-selected'] === true
+  const editable = rest['data-editable'] === true
+
+  // The host has no box, so the ring goes on the kit's own root element.
+  useLayoutEffect(() => {
+    const el = host.current?.firstElementChild
+    if (!el) return
+    el.classList.toggle('ring', selected)
+    el.classList.toggle('ring-brand', selected)
+    el.classList.toggle('hover:ring', editable && !selected)
+    el.classList.toggle('hover:ring-brand-subtle', editable && !selected)
+  }, [selected, editable])
+
   return (
-    <span data-node-id={rest['data-node-id']} onClick={onClick} style={{ display: 'contents' }}>
+    <span ref={host} data-node-id={rest['data-node-id']} onClick={onClick} style={{ display: 'contents' }}>
       {children}
     </span>
   )

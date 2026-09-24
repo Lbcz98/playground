@@ -43,6 +43,21 @@ export function addUsage(a: GenerateUsage | undefined, b: GenerateUsage | undefi
   }
 }
 
+/**
+ * The model answered, but not with parseable JSON. Distinct from a provider
+ * failure (no login, no network): the orchestrator hands it back to the model as
+ * a validation error and retries, keeping the raw reply so the model sees what it wrote.
+ */
+export class MalformedOutputError extends Error {
+  constructor(
+    message: string,
+    readonly raw: string,
+  ) {
+    super(message)
+    this.name = 'MalformedOutputError'
+  }
+}
+
 /** Pull a Blueprint document out of free-form model text (CLI provider). */
 export function extractBlueprintJson(text: string): unknown {
   let cleaned = text.trim()
@@ -58,9 +73,13 @@ export function extractBlueprintJson(text: string): unknown {
   const start = cleaned.indexOf('{')
   const end = cleaned.lastIndexOf('}')
   if (start >= 0 && end > start) {
-    return JSON.parse(cleaned.slice(start, end + 1))
+    try {
+      return JSON.parse(cleaned.slice(start, end + 1))
+    } catch (err) {
+      throw new MalformedOutputError(err instanceof Error ? err.message : String(err), text)
+    }
   }
-  throw new Error('Model output did not contain a JSON object')
+  throw new MalformedOutputError('Model output did not contain a JSON object', text)
 }
 
 /** Accept either a bare Blueprint doc or a `{ blueprint: ... }` wrapper. */

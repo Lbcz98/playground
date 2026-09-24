@@ -30,7 +30,7 @@ import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
-import { unwrapBlueprint } from './providers/types'
+import { MalformedOutputError, unwrapBlueprint } from './providers/types'
 import { validateBlueprint } from './validateBlueprint'
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
@@ -100,31 +100,45 @@ export async function generateUI(
     let lastErrors: string[] = []
 
     for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
-      const gen = await provider.renderUi({
-        system: genSystem,
-        messages: genMessages,
-        model: options.model,
-        effort: options.effort,
-      })
-      usage = addUsage(usage, gen.usage)
-      model = gen.model ?? model
-      lastBlueprint = unwrapBlueprint(gen.blueprint)
+      let errors: string[]
+      let reply = ''
+      try {
+        const gen = await provider.renderUi({
+          system: genSystem,
+          messages: genMessages,
+          model: options.model,
+          effort: options.effort,
+        })
+        usage = addUsage(usage, gen.usage)
+        model = gen.model ?? model
+        lastBlueprint = unwrapBlueprint(gen.blueprint)
+        reply = JSON.stringify(lastBlueprint)
 
-      const validation = validateBlueprint(lastBlueprint, manifest)
-      if (validation.ok) {
-        steps.push(`step 2 · generator: valid on attempt ${attempt}`)
-        return success(lastBlueprint, provider, model, usage, steps, startedAt)
+        const validation = validateBlueprint(lastBlueprint, manifest)
+        if (validation.ok) {
+          steps.push(`step 2 · generator: valid on attempt ${attempt}`)
+          return success(lastBlueprint, provider, model, usage, steps, startedAt)
+        }
+        errors = validation.errors
+      } catch (err) {
+        // A reply that isn't JSON is the model's mistake, not the provider's: say so and retry.
+        if (!(err instanceof MalformedOutputError)) throw err
+        reply = err.raw.slice(0, 6000)
+        errors = [
+          `Your reply was not valid JSON (${err.message}). Reply with ONLY the JSON object — no prose, no comments, no trailing commas, every key and string double-quoted.`,
+        ]
+        if (attempt > MAX_RETRIES) throw err
       }
 
-      lastErrors = validation.errors
-      steps.push(`step 3 · validate: attempt ${attempt} had ${validation.errors.length} issue(s)`)
+      lastErrors = errors
+      steps.push(`step 3 · validate: attempt ${attempt} had ${errors.length} issue(s)`)
 
       if (attempt <= MAX_RETRIES) {
-        genMessages.push({ role: 'assistant', content: JSON.stringify(lastBlueprint) })
+        genMessages.push({ role: 'assistant', content: reply })
         genMessages.push({
           role: 'user',
           content:
-            `That Blueprint is invalid:\n${validation.errors.map((e) => `- ${e}`).join('\n')}\n\n` +
+            `That Blueprint is invalid:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
             `Return the corrected JSON — same structure, only fixing these problems.`,
         })
       }

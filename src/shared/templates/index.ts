@@ -4,6 +4,7 @@ import { homeTemplate } from './home'
 import { homeNotificationTemplate } from './homeNotification'
 import { interactivityCardsLeftTemplate, interactivityCardsRightTemplate } from './interactivityCards'
 import { interactivityRailTemplate } from './interactivityRail'
+import { prototypeFlowTemplate } from './prototypeFlow'
 
 export type { ScreenTemplate } from './types'
 export { chooseTemplate, parseScreenModel, parseTemplateLine, type TemplateChoice } from './choose'
@@ -16,6 +17,7 @@ export const SCREEN_TEMPLATES: readonly ScreenTemplate[] = [
   interactivityCardsRightTemplate,
   interactivityCardsLeftTemplate,
   alertTemplate,
+  prototypeFlowTemplate,
 ]
 
 export const TEMPLATE_IDS: readonly string[] = SCREEN_TEMPLATES.map((template) => template.id)

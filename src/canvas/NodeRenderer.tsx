@@ -1,6 +1,7 @@
 import { cloneElement, type MouseEvent, type ReactElement } from 'react'
 import type { CanvasNode } from '@/model/nodeTree'
 import { useHydratedRegistry } from '@/design-system/DesignSystemProvider'
+import { DecorationHost } from '@/design-system/registry'
 import { useFlowStore } from '@/store/flowStore'
 import { usePlayStore } from '@/store/playStore'
 import { cx } from '@/lib/cx'
@@ -72,6 +73,7 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   // canvas map what's on screen (e.g. the focused element) back to the tree.
   return cloneElement(rendered, {
     'data-node-id': node.id,
+    ...(rendered.type === DecorationHost ? { 'data-selected': isSelected, 'data-editable': true } : {}),
     className: cx(
       rendered.props.className,
       'outline-none',

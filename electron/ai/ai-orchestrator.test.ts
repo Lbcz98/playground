@@ -8,6 +8,7 @@ vi.mock('./providers', async (importActual) => {
 
 const { resolveProvider } = await import('./providers')
 const { generateUI } = await import('./ai-orchestrator')
+const { MalformedOutputError } = await import('./providers/types')
 
 const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
 const INVALID = { version: 1, root: { type: 'Stack', children: [{ type: 'Carousel' }] } }
@@ -224,5 +225,56 @@ describe('generateUI pipeline', () => {
     const res = await generateUI('x')
     expect(res.ok).toBe(false)
     expect(res.ok || res.stage).toBe('api-key:pipeline')
+  })
+})
+
+describe('generateUI — a reply that is not JSON', () => {
+  it('goes back to the model as a validation error and retries, keeping what it wrote', async () => {
+    let calls = 0
+    const provider = fakeProvider({
+      renderUi: vi.fn(async () => {
+        calls += 1
+        if (calls === 1) throw new MalformedOutputError('Expected double-quoted property name', '{ version: 1 }')
+        return { blueprint: VALID, model: 'm' }
+      }),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('a screen')
+
+    expect(res.ok).toBe(true)
+    expect(provider.renderUi).toHaveBeenCalledTimes(2)
+    const [second] = vi.mocked(provider.renderUi).mock.calls[1]
+    expect(second.messages.at(-2)).toEqual({ role: 'assistant', content: '{ version: 1 }' })
+    expect(second.messages.at(-1)?.content).toMatch(/not valid JSON \(Expected double-quoted property name\)/)
+    expect(res.meta.steps.join('\n')).toContain('valid on attempt 2')
+  })
+
+  it('still fails cleanly when every attempt is unparseable', async () => {
+    const provider = fakeProvider({
+      renderUi: vi.fn(async () => {
+        throw new MalformedOutputError('Unexpected token', 'nope')
+      }),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+
+    const res = await generateUI('a screen')
+
+    expect(res.ok).toBe(false)
+    if (res.ok) return
+    expect(res.error).toBe('Unexpected token')
+    expect(provider.renderUi).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not retry a provider failure', async () => {
+    const provider = fakeProvider({
+      renderUi: vi.fn(async () => {
+        throw new Error('not logged in')
+      }),
+    })
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+    const res = await generateUI('a screen')
+    expect(res.ok).toBe(false)
+    expect(provider.renderUi).toHaveBeenCalledTimes(1)
   })
 })

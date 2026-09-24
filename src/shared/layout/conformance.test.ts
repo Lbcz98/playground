@@ -12,7 +12,7 @@
  * file is the checklist that every rule is enforced end to end.
  */
 import { describe, expect, it } from 'vitest'
-import { interpretBlueprint, treeToBlueprint as toBlueprint } from '@/interpreter/interpret'
+import { interpretBlueprint, interpretPrototype, treeToBlueprint as toBlueprint } from '@/interpreter/interpret'
 import type { BlueprintDocument } from '@/shared/blueprint'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
@@ -223,11 +223,19 @@ const CASES: Case[] = [
 describe('Phase 3 — the reference screens are the golden cases', () => {
   it.each(SCREEN_TEMPLATES.map((t) => [t.id, t] as const))('%s passes, and round-trips through the interpreter untouched', (_id, template) => {
     expect(errorsOf(template.blueprint)).toEqual([])
-    const result = interpretBlueprint(template.blueprint, manifest)
+    const result = interpretPrototype(template.blueprint, manifest)
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.issues.filter((i) => i.level === 'warn')).toEqual([])
-    expect(errorsOf(toBlueprint(result.tree))).toEqual([])
+    // Back to the wire format, every screen and link included.
+    const [head, ...rest] = result.screens
+    const again: BlueprintDocument = {
+      ...toBlueprint(head.tree),
+      id: head.id,
+      name: head.name,
+      ...(rest.length ? { screens: rest.map((s) => ({ id: s.id, name: s.name, screen: s.tree.screen, root: toBlueprint(s.tree).root })) } : {}),
+    }
+    expect(errorsOf(again)).toEqual([])
   })
 
   it('the base case for the table is itself clean', () => {

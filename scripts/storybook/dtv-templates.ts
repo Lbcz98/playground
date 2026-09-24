@@ -158,6 +158,39 @@ const alert: BlueprintDocument = {
   },
 }
 
+function firstOf(node: BlueprintNode, type: string): BlueprintNode {
+  if (node.type === type) return node
+  for (const child of node.children ?? []) {
+    try {
+      return firstOf(child, type)
+    } catch {
+      /* keep looking */
+    }
+  }
+  throw new Error(`dtv-templates: no <${type}>`)
+}
+
+/** Home → the rail → one interactivity → back to Home, joined by `goTo` links. */
+function prototypeFlow(): BlueprintDocument {
+  const h = structuredClone(home)
+  const r = structuredClone(interactivityButtonsRight)
+  const c = structuredClone(interactivityCards('right'))
+  firstOf(h.root, 'UiKitButton').goTo = 'rail'
+  firstOf(r.root, 'UiKitButton').goTo = 'stats'
+  firstOf(c.root, 'CloseButton').goTo = 'home'
+  return {
+    version: 1,
+    id: 'home',
+    name: 'Home',
+    screen: h.screen,
+    root: h.root,
+    screens: [
+      { id: 'rail', name: 'Trilho', screen: r.screen, root: r.root },
+      { id: 'stats', name: 'Estatísticas', screen: c.screen, root: c.root },
+    ],
+  }
+}
+
 export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
   {
     id: 'home',
@@ -194,5 +227,11 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
     name: 'Alerta',
     when: 'The clean broadcast with an interactivity alert bug in the bottom-right corner — no menu, no rail, nothing else on screen.',
     blueprint: alert,
+  },
+  {
+    id: 'prototype-flow',
+    name: 'Fluxo clicável · Home → Trilho → Estatísticas',
+    when: 'A clickable prototype across the levels: Home, the rail the viewer enters, one interactivity with its rounded button back to Home. Use it for any flow or "what happens when I click" request; drop the screens the request does not need.',
+    blueprint: prototypeFlow(),
   },
 ]

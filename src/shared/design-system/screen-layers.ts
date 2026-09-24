@@ -68,7 +68,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       maxModules: 1,
       allowsAnchor: true,
       initialFocus: {
-        on: ['InteractivityCard'],
+        on: ['InteractivityCard', 'UiKitButton'],
         hint: 'Focus is on one of the interactivity buttons — that is what makes this the second level, a page of its own; the main menu is not on screen.',
       },
     },
