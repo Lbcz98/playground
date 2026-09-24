@@ -16,7 +16,6 @@
 import {
   Children,
   Component,
-  cloneElement,
   type ErrorInfo,
   type MouseEvent,
   type ReactElement,
@@ -57,7 +56,7 @@ import {
   wideButtonSchema,
 } from './catalog'
 import { AlertBug } from '@/ui-kit/AlertBug'
-import { Button as UiKitCard } from '@/ui-kit/Button'
+import { InteractivityButton } from '@/ui-kit/InteractivityButton'
 import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
 import { LabelVideo } from '@/ui-kit/LabelVideo'
 import { MainMenu } from '@/ui-kit/MainMenu'
@@ -147,9 +146,9 @@ function renderInteractivityMenu(raw: Record<string, unknown>, children: ReactNo
   )
 }
 
-function renderInteractivityCard(raw: Record<string, unknown>): ReactElement {
+function renderInteractivityButton(raw: Record<string, unknown>): ReactElement {
   const { advertisingLabel, ...p } = interactivityCardSchema.parse(raw)
-  return <UiKitCard {...p} advertising={advertisingLabel ? { label: advertisingLabel } : undefined} />
+  return <InteractivityButton {...p} advertising={advertisingLabel ? { label: advertisingLabel } : undefined} />
 }
 
 function renderLabelVideo(raw: Record<string, unknown>): ReactElement {
@@ -350,12 +349,10 @@ function makeGenericRenderer(component: ManifestComponent, tokens: ManifestToken
 
 /**
  * `NodeRenderer` decorates whatever a registry entry's `render()` returns with
- * selection styling (`className`) and a click-to-select handler (`onClick`) via
- * `cloneElement` on the OUTERMOST element — by design, so no wrapper `<div>`
- * ever breaks a parent Stack's flex layout. `LiveComponentBoundary` and
- * `CrashedPlaceholder` both forward those same two props down onto the real
- * DOM-producing element they wrap, so a live-rendered node stays selectable
- * exactly like every other node — success or crashed.
+ * selection styling, a click handler and `data-node-id` via `cloneElement` on the
+ * OUTERMOST element. For a live component that element is a `DecorationHost` (a
+ * `display: contents` span), so the decoration reaches the canvas whatever props
+ * the bundle's component accepts — success or crashed.
  */
 interface Decoration {
   className?: string
@@ -424,17 +421,9 @@ class LiveComponentBoundary extends Component<BoundaryProps, BoundaryState> {
         />
       )
     }
-    // Forward the decoration onto the live component's own root element —
-    // best-effort: this assumes the component spreads unknown props onto its
-    // root DOM node, which is the common convention but not guaranteed for
-    // every bundle. Worst case, that one node just isn't click-selectable.
-    const child = this.props.children
-    const childProps = child.props as { className?: string }
-    return cloneElement(child, {
-      className: cx(childProps.className, this.props.className),
-      onClick: this.props.onClick,
-      'data-node-id': this.props['data-node-id'],
-    })
+    // The canvas decoration lives on the `DecorationHost` around this boundary
+    // (see `makeLiveRenderer`): a bundle's components take only their own props.
+    return this.props.children
   }
 }
 
@@ -449,9 +438,13 @@ function makeLiveRenderer(
       // Keyed on the props so fixing a bad value in the Property Inspector
       // remounts (and gives the component a fresh chance) rather than being
       // stuck showing a stale crash from before the edit.
-      <LiveComponentBoundary component={component} key={JSON.stringify(props)}>
-        <LiveComponent {...props}>{component.acceptsChildren && Children.count(children) > 0 ? children : props.children}</LiveComponent>
-      </LiveComponentBoundary>
+      // A bundle's components drop props they don't declare, so the canvas
+      // decoration (node id, click, selection ring) goes on a box-less host.
+      <DecorationHost>
+        <LiveComponentBoundary component={component} key={JSON.stringify(props)}>
+          <LiveComponent {...props}>{component.acceptsChildren && Children.count(children) > 0 ? children : props.children}</LiveComponent>
+        </LiveComponentBoundary>
+      </DecorationHost>
     )
   }
 }
@@ -511,7 +504,7 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   Button: renderButton,
   MainMenu: hosted(renderMainMenu),
   InteractivityMenu: hosted(renderInteractivityMenu),
-  InteractivityCard: hosted(renderInteractivityCard),
+  InteractivityButton: hosted(renderInteractivityButton),
   LabelVideo: renderLabelVideo,
   WideButton: hosted(renderWideButton),
   RoundedButton: hosted(renderRoundedButton),

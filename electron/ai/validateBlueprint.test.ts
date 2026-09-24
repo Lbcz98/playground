@@ -168,7 +168,7 @@ describe('validateBlueprint — Content Card structure', () => {
       root: {
         type: 'Stack',
         props: { justify: 'end', grow: true },
-        children: [{ type: 'InteractivityMenu', children: [{ type: 'InteractivityCard', props: { title: 'Quiz', advertisingLabel: 'Publicidade' } }] }],
+        children: [{ type: 'InteractivityMenu', children: [{ type: 'InteractivityButton', props: { title: 'Quiz', advertisingLabel: 'Publicidade' } }] }],
       },
     }
     expect(errorsOf(doc)).toBe('')

@@ -9,7 +9,7 @@ const home = () => structuredClone(screenTemplate('home')!.blueprint)
 const rail = () => structuredClone(screenTemplate('interactivity-buttons-right')!.blueprint)
 const stats = () => structuredClone(screenTemplate('interactivity-cards-right')!.blueprint)
 
-/** First InteractivityCard / MainMenu-free clickable in a template tree. */
+/** First InteractivityButton / MainMenu-free clickable in a template tree. */
 function firstOfType(node: BlueprintNode, type: string): BlueprintNode {
   if (node.type === type) return node
   for (const child of node.children ?? []) {
@@ -30,9 +30,9 @@ function flow(): BlueprintDocument {
   const doc = home()
   doc.id = 'home'
   doc.name = 'Home'
-  firstOfType(doc.root, 'InteractivityCard').goTo = 'rail'
+  firstOfType(doc.root, 'InteractivityButton').goTo = 'rail'
   const r = rail()
-  firstOfType(r.root, 'InteractivityCard').goTo = 'stats'
+  firstOfType(r.root, 'InteractivityButton').goTo = 'stats'
   const s = stats()
   return {
     ...doc,
@@ -109,7 +109,7 @@ describe('interpretPrototype', () => {
 
   it('drops a link to nowhere, to itself, or skipping a level — and says so', () => {
     const doc = flow()
-    const card = firstOfType(doc.root, 'InteractivityCard')
+    const card = firstOfType(doc.root, 'InteractivityButton')
     card.goTo = 'stats' // level 1 → 3
     const result = interpretPrototype(doc, S)
     if (!result.ok) throw new Error(result.error)
@@ -117,7 +117,7 @@ describe('interpretPrototype', () => {
     expect(result.issues.some((i) => /Dropped the link.*jumps from level 1 to level 3/.test(i.message))).toBe(true)
 
     const ghost = flow()
-    firstOfType(ghost.root, 'InteractivityCard').goTo = 'ghost'
+    firstOfType(ghost.root, 'InteractivityButton').goTo = 'ghost'
     const r2 = interpretPrototype(ghost, S)
     if (!r2.ok) throw new Error(r2.error)
     expect(r2.issues.some((i) => /"ghost" is not a screen/.test(i.message))).toBe(true)

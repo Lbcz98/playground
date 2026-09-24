@@ -68,7 +68,9 @@ export async function loadLiveComponents(manifestId: string): Promise<LiveBundle
   delete w[LIVE_BUNDLE_GLOBAL]
 
   const script = document.createElement('script')
-  script.src = `design-system://${manifestId}/bundle.js`
+  // A fresh URL per load: a re-imported bundle must not come back from the
+  // renderer's cache of the one this session loaded before.
+  script.src = `design-system://${manifestId}/bundle.js?v=${Date.now()}`
 
   const loaded = await new Promise<boolean>((resolve) => {
     script.onload = () => resolve(true)

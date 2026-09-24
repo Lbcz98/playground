@@ -36,8 +36,8 @@ function build(): BlueprintDocument {
   const rail = structuredClone(interactivityRailTemplate.blueprint)
   const stats = structuredClone(interactivityCardsRightTemplate.blueprint)
 
-  first(home.root, 'InteractivityCard').goTo = 'rail'
-  first(rail.root, 'InteractivityCard').goTo = 'stats'
+  first(home.root, 'InteractivityButton').goTo = 'rail'
+  first(rail.root, 'InteractivityButton').goTo = 'stats'
   first(stats.root, 'CloseButton').goTo = 'home'
 
   return {

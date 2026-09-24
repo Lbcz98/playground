@@ -23,6 +23,7 @@ import {
 } from '@/shared/layout/frame'
 import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { focusLeavesLevel } from '@/shared/design-system/flow'
 import { cx } from '@/lib/cx'
 import { NodeRenderer } from './NodeRenderer'
 import { NodeModeContext, PlayRestContext } from './nodeMode'
@@ -75,7 +76,8 @@ export function Canvas(): JSX.Element {
   const fit = useFitScale(stageRef, statusRef, shown)
   const focusElRef = useRef<Element | null>(null)
   useTvFocus(surfaceRef, contentRef, tree, selectedId, playing ? playFocusItem : null, size, registry, active, playing, focusElRef)
-  usePlayKeys(playing, surfaceRef, tree, registry, focusElRef)
+  usePlayKeys(playing, surfaceRef, tree, registry, focusElRef, active)
+  useReleaseTextFocus(playing, screens)
   const rest = useMemo(() => restStates(tree, active), [tree, active])
 
   const zone = anchorZone(focus.side)
@@ -311,6 +313,7 @@ function usePlayKeys(
   tree: CanvasNode,
   registry: HydratedRegistry,
   focusElRef: MutableRefObject<Element | null>,
+  manifest: DesignSystemManifest,
 ): void {
   const setFocus = usePlayStore((s) => s.focus)
 
@@ -351,7 +354,14 @@ function usePlayKeys(
         const score = (lined ? 0 : LINED_UP_BONUS) + along + across * 2
         if (!best || score < best.score) best = { el, score }
       }
-      if (!best) return
+      if (!best) {
+        // Down and off a page the focus entered (the rail) returns to the page below it.
+        const { trail, back } = usePlayStore.getState()
+        const { screens } = useFlowStore.getState()
+        const here = currentPlayScreenId(trail, screens.map((s) => s.id))
+        if (dir.y === 1 && focusLeavesLevel(manifest, screens, here, trail[trail.length - 2])) back()
+        return
+      }
       const nodeId = best.el.closest('[data-node-id]')?.getAttribute('data-node-id')
       if (!nodeId) return
       const item = best.el.closest('[data-focus-item]')?.getAttribute('data-focus-item') ?? null
@@ -359,7 +369,20 @@ function usePlayKeys(
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [playing, surfaceRef, tree, registry, focusElRef, setFocus])
+  }, [playing, surfaceRef, tree, registry, focusElRef, manifest, setFocus])
+}
+
+/**
+ * The remote is the keyboard while playing, so a text field left focused — the
+ * composer, after sending a prompt with Enter — would swallow the arrow keys.
+ * Entering Play, or a new document arriving while playing, releases it.
+ */
+function useReleaseTextFocus(playing: boolean, screens: unknown): void {
+  useEffect(() => {
+    if (!playing) return
+    const active = document.activeElement
+    if (active instanceof HTMLElement && /^(input|textarea|select)$/i.test(active.tagName)) active.blur()
+  }, [playing, screens])
 }
 
 /** Anything that doesn't line up loses to anything that does, however far. */

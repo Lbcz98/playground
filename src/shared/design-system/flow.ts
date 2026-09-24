@@ -19,7 +19,7 @@ interface LinkNode {
 }
 
 export interface FlowLink {
-  /** Where the link sits, e.g. `root › Stack[1] › InteractivityCard[0]`. */
+  /** Where the link sits, e.g. `root › Stack[1] › InteractivityButton[0]`. */
   path: string
   target: unknown
 }
@@ -96,4 +96,102 @@ export function flowProblems(screens: FlowScreen[], manifest: DesignSystemManife
     }
   }
   return problems
+}
+
+// ---------------------------------------------------------------------------
+// Playing: the focus decides the page
+// ---------------------------------------------------------------------------
+
+/** A played screen: its id and its tree (a canvas node — `type`, `children`, `goTo`, root `screen`). */
+export interface PlayScreen {
+  id: string
+  tree: PlayNode
+}
+
+interface PlayNode {
+  id: string
+  type: string
+  goTo?: string
+  children: PlayNode[]
+  screen?: { model?: unknown }
+}
+
+function nodesOfType(root: PlayNode, type: string): PlayNode[] {
+  const out: PlayNode[] = []
+  const walk = (node: PlayNode): void => {
+    if (node.type === type) out.push(node)
+    node.children.forEach(walk)
+  }
+  walk(root)
+  return out
+}
+
+function findPlayNode(root: PlayNode, id: string): PlayNode | undefined {
+  if (root.id === id) return root
+  for (const child of root.children) {
+    const hit = findPlayNode(child, id)
+    if (hit) return hit
+  }
+  return undefined
+}
+
+/**
+ * Where a focus move lands under the layer rule. The focus is what tells the
+ * pages apart, so moving it onto a component that only holds the focus one level
+ * deeper (an interactivity button, from Home) IS entering that level's page.
+ *
+ * Returns the screen to open — the node's own `goTo` when it opens that level,
+ * else the document's first screen on it — and the node there that takes the
+ * focus: the one at the same position among its kind (the third card stays the
+ * third card). Null when the focus simply moves on this screen, or when the
+ * document has no screen on that level.
+ */
+export function focusEntersLevel(
+  manifest: DesignSystemManifest,
+  screens: readonly PlayScreen[],
+  fromId: string,
+  nodeId: string,
+): { screenId: string; nodeId: string | null } | null {
+  const from = screens.find((s) => s.id === fromId)
+  const node = from ? findPlayNode(from.tree, nodeId) : undefined
+  const level = from ? levelOfScreen(manifest, from.tree.screen) : undefined
+  if (!from || !node || level === undefined) return null
+
+  const layers = screenLayersOf(manifest)
+  const here = layers.levels.find((l) => l.level === level)?.initialFocus
+  const next = layers.levels.find((l) => l.level === level + 1)?.initialFocus
+  if (!next?.on.includes(node.type) || here?.on.includes(node.type)) return null
+
+  const onNext = (s: PlayScreen): boolean => levelOfScreen(manifest, s.tree.screen) === level + 1
+  const target =
+    screens.find((s) => s.id === node.goTo && onNext(s)) ?? screens.find((s) => s.id !== fromId && onNext(s))
+  if (!target) return null
+
+  const mine = nodesOfType(from.tree, node.type)
+  const theirs = nodesOfType(target.tree, node.type)
+  const index = Math.max(0, mine.findIndex((n) => n.id === nodeId))
+  const landing = theirs[Math.min(index, theirs.length - 1)]
+  return { screenId: target.id, nodeId: landing?.id ?? null }
+}
+
+/**
+ * Whether moving the focus down and off a page returns to the page before it —
+ * the other half of `focusEntersLevel`. It does when this page was entered by the
+ * focus: the previous page sits one level up and holds the same focus component
+ * (the rail is on Home too, with the menu below it). A third-level page, opened
+ * with Enter, is left with Back instead.
+ */
+export function focusLeavesLevel(
+  manifest: DesignSystemManifest,
+  screens: readonly PlayScreen[],
+  fromId: string,
+  previousId: string | undefined,
+): boolean {
+  const from = screens.find((s) => s.id === fromId)
+  const previous = screens.find((s) => s.id === previousId)
+  const level = from ? levelOfScreen(manifest, from.tree.screen) : undefined
+  if (!from || !previous || level === undefined) return false
+  if (levelOfScreen(manifest, previous.tree.screen) !== level - 1) return false
+  const on = screenLayersOf(manifest).levels.find((l) => l.level === level)?.initialFocus?.on ?? []
+  return on.some((type) => nodesOfType(previous.tree, type).length > 0)
 }

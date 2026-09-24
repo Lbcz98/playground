@@ -11,7 +11,7 @@
 
 import { z } from 'zod'
 import type { AlertBugStyle } from '@/ui-kit/AlertBug'
-import type { ButtonState } from '@/ui-kit/Button'
+import type { InteractivityButtonState } from '@/ui-kit/InteractivityButton'
 import type { LabelVideoKind } from '@/ui-kit/LabelVideo'
 import type { MainMenuItem } from '@/ui-kit/MainMenu'
 import type { NotificationKind } from '@/ui-kit/Notification'
@@ -116,7 +116,7 @@ export type ButtonProps = z.infer<typeof buttonSchema>
  * compile time. The imports are type-only, so this file stays runtime-free for
  * the Electron main process.
  */
-export const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly ButtonState[]
+export const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly InteractivityButtonState[]
 export const CONTROL_STATES = ['default', 'focus'] as const satisfies readonly RoundButtonState[]
 export const WIDE_BUTTON_STATES = [
   'default',
@@ -168,7 +168,7 @@ export const interactivityCardSchema = z
     advertisingLabel: z.string().default(''),
   })
   .strict()
-export type InteractivityCardProps = z.infer<typeof interactivityCardSchema>
+export type InteractivityButtonProps = z.infer<typeof interactivityCardSchema>
 
 export const labelVideoSchema = z
   .object({
@@ -406,9 +406,9 @@ export const Catalog = {
       align: { kind: 'select', label: 'Align', options: RAIL_ALIGN },
     },
   },
-  InteractivityCard: {
-    type: 'InteractivityCard',
-    label: 'Interactivity Card',
+  InteractivityButton: {
+    type: 'InteractivityButton',
+    label: 'Interactivity Button',
     category: 'content',
     summary:
       'One card in a rail. As an interactivity it is the way into a nível 3 screen and carries its title alone — no overline, no subtitle, no live badge. Overline, subtitle and the live badge belong to the schedule section, where a card stands for a programme. A sponsored card sets advertisingLabel (e.g. "Publicidade"), which adds the sponsor row under its text.',

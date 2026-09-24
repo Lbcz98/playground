@@ -996,95 +996,6 @@
       ],
       "subcomponents": {}
     },
-    "ui-kit-button": {
-      "name": "Button",
-      "description": "One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge.",
-      "props": {
-        "advertising": {
-          "type": "{ label: string; logoSrc?: string }",
-          "kind": "object",
-          "required": false,
-          "description": "Renders the sponsor row — its wording (\"Publicidade\") and, when given, the partner's logo."
-        },
-        "check": {
-          "type": "boolean",
-          "kind": "boolean",
-          "required": false,
-          "defaultValue": "false",
-          "description": "Renders the check mark in the thumbnail's top-right."
-        },
-        "interactionState": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "selected"
-          ],
-          "required": false,
-          "description": "Default `focus`."
-        },
-        "live": {
-          "type": "boolean",
-          "kind": "boolean",
-          "required": false,
-          "defaultValue": "false",
-          "description": "Renders the \"AO VIVO\" badge."
-        },
-        "onClick": {
-          "type": "() => void",
-          "kind": "function",
-          "required": false,
-          "description": ""
-        },
-        "overline": {
-          "type": "string",
-          "kind": "string",
-          "required": false,
-          "description": "Small line above the title (schedule section only)."
-        },
-        "state": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "selected"
-          ],
-          "required": false,
-          "description": "@deprecated Use `interactionState` — same values.",
-          "deprecated": true
-        },
-        "subtitle": {
-          "type": "string",
-          "kind": "string",
-          "required": false,
-          "description": "Small line under the title (schedule section only)."
-        },
-        "thumbnail": {
-          "type": "ReactNode",
-          "kind": "node",
-          "required": false,
-          "description": "Fills the thumbnail slot."
-        },
-        "title": {
-          "type": "string",
-          "kind": "string",
-          "required": false,
-          "description": "The card’s title — as an interactivity, the only text it carries."
-        }
-      },
-      "title": "UI Kit/Button",
-      "stories": [
-        "ui-kit-button--all-states",
-        "ui-kit-button--default",
-        "ui-kit-button--focus",
-        "ui-kit-button--selected",
-        "ui-kit-button--sponsored",
-        "ui-kit-button--with-check"
-      ],
-      "subcomponents": {}
-    },
     "ui-kit-close-button": {
       "name": "CloseButton",
       "description": "The icon-only round control that closes an interactivity.",
@@ -1250,6 +1161,95 @@
           }
         }
       }
+    },
+    "ui-kit-interactivity-button": {
+      "name": "InteractivityButton",
+      "description": "One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge.",
+      "props": {
+        "advertising": {
+          "type": "{ label: string; logoSrc?: string }",
+          "kind": "object",
+          "required": false,
+          "description": "Renders the sponsor row — its wording (\"Publicidade\") and, when given, the partner's logo."
+        },
+        "check": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Renders the check mark in the thumbnail's top-right."
+        },
+        "interactionState": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "selected"
+          ],
+          "required": false,
+          "description": "Default `focus`."
+        },
+        "live": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Renders the \"AO VIVO\" badge."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": ""
+        },
+        "overline": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Small line above the title (schedule section only)."
+        },
+        "state": {
+          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
+          "kind": "enum",
+          "options": [
+            "default",
+            "focus",
+            "selected"
+          ],
+          "required": false,
+          "description": "@deprecated Use `interactionState` — same values.",
+          "deprecated": true
+        },
+        "subtitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "Small line under the title (schedule section only)."
+        },
+        "thumbnail": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "Fills the thumbnail slot."
+        },
+        "title": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The card’s title — as an interactivity, the only text it carries."
+        }
+      },
+      "title": "UI Kit/Interactivity Button",
+      "stories": [
+        "ui-kit-interactivity-button--all-states",
+        "ui-kit-interactivity-button--default",
+        "ui-kit-interactivity-button--focus",
+        "ui-kit-interactivity-button--selected",
+        "ui-kit-interactivity-button--sponsored",
+        "ui-kit-interactivity-button--with-check"
+      ],
+      "subcomponents": {}
     },
     "ui-kit-interactivity-menu": {
       "name": "InteractivityMenu",

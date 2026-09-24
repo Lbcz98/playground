@@ -62,8 +62,8 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     component: 'ui-kit-interactivity-menu',
     codeOnly: { items: 'composition', activeIndex: 'composition', children: 'composition' },
   },
-  InteractivityCard: {
-    component: 'ui-kit-button',
+  InteractivityButton: {
+    component: 'ui-kit-interactivity-button',
     codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot' },
     // The sponsor's wording; its logo is an image slot the agent can't fill.
     propMap: { advertisingLabel: ['advertising'] },

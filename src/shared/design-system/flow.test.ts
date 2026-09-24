@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectLinks, flowProblems, levelJumpProblem } from './flow'
+import { collectLinks, flowProblems, focusEntersLevel, focusLeavesLevel, levelJumpProblem, type PlayScreen } from './flow'
 import { SCREENFLOW_MANIFEST as S } from './screenflow-manifest'
 import { moduleContentSide } from './screen-layers'
 
@@ -62,5 +62,65 @@ describe('moduleContentSide — the root stretches, the module places itself', (
 
   it('says nothing for a module that spans', () => {
     expect(moduleContentSide(S, { type: 'Stack', children: [{ type: 'Stack' }] })).toBeNull()
+  })
+})
+
+describe('playing — the focus decides the page', () => {
+  const node = (id: string, type: string, children: PlayScreen['tree'][] = [], goTo?: string): PlayScreen['tree'] => ({
+    id,
+    type,
+    children,
+    ...(goTo ? { goTo } : {}),
+  })
+  const home: PlayScreen = {
+    id: 'home',
+    tree: {
+      ...node('h', 'Stack', [
+        node('h-menu', 'InteractivityMenu', [
+          node('h-c0', 'InteractivityButton', [], 'rail'),
+          node('h-c1', 'InteractivityButton'),
+          node('h-c2', 'InteractivityButton'),
+        ]),
+        node('h-main', 'MainMenu'),
+      ]),
+      screen: { model: 'home' },
+    },
+  }
+  const rail: PlayScreen = {
+    id: 'rail',
+    tree: {
+      ...node('r', 'Stack', [
+        node('r-menu', 'InteractivityMenu', [node('r-c0', 'InteractivityButton', [], 'stats'), node('r-c1', 'InteractivityButton')]),
+      ]),
+      screen: { model: 'interactivity-buttons-right' },
+    },
+  }
+  const stats: PlayScreen = {
+    id: 'stats',
+    tree: { ...node('s', 'Stack', [node('s-close', 'CloseButton', [], 'home')]), screen: { model: 'interactivity-cards-right' } },
+  }
+  const screens = [home, rail, stats]
+
+  it('focusing an interactivity button on Home opens the second level, on the same card', () => {
+    expect(focusEntersLevel(S, screens, 'home', 'h-c0')).toEqual({ screenId: 'rail', nodeId: 'r-c0' })
+    expect(focusEntersLevel(S, screens, 'home', 'h-c1')).toEqual({ screenId: 'rail', nodeId: 'r-c1' })
+    // More cards on Home than on the rail: the last one takes it.
+    expect(focusEntersLevel(S, screens, 'home', 'h-c2')).toEqual({ screenId: 'rail', nodeId: 'r-c1' })
+  })
+
+  it('moving the focus along the menu, or along the rail itself, stays on the page', () => {
+    expect(focusEntersLevel(S, screens, 'home', 'h-main')).toBeNull()
+    expect(focusEntersLevel(S, screens, 'rail', 'r-c1')).toBeNull()
+    expect(focusEntersLevel(S, screens, 'stats', 's-close')).toBeNull()
+  })
+
+  it('stays when the document has no second-level page', () => {
+    expect(focusEntersLevel(S, [home], 'home', 'h-c0')).toBeNull()
+  })
+
+  it('down and off the rail goes back to Home; off the third level it does not', () => {
+    expect(focusLeavesLevel(S, screens, 'rail', 'home')).toBe(true)
+    expect(focusLeavesLevel(S, screens, 'stats', 'rail')).toBe(false)
+    expect(focusLeavesLevel(S, screens, 'rail', undefined)).toBe(false)
   })
 })

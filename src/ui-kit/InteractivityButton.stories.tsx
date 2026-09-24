@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box, Stack } from '@/primitives'
-import { Button } from './Button'
+import { InteractivityButton } from './InteractivityButton'
 
 const meta = {
-  title: 'UI Kit/Button',
-  component: Button,
+  title: 'UI Kit/Interactivity Button',
+  component: InteractivityButton,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -14,7 +14,7 @@ const meta = {
     ),
   ],
   args: { title: 'Title', overline: 'Overline', subtitle: 'Subtitle', live: true },
-} satisfies Meta<typeof Button>
+} satisfies Meta<typeof InteractivityButton>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -30,9 +30,9 @@ export const AllStates: Story = {
   args: {},
   render: (args) => (
     <Stack direction="row" align="center" gap="lg">
-      <Button {...args} interactionState="focus" />
-      <Button {...args} interactionState="selected" />
-      <Button {...args} interactionState="default" />
+      <InteractivityButton {...args} interactionState="focus" />
+      <InteractivityButton {...args} interactionState="selected" />
+      <InteractivityButton {...args} interactionState="default" />
     </Stack>
   ),
 }

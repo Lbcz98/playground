@@ -2,7 +2,7 @@
  * Interactivity Menu — Figma UI Kit node 2968:9213, cross-checked against a
  * real usage (Handoff/DTV file, node 22440:81041, an audio-options rail).
  *
- * A horizontal rail of `Button` cards. At rest every item is `default`
+ * A horizontal rail of `InteractivityButton` cards. At rest every item is `default`
  * (158×122). Once the rail is entered, the WHOLE ROW expands: the active item
  * becomes `focus` (208×160, gradient ring) and every other item becomes
  * `selected` (208×160, dimmed) — not back to `default`. The real usage
@@ -18,7 +18,7 @@
 
 import { Children, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { spacing, Stack, Text } from '@/primitives'
-import { Button, type ButtonState } from './Button'
+import { InteractivityButton, type InteractivityButtonState } from './InteractivityButton'
 
 export interface InteractivityMenuItem {
   title: string
@@ -57,7 +57,7 @@ const rail: CSSProperties = {
   overflowX: 'auto',
 }
 
-function stateFor(index: number, activeIndex: number | null | undefined): ButtonState {
+function stateFor(index: number, activeIndex: number | null | undefined): InteractivityButtonState {
   if (activeIndex == null) return 'default'
   return index === activeIndex ? 'focus' : 'selected'
 }
@@ -99,7 +99,7 @@ export function InteractivityMenu({
                 }}
                 style={{ flexShrink: 0 }}
               >
-                <Button
+                <InteractivityButton
                   interactionState={stateFor(index, activeIndex)}
                   title={item.title}
                   overline=""

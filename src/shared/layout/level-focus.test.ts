@@ -30,14 +30,14 @@ describe('page 1 · Home — focus starts on the channel rounded button', () => 
   it('rejects a focus on an interactivity button — that is already the second level', () => {
     const d = doc('home')
     find(d.root, 'MainMenu')!.props!.focusedItem = 'none'
-    find(d.root, 'InteractivityCard')!.props!.interactionState = 'focus'
-    expect(errors(d).join()).toMatch(/Level 1 \(Home\).*InteractivityCard.*second level/)
+    find(d.root, 'InteractivityButton')!.props!.interactionState = 'focus'
+    expect(errors(d).join()).toMatch(/Level 1 \(Home\).*InteractivityButton.*second level/)
   })
 
   it('repairs it: the channel button takes focus, the card rests', () => {
     const d = doc('home')
     find(d.root, 'MainMenu')!.props!.focusedItem = 'none'
-    find(d.root, 'InteractivityCard')!.props!.interactionState = 'focus'
+    find(d.root, 'InteractivityButton')!.props!.interactionState = 'focus'
     const r = interpretPrototype(d, S)
     if (!r.ok) throw new Error(r.error)
     const tree = JSON.stringify(r.screens[0].tree)
@@ -54,7 +54,7 @@ describe('page 2 · focus on the interactivity buttons', () => {
   it('rejects a second-level screen with nothing focused', () => {
     const d = doc('interactivity-buttons-right')
     const rest = (n: BlueprintNode): void => {
-      if (n.type === 'InteractivityCard') n.props = { ...n.props, interactionState: 'selected' }
+      if (n.type === 'InteractivityButton') n.props = { ...n.props, interactionState: 'selected' }
       n.children?.forEach(rest)
     }
     rest(d.root)
@@ -85,7 +85,7 @@ describe('the pages that are told by their focus must have it', () => {
   it('a second-level screen with no interactivity button is rejected', () => {
     const d = doc('interactivity-buttons-right')
     d.root = { type: 'Stack', props: d.root.props, children: [{ type: 'Text', props: { content: 'x' } }] }
-    expect(errors(d).join()).toMatch(/Level 2.*no <InteractivityCard>/)
+    expect(errors(d).join()).toMatch(/Level 2.*no <InteractivityButton>/)
   })
 
   it('Home without a main menu is still fine', () => {

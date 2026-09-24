@@ -3,8 +3,8 @@
  * screens `src/shared/templates` authors for the built-in catalog, translated to
  * the DTV import's own component and prop names:
  *
- *   - the interactivity card is `UiKitButton` (the name it imports under, since
- *     it shares "Button" with the primitive — `storybookComponentSources`);
+ *   - the interactivity card is `InteractivityButton` (the kit's own name; the
+ *     built-in catalog calls it the same);
  *   - `direction` is `'row'` / `'column'`, not `'vertical'` / `'horizontal'`;
  *   - `TableCell` uses its own real fields (`name`, `values`, `stats`), not the
  *     catalog's flattened `stat1-3` / `leftValue` / `rightValue`.
@@ -19,14 +19,14 @@ import type { ManifestScreenTemplate } from '../../src/shared/design-system/mani
 /**
  * The interactivity rail. At rest (`entered: false`) its cards carry no focus —
  * the home screen's focus is the menu's programme button — so each is set to
- * `default` explicitly: unlike the catalog's InteractivityCard, the real
- * `UiKitButton` defaults its `interactionState` to `focus`. Entered, the row
+ * `default` explicitly: unlike the catalog's entry, the real
+ * `InteractivityButton` defaults its `interactionState` to `focus`. Entered, the row
  * expands: the card the viewer is on takes the focus, the rest go `selected`.
  */
 function menu(entered = false): BlueprintNode {
   const rest = { interactionState: entered ? ('selected' as const) : ('default' as const) }
   const card = (title: string, isFocused: boolean): BlueprintNode => ({
-    type: 'UiKitButton',
+    type: 'InteractivityButton',
     props: { title, interactionState: isFocused ? 'focus' : rest.interactionState },
   })
   return {
@@ -175,8 +175,8 @@ function prototypeFlow(): BlueprintDocument {
   const h = structuredClone(home)
   const r = structuredClone(interactivityButtonsRight)
   const c = structuredClone(interactivityCards('right'))
-  firstOf(h.root, 'UiKitButton').goTo = 'rail'
-  firstOf(r.root, 'UiKitButton').goTo = 'stats'
+  firstOf(h.root, 'InteractivityButton').goTo = 'rail'
+  firstOf(r.root, 'InteractivityButton').goTo = 'stats'
   firstOf(c.root, 'CloseButton').goTo = 'home'
   return {
     version: 1,

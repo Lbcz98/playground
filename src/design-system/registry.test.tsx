@@ -3,7 +3,7 @@ import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ContentCardHeader } from '@/ui-kit/ContentCard'
-import { hydrateRegistry } from './registry'
+import { DecorationHost, hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { parseStorybookDocgen } from '@/shared/design-system/storybook-adapter'
 
@@ -19,7 +19,7 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
       'ContentCardBody',
       'ContentCardFooter',
       'ContentCardHeader',
-      'InteractivityCard',
+      'InteractivityButton',
       'InteractivityMenu',
       'LabelVideo',
       'MainMenu',
@@ -47,7 +47,7 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
   })
 
   it('a sponsored interactivity card: the sponsor row from its wording alone, no broken image', () => {
-    const card = reg.get('InteractivityCard')!
+    const card = reg.get('InteractivityButton')!
     const html = (props: Record<string, unknown>) =>
       renderToStaticMarkup(card.render(card.schema.parse(props) as Record<string, unknown>, null))
     const sponsored = html({ title: 'Quiz', advertisingLabel: 'Publicidade' })
@@ -228,15 +228,26 @@ describe('hydrateRegistry — live components (Phase 8B)', () => {
     expect(footer.generic).toBe(true)
   })
 
-  it('wraps the live component in a boundary and forwards props', () => {
+  it('wraps the live component in a boundary inside a decoration host, and forwards props', () => {
     const reg = hydrateRegistry(imported, { Hero: LiveHero })
-    const el = reg.get('Hero')!.render({ title: 'Hi' }, null) as {
-      props: { children: { type: unknown; props: Record<string, unknown> } }
-    }
-    // el = <LiveComponentBoundary><LiveHero title="Hi">…</LiveHero></LiveComponentBoundary>
-    const inner = el.props.children
+    type El = { type: unknown; props: { children: El } & Record<string, unknown> }
+    const el = reg.get('Hero')!.render({ title: 'Hi' }, null) as unknown as El
+    // el = <DecorationHost><LiveComponentBoundary><LiveHero title="Hi">…</LiveHero></…></…>
+    expect(el.type).toBe(DecorationHost)
+    const inner = el.props.children.props.children
     expect(inner.type).toBe(LiveHero)
     expect(inner.props.title).toBe('Hi')
+  })
+
+  it('a live component that drops unknown props still carries the canvas node id and click', () => {
+    // Like the real kit: renders only what it declares, never spreads the rest.
+    function Strict({ title }: { title?: string }) {
+      return <button type="button">{title}</button>
+    }
+    const reg = hydrateRegistry(imported, { Hero: Strict as never })
+    const el = reg.get('Hero')!.render({ title: 'Hi' }, null)
+    const html = renderToStaticMarkup(cloneElement(el, { 'data-node-id': 'n_live' }))
+    expect(html).toBe('<span data-node-id="n_live" style="display:contents"><button type="button">Hi</button></span>')
   })
 
   it('keeps a component\'s text children when the Blueprint nests no nodes, and nests nodes when it does', () => {
@@ -249,8 +260,8 @@ describe('hydrateRegistry — live components (Phase 8B)', () => {
     }
     const label = hydrateRegistry(withText, { Label: LiveLabel }).get('Label')!
     expect(label.acceptsChildren).toBe(true)
-    expect(renderToStaticMarkup(label.render({ children: 'Ao vivo' }, []))).toBe('<span>Ao vivo</span>')
-    expect(renderToStaticMarkup(label.render({ children: 'ignored' }, [<b key="a">nested</b>]))).toBe('<span><b>nested</b></span>')
+    expect(renderToStaticMarkup(label.render({ children: 'Ao vivo' }, []))).toBe('<span style="display:contents"><span>Ao vivo</span></span>')
+    expect(renderToStaticMarkup(label.render({ children: 'ignored' }, [<b key="a">nested</b>]))).toBe('<span style="display:contents"><span><b>nested</b></span></span>')
   })
 
   it('never mistakes the built-in ScreenFlow system for a live-bundle candidate', () => {

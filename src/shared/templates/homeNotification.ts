@@ -45,10 +45,10 @@ export const homeNotificationTemplate: ScreenTemplate = {
               type: 'InteractivityMenu',
               props: { align: 'end' },
               children: [
-                { type: 'InteractivityCard', props: { title: 'Opções de áudio' } },
-                { type: 'InteractivityCard', props: { title: 'Lances da partida' } },
-                { type: 'InteractivityCard', props: { title: 'Vote no Craque do Jogo' } },
-                { type: 'InteractivityCard', props: { title: 'Estatísticas' } },
+                { type: 'InteractivityButton', props: { title: 'Opções de áudio' } },
+                { type: 'InteractivityButton', props: { title: 'Lances da partida' } },
+                { type: 'InteractivityButton', props: { title: 'Vote no Craque do Jogo' } },
+                { type: 'InteractivityButton', props: { title: 'Estatísticas' } },
               ],
             },
             {

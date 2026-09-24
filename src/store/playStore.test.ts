@@ -82,3 +82,32 @@ describe('the remote — moving the TV focus while playing', () => {
     expect([play().focusId, play().focusItem]).toEqual([null, null])
   })
 })
+
+describe('focus on an interactivity button is the second level', () => {
+  it('focusing a Home card opens the rail, focused on that card; focusing the menu does not', () => {
+    loadFlow()
+    play().play()
+    const [home, rail] = useFlowStore.getState().screens
+    const cards = (tree: typeof home.tree) => {
+      const out: string[] = []
+      const walk = (n: typeof home.tree): void => {
+        if (n.type === 'InteractivityButton') out.push(n.id)
+        n.children.forEach(walk)
+      }
+      walk(tree)
+      return out
+    }
+    const mainMenu = home.tree.children[0].children.find((n) => n.type === 'MainMenu')!
+
+    play().focus(mainMenu.id, 'program')
+    expect(play().trail).toEqual(['home'])
+
+    play().focus(cards(home.tree)[1])
+    expect(play().trail).toEqual(['home', 'rail'])
+    expect(play().focusId).toBe(cards(rail.tree)[1])
+
+    // Moving along the rail stays on it.
+    play().focus(cards(rail.tree)[2])
+    expect(play().trail).toEqual(['home', 'rail'])
+  })
+})

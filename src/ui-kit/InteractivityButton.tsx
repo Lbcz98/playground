@@ -1,5 +1,5 @@
 /**
- * Button — Figma UI Kit node 2457:117489.
+ * Interactivity Button — Figma UI Kit node 2457:117489.
  *
  * The 10-foot card button: a media thumbnail slot over an overline/title/
  * subtitle stack, with an optional live badge and check mark. Focus draws the
@@ -25,13 +25,13 @@ import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
 
-export type ButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
+export type InteractivityButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
 
-export interface ButtonProps {
+export interface InteractivityButtonProps {
   /** Default `focus`. */
-  interactionState?: ButtonState
+  interactionState?: InteractivityButtonState
   /** @deprecated Use `interactionState` — same values. */
-  state?: ButtonState
+  state?: InteractivityButtonState
   /** The card’s title — as an interactivity, the only text it carries. */
   title?: string
   /** Small line above the title (schedule section only). */
@@ -49,13 +49,13 @@ export interface ButtonProps {
   onClick?: () => void
 }
 
-const isLarge = (state: ButtonState): boolean => state !== 'default'
+const isLarge = (state: InteractivityButtonState): boolean => state !== 'default'
 
-function cardRadius(state: ButtonState): string {
+function cardRadius(state: InteractivityButtonState): string {
   return token(isLarge(state) ? '--dimension-radius-semantic-card-expanded' : '--dimension-radius-semantic-card')
 }
 
-function rootFor(state: ButtonState): CSSProperties {
+function rootFor(state: InteractivityButtonState): CSSProperties {
   const large = isLarge(state)
   return {
     position: 'relative',
@@ -76,7 +76,7 @@ function rootFor(state: ButtonState): CSSProperties {
 }
 
 /** Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
-function cardFill(state: ButtonState): CSSProperties {
+function cardFill(state: InteractivityButtonState): CSSProperties {
   return {
     position: 'absolute',
     inset: 0,
@@ -90,8 +90,8 @@ const layer: CSSProperties = { position: 'relative' }
 /** Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
 const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' }
 
-/** One card in a rail (the catalog’s InteractivityCard): a title, and in the schedule section an overline, subtitle and live badge. */
-export function Button({
+/** One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge. */
+export function InteractivityButton({
   interactionState,
   state: legacyState,
   title,
@@ -102,8 +102,8 @@ export function Button({
   advertising,
   thumbnail,
   onClick,
-}: ButtonProps): ReactNode {
-  const state = resolveInteractionState('ui-kit/Button', interactionState, { prop: 'state', value: legacyState }, 'focus')
+}: InteractivityButtonProps): ReactNode {
+  const state = resolveInteractionState('ui-kit/InteractivityButton', interactionState, { prop: 'state', value: legacyState }, 'focus')
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'

@@ -211,6 +211,14 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
   N + 1 (Home → rail → one interactivity) or goes back up, never skipping a level; the
   validator rejects a broken link (with the list of real screen ids) and the
   interpreter drops it with a warning. Every screen is one undo step together.
+  Play is driven like a remote: arrow keys move the TV focus (sideways stays on the
+  row), Enter presses it, Esc goes back. The focus decides the page: moving it onto an
+  interactivity button on Home opens the second-level page, on that same card, and
+  Down off the rail returns to Home (`focusEntersLevel` / `focusLeavesLevel`).
+  Kit and live-bundle components are wrapped in a box-less `DecorationHost`, so the
+  canvas' node id, click and selection ring reach components that take only their
+  own props. Dev: `SFS_EVAL_FILE=<script.js> SFS_EVAL_QUIT=1 npm run dev` runs a
+  script in the real window and logs its result.
 - **The stack that holds the components always stretches.** The root's `align` is
   `"stretch"` (validator rejects anything else, the interpreter repairs it, the
   templates follow it); a module that belongs on one side positions itself inside it —

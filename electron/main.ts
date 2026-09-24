@@ -49,6 +49,21 @@ function createWindow(): void {
       const t = await win.webContents.executeJavaScript('typeof window.flow?.generateUI')
       console.log(`[main] bridge: window.flow.generateUI is ${t} · AI: ${await describeAiSetup()}`)
 
+      // Dev-only: run a script file in the renderer and log what it returns — a
+      // way to drive the real window (live bundles, the real protocol) from a
+      // terminal. SFS_EVAL_QUIT=1 closes the app afterwards.
+      const evalFile = process.env.SFS_EVAL_FILE
+      if (evalFile) {
+        const { readFileSync } = await import('node:fs')
+        try {
+          const result = await win.webContents.executeJavaScript(readFileSync(evalFile, 'utf8'))
+          console.log('[smoke:eval] result:', typeof result === 'string' ? result : JSON.stringify(result))
+        } catch (err) {
+          console.log('[smoke:eval] error:', err instanceof Error ? err.message : String(err))
+        }
+        if (process.env.SFS_EVAL_QUIT) app.quit()
+      }
+
       const smoke = process.env.SFS_SMOKE_PROMPT
       if (smoke) {
         console.log(`[smoke] generating (rendering to canvas): ${JSON.stringify(smoke)}`)

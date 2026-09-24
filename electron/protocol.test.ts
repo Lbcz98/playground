@@ -93,6 +93,13 @@ describe('design-system:// protocol (Phase 8A)', () => {
     expect(fetchedUrl).toMatch(/^file:.*acme\.bundle\.js$/)
   })
 
+  it('serves it with a cache-busting query too (the loader adds one per load)', async () => {
+    await saveDesignSystem(manifest('acme'))
+    await saveBundle('acme', 'window.Acme = {}')
+    const res = await handle(`${DESIGN_SYSTEM_SCHEME}://acme/bundle.js?v=123`)
+    expect(res.status).toBe(200)
+  })
+
   it('sanitises a traversal-shaped hostname instead of escaping the storage directory', async () => {
     const res = await handle(`${DESIGN_SYSTEM_SCHEME}://../bundle.js`)
     expect(res.status).toBe(404) // safeId('..') collapses to '_' — no manifest by that name

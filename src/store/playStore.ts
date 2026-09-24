@@ -1,13 +1,16 @@
 /**
  * The live prototype player. Edit mode selects elements; Play mode runs the
  * document: a click on an element with a `goTo` link opens the screen it names,
- * and the trail of screens visited lets Back retrace it — the way a TV remote's
+ * moving the focus onto what holds it one level deeper opens that level's page
+ * (`focusEntersLevel`), and the trail of screens visited lets Back retrace it — the way a TV remote's
  * Back key steps out one level (3 → 2 → 1). Kept apart from `flowStore`: playing
  * never changes the document, so it is never an undo step.
  */
 
 import { create } from 'zustand'
 import { useFlowStore } from '@/store/flowStore'
+import { useDesignSystemStore } from '@/store/designSystemStore'
+import { focusEntersLevel } from '@/shared/design-system/flow'
 
 export type PlayMode = 'edit' | 'play'
 
@@ -53,7 +56,21 @@ export const usePlayStore = create<PlayState>((set, get) => ({
 
   restart: () => set((s) => ({ trail: s.trail.slice(0, 1), focusId: null, focusItem: null })),
 
-  focus: (nodeId, item = null) => set({ focusId: nodeId, focusItem: item }),
+  focus: (nodeId, item = null) => {
+    // Moving the focus onto what only holds it one level deeper opens that page
+    // (an interactivity button on Home is the second level), focused on it there.
+    const { screens } = useFlowStore.getState()
+    const current = currentPlayScreenId(get().trail, screens.map((entry) => entry.id))
+    const entry =
+      nodeId && get().mode === 'play'
+        ? focusEntersLevel(useDesignSystemStore.getState().active, screens, current, nodeId)
+        : null
+    if (entry) {
+      set((s) => ({ trail: [...s.trail, entry.screenId], focusId: entry.nodeId, focusItem: null }))
+      return
+    }
+    set({ focusId: nodeId, focusItem: item })
+  },
 }))
 
 /** The id of the screen Play is showing, falling back to the first when the document changed under it. */

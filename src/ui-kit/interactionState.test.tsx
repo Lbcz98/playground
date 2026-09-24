@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { Button as PrimitiveButton, resetDeprecationWarnings } from '@/primitives'
-import { Button } from './Button'
+import { InteractivityButton } from './InteractivityButton'
 import { InteractivityMenu } from './InteractivityMenu'
 import { LabelVideo } from './LabelVideo'
 import { MainMenu } from './MainMenu'
@@ -25,7 +25,7 @@ afterEach(() => {
 
 /** [component, deprecated prop, legacy render, the same thing with interactionState] */
 const LEGACY_PROPS: Array<[string, string, () => ReactElement, () => ReactElement]> = [
-  ['ui-kit/Button', 'state', () => <Button state="selected" />, () => <Button interactionState="selected" />],
+  ['ui-kit/InteractivityButton', 'state', () => <InteractivityButton state="selected" />, () => <InteractivityButton interactionState="selected" />],
   ['ui-kit/WideButton', 'status', () => <WideButton status="loading" />, () => <WideButton interactionState="loading" />],
   [
     'ui-kit/RoundButtonShell',
@@ -81,7 +81,7 @@ describe('deprecated state props', () => {
 
   it('no kit component uses a deprecated prop internally', () => {
     html(<InteractivityMenu items={[{ title: 'A' }, { title: 'B' }]} activeIndex={0} />)
-    html(<Button />)
+    html(<InteractivityButton />)
     html(<RoundedButton />)
     html(<MainMenu />)
     expect(warn).not.toHaveBeenCalled()

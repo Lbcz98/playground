@@ -107,8 +107,8 @@ describe('one focused element per screen', () => {
         {
           type: 'InteractivityMenu',
           children: [
-            { type: 'InteractivityCard', props: { title: 'Enquete' } },
-            { type: 'InteractivityCard', props: { title: 'Estatísticas', interactionState: 'focus' } },
+            { type: 'InteractivityButton', props: { title: 'Enquete' } },
+            { type: 'InteractivityButton', props: { title: 'Estatísticas', interactionState: 'focus' } },
           ],
         },
         { type: 'MainMenu', props: { focusedItem: 'program' } },
@@ -120,7 +120,7 @@ describe('one focused element per screen', () => {
     const errors = frameLayoutErrors(twoFocused, S)
     const problem = errors.find((e) => e.includes('elements are focused'))
     expect(problem).toBeDefined()
-    expect(problem).toContain('<InteractivityCard>: interactionState "focus"')
+    expect(problem).toContain('<InteractivityButton>: interactionState "focus"')
     expect(problem).toContain('<MainMenu>: focusedItem "program"')
     expect(problem).toContain('a TV screen has exactly one')
     expect(problem).toMatch(/focusedItem "none"/)
@@ -143,7 +143,7 @@ describe('one focused element per screen', () => {
         children: [
           {
             type: 'InteractivityMenu',
-            children: [{ type: 'InteractivityCard', props: { title: 'Enquete' } }],
+            children: [{ type: 'InteractivityButton', props: { title: 'Enquete' } }],
           },
           { type: 'MainMenu', props: { focusedItem: 'program' } },
         ],
