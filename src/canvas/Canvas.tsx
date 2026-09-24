@@ -1,4 +1,4 @@
-import { type RefObject, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type MutableRefObject, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasNode } from '@/model/nodeTree'
 import { useFlowStore } from '@/store/flowStore'
 import { currentPlayScreenId, usePlayStore } from '@/store/playStore'
@@ -18,13 +18,14 @@ import {
   auditFrameLayout,
   focusSideOf,
   focusedBy,
+  focusPropsFor,
   readingOrder,
 } from '@/shared/layout/frame'
-import type { DesignSystemManifest, ManifestScreenModel } from '@/shared/design-system/manifest'
+import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { cx } from '@/lib/cx'
 import { NodeRenderer } from './NodeRenderer'
-import { NodeModeContext } from './nodeMode'
+import { NodeModeContext, PlayRestContext } from './nodeMode'
 import { PlayBar } from './PlayBar'
 import { ScreenFrame } from './ScreenFrame'
 import { ScreenStrip } from './ScreenStrip'
@@ -52,6 +53,7 @@ export function Canvas(): JSX.Element {
   const mode = usePlayStore((s) => s.mode)
   const trail = usePlayStore((s) => s.trail)
   const playFocusId = usePlayStore((s) => s.focusId)
+  const playFocusItem = usePlayStore((s) => s.focusItem)
   const playing = mode === 'play'
   // Playing shows the screen the prototype is on; editing shows the open one.
   const playId = currentPlayScreenId(
@@ -71,7 +73,10 @@ export function Canvas(): JSX.Element {
   const surfaceRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const fit = useFitScale(stageRef, statusRef, shown)
-  useTvFocus(surfaceRef, contentRef, tree, selectedId, size, registry, active)
+  const focusElRef = useRef<Element | null>(null)
+  useTvFocus(surfaceRef, contentRef, tree, selectedId, playing ? playFocusItem : null, size, registry, active, playing, focusElRef)
+  usePlayKeys(playing, surfaceRef, tree, registry, focusElRef)
+  const rest = useMemo(() => restStates(tree, active), [tree, active])
 
   const zone = anchorZone(focus.side)
   const layers = screenLayersOf(active)
@@ -109,7 +114,9 @@ export function Canvas(): JSX.Element {
           contentRef={contentRef}
           renderNode={(node) => (
             <NodeModeContext.Provider value={mode}>
-              <NodeRenderer node={node} />
+              <PlayRestContext.Provider value={rest}>
+                <NodeRenderer node={node} />
+              </PlayRestContext.Provider>
             </NodeModeContext.Provider>
           )}
         />
@@ -186,9 +193,12 @@ function useTvFocus(
   contentRef: RefObject<HTMLDivElement>,
   tree: CanvasNode,
   selectedId: string | null,
+  focusItem: string | null,
   size: FrameSizeId,
   registry: HydratedRegistry,
   manifest: DesignSystemManifest,
+  playing: boolean,
+  focusElRef: MutableRefObject<Element | null>,
 ): void {
   const setFocusReading = useFrameStore((s) => s.setFocusReading)
   const lastFocusedId = useRef<string | null>(null)
@@ -231,7 +241,7 @@ function useTvFocus(
     const declaredId = focusedNodeId(tree, manifest)
     const declaredEl = declaredId ? content.querySelector(`[data-node-id="${CSS.escape(declaredId)}"]`) : null
     // An element that marks itself focused (the main menu's channel button) is exact.
-    const marked = focusables.find((f) => f.el.matches('[data-focused]'))
+    const marked = focusables.find((f) => f.el.matches('[data-focused]') || f.el.querySelector('[data-focus-ring]'))
     const declared = marked ?? focusables.find((f) => f.el === declaredEl)
     const held = selected ?? focusableIn(lastFocusedId.current)
 
@@ -243,18 +253,133 @@ function useTvFocus(
     if (anchoredEl) {
       const model = screenModel(screenLayersOf(manifest), tree.screen?.model)
       lastFocusedId.current = null
+      focusElRef.current = anchoredEl
       setFocusReading({ side: model?.side ?? DEFAULT_FOCUS, label: focusLabel(anchoredEl) })
       return
     }
 
-    const target = held ?? declared ?? focusables[0]
+    // Playing, what the screen draws focused is the truth (arrow keys move it);
+    // editing, the selection is.
+    const target = (playing ? (marked ?? held) : held) ?? declared ?? focusables[0]
+    focusElRef.current = target?.el ?? null
     lastFocusedId.current = target?.el.closest('[data-node-id]')?.getAttribute('data-node-id') ?? null
 
     const reading: FocusReading = target
       ? { side: focusSideOf(target, frame.offsetWidth), label: focusLabel(target.el) }
       : { side: DEFAULT_FOCUS, label: null }
     setFocusReading(reading)
-  }, [surfaceRef, contentRef, tree, selectedId, size, registry, manifest, setFocusReading])
+  }, [surfaceRef, contentRef, tree, selectedId, focusItem, size, registry, manifest, playing, focusElRef, setFocusReading])
+}
+
+/**
+ * The state each focus-capable component rests in on this screen — the value its
+ * un-focused siblings carry (a rail's cards rest `selected`), so a card that
+ * loses the focus goes back to it, not to `default`.
+ */
+function restStates(tree: CanvasNode, manifest: DesignSystemManifest): Record<string, unknown> {
+  const counts: Record<string, Map<unknown, number>> = {}
+  const visit = (node: CanvasNode): void => {
+    const component = manifest.components[node.type]
+    const prop = component ? focusPropsFor(component)[0] : undefined
+    if (component && prop?.options?.includes('focus')) {
+      const value = node.props[prop.name] ?? defaultForProp(prop)
+      if (value !== 'focus') {
+        const map = (counts[node.type] ??= new Map())
+        map.set(value, (map.get(value) ?? 0) + 1)
+      }
+    }
+    node.children.forEach(visit)
+  }
+  visit(tree)
+  return Object.fromEntries(
+    Object.entries(counts).map(([type, map]) => [type, [...map.entries()].sort((a, b) => b[1] - a[1])[0][0]]),
+  )
+}
+
+/**
+ * The remote, while playing: arrow keys move the TV focus to the nearest
+ * focusable in that direction (the screen redraws it — see `NodeRenderer`), and
+ * Enter presses it. Back (Esc) lives in the play bar.
+ */
+function usePlayKeys(
+  playing: boolean,
+  surfaceRef: RefObject<HTMLDivElement>,
+  tree: CanvasNode,
+  registry: HydratedRegistry,
+  focusElRef: MutableRefObject<Element | null>,
+): void {
+  const setFocus = usePlayStore((s) => s.focus)
+
+  useEffect(() => {
+    if (!playing) return
+    const onKey = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null
+      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return
+      const frame = surfaceRef.current
+      const current = focusElRef.current
+      if (!frame) return
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        if (!current) return
+        event.preventDefault()
+        ;(current as HTMLElement).click()
+        return
+      }
+      const dir = ARROWS[event.key]
+      if (!dir || !current) return
+      event.preventDefault()
+
+      // Like a TV's focus engine: sideways moves stay on the row and take the
+      // nearest element on it; up and down prefer the same column, and when nothing
+      // lines up take the nearest by distance with a penalty for drift.
+      const from = current.getBoundingClientRect()
+      const at = centerOf(current)
+      let best: { el: Element; score: number } | null = null
+      for (const el of Array.from(frame.querySelectorAll(FOCUSABLE))) {
+        if (el === current || el.getClientRects().length === 0 || el.closest('[data-screen-layer="overlay"]')) continue
+        const r = el.getBoundingClientRect()
+        const c = centerOf(el)
+        const along = (c.x - at.x) * dir.x + (c.y - at.y) * dir.y
+        if (along <= 1) continue
+        const across = Math.abs((c.x - at.x) * dir.y) + Math.abs((c.y - at.y) * dir.x)
+        const lined = dir.x !== 0 ? r.top < from.bottom && from.top < r.bottom : r.left < from.right && from.left < r.right
+        if (dir.x !== 0 && !lined) continue // sideways stays on its row, like a remote
+        const score = (lined ? 0 : LINED_UP_BONUS) + along + across * 2
+        if (!best || score < best.score) best = { el, score }
+      }
+      if (!best) return
+      const nodeId = best.el.closest('[data-node-id]')?.getAttribute('data-node-id')
+      if (!nodeId) return
+      const item = best.el.closest('[data-focus-item]')?.getAttribute('data-focus-item') ?? null
+      setFocus(nodeId, registry.get(findType(tree, nodeId) ?? '') ? item : null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [playing, surfaceRef, tree, registry, focusElRef, setFocus])
+}
+
+/** Anything that doesn't line up loses to anything that does, however far. */
+const LINED_UP_BONUS = 100_000
+
+const ARROWS: Record<string, { x: number; y: number }> = {
+  ArrowRight: { x: 1, y: 0 },
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowDown: { x: 0, y: 1 },
+  ArrowUp: { x: 0, y: -1 },
+}
+
+function centerOf(el: Element): { x: number; y: number } {
+  const r = el.getBoundingClientRect()
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+}
+
+function findType(tree: CanvasNode, id: string): string | null {
+  if (tree.id === id) return tree.type
+  for (const child of tree.children) {
+    const hit = findType(child, id)
+    if (hit) return hit
+  }
+  return null
 }
 
 /** The anchored node the screen's level puts the initial focus on, when it is in a focus state. */

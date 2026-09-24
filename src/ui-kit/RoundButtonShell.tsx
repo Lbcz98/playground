@@ -33,6 +33,8 @@ export interface RoundButtonShellProps {
   /** Accessible name — every consumer so far is icon/image-only. */
   label: string
   onClick?: () => void
+  /** Names the button for the canvas' remote-style navigation (a menu's item id). */
+  focusItem?: string
   children?: ReactNode
 }
 
@@ -69,6 +71,7 @@ export function RoundButtonShell({
   focus: legacyFocus,
   label,
   onClick,
+  focusItem,
   children,
 }: RoundButtonShellProps): ReactNode {
   const focus =
@@ -80,7 +83,7 @@ export function RoundButtonShell({
     ) === 'focus'
 
   return (
-    <button type="button" aria-label={label} onClick={onClick} style={root}>
+    <button type="button" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
       <span style={focus ? circle : restCircle}>
         {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>

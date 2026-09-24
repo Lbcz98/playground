@@ -45,6 +45,12 @@ const renderTool: Anthropic.Tool = {
           },
           id: { type: 'string', description: 'The first screen\'s id — only when another screen links back to it.' },
           name: { type: 'string', description: 'Short label of the first screen.' },
+          notes: {
+            type: 'array',
+            description:
+              'Up to 4 short notes for the user, in their language: what you approximated because the registry lacks it, or which law overrode part of their request (e.g. focus placement). Omit when there is nothing to say.',
+            items: { type: 'string' },
+          },
           screens: {
             type: 'array',
             description:

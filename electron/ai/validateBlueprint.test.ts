@@ -122,7 +122,10 @@ describe('validateBlueprint — Content Card structure', () => {
     root: {
       type: 'Stack',
       props: { justify: 'end', align: 'stretch', grow: true },
-      children: [{ type: 'Stack', props: { direction: 'horizontal', justify: 'end', align: 'end' }, children: [card] }],
+      children: [
+        { type: 'Stack', props: { direction: 'horizontal', justify: 'end', align: 'end' }, children: [card] },
+        { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
+      ],
     },
   })
   const card = (children: unknown[], props: Record<string, unknown> = {}) => ({ type: 'ContentCard', props, children })

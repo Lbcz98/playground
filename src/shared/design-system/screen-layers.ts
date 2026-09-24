@@ -69,6 +69,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       allowsAnchor: true,
       initialFocus: {
         on: ['InteractivityCard', 'UiKitButton'],
+        required: true,
         hint: 'Focus is on one of the interactivity buttons — that is what makes this the second level, a page of its own; the main menu is not on screen.',
       },
     },
@@ -80,6 +81,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       allowsAnchor: true,
       initialFocus: {
         on: ['CloseButton', 'RoundedButton'],
+        required: true,
         hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself.',
       },
     },

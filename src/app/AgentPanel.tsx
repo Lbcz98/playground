@@ -212,7 +212,7 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
     <div className="flex flex-col gap-3xs self-start">
       <div
         className={cx(
-          'rounded-md px-sm py-2xs text-sm',
+          'whitespace-pre-line rounded-md px-sm py-2xs text-sm',
           message.status === 'error'
             ? 'bg-danger-subtle text-danger'
             : 'bg-subtle text-ink',

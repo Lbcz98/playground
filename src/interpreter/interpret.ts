@@ -28,6 +28,8 @@ import {
   BLUEPRINT_DOCUMENT_KEYS,
   BLUEPRINT_NODE_KEYS,
   BLUEPRINT_SCREEN_KEYS,
+  MAX_NOTE_LENGTH,
+  MAX_NOTES,
   MAX_SCREENS,
   type BlueprintDocument,
   type BlueprintNode,
@@ -168,7 +170,7 @@ export function interpretBlueprint(
 }
 
 export type PrototypeResult =
-  | { ok: true; screens: ScreenEntry[]; issues: InterpretIssue[]; nodeCount: number; linkCount: number }
+  | { ok: true; screens: ScreenEntry[]; issues: InterpretIssue[]; nodeCount: number; linkCount: number; notes: string[] }
   | { ok: false; error: string; issues: InterpretIssue[] }
 
 /**
@@ -261,7 +263,12 @@ export function interpretPrototype(
     visit(from.tree, 'root')
   }
 
-  return { ok: true, screens, issues, nodeCount, linkCount }
+  const notes = (Array.isArray(input.notes) ? input.notes : [])
+    .filter((n: unknown): n is string => typeof n === 'string' && n.trim().length > 0)
+    .map((n: string) => n.trim().slice(0, MAX_NOTE_LENGTH))
+    .slice(0, MAX_NOTES)
+
+  return { ok: true, screens, issues, nodeCount, linkCount, notes }
 }
 
 /** A canvas tree back to the wire format — ids dropped, the screen spec lifted to the document. */

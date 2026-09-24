@@ -11,3 +11,10 @@ export const NodeModeContext = createContext<NodeMode>('edit')
 export function useNodeMode(): NodeMode {
   return useContext(NodeModeContext)
 }
+
+/**
+ * While playing and the viewer has moved the focus, an element that held it goes
+ * back to the state its siblings rest in (a rail's cards rest `selected`, not
+ * `default`). Keyed by component type; built from the screen's authored props.
+ */
+export const PlayRestContext = createContext<Record<string, unknown>>({})

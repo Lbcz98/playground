@@ -173,6 +173,8 @@ export interface ManifestInitialFocus {
   value?: string
   /** The rule, as the agents read it. */
   hint: string
+  /** The screen must contain one of `on` — a level whose page is told by it (the second and third levels). */
+  required?: boolean
 }
 
 export interface ManifestScreenModel {
@@ -374,6 +376,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
                 on: z.array(idSchema).min(1).max(8),
                 value: shortStr.optional(),
                 hint: z.string().max(MAX_STR),
+                required: z.boolean().optional(),
               })
               .strict()
               .optional(),

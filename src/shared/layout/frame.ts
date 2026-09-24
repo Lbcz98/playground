@@ -579,6 +579,9 @@ export function levelFocusProblems(
   if (focused.length === 0 && on.some((id) => seen.has(id))) {
     return [`${where}: nothing is focused — ${rule.hint}`]
   }
+  if (rule.required && !on.some((id) => seen.has(id))) {
+    return [`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`]
+  }
   return []
 }
 

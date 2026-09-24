@@ -52,6 +52,8 @@ export interface AgentRun {
   screenCount: number
   /** How many clickable links join them. */
   linkCount: number
+  /** What the agent says the user should know: an approximation, or a law that overrode the request. */
+  notes: string[]
   at: number
 }
 
@@ -369,6 +371,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         nodeCount: 0,
         screenCount: 0,
         linkCount: 0,
+        notes: [],
         at: Date.now(),
       }
       set({ lastAgentRun: run })
@@ -385,6 +388,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       nodeCount: result.nodeCount,
       screenCount: result.screens.length,
       linkCount: result.linkCount,
+      notes: result.notes,
       at: Date.now(),
     }
     set({ selectedId: null, lastAgentRun: run })

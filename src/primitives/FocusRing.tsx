@@ -55,7 +55,7 @@ const glow: CSSProperties = {
 export function FocusRing({ shape }: FocusRingProps): ReactNode {
   const outer = token(`--dimension-radius-semantic-${shape}`)
   return (
-    <span aria-hidden className="sfs-focus-cycle" style={{ ...frame, borderRadius: outer }}>
+    <span aria-hidden data-focus-ring className="sfs-focus-cycle" style={{ ...frame, borderRadius: outer }}>
       <span style={{ ...inner, borderRadius: `calc(${outer} - ${RING_WIDTH})` }}>
         <span className="sfs-focus-glow-cycle" style={glow} />
       </span>

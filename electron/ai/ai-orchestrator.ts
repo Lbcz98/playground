@@ -139,7 +139,7 @@ export async function generateUI(
           role: 'user',
           content:
             `That Blueprint is invalid:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
-            `Return the corrected JSON — same structure, only fixing these problems.`,
+            `Return the corrected JSON — same structure, only fixing these problems. Do not mention the fixes in "notes".`,
         })
       }
     }

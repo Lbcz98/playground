@@ -5,7 +5,9 @@ import { DecorationHost } from '@/design-system/registry'
 import { useFlowStore } from '@/store/flowStore'
 import { usePlayStore } from '@/store/playStore'
 import { cx } from '@/lib/cx'
-import { useNodeMode } from './nodeMode'
+import { focusPropsFor, unfocusedValue } from '@/shared/layout/frame'
+import { PlayRestContext, useNodeMode } from './nodeMode'
+import { useContext } from 'react'
 
 /**
  * A click can bubble through several nodes. The innermost one takes the TV focus
@@ -26,6 +28,9 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   const mode = useNodeMode()
   const focus = usePlayStore((s) => s.focus)
   const go = usePlayStore((s) => s.go)
+  const playFocusId = usePlayStore((s) => s.focusId)
+  const playFocusItem = usePlayStore((s) => s.focusItem)
+  const rest = useContext(PlayRestContext)
 
   const entry = registry.get(node.type)
   if (!entry) {
@@ -37,7 +42,20 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
   }
 
   const parsed = entry.schema.safeParse(node.props)
-  const props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps
+  let props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps
+
+  // Playing, once the viewer has moved the focus (click or arrow key), the focus
+  // props follow it: the target takes the focus, whatever held it rests.
+  const focusProp = mode === 'play' && playFocusId !== null ? focusPropsFor(entry.component)[0] : undefined
+  if (focusProp) {
+    const isTarget = node.id === playFocusId
+    const enumFocus = focusProp.options?.includes('focus')
+    const current = props[focusProp.name]
+    let value: unknown
+    if (enumFocus) value = isTarget ? 'focus' : current === 'focus' ? (rest[node.type] ?? unfocusedValue(focusProp)) : current
+    else value = isTarget ? (playFocusItem ?? current) : unfocusedValue(focusProp)
+    props = { ...props, [focusProp.name]: value }
+  }
 
   const children = entry.acceptsChildren
     ? node.children.map((child) => <NodeRenderer key={child.id} node={child} />)
@@ -58,7 +76,8 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
       onClick: (event: MouseEvent) => {
         if (!focusedClicks.has(event.nativeEvent)) {
           focusedClicks.add(event.nativeEvent)
-          focus(node.id)
+          const item = (event.target as Element).closest('[data-focus-item]')?.getAttribute('data-focus-item')
+          focus(node.id, item ?? null)
         }
         if (node.goTo) {
           event.stopPropagation()

@@ -59,13 +59,23 @@ export interface BlueprintDocument {
    * just more screens; `goTo` links make the flow clickable.
    */
   screens?: BlueprintScreen[]
+  /**
+   * What the user should know about the result, in their language: something the
+   * registry lacks that was approximated, or a law that overrode part of the request
+   * (focus placement, a level's one-module limit). Shown under the chat reply.
+   */
+  notes?: string[]
 }
+
+/** The most notes a document carries, and the longest one. */
+export const MAX_NOTES = 4
+export const MAX_NOTE_LENGTH = 300
 
 /** The most screens one document carries. */
 export const MAX_SCREENS = 6
 
 /** Every key a Blueprint document may carry. Anything else is a key the engine would ignore. */
-export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'id', 'name', 'screen', 'root', 'screens'] satisfies (keyof BlueprintDocument)[]
+export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'id', 'name', 'screen', 'root', 'screens', 'notes'] satisfies (keyof BlueprintDocument)[]
 /** Every key a further screen may carry. */
 export const BLUEPRINT_SCREEN_KEYS: readonly string[] = ['id', 'name', 'screen', 'root'] satisfies (keyof BlueprintScreen)[]
 /** Every key a Blueprint node may carry. */

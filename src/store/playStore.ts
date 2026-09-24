@@ -15,8 +15,10 @@ interface PlayState {
   mode: PlayMode
   /** Screen ids visited, oldest first; the last one is on screen. */
   trail: string[]
-  /** The element the last click landed on — where the TV focus sits while playing. */
+  /** The element the viewer last moved the TV focus to (a click or an arrow key) — null until they do. */
   focusId: string | null
+  /** Which part of that element holds it, when it has several focusable parts (a menu's item). */
+  focusItem: string | null
   /** Enter Play from the screen open in the editor. */
   play: () => void
   edit: () => void
@@ -26,31 +28,32 @@ interface PlayState {
   back: () => boolean
   /** Return to the screen Play started on. */
   restart: () => void
-  focus: (nodeId: string | null) => void
+  focus: (nodeId: string | null, item?: string | null) => void
 }
 
 export const usePlayStore = create<PlayState>((set, get) => ({
   mode: 'edit',
   trail: [],
   focusId: null,
+  focusItem: null,
 
-  play: () => set({ mode: 'play', trail: [useFlowStore.getState().activeId], focusId: null }),
-  edit: () => set({ mode: 'edit', trail: [], focusId: null }),
+  play: () => set({ mode: 'play', trail: [useFlowStore.getState().activeId], focusId: null, focusItem: null }),
+  edit: () => set({ mode: 'edit', trail: [], focusId: null, focusItem: null }),
 
   go: (screenId) => {
     if (!useFlowStore.getState().screens.some((entry) => entry.id === screenId)) return
-    set((s) => (s.trail[s.trail.length - 1] === screenId ? s : { trail: [...s.trail, screenId], focusId: null }))
+    set((s) => (s.trail[s.trail.length - 1] === screenId ? s : { trail: [...s.trail, screenId], focusId: null, focusItem: null }))
   },
 
   back: () => {
     if (get().trail.length < 2) return false
-    set((s) => ({ trail: s.trail.slice(0, -1), focusId: null }))
+    set((s) => ({ trail: s.trail.slice(0, -1), focusId: null, focusItem: null }))
     return true
   },
 
-  restart: () => set((s) => ({ trail: s.trail.slice(0, 1), focusId: null })),
+  restart: () => set((s) => ({ trail: s.trail.slice(0, 1), focusId: null, focusItem: null })),
 
-  focus: (nodeId) => set({ focusId: nodeId }),
+  focus: (nodeId, item = null) => set({ focusId: nodeId, focusItem: item }),
 }))
 
 /** The id of the screen Play is showing, falling back to the first when the document changed under it. */

@@ -74,3 +74,23 @@ describe('page 3 · focus starts on the rounded button', () => {
     expect(errors(d).join()).toMatch(/Level 3.*ContentCard.*rounded button/)
   })
 })
+
+describe('the pages that are told by their focus must have it', () => {
+  it('a third-level screen with no rounded button is rejected', () => {
+    const d = doc('interactivity-cards-right')
+    d.root.children = d.root.children!.filter((c) => c.type !== 'CloseButton')
+    expect(errors(d).join()).toMatch(/Level 3.*no <CloseButton> or <RoundedButton>.*add one and focus it/)
+  })
+
+  it('a second-level screen with no interactivity button is rejected', () => {
+    const d = doc('interactivity-buttons-right')
+    d.root = { type: 'Stack', props: d.root.props, children: [{ type: 'Text', props: { content: 'x' } }] }
+    expect(errors(d).join()).toMatch(/Level 2.*no <InteractivityCard>/)
+  })
+
+  it('Home without a main menu is still fine', () => {
+    const d = doc('home')
+    d.root = { type: 'Stack', props: d.root.props, children: [{ type: 'Text', props: { content: 'x' } }] }
+    expect(errors(d)).toEqual([])
+  })
+})

@@ -363,3 +363,14 @@ describe('law 4 — compose, don\'t assume', () => {
     }
   })
 })
+
+describe('notes — telling the user what a law overrode', () => {
+  it('the generator is asked for notes, and the planner for a Notes line', () => {
+    for (const mode of ['tool', 'json'] as const) {
+      const system = buildSystemPrompt(mode)
+      expect(system).toContain('add up to 4 short sentences to "notes"')
+      expect(system).toContain('a law overrode part of their request')
+    }
+    expect(buildPlannerPrompt()).toContain('end the plan with a "Notes:" line')
+  })
+})

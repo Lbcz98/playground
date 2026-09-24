@@ -24,7 +24,7 @@
  * Imported by the Electron main process — must stay free of React / DOM.
  */
 
-import { MAX_SCREENS, RENDER_TOOL_NAME } from '@/shared/blueprint'
+import { MAX_NOTES, MAX_SCREENS, RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent, ManifestTokens } from '@/shared/design-system/manifest'
 import {
   TOKEN_TIER_RULE,
@@ -603,6 +603,7 @@ nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.
+When you had to approximate something the registry lacks, or a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.
 Example:
 
 ${templates.length > 0 ? 'Template: home\n' : ''}Screen: model "home", level 1 — a home screen whose content spans the frame.
@@ -635,7 +636,8 @@ export function buildSystemPrompt(
   const blueprint = `"version": 1,
   "screen": { "model": "<layer model id>", "level": <that model's level> },
   "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }
-  (only for several screens: "screens": [ { "id": "...", "name": "...", "screen": { ... }, "root": { ... } } ])`
+  (only for several screens: "screens": [ { "id": "...", "name": "...", "screen": { ... }, "root": { ... } } ]),
+  (only when there is something to tell the user: "notes": [ "..." ])`
   const output =
     mode === 'tool'
       ? `Return the Blueprint by calling the ${RENDER_TOOL_NAME} tool exactly once with:
@@ -662,5 +664,7 @@ ${output}
 Omit props you don't need — defaults are applied. The document has exactly three
 fields: "version", "screen" and "root" (plus "id"/"name" for the first screen and "screens" when the
 request asks for several screens). Do not include an "id" field on any node —
-besides "type", "props" and "children", the only node fields are "anchor" and "goTo".`
+besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
+
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.`
 }

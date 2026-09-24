@@ -66,7 +66,8 @@ function summarize(run: AgentRun): string {
   const frames = run.screenCount > 1 ? ` on ${run.screenCount} frames` : ''
   const links = run.linkCount > 0 ? ` — ${run.linkCount} clickable link${run.linkCount === 1 ? '' : 's'}, press Play` : ''
   const base = `Rendered ${run.nodeCount} component${run.nodeCount === 1 ? '' : 's'}${frames} to the canvas${links}`
-  return fixed > 0 ? `${base} (auto-fixed ${fixed} issue${fixed === 1 ? '' : 's'}).` : `${base}.`
+  const head = fixed > 0 ? `${base} (auto-fixed ${fixed} issue${fixed === 1 ? '' : 's'}).` : `${base}.`
+  return run.notes.length > 0 ? `${head}\n\n${run.notes.map((n) => `• ${n}`).join('\n')}` : head
 }
 
 function accumulate(prev: SessionUsage, u: GenerateUsage | undefined): SessionUsage {

@@ -31,6 +31,8 @@ import {
   BLUEPRINT_NODE_KEYS,
   BLUEPRINT_SCREEN_KEYS,
   FIRST_SCREEN_ID,
+  MAX_NOTE_LENGTH,
+  MAX_NOTES,
   MAX_SCREENS,
   unknownBlueprintKeyReason,
 } from '../blueprint'
@@ -212,6 +214,19 @@ export function validateBlueprintAgainstManifest(
   }
   if (input.version !== SUPPORTED_VERSION) {
     errors.push(`"version" must be ${SUPPORTED_VERSION} (got ${JSON.stringify(input.version)}).`)
+  }
+
+  if (input.notes !== undefined) {
+    const notes = input.notes
+    if (
+      !Array.isArray(notes) ||
+      notes.length > MAX_NOTES ||
+      notes.some((n) => typeof n !== 'string' || n.length === 0 || n.length > MAX_NOTE_LENGTH)
+    ) {
+      errors.push(
+        `"notes" must be a list of at most ${MAX_NOTES} short strings (each up to ${MAX_NOTE_LENGTH} characters) — what the user should know about the result.`,
+      )
+    }
   }
 
   // The document is its first screen plus every further one; each is held to the

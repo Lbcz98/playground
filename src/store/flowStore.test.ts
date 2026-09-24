@@ -189,3 +189,10 @@ describe('screens — several frames in one document', () => {
     expect(store().screens).toHaveLength(1)
   })
 })
+
+describe('agent notes', () => {
+  it('ride on the run report', () => {
+    const run = store().applyAgentBlueprint({ ...PRICING_CARD_BLUEPRINT, notes: ['Aproximei o mapa.'] }, 'x')
+    expect(run.ok && run.notes).toEqual(['Aproximei o mapa.'])
+  })
+})

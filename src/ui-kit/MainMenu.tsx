@@ -119,11 +119,11 @@ export function MainMenu({
   return (
     <Stack as="nav" direction="row" align="center" justify="between">
       <Stack direction="row" align="center" gap="3xs">
-        <RoundButtonShell interactionState={stateOf('profile')} label="Profile" onClick={onAvatarClick}>
+        <RoundButtonShell interactionState={stateOf('profile')} focusItem="profile" label="Profile" onClick={onAvatarClick}>
           <ContentCircle src={avatarSrc} role="avatar" alt="" />
         </RoundButtonShell>
 
-        <RoundButtonShell interactionState={stateOf('schedule')} label="Schedule" onClick={onScheduleClick}>
+        <RoundButtonShell interactionState={stateOf('schedule')} focusItem="schedule" label="Schedule" onClick={onScheduleClick}>
           <img
             src={scheduleIcon}
             alt=""
@@ -132,7 +132,7 @@ export function MainMenu({
         </RoundButtonShell>
 
         <Stack direction="row" align="center">
-          <RoundButtonShell interactionState={stateOf('weather')} label="Weather" onClick={onWeatherClick}>
+          <RoundButtonShell interactionState={stateOf('weather')} focusItem="weather" label="Weather" onClick={onWeatherClick}>
             <img
               src={weatherIcon}
               alt=""
@@ -168,7 +168,7 @@ export function MainMenu({
               {programSubtitle}
             </Text>
           </div>
-          <RoundButtonShell interactionState={stateOf('program')} label="Now playing" onClick={onLogoClick}>
+          <RoundButtonShell interactionState={stateOf('program')} focusItem="program" label="Now playing" onClick={onLogoClick}>
             <ContentCircle src={logoSrc} role="program-logo" alt="" />
           </RoundButtonShell>
         </Stack>
@@ -176,6 +176,7 @@ export function MainMenu({
         <button
           type="button"
           aria-label="Interactive content"
+          data-focus-item="channel-bug"
           data-focused={focused === 'channel-bug' ? '' : undefined}
           onClick={onBugClick}
           style={{

@@ -147,3 +147,26 @@ describe('interpretPrototype', () => {
     expect(result.screens.every((s) => s.tree.props.align === 'stretch')).toBe(true)
   })
 })
+
+describe('notes — what the user should know', () => {
+  it('are validated, kept (trimmed, capped) and reach the run report', () => {
+    const doc: BlueprintDocument = { ...home(), notes: ['  O mapa é aproximado por um cartão.  '] }
+    expect(validateBlueprintAgainstManifest(doc, S)).toEqual({ ok: true })
+    const result = interpretPrototype(doc, S)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.notes).toEqual(['O mapa é aproximado por um cartão.'])
+  })
+
+  it('are rejected when not a short list of strings', () => {
+    for (const notes of ['nope', [1], ['x'.repeat(301)], ['a', 'b', 'c', 'd', 'e']]) {
+      const r = validateBlueprintAgainstManifest({ ...home(), notes } as never, S)
+      expect(!r.ok && r.errors.join()).toMatch(/"notes" must be a list/)
+    }
+  })
+
+  it('the interpreter drops junk instead of failing', () => {
+    const result = interpretPrototype({ ...home(), notes: ['ok', 3, '  ', null] } as never, S)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.notes).toEqual(['ok'])
+  })
+})

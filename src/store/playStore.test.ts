@@ -69,3 +69,16 @@ describe('the prototype player', () => {
     expect(currentPlayScreenId([], ['a'])).toBe('a')
   })
 })
+
+describe('the remote — moving the TV focus while playing', () => {
+  it('keeps the node and the part of it that holds the focus, and clears both on every screen change', () => {
+    loadFlow()
+    play().play()
+    play().focus('n_menu', 'program')
+    expect([play().focusId, play().focusItem]).toEqual(['n_menu', 'program'])
+    play().focus('n_card')
+    expect([play().focusId, play().focusItem]).toEqual(['n_card', null])
+    play().go('rail')
+    expect([play().focusId, play().focusItem]).toEqual([null, null])
+  })
+})
