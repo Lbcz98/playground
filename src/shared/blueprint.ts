@@ -23,23 +23,64 @@ export interface BlueprintNode {
    * on the side the TV focus is on.
    */
   anchor?: boolean
+  /**
+   * The link that makes the screen a live prototype: the id of the screen a click
+   * on this element opens. Any element may carry one; the target is a screen of
+   * the same document, and follows the layer rule (one level deeper, or back up).
+   */
+  goTo?: string
+}
+
+/** One further screen of a document — an option, or the next step of a flow. */
+export interface BlueprintScreen {
+  /** Unique within the document; what `goTo` names. */
+  id: string
+  /** Short label for the frame ("Option B", "Rail", "Stats"). */
+  name?: string
+  screen?: ScreenSpec
+  root: BlueprintNode
 }
 
 export interface BlueprintDocument {
   /** Schema/format version so the interpreter can reject incompatible payloads. */
   version: 1
+  /** The id and label of the first screen (`root`) — needed only when `screens` links back to it. */
+  id?: string
+  name?: string
   /**
    * The layer rule (Camadas): the model whose shades the engine paints between
    * the video and this content, and the screen's navigation level.
    */
   screen?: ScreenSpec
   root: BlueprintNode
+  /**
+   * Every further screen. Several options for one screen ("give me three
+   * versions") and the steps of a flow (Home → rail → interactivity) are both
+   * just more screens; `goTo` links make the flow clickable.
+   */
+  screens?: BlueprintScreen[]
 }
 
+/** The most screens one document carries. */
+export const MAX_SCREENS = 6
+
 /** Every key a Blueprint document may carry. Anything else is a key the engine would ignore. */
-export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'screen', 'root'] satisfies (keyof BlueprintDocument)[]
+export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'id', 'name', 'screen', 'root', 'screens'] satisfies (keyof BlueprintDocument)[]
+/** Every key a further screen may carry. */
+export const BLUEPRINT_SCREEN_KEYS: readonly string[] = ['id', 'name', 'screen', 'root'] satisfies (keyof BlueprintScreen)[]
 /** Every key a Blueprint node may carry. */
-export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'children', 'anchor'] satisfies (keyof BlueprintNode)[]
+export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'children', 'anchor', 'goTo'] satisfies (keyof BlueprintNode)[]
+
+/** The id of a document's first screen when it names none. */
+export const FIRST_SCREEN_ID = 'screen-1'
+
+/** The screens of a document as one list — the first, then the rest. */
+export function documentScreens(doc: BlueprintDocument): BlueprintScreen[] {
+  return [
+    { id: doc.id ?? FIRST_SCREEN_ID, name: doc.name, screen: doc.screen, root: doc.root },
+    ...(doc.screens ?? []),
+  ]
+}
 
 /**
  * Why a key the DSL does not have is refused. Focus gets its own reason: a TV

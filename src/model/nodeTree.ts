@@ -16,6 +16,8 @@ export interface CanvasNode {
    * the canvas renders it in the focus zone (see `shared/layout/frame.ts`).
    */
   anchor?: boolean
+  /** Prototype link: the id of the screen a click on this node opens (see `ScreenEntry`). */
+  goTo?: string
   /**
    * The screen's layer model and navigation level (the layer rule). Only on the
    * root — the canvas paints the model's shades between the video and the content.
@@ -24,6 +26,13 @@ export interface CanvasNode {
 }
 
 export type NodeId = string
+
+/** One screen (frame) of the open document: its tree, and the name it goes by. */
+export interface ScreenEntry {
+  id: string
+  name: string
+  tree: CanvasNode
+}
 
 /** Stable id generator (crypto.randomUUID is available in Electron's renderer). */
 export function createNodeId(): NodeId {

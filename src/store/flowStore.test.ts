@@ -119,3 +119,73 @@ describe('the layer rule on the canvas document', () => {
     expect(store().tree.screen).toEqual({ model: 'home', level: 1 })
   })
 })
+
+describe('screens — several frames in one document', () => {
+  const doc = (): BlueprintDocument => ({
+    ...PRICING_CARD_BLUEPRINT,
+    id: 'a',
+    name: 'Option A',
+    screens: ['b', 'c'].map((id) => ({
+      id,
+      name: `Option ${id.toUpperCase()}`,
+      screen: PRICING_CARD_BLUEPRINT.screen,
+      root: PRICING_CARD_BLUEPRINT.root,
+    })),
+  })
+
+  it('starts with one screen whose tree is `tree`', () => {
+    expect(store().screens).toHaveLength(1)
+    expect(store().tree).toBe(store().screens[0].tree)
+    expect(store().tree.props.align).toBe('stretch')
+  })
+
+  it('renders three options as three frames in ONE undo step', () => {
+    const run = store().applyAgentBlueprint(doc(), 'three options')
+    expect(run.ok && run.screenCount).toBe(3)
+    expect(store().screens.map((s) => s.name)).toEqual(['Option A', 'Option B', 'Option C'])
+    expect(store().activeId).toBe('a')
+    expect(store().past).toHaveLength(1)
+
+    store().undo()
+    expect(store().screens).toHaveLength(1)
+    store().redo()
+    expect(store().screens).toHaveLength(3)
+  })
+
+  it('edits only the open screen, and switching keeps each screen’s edits', () => {
+    store().applyAgentBlueprint(doc(), 'x')
+    const child = store().tree.children[0].id
+    store().updateProps(child, { content: 'Edited on A' })
+    store().setActiveScreen('b')
+    expect(store().tree.children[0].props.content).not.toBe('Edited on A')
+    store().setActiveScreen('a')
+    expect(store().tree.children[0].props.content).toBe('Edited on A')
+    expect(store().tree).toBe(store().screens.find((s) => s.id === 'a')!.tree)
+  })
+
+  it('undo brings back the screen that was open', () => {
+    store().applyAgentBlueprint(doc(), 'x')
+    store().setActiveScreen('c')
+    store().updateProps(store().tree.children[0].id, { content: 'C' })
+    store().undo()
+    expect(store().activeId).toBe('c')
+    expect(store().tree.children[0].props.content).not.toBe('C')
+  })
+
+  it('deletes a screen (to keep the option picked), never the last, and drops links to it', () => {
+    const linked = doc()
+    linked.root = structuredClone(linked.root)
+    linked.root.children![0].goTo = 'b'
+    store().applyAgentBlueprint(linked, 'x')
+    expect(JSON.stringify(store().screens[0].tree)).toContain('"goTo":"b"')
+
+    store().deleteScreen('b')
+    expect(store().screens.map((s) => s.id)).toEqual(['a', 'c'])
+    expect(JSON.stringify(store().screens[0].tree)).not.toContain('goTo')
+
+    store().deleteScreen('a')
+    expect(store().activeId).toBe('c')
+    store().deleteScreen('c')
+    expect(store().screens).toHaveLength(1)
+  })
+})

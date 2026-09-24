@@ -45,7 +45,7 @@ function mainMenu(): BlueprintNode {
   return {
     type: 'MainMenu',
     props: {
-      focusedItem: 'program',
+      focusedItem: 'channel-bug',
       weatherTitle: 'Previsão do tempo',
       weatherSubtitle: 'São Paulo, SP',
       programTitle: 'Copa do Mundo: Equador x Argentina',
@@ -91,7 +91,7 @@ const interactivityButtonsRight: BlueprintDocument = {
   screen: { model: 'interactivity-buttons-right', level: 2 },
   root: {
     type: 'Stack',
-    props: { direction: 'column', justify: 'end', align: 'end', gap: 'sm', padding: 'none', grow: true },
+    props: { direction: 'column', justify: 'end', align: 'stretch', gap: 'sm', padding: 'none', grow: true },
     children: [menu(true)],
   },
 }
@@ -125,12 +125,19 @@ function interactivityCards(side: 'left' | 'right'): BlueprintDocument {
       props: {
         direction: 'column',
         justify: 'end',
-        align: isRight ? 'end' : 'start',
+        align: 'stretch',
         gap: 'sm',
         padding: 'none',
         grow: true,
       },
-      children: [statsCard(), { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true }],
+      children: [
+        {
+          type: 'Stack',
+          props: { direction: 'row', justify: isRight ? 'end' : 'start', align: 'end', gap: 'sm' },
+          children: [statsCard()],
+        },
+        { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
+      ],
     },
   }
 }
@@ -140,8 +147,14 @@ const alert: BlueprintDocument = {
   screen: { model: 'alert', level: 0 },
   root: {
     type: 'Stack',
-    props: { direction: 'column', justify: 'end', align: 'end', gap: 'sm', padding: 'none', grow: true },
-    children: [{ type: 'AlertBug', props: { bugStyle: 'interface', interactionState: 'default', label: 'Conteúdo interativo' } }],
+    props: { direction: 'column', justify: 'end', align: 'stretch', gap: 'sm', padding: 'none', grow: true },
+    children: [
+      {
+        type: 'Stack',
+        props: { direction: 'row', justify: 'end', align: 'end', gap: 'sm' },
+        children: [{ type: 'AlertBug', props: { bugStyle: 'interface', interactionState: 'default', label: 'Conteúdo interativo' } }],
+      },
+    ],
   },
 }
 
@@ -149,7 +162,7 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
   {
     id: 'home',
     name: 'Home',
-    when: 'The home screen after login: the main menu along the bottom and the interactivity rail resting above it, focus on the programme button.',
+    when: 'The home screen after login: the main menu along the bottom and the interactivity rail resting above it, focus on the channel button.',
     blueprint: home,
   },
   {

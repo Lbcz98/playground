@@ -1,4 +1,5 @@
 import { useFlowStore, selectCanUndo, selectCanRedo } from '@/store/flowStore'
+import { usePlayStore } from '@/store/playStore'
 import { cx } from '@/lib/cx'
 
 function ToolbarButton({
@@ -32,6 +33,9 @@ export function Toolbar(): JSX.Element {
   const canUndo = useFlowStore(selectCanUndo)
   const canRedo = useFlowStore(selectCanRedo)
   const lastActionLabel = useFlowStore((s) => s.lastActionLabel)
+  const mode = usePlayStore((s) => s.mode)
+  const play = usePlayStore((s) => s.play)
+  const edit = usePlayStore((s) => s.edit)
 
   return (
     <header className="flex items-center justify-between border-b border-line bg-surface px-lg py-2xs">
@@ -40,6 +44,23 @@ export function Toolbar(): JSX.Element {
         <span className="rounded-full bg-brand-subtle px-2xs py-3xs text-xs font-medium text-brand-strong">
           Phase 1
         </span>
+      </div>
+
+      <div role="group" aria-label="Mode" className="flex overflow-hidden rounded-md border border-line text-sm font-medium">
+        {(['edit', 'play'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={m === 'play' ? play : edit}
+            className={cx(
+              'px-sm py-3xs',
+              mode === m ? 'bg-brand text-ink-inverse' : 'bg-surface text-ink hover:bg-subtle',
+            )}
+          >
+            {m === 'edit' ? 'Edit' : '▶ Play'}
+          </button>
+        ))}
       </div>
 
       <div className="flex items-center gap-2xs">

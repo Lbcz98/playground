@@ -26,7 +26,15 @@
  */
 
 import { z } from 'zod'
-import { BLUEPRINT_DOCUMENT_KEYS, BLUEPRINT_NODE_KEYS, unknownBlueprintKeyReason } from '../blueprint'
+import {
+  BLUEPRINT_DOCUMENT_KEYS,
+  BLUEPRINT_NODE_KEYS,
+  BLUEPRINT_SCREEN_KEYS,
+  FIRST_SCREEN_ID,
+  MAX_SCREENS,
+  unknownBlueprintKeyReason,
+} from '../blueprint'
+import { flowProblems, type FlowScreen } from './flow'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -194,12 +202,9 @@ export function validateBlueprintAgainstManifest(
   input: unknown,
   manifest: DesignSystemManifest,
 ): BlueprintValidation {
-  const errors: string[] = []
-  const schemas = compileManifestSchemas(manifest)
-  const allowed = Object.keys(manifest.components)
-  const rootType = rootContainerId(manifest)
-
   if (!isObject(input)) return { ok: false, errors: ['Blueprint must be a JSON object.'] }
+
+  const errors: string[] = []
   for (const key of Object.keys(input)) {
     if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
       errors.push(`Unknown key "${key}" next to "root" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
@@ -208,8 +213,57 @@ export function validateBlueprintAgainstManifest(
   if (input.version !== SUPPORTED_VERSION) {
     errors.push(`"version" must be ${SUPPORTED_VERSION} (got ${JSON.stringify(input.version)}).`)
   }
+
+  // The document is its first screen plus every further one; each is held to the
+  // same rules as a lone screen, then the links between them are checked.
+  const screens: FlowScreen[] = [
+    { id: typeof input.id === 'string' && input.id ? input.id : FIRST_SCREEN_ID, screen: input.screen, root: input.root },
+  ]
+  if (input.screens !== undefined) {
+    if (!Array.isArray(input.screens)) {
+      errors.push('"screens" must be a list of screens: [{ "id", "name", "screen", "root" }].')
+    } else {
+      if (input.screens.length + 1 > MAX_SCREENS) {
+        errors.push(`A document carries at most ${MAX_SCREENS} screens (got ${input.screens.length + 1}).`)
+      }
+      input.screens.slice(0, MAX_SCREENS - 1).forEach((raw: unknown, i: number) => {
+        if (!isObject(raw)) {
+          errors.push(`screens[${i}]: a screen must be an object { "id", "name", "screen", "root" }.`)
+          return
+        }
+        for (const key of Object.keys(raw)) {
+          if (!BLUEPRINT_SCREEN_KEYS.includes(key)) {
+            errors.push(`screens[${i}]: unknown key "${key}" — the Blueprint DSL has no such key. Remove it.`)
+          }
+        }
+        if (typeof raw.id !== 'string' || !raw.id) {
+          errors.push(`screens[${i}]: every further screen needs a string "id" — that is what "goTo" names.`)
+          return
+        }
+        screens.push({ id: raw.id, screen: raw.screen, root: raw.root })
+      })
+    }
+  }
+
+  const many = screens.length > 1
+  for (const s of screens) {
+    const found = validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest)
+    errors.push(...(many ? found.map((message) => `Screen "${s.id}": ${message}`) : found))
+  }
+  errors.push(...flowProblems(screens, manifest))
+
+  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+}
+
+/** One screen — `{ version, screen?, root }` — against the manifest. */
+function validateScreen(input: Record<string, unknown>, manifest: DesignSystemManifest): string[] {
+  const errors: string[] = []
+  const schemas = compileManifestSchemas(manifest)
+  const allowed = Object.keys(manifest.components)
+  const rootType = rootContainerId(manifest)
+
   if (!isObject(input.root)) {
-    return { ok: false, errors: [...errors, 'Blueprint must have a "root" node object.'] }
+    return [...errors, 'Blueprint must have a "root" node object.']
   }
   if (rootType && input.root.type !== rootType) {
     errors.push(`The root node must be a <${rootType}> (got ${JSON.stringify(input.root.type)}).`)
@@ -219,7 +273,7 @@ export function validateBlueprintAgainstManifest(
   // Layout QA: frame margins, the 8pt grid + gutters, focus anchoring.
   errors.push(...frameLayoutErrors(input, manifest))
 
-  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+  return errors
 }
 
 interface Ctx {

@@ -33,7 +33,7 @@ import type {
   ManifestProp,
 } from '@/shared/design-system/manifest'
 import { defaultForProp, tokenNames } from '@/shared/design-system/manifest'
-import { auditScreenLayers } from '@/shared/design-system/screen-layers'
+import { auditScreenLayers, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 
 export const FRAME = {
   /** The layout canvas — what the agent targets and the frame is laid out at. */
@@ -247,6 +247,17 @@ export function centeringPropsFor(component: ManifestComponent): ManifestProp[] 
   )
 }
 
+/**
+ * The prop that decides how a container's children fill its cross axis (`align`
+ * on a column) — the one the root must leave on "stretch", so the content layer
+ * always spans the frame and each module positions itself inside it.
+ */
+export function stretchPropFor(component: ManifestComponent): ManifestProp | undefined {
+  return Object.values(component.props).find(
+    (prop) => /^align(Items)?$/i.test(prop.name) && prop.options?.includes('stretch'),
+  )
+}
+
 /** What to use instead of "center" on an alignment prop: "start" when allowed. */
 export function uncenteredValue(prop: ManifestProp): string {
   if (!prop.options || prop.options.includes('start')) return 'start'
@@ -383,6 +394,7 @@ export function auditFrameLayout(
   const focus: string[] = []
   /** Every node whose props put it in a focus state — a TV screen allows one. */
   const focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[] = []
+  const seen = new Set<string>()
 
   for (const [name, px] of [
     ['layout width', FRAME.base.width],
@@ -407,6 +419,7 @@ export function auditFrameLayout(
       }
     }
     if (!component) return
+    seen.add(component.id)
 
     const focusProp = focusedBy(node, component)
     if (focusProp) {
@@ -464,8 +477,17 @@ export function auditFrameLayout(
         }
       }
 
+      const stretch = stretchPropFor(rootComponent)
+      if (stretch) {
+        const value = propValue(root, stretch)
+        if (value !== 'stretch') {
+          focus.push(
+            `root <${rootComponent.id}>: ${stretch.name} ${JSON.stringify(value)} — the stack that holds the components always stretches (${stretch.name} "stretch"); a module that belongs on one side positions itself inside it (its own ${stretch.name}/justify, or a row set to justify "end").`,
+          )
+        }
+      }
       for (const prop of centeringPropsFor(rootComponent)) {
-        if (propValue(root, prop) !== 'center') continue
+        if (prop === stretch || propValue(root, prop) !== 'center') continue
         focus.push(
           `root <${rootComponent.id}>: ${prop.name} "center" statically centers the master layout — TV layouts follow the focus instead; use ${JSON.stringify(uncenteredValue(prop))}.`,
         )
@@ -513,8 +535,51 @@ export function auditFrameLayout(
     check('margins', `${FRAME.margin}px safe-area margins`, margins),
     check('grid', `${FRAME.grid}pt grid · ${FRAME.gutter}px gutters`, grid),
     check('focus', 'Focus — no static centering, one focused element, one anchored group', focus),
-    check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side', auditScreenLayers(d, manifest)),
+    check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side, where focus starts', [
+      ...auditScreenLayers(d, manifest),
+      ...levelFocusProblems(manifest, screenOf(d), focused, seen),
+    ]),
   ]
+}
+
+function screenOf(doc: Record<string, unknown>): unknown {
+  const root = isObject(doc.root) ? (doc.root as { screen?: unknown }) : undefined
+  return doc.screen ?? root?.screen
+}
+
+/**
+ * Where the TV focus starts is what tells the pages apart: the channel button on
+ * Home, an interactivity button on the second level, the rounded button on the
+ * third. A screen whose level says where focus starts is held to it — an element
+ * focused anywhere else, or the named component present with nothing focused.
+ */
+export function levelFocusProblems(
+  manifest: DesignSystemManifest,
+  screen: unknown,
+  focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[],
+  seen: ReadonlySet<string>,
+): string[] {
+  const layers = screenLayersOf(manifest)
+  const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+  const level = model ? navigationLevel(layers, model.level) : undefined
+  const rule = level?.initialFocus
+  if (!level || !rule) return []
+  const on = rule.on.filter((id) => manifest.components[id])
+  if (on.length === 0) return []
+
+  const where = `Level ${level.level} (${level.name})`
+  const right = (f: (typeof focused)[number]): boolean =>
+    on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value)
+  const wrong = focused.filter((f) => !right(f))
+  if (wrong.length > 0) {
+    return [
+      `${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`,
+    ]
+  }
+  if (focused.length === 0 && on.some((id) => seen.has(id))) {
+    return [`${where}: nothing is focused — ${rule.hint}`]
+  }
+  return []
 }
 
 /** Every failed checklist item as one error string each — the validator's retry signal. */

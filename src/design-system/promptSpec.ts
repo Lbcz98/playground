@@ -24,7 +24,7 @@
  * Imported by the Electron main process — must stay free of React / DOM.
  */
 
-import { RENDER_TOOL_NAME } from '@/shared/blueprint'
+import { MAX_SCREENS, RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest, ManifestComponent, ManifestTokens } from '@/shared/design-system/manifest'
 import {
   TOKEN_TIER_RULE,
@@ -47,6 +47,7 @@ import {
   unfocusedValue,
   allowedSpacingNames,
   centeringPropsFor,
+  stretchPropFor,
   onGridSpacingNames,
   spacingNameForPx,
   spacingPropFor,
@@ -167,16 +168,18 @@ When generating full screens or master containers, you must target the base HD c
 * **Master Viewport:** The outermost container is strictly locked to **${px(width)} by ${px(height)}** by the engine — never try to size it yourself.
 * **Safe Area Margins:** A strict **${px(FRAME.margin)} margin** applies on all outer edges (Top, Bottom, Left, Right). The engine applies it as the canvas safe area, so the outermost container adds no padding of its own. Content cannot breach this safe area.
 * **Gutters:** The space between structural columns or module stacks must be exactly **${px(FRAME.gutter)}**.
+* **Stretch:** The outermost container always stretches its children across the frame — its cross-axis alignment is "stretch". A module that belongs on the right or the left positions itself inside it (a row set to justify to the end or the start, or the component's own alignment prop); the outermost container itself never aligns to a side.
 * **Dynamic Focus Alignment:** Master layouts do not use static center alignment. This is a TV canvas: something always holds focus, and the engine reads where it is — you never declare a focus side.
   * Initial focus lands on the first focusable element (a button or an input) in reading order — top to bottom, then left to right — within the screen's content. Keep the screen's primary actions (e.g. "Play", "Watch now", "Continue") in the content, placed where focus should start.
-  * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus. If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
+  * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
 }
 
 function registryLaw(): string {
   return `### 4. COMPONENT REGISTRY STRICTNESS
 You must construct the UI using ONLY the provided Blueprint component definitions (which have been imported and mapped from our Storybook registry).
-* Rely exclusively on the Blueprint schema properties provided in your context.
-* Never invent new UI elements or inject unsupported properties into the Blueprint JSON.`
+* Never use a prop the schema doesn't define — rely exclusively on the Blueprint schema properties provided in your context.
+
+Compose, don't assume. Treat the components as building blocks and combine them freely to match what the user asks, including unconventional arrangements. Composition happens inside the frame, token, layer and focus laws, which always win. Placement rules on a component (which parent it needs, its slot order) still apply. A reference screen is a starting point, and the request can override it. If the request needs something the registry lacks, approximate it with the layout primitives and name what you approximated. Never invent a component.`
 }
 
 /**
@@ -203,7 +206,9 @@ The whole design system rests on this rule. Every screen is three layers, bottom
 * **Your blueprint is the content layer only.** The engine paints the video and the overlay under it, so the outermost container stays transparent — never paint a full-screen background, gradient, shade or scrim yourself.
 * **The overlay is never free-form.** Pick ONE layer model for the screen, and the engine paints that model's fixed combination of shades. Declare it next to "root": \`"screen": { "model": "<model id>", "level": <navigation level> }\`.
 * **Pick the model by the screen type and by where its components sit.** A model that shades one side needs the content — and so the TV focus — on that side; a model without a side spans the frame.
-* **Navigation levels limit what a screen shows.** A model fixes the level, and a level that shows one module holds exactly one content container as the only un-anchored child of the outermost container.`
+* **Navigation levels limit what a screen shows.** A model fixes the level, and a level that shows one module holds exactly one content container as the only un-anchored child of the outermost container.
+* **One document can hold several screens** (at most ${MAX_SCREENS}). The first is "root" (with its "screen"); every further one goes in \`"screens": [{ "id": "<unique id>", "name": "<short label>", "screen": { "model", "level" }, "root": {…} }]\`. When the user asks for options, versions or alternatives ("give me three"), return exactly that many screens, each a genuinely different composition of the same request — they need no links. Give every screen a short "name" ("Option A").
+* **A prototype is clickable.** When the user asks for a flow, a prototype, or what happens when something is clicked, return one screen per step and put \`"goTo": "<screen id>"\` on the element (a button, a card, a menu item) that opens it. Links follow the levels: an element on a level N screen opens a level N+1 screen — Home (1) → the focused rail (2) → one interactivity (3) — never skipping a level, and every screen carries the model of its own level. Focus tells the pages apart: on Home the focus is the channel rounded button, and the interactivity buttons resting there link to the second-level screen (a focus on them IS that page); on the second level the focus is on one interactivity button, which links to the third-level screen; on the third level the focus starts on the rounded button, which links back up. Name the first screen's "id" next to "root" only when another screen links back to it. A screen nothing links to is an option, not a step.`
 }
 
 /** The Generator's global kernel: identity + the six laws. No design-system specifics. */
@@ -374,7 +379,7 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
   const lines = [
     `* **Layer rule:** ${layers.rule}`,
     `* **Navigation levels (screen.level):**`,
-    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}`),
+    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}${l.initialFocus ? ` **Initial focus:** ${l.initialFocus.hint}` : ''}`),
     `* **Layer models (screen.model):**`,
     ...layers.models.map(
       (m) =>
@@ -435,7 +440,8 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
   const gap = component ? spacingPropFor(component, 'gutter') : undefined
   const zero = padding ? spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0) : undefined
   const gutter = gap ? spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter) : undefined
-  const centering = component ? centeringPropsFor(component).map((prop) => prop.name) : []
+  const stretch = component ? stretchPropFor(component) : undefined
+  const centering = component ? centeringPropsFor(component).filter((prop) => prop !== stretch).map((prop) => prop.name) : []
 
   return [
     `* **Safe area:** ${
@@ -447,6 +453,11 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
       gap && gutter
         ? `the outermost <${container}>, and any container whose children are all containers (stacked modules, columns), set ${gap.name} "${gutter}".`
         : `stacked modules and columns sit ${px(FRAME.gutter)} apart.`
+    }`,
+    `* **Stretch:** ${
+      stretch
+        ? `the outermost <${container}> keeps ${stretch.name} "stretch" — a module that belongs on one side positions itself inside it.`
+        : `the outermost <${container}> spans the frame; a module that belongs on one side positions itself inside it.`
     }`,
     `* **No static centering:** ${
       centering.length > 0
@@ -589,10 +600,13 @@ ${templateSection(templates)}# Output format
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
 nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
+listing each one (its id, a short name, its model and level — and for a flow, which element links to which
+screen), then the numbered list for each screen under its own "Screen <id>:" heading.
 Example:
 
 ${templates.length > 0 ? 'Template: home\n' : ''}Screen: model "home", level 1 — a home screen whose content spans the frame.
-1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align start, no background) — the content layer.
+1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align stretch, no background) — the content layer.
 2.   Header ${container} (vertical, gap xs).
 3.     A prominent title: "Choose your plan".
 4.     A muted body line: "Switch or cancel at any time.".
@@ -620,7 +634,8 @@ export function buildSystemPrompt(
 
   const blueprint = `"version": 1,
   "screen": { "model": "<layer model id>", "level": <that model's level> },
-  "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }`
+  "root": { "type": "${container}", "props": { ... }, "children": [ ... ] }
+  (only for several screens: "screens": [ { "id": "...", "name": "...", "screen": { ... }, "root": { ... } } ])`
   const output =
     mode === 'tool'
       ? `Return the Blueprint by calling the ${RENDER_TOOL_NAME} tool exactly once with:
@@ -645,6 +660,7 @@ ${spec.map(describeComponent).join('\n\n')}
 # Output
 ${output}
 Omit props you don't need — defaults are applied. The document has exactly three
-fields: "version", "screen" and "root". Do not include an "id" field on any node —
-besides "type", "props" and "children", the only node field is "anchor".`
+fields: "version", "screen" and "root" (plus "id"/"name" for the first screen and "screens" when the
+request asks for several screens). Do not include an "id" field on any node —
+besides "type", "props" and "children", the only node fields are "anchor" and "goTo".`
 }

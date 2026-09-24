@@ -176,6 +176,7 @@ export function MainMenu({
         <button
           type="button"
           aria-label="Interactive content"
+          data-focused={focused === 'channel-bug' ? '' : undefined}
           onClick={onBugClick}
           style={{
             width: size('channel-bug'),

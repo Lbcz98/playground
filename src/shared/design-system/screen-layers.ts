@@ -55,6 +55,11 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       rule: 'The first navigation level, right after login: the main menu and the content rail. Everything on screen is reachable, and the channel logo leads back to the clean broadcast.',
       maxModules: null,
       allowsAnchor: true,
+      initialFocus: {
+        on: ['MainMenu'],
+        value: 'channel-bug',
+        hint: 'Focus starts on the channel rounded button (the main menu\'s channel-bug) and nowhere else — a focus on an interactivity button would already be the second level.',
+      },
     },
     {
       level: 2,
@@ -62,6 +67,10 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       rule: 'The second level: the viewer moved up into a content rail (or focused profile, schedule or alerts). The rest of the menu is hidden and the screen is cleared around that one rail.',
       maxModules: 1,
       allowsAnchor: true,
+      initialFocus: {
+        on: ['InteractivityCard'],
+        hint: 'Focus is on one of the interactivity buttons — that is what makes this the second level, a page of its own; the main menu is not on screen.',
+      },
     },
     {
       level: 3,
@@ -69,6 +78,10 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       rule: 'The third level: one interactivity needs more room (statistics, a line-up, a VOD page). Every other element is cleared; only that interactivity remains, with its close button as the anchored cluster.',
       maxModules: 1,
       allowsAnchor: true,
+      initialFocus: {
+        on: ['CloseButton', 'RoundedButton'],
+        hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself.',
+      },
     },
   ],
   models: [
@@ -242,6 +255,23 @@ export function staticContentSide(manifest: DesignSystemManifest, root: LayerNod
   return null
 }
 
+/**
+ * The side the content sits on when the root stretches (as it always should): the
+ * first un-anchored module places itself — a menu's `align`, a row's `justify`.
+ * `via` names the node whose prop to change.
+ */
+export function moduleContentSide(
+  manifest: DesignSystemManifest,
+  root: LayerNode,
+): { side: ScreenSide; prop: string; type: string; values: Record<ScreenSide, string> } | null {
+  const children = Array.isArray(root.children) ? root.children.filter(isObject) : []
+  const module = children.find((child) => child.anchor !== true) as LayerNode | undefined
+  if (!module || typeof module.type !== 'string') return null
+  const side = staticContentSide(manifest, module)
+  const prop = sidePropFor(manifest, module)
+  return side && prop ? { side, prop: prop.prop, type: module.type, values: prop.values } : null
+}
+
 const BACKGROUND_PROP = /^(surface|background|bg|backgroundColor|fill)$/i
 const CLEAR = ['none', 'transparent']
 
@@ -339,6 +369,13 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
     if (side && prop && side !== model.side) {
       problems.push(
         `"${model.id}" (${model.name}) shades the ${model.side} side, but the outermost container puts its content on the ${side} — set ${prop.prop} "${prop.values[model.side]}", or pick a ${side} model.`,
+      )
+    }
+    // The root stretches, so the module is what places the content.
+    const placed = side ? null : moduleContentSide(manifest, root)
+    if (placed && placed.side !== model.side) {
+      problems.push(
+        `"${model.id}" (${model.name}) shades the ${model.side} side, but the <${placed.type}> puts its content on the ${placed.side} — set its ${placed.prop} "${placed.values[model.side]}", or pick a ${placed.side} model.`,
       )
     }
   }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ContentCardHeader } from '@/ui-kit/ContentCard'
@@ -84,8 +85,21 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
 
     it('none of them when the fields are empty — the plain header is unchanged', () => {
       const plain = { title: 'Grupo A', overline: 'Copa', subtitle: 'Classificação' }
-      expect(html(plain)).toBe(renderToStaticMarkup(<ContentCardHeader {...plain} />))
+      // The canvas' decoration host is a box-less span around the kit's own markup.
+      expect(html(plain)).toBe(
+        `<span style="display:contents">${renderToStaticMarkup(<ContentCardHeader {...plain} />)}</span>`,
+      )
     })
+  })
+})
+
+describe('the decoration host', () => {
+  it('lets a kit component carry data-node-id and a click, without adding a box', () => {
+    const entry = hydrateRegistry(SCREENFLOW_MANIFEST).get('CloseButton')!
+    const el = entry.render({ label: 'Fechar' }, null)
+    expect(renderToStaticMarkup(cloneElement(el, { 'data-node-id': 'n_1' }))).toMatch(
+      /^<span data-node-id="n_1" style="display:contents">/,
+    )
   })
 })
 

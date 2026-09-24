@@ -26,12 +26,12 @@ function errorsOf(input: unknown): string[] {
 }
 
 /**
- * The nível 3 Content Card screen: root Stack → [ContentCard(Header, Body(TableCell×3),
- * Footer), CloseButton(anchored, focused)].
+ * The nível 3 Content Card screen: root Stack → [Stack(row, on the model's side) →
+ * ContentCard(Header, Body(TableCell×3), Footer), CloseButton(anchored, focused)].
  */
 type Doc = BlueprintDocument & Record<string, unknown>
 const base = (): Doc => structuredClone(screenTemplate('interactivity-cards-right')!.blueprint) as Doc
-const card = (doc: Doc) => doc.root.children![0]
+const card = (doc: Doc) => doc.root.children![0].children![0]
 const zones = (doc: Doc) => card(doc).children!
 const body = (doc: Doc) => zones(doc)[1]
 
@@ -90,7 +90,7 @@ const CASES: Case[] = [
     rule: 'two focused elements',
     break: (d) => Object.assign(card(d).props!, { interactionState: 'focus' }),
     rejects: /focus/,
-    reports: /a TV screen focuses one element/,
+    reports: /Focus starts on the rounded button/,
     repairs: true,
   },
 
@@ -124,8 +124,15 @@ const CASES: Case[] = [
   {
     rule: 'a statically centered master layout',
     break: (d) => Object.assign(d.root.props!, { align: 'center' }),
-    rejects: /center/,
-    reports: /center/,
+    rejects: /stretch/,
+    reports: /stretch/,
+    repairs: true,
+  },
+  {
+    rule: 'a root that aligns to a side instead of stretching',
+    break: (d) => Object.assign(d.root.props!, { align: 'end' }),
+    rejects: /always stretches/,
+    reports: /"stretch" on the root/,
     repairs: true,
   },
   {

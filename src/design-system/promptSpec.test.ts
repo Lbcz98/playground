@@ -223,7 +223,8 @@ describe('design-system binding (§7)', () => {
     expect(system).toContain('### 7. ACTIVE DESIGN SYSTEM — ScreenFlow (v1.0.0)')
     expect(system).toMatch(/outermost <Stack> sets padding "none"/)
     expect(system).toMatch(/set gap "sm"/)
-    expect(system).toMatch(/never sets align or justify to "center"/)
+    expect(system).toMatch(/never sets justify to "center"/)
+    expect(system).toMatch(/keeps align "stretch"/)
     expect(system).not.toContain('"frame"')
     expect(buildPlannerPrompt()).toMatch(/outermost <Stack> sets padding "none"/)
 
@@ -332,7 +333,7 @@ describe('the layer rule (law 6, Camadas)', () => {
     for (const mode of ['tool', 'json'] as const) {
       const system = buildSystemPrompt(mode)
       expect(system).toContain('"screen": { "model": "<layer model id>", "level": <that model\'s level> }')
-      expect(system).toContain('The document has exactly three\nfields: "version", "screen" and "root".')
+      expect(system).toContain('The document has exactly three\nfields: "version", "screen" and "root" (plus "id"/"name" for the first screen and "screens" when the\nrequest asks for several screens).')
     }
     expect(buildPlannerPrompt()).toContain('Screen: model "home", level 1 — ')
   })
@@ -348,5 +349,17 @@ describe('the layer rule (law 6, Camadas)', () => {
     const system = buildSystemPrompt('tool', custom)
     expect(system).toContain('"poster-wall" — Poster wall · level 1')
     expect(system).not.toContain('"home" — Home')
+  })
+})
+
+describe('law 4 — compose, don\'t assume', () => {
+  it('keeps the property rule and frees composition under the other laws', () => {
+    for (const mode of ['tool', 'json'] as const) {
+      const system = buildSystemPrompt(mode)
+      expect(system).toContain("Never use a prop the schema doesn't define")
+      expect(system).toContain("Compose, don't assume. Treat the components as building blocks")
+      expect(system).toContain('frame, token, layer and focus laws, which always win')
+      expect(system).toContain('Never invent a component.')
+    }
   })
 })

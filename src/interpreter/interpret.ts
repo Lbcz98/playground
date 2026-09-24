@@ -27,6 +27,8 @@ import type { z } from 'zod'
 import {
   BLUEPRINT_DOCUMENT_KEYS,
   BLUEPRINT_NODE_KEYS,
+  BLUEPRINT_SCREEN_KEYS,
+  MAX_SCREENS,
   type BlueprintDocument,
   type BlueprintNode,
   unknownBlueprintKeyReason,
@@ -48,15 +50,18 @@ import {
   allowedSpacingNames,
   centeringPropsFor,
   focusedBy,
+  focusPropsFor,
   frameLayoutErrors,
   isModuleGroup,
   unfocusedValue,
   uncenteredValue,
   spacingNameForPx,
   spacingPropFor,
+  stretchPropFor,
   spacingPx,
 } from '@/shared/layout/frame'
-import { type CanvasNode, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
+import { levelJumpProblem } from '@/shared/design-system/flow'
+import { type CanvasNode, type ScreenEntry, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
 
 export interface InterpretIssue {
   level: 'info' | 'warn'
@@ -137,6 +142,7 @@ export function interpretBlueprint(
   const screen = repairScreen(doc.screen, ctx.manifest, issues)
   const side = screen ? screenModel(screenLayersOf(ctx.manifest), screen.model)?.side : undefined
   repairFrameLayout(root, ctx.manifest, issues, side)
+  repairLevelFocus(root, ctx.manifest, screen, issues)
   repairFocus(root, ctx.manifest, issues)
   if (screen) {
     root.screen = screen
@@ -161,6 +167,103 @@ export function interpretBlueprint(
   return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
 }
 
+export type PrototypeResult =
+  | { ok: true; screens: ScreenEntry[]; issues: InterpretIssue[]; nodeCount: number; linkCount: number }
+  | { ok: false; error: string; issues: InterpretIssue[] }
+
+/**
+ * A whole document — its first screen and every further one — interpreted into
+ * screens, each repaired exactly as `interpretBlueprint` repairs one. Then the
+ * links are held to the flow rules: a `goTo` naming no screen, the screen itself,
+ * or a level more than one deeper is dropped, so the player can never open a
+ * screen that isn't there or skip a level.
+ */
+export function interpretPrototype(
+  input: unknown,
+  manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
+): PrototypeResult {
+  const issues: InterpretIssue[] = []
+  if (!isObject(input)) return { ok: false, error: 'Blueprint payload is not an object.', issues }
+
+  const first = interpretBlueprint({ version: input.version, screen: input.screen, root: input.root }, manifest)
+  if (!first.ok) return first
+  issues.push(...first.issues)
+
+  const used = new Set<string>()
+  const uniqueId = (wanted: unknown, index: number): string => {
+    let id = typeof wanted === 'string' && wanted.trim() ? wanted.trim() : `screen-${index + 1}`
+    if (used.has(id)) {
+      const taken = id
+      id = `screen-${index + 1}`
+      issues.push({ level: 'warn', path: `screens[${index}]`, message: `Renamed the screen "${taken}" to "${id}" — ids are unique.` })
+    }
+    used.add(id)
+    return id
+  }
+  const label = (name: unknown, index: number): string =>
+    typeof name === 'string' && name.trim() ? name.trim() : `Screen ${index + 1}`
+
+  const screens: ScreenEntry[] = [
+    { id: uniqueId(input.id, 0), name: label(input.name, 0), tree: first.tree },
+  ]
+  let nodeCount = first.nodeCount
+
+  const rest = Array.isArray(input.screens) ? input.screens : []
+  if (input.screens !== undefined && !Array.isArray(input.screens)) {
+    issues.push({ level: 'warn', path: 'screens', message: 'Ignored "screens" — it is a list of screens.' })
+  }
+  rest.forEach((raw: unknown, i: number) => {
+    const path = `screens[${i}]`
+    if (screens.length >= MAX_SCREENS) {
+      issues.push({ level: 'warn', path, message: `Dropped a screen — a document carries at most ${MAX_SCREENS}.` })
+      return
+    }
+    if (!isObject(raw)) {
+      issues.push({ level: 'warn', path, message: 'Dropped a screen that was not an object.' })
+      return
+    }
+    for (const key of Object.keys(raw)) {
+      if (!BLUEPRINT_SCREEN_KEYS.includes(key)) {
+        issues.push({ level: 'info', path, message: `Ignored "${key}" on a screen — the Blueprint DSL has no such key.` })
+      }
+    }
+    const result = interpretBlueprint({ version: 1, screen: raw.screen, root: raw.root }, manifest)
+    if (!result.ok) {
+      issues.push({ level: 'warn', path, message: `Dropped a screen — ${result.error}` })
+      return
+    }
+    const index = screens.length
+    const id = uniqueId(raw.id, index)
+    issues.push(...result.issues.map((issue) => ({ ...issue, path: `screen "${id}" › ${issue.path}` })))
+    screens.push({ id, name: label(raw.name, index), tree: result.tree })
+    nodeCount += result.nodeCount
+  })
+
+  let linkCount = 0
+  for (const from of screens) {
+    const drop = (node: CanvasNode, path: string, why: string): void => {
+      delete node.goTo
+      issues.push({ level: 'warn', path: `screen "${from.id}" › ${path}`, message: `Dropped the link on <${node.type}> — ${why}.` })
+    }
+    const visit = (node: CanvasNode, path: string): void => {
+      if (node.goTo !== undefined) {
+        const target = screens.find((s) => s.id === node.goTo)
+        if (!target) drop(node, path, `"${node.goTo}" is not a screen of this document`)
+        else if (target.id === from.id) drop(node, path, 'it links the screen to itself')
+        else {
+          const jump = levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level)
+          if (jump) drop(node, path, jump)
+          else linkCount += 1
+        }
+      }
+      node.children.forEach((child, i) => visit(child, `${path} › ${child.type}[${i}]`))
+    }
+    visit(from.tree, 'root')
+  }
+
+  return { ok: true, screens, issues, nodeCount, linkCount }
+}
+
 /** A canvas tree back to the wire format — ids dropped, the screen spec lifted to the document. */
 export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
   const strip = (node: CanvasNode): BlueprintNode => ({
@@ -168,8 +271,70 @@ export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
     props: node.props,
     ...(node.children.length ? { children: node.children.map(strip) } : {}),
     ...(node.anchor ? { anchor: true } : {}),
+    ...(node.goTo ? { goTo: node.goTo } : {}),
   })
   return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
+}
+
+/**
+ * Where focus starts is what tells the pages apart (Home: the channel button; the
+ * second level: an interactivity button; the third: the rounded button). When the
+ * screen's level says where, the component it names takes the focus and every
+ * other focused element rests.
+ */
+function repairLevelFocus(
+  root: CanvasNode,
+  manifest: DesignSystemManifest,
+  screen: ScreenSpec | undefined,
+  issues: InterpretIssue[],
+): void {
+  const layers = screenLayersOf(manifest)
+  const model = screen ? screenModel(layers, screen.model) : undefined
+  const rule = model ? layers.levels.find((l) => l.level === model.level)?.initialFocus : undefined
+  if (!rule) return
+
+  const all: CanvasNode[] = []
+  const collect = (node: CanvasNode): void => {
+    all.push(node)
+    node.children.forEach(collect)
+  }
+  collect(root)
+
+  const isTarget = (node: CanvasNode): boolean => {
+    const component = manifest.components[node.type]
+    if (!component || !rule.on.includes(node.type)) return false
+    const prop = focusedBy(node, component)
+    return !!prop && (rule.value === undefined || node.props[prop.name] === rule.value)
+  }
+  const candidates = all.filter((node) => rule.on.includes(node.type) && manifest.components[node.type])
+  if (candidates.length === 0) return
+  const target = candidates.find(isTarget) ?? candidates[0]
+
+  for (const node of all) {
+    const component = manifest.components[node.type]
+    const prop = component ? focusedBy(node, component) : undefined
+    if (!prop || node === target) continue
+    const rest = unfocusedValue(prop)
+    node.props = { ...node.props, [prop.name]: rest }
+    issues.push({
+      level: 'warn',
+      path: 'root',
+      message: `Set ${prop.name} to "${rest}" on <${node.type}> — ${rule.hint}`,
+    })
+  }
+
+  if (!isTarget(target)) {
+    const component = manifest.components[target.type]
+    const prop = focusPropsFor(component).find((p) => rule.value === undefined ? p.options?.includes('focus') : true)
+    if (!prop) return
+    const value = rule.value ?? 'focus'
+    target.props = { ...target.props, [prop.name]: value }
+    issues.push({
+      level: 'warn',
+      path: 'root',
+      message: `Set ${prop.name} to "${value}" on <${target.type}> — ${rule.hint}`,
+    })
+  }
 }
 
 /** One focused element per screen: keep the first in reading order, rest the others. */
@@ -290,6 +455,11 @@ function interpretNode(
   }
 
   const node: CanvasNode = { id: createNodeId(), type, props, children }
+  if (typeof raw.goTo === 'string' && raw.goTo.trim()) {
+    node.goTo = raw.goTo.trim() // resolved against the document's screens by `interpretPrototype`
+  } else if (raw.goTo !== undefined) {
+    issues.push({ level: 'warn', path, message: `Ignored goTo=${brief(raw.goTo)} on <${type}> (must be a screen id).` })
+  }
   if (raw.anchor === true) {
     if (depth === 1) {
       node.anchor = true
@@ -378,11 +548,23 @@ function repairFrameLayout(
     }
   }
 
-  // Un-centering the prop that picks the content's side lands on the side the
-  // screen model shades, so the repair can't break the layer rule.
+  // The stack that holds the components always stretches: the content layer spans
+  // the frame, and a module that belongs on one side positions itself inside it.
+  const stretch = component ? stretchPropFor(component) : undefined
+  if (stretch && root.props[stretch.name] !== undefined && root.props[stretch.name] !== 'stretch') {
+    issues.push({
+      level: 'info',
+      path: 'root',
+      message: `Set ${stretch.name} to "stretch" on the root (was ${brief(root.props[stretch.name])}) — the stack that holds the components always stretches.`,
+    })
+    root.props = { ...root.props, [stretch.name]: 'stretch' }
+  }
+
+  // Un-centering a prop that has no stretch (a row's justify) lands on the side
+  // the screen model shades, so the repair can't break the layer rule.
   const sideProp = side ? sidePropFor(manifest, root) : null
   for (const prop of component ? centeringPropsFor(component) : []) {
-    if (root.props[prop.name] !== 'center') continue
+    if (prop === stretch || root.props[prop.name] !== 'center') continue
     const value = side && sideProp?.prop === prop.name ? sideProp.values[side] : uncenteredValue(prop)
     issues.push({
       level: 'info',

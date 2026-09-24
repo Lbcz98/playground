@@ -23,15 +23,21 @@ export const alertTemplate: ScreenTemplate = {
       props: {
         direction: 'vertical',
         justify: 'end',
-        align: 'end',
+        align: 'stretch',
         gap: 'sm',
         padding: 'none',
         grow: true,
       },
       children: [
         {
-          type: 'AlertBug',
-          props: { bugStyle: 'interface', interactionState: 'default', label: 'Conteúdo interativo' },
+          type: 'Stack',
+          props: { direction: 'horizontal', justify: 'end', align: 'end', gap: 'sm' },
+          children: [
+            {
+              type: 'AlertBug',
+              props: { bugStyle: 'interface', interactionState: 'default', label: 'Conteúdo interativo' },
+            },
+          ],
         },
       ],
     },

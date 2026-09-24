@@ -148,9 +148,10 @@ describe('interpretBlueprint — frame rules', () => {
       },
     })
     if (!result.ok) throw new Error('expected ok')
-    expect([result.tree.props.align, result.tree.props.justify]).toEqual(['start', 'start'])
+    expect([result.tree.props.align, result.tree.props.justify]).toEqual(['stretch', 'start'])
     expect(result.tree.children[0].props.align).toBe('center')
-    expect(result.issues.filter((i) => /static center alignment/.test(i.message))).toHaveLength(2)
+    expect(result.issues.filter((i) => /static center alignment/.test(i.message))).toHaveLength(1)
+    expect(result.issues.filter((i) => /always stretches/.test(i.message))).toHaveLength(1)
   })
 
   it('never seeds an off-grid default — it snaps to the nearest on-grid step', () => {

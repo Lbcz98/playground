@@ -200,6 +200,22 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
   adds a live check: the TV focus must sit on the side the model shades. The Frame
   panel picks the model by hand. Both built-in systems declare the DTV rule, and
   it is the fallback for imported ones.
+- **Several frames, and a live prototype** (`shared/blueprint.ts`, `shared/design-system/flow.ts`,
+  `store/playStore.ts`). A document is its first screen (`root`) plus up to 5 more in
+  `screens: [{ id, name, screen, root }]` — "give me three versions" is three screens,
+  and the canvas shows every frame as a live thumbnail under the open one (click to
+  edit, × to keep only the option you picked). Any element may carry
+  `"goTo": "<screen id>"`; **Play** (toolbar, or automatic after a generation that
+  has links) runs those links: a click opens the screen, Back / Esc steps out, Restart
+  returns to the start. Links follow the layer rule — a link from level N opens level
+  N + 1 (Home → rail → one interactivity) or goes back up, never skipping a level; the
+  validator rejects a broken link (with the list of real screen ids) and the
+  interpreter drops it with a warning. Every screen is one undo step together.
+- **The stack that holds the components always stretches.** The root's `align` is
+  `"stretch"` (validator rejects anything else, the interpreter repairs it, the
+  templates follow it); a module that belongs on one side positions itself inside it —
+  the menu's own `align`, or a row set to `justify: "end"`. The layer check reads the
+  side off that module.
 - **The token tier rule** (`manifest.tokenTiers`, `TOKEN_TIER_RULE` in `manifest.ts`)
   is part of every manifest: each token is `core` (a raw value), `semantic` (an
   intent that aliases core) or `layout` (a grid spacing or radius step, for layout

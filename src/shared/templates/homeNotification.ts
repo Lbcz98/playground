@@ -54,7 +54,7 @@ export const homeNotificationTemplate: ScreenTemplate = {
             {
               type: 'MainMenu',
               props: {
-                focusedItem: 'program',
+                focusedItem: 'channel-bug',
                 weatherTitle: 'Previsão do tempo',
                 weatherSubtitle: 'São Paulo, SP',
                 programTitle: 'Copa do Mundo: Equador x Argentina',

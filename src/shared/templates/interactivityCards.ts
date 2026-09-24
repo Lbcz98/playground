@@ -83,13 +83,17 @@ function cardsTemplate(side: Side): ScreenTemplate {
         props: {
           direction: 'vertical',
           justify: 'end',
-          align: isRight ? 'end' : 'start',
+          align: 'stretch',
           gap: 'sm',
           padding: 'none',
           grow: true,
         },
         children: [
-          card(),
+          {
+            type: 'Stack',
+            props: { direction: 'horizontal', justify: isRight ? 'end' : 'start', align: 'end', gap: 'sm' },
+            children: [card()],
+          },
           { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
         ],
       },

@@ -156,7 +156,7 @@ describe('one focused element per screen', () => {
       screen: { model: 'alert', level: 0 },
       root: {
         type: 'Stack',
-        props: { direction: 'vertical', justify: 'end', align: 'end', gap: 'sm', padding: 'none' },
+        props: { direction: 'vertical', justify: 'end', align: 'stretch', gap: 'sm', padding: 'none' },
         children: [{ type: 'AlertBug', props: { interactionState: 'default' } }],
       },
     }
@@ -261,7 +261,7 @@ describe('auditFrameLayout — the layout QA checklist', () => {
       S,
     )
     expect(errors).toEqual([
-      expect.stringMatching(/^root <Stack>: align "center" statically centers the master layout .*use "start"/),
+      expect.stringMatching(/^root <Stack>: align "center" — the stack that holds the components always stretches/),
       expect.stringMatching(/^root <Stack>: justify "center" statically centers the master layout .*use "start"/),
     ])
   })

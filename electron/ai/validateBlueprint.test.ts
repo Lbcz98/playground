@@ -119,7 +119,11 @@ describe('validateBlueprint — Content Card structure', () => {
   const screen = (card: Record<string, unknown>) => ({
     version: 1,
     screen: { model: 'interactivity-cards-right', level: 3 },
-    root: { type: 'Stack', props: { justify: 'end', align: 'end', grow: true }, children: [card] },
+    root: {
+      type: 'Stack',
+      props: { justify: 'end', align: 'stretch', grow: true },
+      children: [{ type: 'Stack', props: { direction: 'horizontal', justify: 'end', align: 'end' }, children: [card] }],
+    },
   })
   const card = (children: unknown[], props: Record<string, unknown> = {}) => ({ type: 'ContentCard', props, children })
   const errorsOf = (doc: unknown): string => {

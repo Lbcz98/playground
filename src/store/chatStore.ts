@@ -10,6 +10,7 @@
 import { create } from 'zustand'
 import { generateUI } from '@/services/aiClient'
 import { useFlowStore, type AgentRun } from '@/store/flowStore'
+import { usePlayStore } from '@/store/playStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useDesignSystemStore } from '@/store/designSystemStore'
 import type { ChatTurn, GenerateUISource, GenerateUsage } from '@/shared/blueprint'
@@ -62,7 +63,9 @@ interface ChatState {
 function summarize(run: AgentRun): string {
   if (!run.ok) return `I couldn't apply that: ${run.error}`
   const fixed = run.issues.filter((i) => i.level === 'warn').length
-  const base = `Rendered ${run.nodeCount} component${run.nodeCount === 1 ? '' : 's'} to the canvas`
+  const frames = run.screenCount > 1 ? ` on ${run.screenCount} frames` : ''
+  const links = run.linkCount > 0 ? ` — ${run.linkCount} clickable link${run.linkCount === 1 ? '' : 's'}, press Play` : ''
+  const base = `Rendered ${run.nodeCount} component${run.nodeCount === 1 ? '' : 's'}${frames} to the canvas${links}`
   return fixed > 0 ? `${base} (auto-fixed ${fixed} issue${fixed === 1 ? '' : 's'}).` : `${base}.`
 }
 
@@ -135,6 +138,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       const run = useFlowStore.getState().applyAgentBlueprint(response.blueprint, trimmed)
+      // A generation that produced a clickable flow opens straight in the player.
+      if (run.ok) {
+        if (run.linkCount > 0) usePlayStore.getState().play()
+        else usePlayStore.getState().edit()
+      }
       patch({
         status: run.ok ? 'done' : 'error',
         text: summarize(run),

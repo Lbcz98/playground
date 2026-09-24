@@ -158,6 +158,21 @@ export interface ManifestNavigationLevel {
   maxModules: number | null
   /** Whether it may anchor a floating cluster. */
   allowsAnchor: boolean
+  /**
+   * Where the TV focus starts on a screen of this level — the page is told by its
+   * focus (focus on the channel button = Home, on a rail card = the second level,
+   * on the rounded button = the third). Absent: the level says nothing about focus.
+   */
+  initialFocus?: ManifestInitialFocus
+}
+
+export interface ManifestInitialFocus {
+  /** The components that may hold the focus (any one of them). */
+  on: string[]
+  /** The value its focus prop must have, when the component has several focusable parts (a menu's `focusedItem`). */
+  value?: string
+  /** The rule, as the agents read it. */
+  hint: string
 }
 
 export interface ManifestScreenModel {
@@ -354,6 +369,14 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
             rule: z.string().max(MAX_STR),
             maxModules: z.number().int().min(0).nullable(),
             allowsAnchor: z.boolean(),
+            initialFocus: z
+              .object({
+                on: z.array(idSchema).min(1).max(8),
+                value: shortStr.optional(),
+                hint: z.string().max(MAX_STR),
+              })
+              .strict()
+              .optional(),
           })
           .strict(),
       )

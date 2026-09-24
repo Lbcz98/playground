@@ -458,25 +458,52 @@ function makeLiveRenderer(
 // Registry hydration
 // ===========================================================================
 
+/**
+ * The DTV kit components take only their own props, so the canvas' decoration
+ * (`data-node-id`, the click handler) would be dropped on them — a node could be
+ * neither selected nor, in Play, clicked. This host carries it instead: a span
+ * with `display: contents`, so it has no box and the layout is exactly the kit's.
+ */
+export function DecorationHost({
+  children,
+  onClick,
+  ...rest
+}: {
+  children?: ReactNode
+  onClick?: (event: MouseEvent) => void
+  'data-node-id'?: string
+  className?: string
+}): ReactElement {
+  return (
+    <span data-node-id={rest['data-node-id']} onClick={onClick} style={{ display: 'contents' }}>
+      {children}
+    </span>
+  )
+}
+
+const hosted =
+  (render: RenderFn): RenderFn =>
+  (props, children) => <DecorationHost>{render(props, children)}</DecorationHost>
+
 /** Hand-written renderers for the built-in ScreenFlow design system. */
 export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   Stack: renderStack,
   Text: renderText,
   Button: renderButton,
-  MainMenu: renderMainMenu,
-  InteractivityMenu: renderInteractivityMenu,
-  InteractivityCard: renderInteractivityCard,
+  MainMenu: hosted(renderMainMenu),
+  InteractivityMenu: hosted(renderInteractivityMenu),
+  InteractivityCard: hosted(renderInteractivityCard),
   LabelVideo: renderLabelVideo,
-  WideButton: renderWideButton,
-  RoundedButton: renderRoundedButton,
-  CloseButton: renderCloseButton,
-  ContentCard: renderContentCard,
-  ContentCardHeader: renderContentCardHeader,
-  ContentCardBody: renderContentCardBody,
-  ContentCardFooter: renderContentCardFooter,
-  TableCell: renderTableCell,
-  Notification: renderNotification,
-  AlertBug: renderAlertBug,
+  WideButton: hosted(renderWideButton),
+  RoundedButton: hosted(renderRoundedButton),
+  CloseButton: hosted(renderCloseButton),
+  ContentCard: hosted(renderContentCard),
+  ContentCardHeader: hosted(renderContentCardHeader),
+  ContentCardBody: hosted(renderContentCardBody),
+  ContentCardFooter: hosted(renderContentCardFooter),
+  TableCell: hosted(renderTableCell),
+  Notification: hosted(renderNotification),
+  AlertBug: hosted(renderAlertBug),
 }
 
 function toControl(component: ManifestComponent, name: string): Control {

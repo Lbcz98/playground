@@ -7,7 +7,7 @@
  * back to rest, which is how the row reads as one entered thing.
  *
  * The rail stays on the right, so the model shades the right corner and the
- * bottom edge, and the root keeps its content on that side (`align: "end"`).
+ * bottom edge, and the menu keeps its content on that side (`align: "end"`).
  */
 
 import type { ScreenTemplate } from './types'
@@ -24,7 +24,7 @@ export const interactivityRailTemplate: ScreenTemplate = {
       props: {
         direction: 'vertical',
         justify: 'end',
-        align: 'end',
+        align: 'stretch',
         gap: 'sm',
         padding: 'none',
         grow: true,
