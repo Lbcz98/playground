@@ -1455,7 +1455,8 @@
       "stories": [
         "ui-kit-main-menu--bug-focused",
         "ui-kit-main-menu--custom-content",
-        "ui-kit-main-menu--default"
+        "ui-kit-main-menu--default",
+        "ui-kit-main-menu--miscellaneous-focused"
       ],
       "subcomponents": {}
     },
