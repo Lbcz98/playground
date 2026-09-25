@@ -1,8 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useFlowStore } from '@/store/flowStore'
 import { usePlayStore } from '@/store/playStore'
 import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
 import { describeScreen } from '@/shared/design-system/screen-layers'
+
+/** How long a play-bar note stays up. */
+const NOTE_MS = 2500
 
 /**
  * The player's status line: which screen is on, where you came from, and Back /
@@ -15,6 +18,14 @@ export function PlayBar({ screenId }: { screenId: string }): JSX.Element {
   const restart = usePlayStore((s) => s.restart)
   const edit = usePlayStore((s) => s.edit)
   const active = useActiveDesignSystem()
+  const note = usePlayStore((s) => s.note)
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (!note) return
+    const t = setTimeout(() => tick((n) => n + 1), NOTE_MS)
+    return () => clearTimeout(t)
+  }, [note])
+  const showNote = note && Date.now() - note.at < NOTE_MS
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
@@ -43,6 +54,7 @@ export function PlayBar({ screenId }: { screenId: string }): JSX.Element {
       <span>{describeScreen(active, entry?.tree.screen) ?? 'No layer model'}</span>
       {names.length > 1 ? <span>{names.join(' › ')}</span> : null}
       <span>{links > 0 ? `${links} clickable` : 'nothing here links anywhere'}</span>
+      {showNote ? <span className="font-medium text-ink">{note.text}</span> : null}
       <button
         type="button"
         onClick={back}

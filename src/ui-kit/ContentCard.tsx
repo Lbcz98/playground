@@ -111,7 +111,7 @@ export function ContentCard({ interactionState, height = contentCardSpec.height,
 
   return (
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
-    <div tabIndex={0} style={frame}>
+    <div tabIndex={0} className="sfs-motion" style={frame}>
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
       <div style={zones}>{children}</div>
     </div>

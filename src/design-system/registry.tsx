@@ -249,6 +249,7 @@ const TOKEN_VAR_ALIAS: Record<keyof ManifestTokens, string> = {
   radius: 'radius',
   shadow: 'shadow',
   gradients: 'gradient',
+  motion: 'motion',
 }
 
 function tokenVar(group: keyof ManifestTokens, name: string): string {

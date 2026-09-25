@@ -219,6 +219,12 @@ compiled from whichever `DesignSystemManifest` is currently **active**:
   canvas' node id, click and selection ring reach components that take only their
   own props. Dev: `SFS_EVAL_FILE=<script.js> SFS_EVAL_QUIT=1 npm run dev` runs a
   script in the real window and logs its result.
+- **One motion curve.** `motion.semantic.easing` in tokens.json is a custom spring
+  (800ms, stiffness 56, damping 15, mass 1 — critically damped, no overshoot). The token
+  build samples its physics into a CSS `linear()` (`shared/design-system/spring.ts`),
+  and every transition uses it: kit controls through `.sfs-motion` (primitives.css),
+  the focus ring's entrance and colour cycle, a screen arriving in Play, the press
+  feedback, and the app shell's Tailwind transitions. `prefers-reduced-motion` turns it off.
 - **The stack that holds the components always stretches.** The root's `align` is
   `"stretch"` (validator rejects anything else, the interpreter repairs it, the
   templates follow it); a module that belongs on one side positions itself inside it —

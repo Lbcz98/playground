@@ -109,7 +109,7 @@ export function InteractivityButton({
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
 
   return (
-    <button type="button" onClick={onClick} style={rootFor(state)}>
+    <button type="button" className="sfs-motion" onClick={onClick} style={rootFor(state)}>
       {state === 'focus' ? (
         <FocusRing shape="card-expanded" />
       ) : (

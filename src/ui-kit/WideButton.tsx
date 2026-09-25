@@ -92,6 +92,7 @@ export function WideButton({
 
   return (
     <button
+      className="sfs-motion"
       type="button"
       disabled={isDisabled}
       aria-busy={isLoading || undefined}

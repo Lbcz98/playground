@@ -6,7 +6,7 @@ import { useFlowStore } from '@/store/flowStore'
 import { usePlayStore } from '@/store/playStore'
 import { cx } from '@/lib/cx'
 import { focusPropsFor, unfocusedValue } from '@/shared/layout/frame'
-import { PlayRestContext, useNodeMode } from './nodeMode'
+import { PlayRestContext, linksFrom, pressFeedback, useNodeMode } from './nodeMode'
 import { useContext } from 'react'
 
 /**
@@ -76,6 +76,14 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
       onClick: (event: MouseEvent) => {
         if (!focusedClicks.has(event.nativeEvent)) {
           focusedClicks.add(event.nativeEvent)
+          const { screens } = useFlowStore.getState()
+          const { trail, say } = usePlayStore.getState()
+          const screen = screens.find((s) => s.id === trail[trail.length - 1]) ?? screens[0]
+          if (screen && !linksFrom(screen.tree, node.id)) {
+            const target = (event.target as Element).closest('button,[tabindex]')
+            pressFeedback(target)
+            say(`${target?.getAttribute('aria-label') || target?.textContent?.trim().slice(0, 32) || node.type} doesn't link anywhere in this prototype.`)
+          }
           const item = (event.target as Element).closest('[data-focus-item]')?.getAttribute('data-focus-item')
           focus(node.id, item ?? null)
         }

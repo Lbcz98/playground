@@ -83,7 +83,7 @@ export function RoundButtonShell({
     ) === 'focus'
 
   return (
-    <button type="button" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
+    <button type="button" className="sfs-motion" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
       <span style={focus ? circle : restCircle}>
         {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>

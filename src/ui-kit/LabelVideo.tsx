@@ -76,7 +76,7 @@ export function LabelVideo({
 
   return (
     <span
-      className={textClass(compact ? 'caption-extra-bold' : 'body-sm-extra-bold')}
+      className={`${textClass(compact ? 'caption-extra-bold' : 'body-sm-extra-bold')} sfs-motion`}
       style={{
         ...base,
         ...fillFor(kind, focus),

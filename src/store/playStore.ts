@@ -28,6 +28,9 @@ interface PlayState {
    * screen's default).
    */
   leftFrom: { focusId: string | null; focusItem: string | null }[]
+  /** A short-lived message for the play bar (a press on something that links nowhere). */
+  note: { text: string; at: number } | null
+  say: (text: string) => void
   /** Enter Play from the screen open in the editor. */
   play: () => void
   edit: () => void
@@ -46,6 +49,8 @@ export const usePlayStore = create<PlayState>((set, get) => ({
   focusId: null,
   focusItem: null,
   leftFrom: [],
+  note: null,
+  say: (text) => set({ note: { text, at: Date.now() } }),
 
   play: () => set({ mode: 'play', trail: [useFlowStore.getState().activeId], focusId: null, focusItem: null, leftFrom: [] }),
   edit: () => set({ mode: 'edit', trail: [], focusId: null, focusItem: null, leftFrom: [] }),

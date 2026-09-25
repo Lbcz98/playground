@@ -147,6 +147,7 @@ export function Notification({
 
   return (
     <button
+      className="sfs-motion"
       type="button"
       onClick={onClick}
       aria-label={rounded ? 'Notificação' : undefined}

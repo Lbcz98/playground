@@ -19,10 +19,11 @@
 
 import type { ManifestTokens, TokenTier, TokenTierMap } from './manifest'
 import { inferTokenTiers, rawTierFor } from './manifest'
+import { isSpringSpec, springToCss } from './spring'
 
 export type TokenGroup = keyof ManifestTokens
 
-const GROUPS: TokenGroup[] = ['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients']
+const GROUPS: TokenGroup[] = ['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients', 'motion']
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -33,7 +34,7 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
 
 /** A leading path segment matching this just names the token's group — we drop it. */
 const GROUP_PREFIX =
-  /^(colou?rs?|palette|spac(e|ing)|sizes?|sizing|dimensions?|gaps?|typ(o|ography)?|fonts?|text|radi(us|i)|corners?|rounded|border-?radius|shadows?|elevations?|box-?shadow|gradients?)$/i
+  /^(colou?rs?|palette|spac(e|ing)|sizes?|sizing|dimensions?|gaps?|typ(o|ography)?|fonts?|text|radi(us|i)|corners?|rounded|border-?radius|shadows?|elevations?|box-?shadow|gradients?|motion)$/i
 
 function groupFromType(type: string | undefined): TokenGroup | null {
   switch ((type ?? '').toLowerCase().replace(/[\s_-]/g, '')) {
@@ -41,6 +42,11 @@ function groupFromType(type: string | undefined): TokenGroup | null {
       return 'colors'
     case 'gradient':
       return 'gradients'
+    case 'duration':
+    case 'cubicbezier':
+    case 'spring':
+    case 'transition':
+      return 'motion'
     case 'shadow':
     case 'boxshadow':
       return 'shadow'
@@ -65,6 +71,7 @@ function groupFromType(type: string | undefined): TokenGroup | null {
 function groupFromName(path: string[]): TokenGroup | null {
   const p = path.join(' ').toLowerCase()
   if (/gradient/.test(p)) return 'gradients'
+  if (/\bmotion\b|easing|duration|transition/.test(p)) return 'motion'
   if (/colou?r|palette|background|foreground|\bfg\b|\bbg\b|fill|stroke|border(?!-radius)/.test(p)) {
     return 'colors'
   }
@@ -121,6 +128,11 @@ function valueToCss(raw: unknown, group: TokenGroup | null): string | null {
   if (typeof raw === 'number') return group === 'colors' ? String(raw) : `${raw}px`
 
   if (group === 'shadow') return shadowToCss(raw)
+  if (group === 'motion') {
+    if (isSpringSpec(raw)) return springToCss(raw)
+    if (Array.isArray(raw) && raw.length === 4 && raw.every((n) => typeof n === 'number')) return `cubic-bezier(${raw.join(', ')})`
+    return null
+  }
   if (group === 'spacing' || group === 'radius') return dimensionToCss(raw)
 
   if (isObject(raw)) {

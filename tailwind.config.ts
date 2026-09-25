@@ -23,6 +23,9 @@ export default {
     clear: false,
   },
   theme: {
+    // Every transition in the app moves on the system spring (tokens.json › motion).
+    transitionDuration: { DEFAULT: 'var(--motion-semantic-duration)' },
+    transitionTimingFunction: { DEFAULT: 'var(--motion-semantic-easing)' },
     colors: {
       transparent: palette.transparent,
       current: palette.current,

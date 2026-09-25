@@ -384,8 +384,12 @@
   --motion-semantic-focus-cycle-step: 3000ms;
   /* One full loop: noite → dia → tarde → dia, a quarter each. It returns through dia so the loop never jump-cuts. */
   --motion-semantic-focus-cycle-duration: 12000ms;
-  /* Applied between each pair of colours, so the ring settles on a colour and leaves it again rather than sliding at a constant rate. */
-  --motion-semantic-focus-cycle-easing: cubic-bezier(0.45, 0, 0.55, 1);
+  /* Applied between each pair of colours: the system spring, so the ring settles on a colour and leaves it again rather than sliding at a constant rate. */
+  --motion-semantic-focus-cycle-easing: var(--motion-semantic-easing);
+  /* The system's one motion curve: a custom spring (stiffness 56, damping 15, mass 1 — critically damped, no overshoot) settling in 800ms. Every transition uses it. CSS draws it as linear(), sampled from the spring's physics at build time. */
+  --motion-semantic-easing: linear(0, 0.0103, 0.0374, 0.0765, 0.1236, 0.1758, 0.2307, 0.2866, 0.3422, 0.3964, 0.4486, 0.4982, 0.545, 0.5889, 0.6296, 0.6674, 0.7021, 0.7339, 0.763, 0.7894, 0.8135, 0.8352, 0.8549, 0.8726, 0.8885, 0.9028, 0.9157, 0.9272, 0.9374, 0.9466, 0.9548, 0.9621, 0.9686, 0.9743, 0.9794, 0.984, 0.988, 0.9916, 0.9947, 0.9975, 1);
+  /* How long every transition takes — the system spring's settle time. A test holds it equal to motion.semantic.easing's duration. */
+  --motion-semantic-duration: 800ms;
 }
 
 /* ===== Typography · Utility Classes ===== */

@@ -104,7 +104,11 @@ export function Canvas(): JSX.Element {
         checks={checks}
         screen={describeScreen(active, tree.screen)}
       />
-      <div className="shrink-0" style={{ width: shown.width * fit, height: shown.height * fit }}>
+      <div
+        key={playing ? playId : 'edit'}
+        className={cx('shrink-0', playing && 'sfs-screen-in')}
+        style={{ width: shown.width * fit, height: shown.height * fit }}
+      >
         <ScreenFrame
           tree={tree}
           layers={layers}
@@ -353,6 +357,18 @@ function usePlayKeys(
         if (dir.x !== 0 && !lined) continue // sideways stays on its row, like a remote
         const score = (lined ? 0 : LINED_UP_BONUS) + along + across * 2
         if (!best || score < best.score) best = { el, score }
+      }
+      if (!best && dir.x !== 0) {
+        // Sideways off the end of a row wraps round to its other end.
+        let far: { el: Element; along: number } | null = null
+        for (const el of Array.from(frame.querySelectorAll(FOCUSABLE))) {
+          if (el === current || el.getClientRects().length === 0 || el.closest('[data-screen-layer="overlay"]')) continue
+          const r = el.getBoundingClientRect()
+          if (!(r.top < from.bottom && from.top < r.bottom)) continue
+          const along = -((centerOf(el).x - at.x) * dir.x)
+          if (along > 1 && (!far || along > far.along)) far = { el, along }
+        }
+        if (far) best = { el: far.el, score: 0 }
       }
       if (!best) {
         // Down and off a page the focus entered (the rail) returns to the page below it.

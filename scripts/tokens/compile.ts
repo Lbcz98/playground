@@ -14,6 +14,7 @@
  */
 
 import { frameSpec } from '../../src/design-system/primitives'
+import { isSpringSpec, springToCss } from '../../src/shared/design-system/spring'
 
 /** Paths are relative to the project root. */
 export const TOKENS_SOURCE = 'tokens/tokens.json'
@@ -64,6 +65,7 @@ const SUPPORTED_TYPES = new Set([
   'dimension',
   'duration',
   'cubicBezier',
+  'spring',
   'number',
   'fontWeight',
   'fontFamily',
@@ -174,6 +176,10 @@ export function compileTokens(root: unknown): CompiledTokens {
         return typeof raw === 'string' && DIMENSION.test(raw) ? raw : fail('expected a dimension like "16px"')
       case 'duration':
         return typeof raw === 'string' && DURATION.test(raw) ? raw : fail('expected a duration like "1500ms"')
+      case 'spring':
+        return isSpringSpec(raw)
+          ? springToCss(raw)
+          : fail('expected { duration: "800ms", stiffness, damping, mass? } with positive numbers')
       case 'cubicBezier': {
         const ok =
           Array.isArray(raw) && raw.length === 4 && raw.every((n) => typeof n === 'number' && Number.isFinite(n))

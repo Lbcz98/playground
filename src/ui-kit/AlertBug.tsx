@@ -88,7 +88,7 @@ export function AlertBug({
   }
 
   return (
-    <button type="button" aria-label={label} onClick={onClick} style={root}>
+    <button type="button" className="sfs-motion" aria-label={label} onClick={onClick} style={root}>
       <span style={circle}>
         {focus ? <FocusRing shape="pill" /> : null}
         {src ? (

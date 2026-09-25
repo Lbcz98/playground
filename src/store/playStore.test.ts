@@ -151,3 +151,12 @@ describe('a link back to a screen behind you unwinds the history', () => {
     expect(play().back()).toBe(false)
   })
 })
+
+describe('press feedback', () => {
+  it('knows whether a node, or anything above it, links', async () => {
+    const { linksFrom } = await import('@/canvas/nodeMode')
+    const tree = { id: 'r', children: [{ id: 'a', goTo: 'x', children: [{ id: 'b', children: [] }] }, { id: 'c', children: [] }] }
+    expect(linksFrom(tree, 'b')).toBe(true)
+    expect(linksFrom(tree, 'c')).toBe(false)
+  })
+})

@@ -221,6 +221,8 @@ export const CSS_VARS = [
   '--motion-semantic-focus-cycle-step',
   '--motion-semantic-focus-cycle-duration',
   '--motion-semantic-focus-cycle-easing',
+  '--motion-semantic-easing',
+  '--motion-semantic-duration',
 ] as const
 
 export type CssVar = (typeof CSS_VARS)[number]

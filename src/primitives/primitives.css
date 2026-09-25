@@ -105,20 +105,70 @@
   }
 }
 
-.sfs-focus-cycle {
-  animation: sfs-focus-cycle var(--motion-semantic-focus-cycle-duration)
-    var(--motion-semantic-focus-cycle-easing) infinite;
-}
-
 .sfs-focus-glow-cycle {
   animation: sfs-focus-glow-cycle var(--motion-semantic-focus-cycle-duration)
     var(--motion-semantic-focus-cycle-easing) infinite;
 }
 
+/*
+ * Every transition in the system moves on the one system spring
+ * (motion.semantic.easing, 800ms): a control and everything inside it
+ * springs between its states — size, fill, radius, opacity, colour.
+ */
+.sfs-motion,
+.sfs-motion * {
+  transition-property: width, height, min-width, min-height, padding, gap, background-color, border-color,
+    border-radius, color, opacity, box-shadow, transform, outline-color;
+  transition-duration: var(--motion-semantic-duration);
+  transition-timing-function: var(--motion-semantic-easing);
+}
+
+/* The focus ring arrives on the same spring instead of popping in. */
+@keyframes sfs-focus-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.sfs-focus-cycle {
+  animation:
+    sfs-focus-in var(--motion-semantic-duration) var(--motion-semantic-easing),
+    sfs-focus-cycle var(--motion-semantic-focus-cycle-duration) var(--motion-semantic-focus-cycle-easing) infinite;
+}
+
+/* A screen of the prototype arriving in Play. */
+@keyframes sfs-screen-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.sfs-screen-in {
+  animation: sfs-screen-in var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+/* A press on something that links nowhere: a small spring back. */
+@keyframes sfs-press {
+  40% {
+    transform: scale(0.94);
+  }
+}
+
+.sfs-press {
+  animation: sfs-press var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sfs-spin,
   .sfs-focus-cycle,
-  .sfs-focus-glow-cycle {
+  .sfs-focus-glow-cycle,
+  .sfs-screen-in,
+  .sfs-press {
     animation: none;
+  }
+  .sfs-motion,
+  .sfs-motion * {
+    transition: none;
   }
 }

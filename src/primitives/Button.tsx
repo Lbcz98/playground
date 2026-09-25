@@ -120,6 +120,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
   return (
     <button
+      className="sfs-motion"
       {...rest}
       ref={ref}
       type={type}
