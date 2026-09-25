@@ -2,6 +2,17 @@
 
 Things worth doing that are deliberately not being done yet. Newest first.
 
+## Done since
+
+- **The focused interior's tone (2026-09-25).** It was bluer than Figma because
+  `<FocusRing>`'s translucent fill sat on top of the ring's gradient. The ring is now
+  drawn as a band (Figma's inside stroke) over a fill that covers the whole shape,
+  and the glow uses Figma's own values (opacity/60, reaching 70%). Measured on the
+  focused Wide Button: mean distance to Figma 30.0 → 2.7 (0–255).
+- **The miscellaneous button's cycle (2026-09-25).** `MainMenu` `miscellaneousItems`
+  cycles every `motion.semantic.carousel-step` (3s): the icon shrinks out and the
+  next grows in, the lines dissolve, on the system spring (Figma: Dinamic Carousel).
+
 ## Figma does not carry the focus motion (2026-09-18)
 
 The kit animates the focused state now — `<FocusRing>` walks noite → dia → tarde
@@ -24,11 +35,3 @@ gap on that component.
 
 Its pulse is a different motion from the focus cycle above, not the same one —
 so it doesn't belong in that pass. Left for its own pass later.
-
-## The focused pill's interior is bluer than Figma's (2026-09-18)
-
-About 50 units at the top of a focused Notificação, because `<FocusRing>`'s inner
-fill is translucent and the ring's own gradient shows through it. Figma's ring is
-a separate stroke outside a solid Area, so nothing bleeds in. Kit-wide — it is
-the shared focus recipe, not one component — and it would move every focused
-control's baseline, so it belongs with the motion pass above.

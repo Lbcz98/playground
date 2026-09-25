@@ -248,7 +248,7 @@
   /* Icon inside a resting round button (measured; no step matches) */
   --dimension-size-semantic-icon-round-rest: 28px;
   /* How far the light reaches inside a focused control before it fades out — the stop on the glow’s radial gradient. */
-  --dimension-size-semantic-focus-glow: 59%;
+  --dimension-size-semantic-focus-glow: 70%;
   /* Pill button height */
   --dimension-size-semantic-control-height: var(--dimension-spacing-core-2xl);
   /* Large pill button height */
@@ -374,8 +374,8 @@
   --opacity-semantic-illumination-strong: var(--opacity-core-80);
   --opacity-semantic-title: var(--opacity-core-90);
   --opacity-semantic-visible: var(--opacity-core-100);
-  /* Glow inside the focus ring. Tuned against the moving ring rather than taken off the opacity scale, which has no step this fine. */
-  --opacity-semantic-focus-glow: 0.49;
+  /* Glow inside the focus ring — Figma's opacity/focus-glow, which aliases opacity/60. (It was 0.49, tuned while the ring's gradient still bled through the interior; with the ring drawn as a band, Figma's value is right as it is.) */
+  --opacity-semantic-focus-glow: var(--opacity-core-60);
   /* Content of a disabled control */
   --opacity-semantic-state-disabled: var(--opacity-core-50);
 
@@ -388,6 +388,8 @@
   --motion-semantic-focus-cycle-easing: var(--motion-semantic-easing);
   /* The system's one motion curve: a custom spring (stiffness 56, damping 15, mass 1 — critically damped, no overshoot) settling in 800ms. Every transition uses it. CSS draws it as linear(), sampled from the spring's physics at build time. */
   --motion-semantic-easing: linear(0, 0.0103, 0.0374, 0.0765, 0.1236, 0.1758, 0.2307, 0.2866, 0.3422, 0.3964, 0.4486, 0.4982, 0.545, 0.5889, 0.6296, 0.6674, 0.7021, 0.7339, 0.763, 0.7894, 0.8135, 0.8352, 0.8549, 0.8726, 0.8885, 0.9028, 0.9157, 0.9272, 0.9374, 0.9466, 0.9548, 0.9621, 0.9686, 0.9743, 0.9794, 0.984, 0.988, 0.9916, 0.9947, 0.9975, 1);
+  /* How long the miscellaneous button shows each of the things it holds before moving to the next (Figma: Dinamic Carousel, 3s a step). */
+  --motion-semantic-carousel-step: 3000ms;
   /* How long every transition takes — the system spring's settle time. A test holds it equal to motion.semantic.easing's duration. */
   --motion-semantic-duration: 800ms;
 }

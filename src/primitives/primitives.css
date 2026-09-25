@@ -131,10 +131,87 @@
   }
 }
 
+.sfs-focus-in {
+  animation: sfs-focus-in var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
 .sfs-focus-cycle {
-  animation:
-    sfs-focus-in var(--motion-semantic-duration) var(--motion-semantic-easing),
-    sfs-focus-cycle var(--motion-semantic-focus-cycle-duration) var(--motion-semantic-focus-cycle-easing) infinite;
+  animation: sfs-focus-cycle var(--motion-semantic-focus-cycle-duration) var(--motion-semantic-focus-cycle-easing)
+    infinite;
+}
+
+/*
+ * The ring is a band, like Figma's inside stroke: its padding is the ring width,
+ * and the mask keeps only the padding — so the gradient never sits under the
+ * control's interior, which shows the inset fill over the real backdrop.
+ */
+.sfs-ring-band {
+  -webkit-mask:
+    linear-gradient(black 0 0) content-box,
+    linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+}
+
+/*
+ * The miscellaneous button's cycle (Figma: Dinamic Carousel). The tick is an
+ * invisible animation whose every iteration advances the cycle, so the cycle
+ * stops wherever animation stops — the visual-regression freeze, reduced motion.
+ */
+@keyframes sfs-carousel-tick {
+  to {
+    opacity: 0;
+  }
+}
+
+.sfs-carousel-tick {
+  opacity: 0;
+  pointer-events: none;
+  animation: sfs-carousel-tick var(--motion-semantic-carousel-step) linear infinite;
+}
+
+@keyframes sfs-carousel-out {
+  to {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes sfs-carousel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes sfs-carousel-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sfs-carousel-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.sfs-carousel-out {
+  animation: sfs-carousel-out var(--motion-semantic-duration) var(--motion-semantic-easing) forwards;
+}
+
+.sfs-carousel-in {
+  animation: sfs-carousel-in var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+.sfs-carousel-fade-out {
+  animation: sfs-carousel-fade-out var(--motion-semantic-duration) var(--motion-semantic-easing) forwards;
+}
+
+.sfs-carousel-fade-in {
+  animation: sfs-carousel-fade-in var(--motion-semantic-duration) var(--motion-semantic-easing);
 }
 
 /* A screen of the prototype arriving in Play. */
@@ -161,10 +238,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sfs-spin,
+  .sfs-focus-in,
   .sfs-focus-cycle,
   .sfs-focus-glow-cycle,
   .sfs-screen-in,
-  .sfs-press {
+  .sfs-press,
+  .sfs-carousel-tick,
+  .sfs-carousel-out,
+  .sfs-carousel-in,
+  .sfs-carousel-fade-out,
+  .sfs-carousel-fade-in {
     animation: none;
   }
   .sfs-motion,

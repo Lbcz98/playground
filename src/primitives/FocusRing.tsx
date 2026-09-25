@@ -1,9 +1,10 @@
 /**
  * FocusRing — the one focus treatment every focusable control draws.
  *
- * Standardised on WideButton's recipe: the focus-ring gradient as a frame, an
- * inner fill that fades up from the bottom, and a glow pooling up from the
- * bottom edge across the whole inner area. Every value is a semantic token,
+ * Standardised on WideButton's recipe and layered like Figma's Focus Ring: an
+ * inset fill that fades up from the bottom over the whole shape, a glow pooling
+ * up from the bottom edge, and the focus-ring gradient on top as an inside
+ * stroke — a band, so none of its colour tints the interior. Every value is a semantic token,
  * so restyling focus across the kit is a tokens.json change.
  *
  * It also moves. The ring and its glow walk the primary ramps — noite → dia →
@@ -28,17 +29,17 @@ export interface FocusRingProps {
 
 const RING_WIDTH = token('--dimension-border-width-semantic-focus-ring')
 
-const frame: CSSProperties = {
+const shapeBox: CSSProperties = {
   position: 'absolute',
   inset: 0,
   pointerEvents: 'none',
-  backgroundImage: token('--gradient-semantic-focus-ring'),
+  overflow: 'hidden',
 }
 
-const inner: CSSProperties = {
+/** Figma's Area: the inset fill with its fade, over the whole shape — nothing coloured under it. */
+const fill: CSSProperties = {
   position: 'absolute',
-  inset: RING_WIDTH,
-  overflow: 'hidden',
+  inset: 0,
   backgroundColor: token('--color-semantic-focus-inset'),
   backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
 }
@@ -52,13 +53,22 @@ const glow: CSSProperties = {
     `transparent ${size('focus-glow')})`,
 }
 
+/** Figma's Ring: the gradient as an inside stroke — a band `RING_WIDTH` wide, masked out of the middle. */
+const band: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  padding: RING_WIDTH,
+  boxSizing: 'border-box',
+  backgroundImage: token('--gradient-semantic-focus-ring'),
+}
+
 export function FocusRing({ shape }: FocusRingProps): ReactNode {
   const outer = token(`--dimension-radius-semantic-${shape}`)
   return (
-    <span aria-hidden data-focus-ring className="sfs-focus-cycle" style={{ ...frame, borderRadius: outer }}>
-      <span style={{ ...inner, borderRadius: `calc(${outer} - ${RING_WIDTH})` }}>
-        <span className="sfs-focus-glow-cycle" style={glow} />
-      </span>
+    <span aria-hidden data-focus-ring className="sfs-focus-in" style={{ ...shapeBox, borderRadius: outer }}>
+      <span style={fill} />
+      <span className="sfs-focus-glow-cycle" style={glow} />
+      <span className="sfs-focus-cycle sfs-ring-band" style={{ ...band, borderRadius: outer }} />
     </span>
   )
 }

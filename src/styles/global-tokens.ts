@@ -222,6 +222,7 @@ export const CSS_VARS = [
   '--motion-semantic-focus-cycle-duration',
   '--motion-semantic-focus-cycle-easing',
   '--motion-semantic-easing',
+  '--motion-semantic-carousel-step',
   '--motion-semantic-duration',
 ] as const
 

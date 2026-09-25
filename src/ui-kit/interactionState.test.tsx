@@ -84,6 +84,17 @@ describe('deprecated state props', () => {
     expect(html(<MainMenu />)).not.toContain('miscellaneous-focus')
   })
 
+  it('Miscellaneous cycles only when it holds several items, starting on the first', () => {
+    const items = [{ title: 'Previsão do tempo', subtitle: 'São Paulo, SP' }, { title: 'Flamengo joga hoje!', subtitle: '21:30' }]
+    const cycling = html(<MainMenu miscellaneousItems={items} />)
+    expect(cycling).toContain('sfs-carousel-tick')
+    expect(cycling).toContain('Previsão do tempo')
+    expect(cycling).not.toContain('Flamengo joga hoje!')
+    const still = html(<MainMenu miscellaneousTitle="Previsão do tempo" />)
+    expect(still).not.toContain('sfs-carousel-tick')
+    expect(still).toContain('Previsão do tempo')
+  })
+
   it('no kit component uses a deprecated prop internally', () => {
     html(<InteractivityMenu items={[{ title: 'A' }, { title: 'B' }]} activeIndex={0} />)
     html(<InteractivityButton />)

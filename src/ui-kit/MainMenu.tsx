@@ -28,7 +28,7 @@
  * neutral token-coloured circle fills in when none is given.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
+import { type CSSProperties, type ReactNode, useState } from 'react'
 import { focusOutline, size, spacing, Stack, Text, token, warnDeprecated, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import miscellaneousFocusIcon from './icons/miscellaneous-focus.svg'
@@ -36,6 +36,14 @@ import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 
 export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug'
+
+/** One of the things the miscellaneous button cycles through. */
+export interface MiscellaneousItem {
+  title: string
+  subtitle?: string
+  /** Its icon — content, not a kit asset. Default: the weather glyph. */
+  iconSrc?: string
+}
 
 export interface MainMenuProps {
   /**
@@ -64,6 +72,15 @@ export interface MainMenuProps {
   miscellaneousTitle?: string
   /** The miscellaneous button’s second line. */
   miscellaneousSubtitle?: string
+  /**
+   * What the miscellaneous button holds, when it holds several: at rest it cycles
+   * through them — one every `motion.semantic.carousel-step` — the icon shrinking
+   * out and the next one growing in, the lines dissolving, all on the system
+   * spring (Figma: Dinamic Carousel). Replaces miscellaneousTitle/Subtitle. An
+   * item's icon is content (a crest, a programme logo), so it is a `src`; without
+   * one the weather glyph stands in.
+   */
+  miscellaneousItems?: MiscellaneousItem[]
   /** Miscellaneous — opens its rail on the left: various types of interactivities. Focused, it shows the dots of "more". */
   onMiscellaneousClick?: () => void
 
@@ -116,6 +133,53 @@ function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: 
   )
 }
 
+interface CycleStep {
+  index: number
+  /** The item leaving, while it animates out; null at rest. */
+  previous: number | null
+}
+
+/**
+ * The current item and, while it leaves, the previous one, stacked in one grid
+ * cell: the previous shrinks and fades out (Figma's Motion=2 pose, about a third
+ * of its size), the current grows in — or, with `fade`, both only dissolve. The
+ * first item renders with no motion at all, which is also what a frozen or
+ * reduced-motion screen keeps.
+ */
+function CycleLayers({
+  step,
+  items,
+  fade,
+  render,
+  onDone,
+}: {
+  step: CycleStep
+  items: MiscellaneousItem[]
+  fade?: boolean
+  render: (item: MiscellaneousItem) => ReactNode
+  onDone: () => void
+}): ReactNode {
+  const moving = step.previous !== null
+  const layer: CSSProperties = { gridArea: '1 / 1', display: 'grid', placeItems: fade ? 'start' : 'center', minWidth: 0 }
+  return (
+    <span style={{ display: 'grid', minWidth: 0 }}>
+      {moving ? (
+        <span
+          key={`out-${step.previous}`}
+          className={fade ? 'sfs-carousel-fade-out' : 'sfs-carousel-out'}
+          onAnimationEnd={onDone}
+          style={layer}
+        >
+          {render(items[step.previous as number])}
+        </span>
+      ) : null}
+      <span key={`in-${step.index}`} className={moving ? (fade ? 'sfs-carousel-fade-in' : 'sfs-carousel-in') : undefined} style={layer}>
+        {render(items[step.index])}
+      </span>
+    </span>
+  )
+}
+
 /** The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug. */
 export function MainMenu({
   focusedItem,
@@ -125,6 +189,7 @@ export function MainMenu({
   onScheduleClick,
   miscellaneousTitle,
   miscellaneousSubtitle,
+  miscellaneousItems,
   onMiscellaneousClick,
   programTitle,
   programSubtitle,
@@ -136,6 +201,13 @@ export function MainMenu({
   if (bugFocused !== undefined) warnDeprecated('ui-kit/MainMenu', 'bugFocused', 'focusedItem')
   const focused = focusedItem !== undefined ? focusedItem : bugFocused ? 'channel-bug' : 'program'
   const stateOf = (item: MainMenuItem): RoundButtonState => (item === focused ? 'focus' : 'default')
+
+  const items: MiscellaneousItem[] = miscellaneousItems?.length
+    ? miscellaneousItems
+    : [{ title: miscellaneousTitle ?? '', subtitle: miscellaneousSubtitle }]
+  const [cycle, setCycle] = useState<CycleStep>({ index: 0, previous: null })
+  const next = () => setCycle((c) => ({ index: (c.index + 1) % items.length, previous: c.index }))
+  const settle = () => setCycle((c) => ({ ...c, previous: null }))
 
   return (
     <Stack as="nav" direction="row" align="center" justify="between">
@@ -163,20 +235,40 @@ export function MainMenu({
                 style={{ width: size('icon-xl'), height: size('icon-xl'), display: 'block' }}
               />
             ) : (
-              <img
-                src={weatherIcon}
-                alt=""
-                style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
+              <CycleLayers
+                step={cycle}
+                items={items}
+                onDone={settle}
+                render={(item) => (
+                  <img
+                    src={item.iconSrc ?? weatherIcon}
+                    alt=""
+                    style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
+                  />
+                )}
               />
             )}
           </RoundButtonShell>
           <div style={{ ...textStack, paddingInlineStart: spacing('3xs') }}>
-            <Text variant="body-lg-bold" opacity="title" truncate>
-              {miscellaneousTitle}
-            </Text>
-            <Text variant="body-md-medium" color="subtle">
-              {miscellaneousSubtitle}
-            </Text>
+            <CycleLayers
+              step={cycle}
+              items={items}
+              fade
+              onDone={settle}
+              render={(item) => (
+                <span style={textStack}>
+                  <Text variant="body-lg-bold" opacity="title" truncate>
+                    {item.title}
+                  </Text>
+                  <Text variant="body-md-medium" color="subtle">
+                    {item.subtitle}
+                  </Text>
+                </span>
+              )}
+            />
+            {items.length > 1 ? (
+              <span aria-hidden className="sfs-carousel-tick" onAnimationIteration={next} style={{ position: 'absolute' }} />
+            ) : null}
           </div>
         </Stack>
       </Stack>

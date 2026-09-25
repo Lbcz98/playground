@@ -29,10 +29,13 @@ describe('<FocusRing>', () => {
     expect(out).not.toMatch(/var\(--[\w-]*-core-/)
   })
 
-  it('insets the inner fill by the ring width and follows the shape', () => {
-    expect(html(<FocusRing shape="card-expanded" />)).toContain(
-      'border-radius:calc(var(--dimension-radius-semantic-card-expanded) - var(--dimension-border-width-semantic-focus-ring))',
-    )
+  it('is layered like Figma: a fill over the whole shape, then the ring as a band on top', () => {
+    const out = html(<FocusRing shape="card-expanded" />)
+    expect(out).toContain('border-radius:var(--dimension-radius-semantic-card-expanded)')
+    // The gradient sits only on the band (padding = ring width, masked out of the middle)...
+    expect(out).toMatch(/class="sfs-focus-cycle sfs-ring-band"[^>]*padding:var\(--dimension-border-width-semantic-focus-ring\)/)
+    // ...and the fill comes before it, so nothing blue lies under the interior.
+    expect(out.indexOf('--color-semantic-focus-inset)')).toBeLessThan(out.indexOf('--gradient-semantic-focus-ring'))
   })
 })
 

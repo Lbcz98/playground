@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box } from '@/primitives'
 import { MainMenu } from './MainMenu'
+import couponIcon from './story-assets/carousel-coupon.png'
+import premiereIcon from './story-assets/carousel-premiere.png'
+import realityIcon from './story-assets/carousel-bbb.png'
+import teamIcon from './story-assets/carousel-team.png'
 
 const meta = {
   title: 'UI Kit/Main Menu',
@@ -53,6 +57,24 @@ export const Default: Story = {}
 
 /** Miscellaneous focused: its rail sits on the left and holds various types of interactivities. Focused, it shows the dots of "more". */
 export const MiscellaneousFocused: Story = { args: { focusedItem: 'miscellaneous' } }
+
+/**
+ * Miscellaneous at rest cycles through what it holds — every 3s the icon shrinks
+ * out and the next grows in, the lines dissolve (Figma: Dinamic Carousel). The
+ * snapshot shows the first item: the visual run stops the motion. The icons are
+ * the Figma kit's example content (a crest, programme logos), not kit assets.
+ */
+export const MiscellaneousCycle: Story = {
+  args: {
+    miscellaneousItems: [
+      { title: 'Previsão do tempo', subtitle: 'São Paulo, SP' },
+      { title: 'Flamengo joga hoje!', subtitle: '21:30', iconSrc: teamIcon },
+      { title: 'Vote agora no paredão', subtitle: 'BBB 26', iconSrc: realityIcon },
+      { title: 'Estréia de Coração Acelerado', subtitle: 'Amanhã, 19h', iconSrc: premiereIcon },
+      { title: 'Tem cupom te esperando!', subtitle: 'Mercado Livre', iconSrc: couponIcon },
+    ],
+  },
+}
 
 /** Schedule focused: its rail sits on the left, one card per programme — time, live or not, name. */
 export const ScheduleFocused: Story = { args: { focusedItem: 'schedule' } }
