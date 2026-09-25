@@ -22,6 +22,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { focusOutline, size, spacing, Stack, Text, token, warnDeprecated, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
+import miscellaneousFocusIcon from './icons/miscellaneous-focus.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 
@@ -134,11 +135,21 @@ export function MainMenu({
 
         <Stack direction="row" align="center">
           <RoundButtonShell interactionState={stateOf('miscellaneous')} focusItem="miscellaneous" label="Miscellaneous" onClick={onMiscellaneousClick}>
-            <img
-              src={weatherIcon}
-              alt=""
-              style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
-            />
+            {/* At rest it shows its current item (the weather); focused, the dots of
+                "more" — the button holds various interactivities (Figma: Personalização). */}
+            {focused === 'miscellaneous' ? (
+              <img
+                src={miscellaneousFocusIcon}
+                alt=""
+                style={{ width: size('icon-xl'), height: size('icon-xl'), display: 'block' }}
+              />
+            ) : (
+              <img
+                src={weatherIcon}
+                alt=""
+                style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
+              />
+            )}
           </RoundButtonShell>
           <div style={{ ...textStack, paddingInlineStart: spacing('3xs') }}>
             <Text variant="body-lg-bold" opacity="title" truncate>

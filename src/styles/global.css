@@ -243,7 +243,7 @@
   --dimension-size-semantic-icon-lg: var(--dimension-spacing-core-lg);
   /* Icon inside a focused round button */
   --dimension-size-semantic-icon-xl: var(--dimension-spacing-core-xl);
-  /* Weather glyph in the main menu */
+  /* The miscellaneous button's glyph at rest (its current item, e.g. the weather) in the main menu */
   --dimension-size-semantic-icon-2xl: var(--dimension-spacing-core-2xl);
   /* Icon inside a resting round button (measured; no step matches) */
   --dimension-size-semantic-icon-round-rest: 28px;

@@ -79,6 +79,11 @@ describe('deprecated state props', () => {
     expect(rings(<MainMenu focusedItem={null} />) + outlines(<MainMenu focusedItem={null} />)).toBe(0)
   })
 
+  it('Miscellaneous shows the dots of "more" only while focused', () => {
+    expect(html(<MainMenu focusedItem="miscellaneous" />)).toContain('miscellaneous-focus')
+    expect(html(<MainMenu />)).not.toContain('miscellaneous-focus')
+  })
+
   it('no kit component uses a deprecated prop internally', () => {
     html(<InteractivityMenu items={[{ title: 'A' }, { title: 'B' }]} activeIndex={0} />)
     html(<InteractivityButton />)

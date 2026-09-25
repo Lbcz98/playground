@@ -32,6 +32,9 @@ export const Default: Story = {}
 
 export const BugFocused: Story = { args: { focusedItem: 'channel-bug' } }
 
+/** Focused, the miscellaneous button shows the dots of "more" — it holds various interactivities. */
+export const MiscellaneousFocused: Story = { args: { focusedItem: 'miscellaneous' } }
+
 export const CustomContent: Story = {
   args: {
     miscellaneousTitle: 'Chuva a qualquer momento',
