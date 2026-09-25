@@ -1398,7 +1398,7 @@
           "description": "The programme's logo, on the Program button."
         },
         "miscellaneousItems": {
-          "type": "MiscellaneousItem[]",
+          "type": "{ title: string; subtitle?: string; iconSrc?: string }[]",
           "kind": "array",
           "required": false,
           "description": "What the miscellaneous button holds, when it holds several: at rest it cycles\nthrough them — one every `motion.semantic.carousel-step` — the icon shrinking\nout and the next one growing in, the lines dissolving, all on the system\nspring (Figma: Dinamic Carousel). Replaces miscellaneousTitle/Subtitle. An\nitem's icon is content (a crest, a programme logo), so it is a `src`; without\none the weather glyph stands in."

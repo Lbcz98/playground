@@ -138,6 +138,19 @@ function stringList(node: Record<string, unknown>): { count?: number } | undefin
   return undefined
 }
 
+/** `{ title: string; subtitle?: string }[]` → its fields; any non-text field → undefined. */
+function objectListFields(node: Record<string, unknown>): Record<string, ManifestProp> | undefined {
+  const [item, ...more] = Array.isArray(node.elements) ? node.elements : []
+  if (node.name !== 'Array' || more.length > 0 || !isObject(item) || item.name !== 'signature' || item.type !== 'object') return undefined
+  const properties = isObject(item.signature) && Array.isArray(item.signature.properties) ? item.signature.properties : []
+  const fields: Record<string, ManifestProp> = {}
+  for (const p of properties) {
+    if (!isObject(p) || typeof p.key !== 'string' || !isObject(p.value) || p.value.name !== 'string') return undefined
+    fields[p.key] = { name: p.key, type: { name: 'string' }, required: p.value.required === true }
+  }
+  return Object.keys(fields).length > 0 ? fields : undefined
+}
+
 function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null {
   if (!isObject(raw)) return null
 
@@ -162,10 +175,12 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
 
   const typeNode = isObject(raw.type) ? raw.type : isObject(raw.tsType) ? raw.tsType : undefined
   const written = typeNode ? (typeof typeNode.raw === 'string' ? typeNode.raw : String(typeNode.name)) : ''
-  // A list of text (`string[]`, `[string, string]`) is data a Blueprint carries as a
-  // JSON array. Any other list, or an object, has a shape no Blueprint field can
-  // describe — and a string in its place would break the component.
-  const list = !options && typeNode && docgen?.kind === 'array' ? stringList(typeNode) : undefined
+  // A list of text (`string[]`, `[string, string]`) or of text-only objects
+  // (`{ title: string; subtitle?: string }[]`) is data a Blueprint carries as a
+  // JSON array. Any other list, or a lone object, has a shape no Blueprint field
+  // can describe — and a string in its place would break the component.
+  const fields = !options && typeNode && docgen?.kind === 'array' ? objectListFields(typeNode) : undefined
+  const list = !options && typeNode && docgen?.kind === 'array' ? (fields ? {} : stringList(typeNode)) : undefined
   if (!options && typeNode && docgen?.kind === 'array' && !list) {
     warn(`a list of \`${written}\`, which a Blueprint field can't describe — left out`, name)
     return null
@@ -236,6 +251,7 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
     ...(options ? { options } : {}),
     ...(description ? { description } : {}),
     ...(tokenGroup ? { tokenGroup } : {}),
+    ...(fields ? { fields } : {}),
   }
   return prop
 }

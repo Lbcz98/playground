@@ -70,6 +70,8 @@ export interface PropSpec {
   min?: number
   max?: number
   step?: number
+  /** A list of objects: each item's fields, `?` marking the optional ones. */
+  fields?: string[]
 }
 
 export interface ComponentSpec {
@@ -105,6 +107,7 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
       ...(prop.min !== undefined ? { min: prop.min } : {}),
       ...(prop.max !== undefined ? { max: prop.max } : {}),
       ...(prop.step !== undefined ? { step: prop.step } : {}),
+      ...(prop.fields ? { fields: Object.values(prop.fields).map((f) => `${f.name}${f.required ? '' : '?'}`) } : {}),
     }
   })
 
@@ -248,7 +251,8 @@ function propType(p: PropSpec): string {
   if (p.control === 'list') {
     const count =
       p.min !== undefined && p.min === p.max ? `, exactly ${p.min}` : p.max !== undefined ? `, at most ${p.max}` : ''
-    return `      - ${p.name}: a JSON array of strings${count} (default ${def})`
+    const item = p.fields ? `objects { ${p.fields.map((f) => `${f}: string`).join(', ')} }` : 'strings'
+    return `      - ${p.name}: a JSON array of ${item}${count} (default ${def})`
   }
   // A text default is words on the screen — say so where the model reads the prop.
   const shown = typeof p.default === 'string' && p.default !== '' ? `, shown when left out — set "" for none` : ''

@@ -54,9 +54,6 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
       logoSrc: 'asset-slot',
       bugSrc: 'asset-slot',
       bugFocused: 'deprecated-alias',
-      // A list of objects with image slots: the Blueprint has no shape for it yet —
-      // the agent writes miscellaneousTitle/Subtitle, a single still item.
-      miscellaneousItems: 'not-in-catalog-yet',
     },
     // The catalog's "none" is the code's `null`: focus is elsewhere on the screen.
     valueMap: { focusedItem: { none: 'null' } },

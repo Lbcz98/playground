@@ -37,6 +37,19 @@ export interface PropertyControlProps {
 const FIELD_CLASS =
   'rounded-md border border-line bg-surface px-2xs py-3xs text-sm text-ink focus:outline-none focus:ring focus:ring-brand'
 
+/** One list item as a line: its fields in order, `|`-separated, trailing blanks dropped. */
+export function itemToLine(item: unknown, fields: string[]): string {
+  const values = fields.map((f) => (item && typeof item === 'object' ? String((item as Record<string, unknown>)[f] ?? '') : ''))
+  while (values.length > 1 && values[values.length - 1] === '') values.pop()
+  return values.join(' | ')
+}
+
+/** A line back to an item; a blank field is left out. */
+export function lineToItem(line: string, fields: string[]): Record<string, string> {
+  const parts = line.split('|').map((p) => p.trim())
+  return Object.fromEntries(fields.flatMap((f, i) => (parts[i] ? [[f, parts[i]]] : [])))
+}
+
 export function PropertyControl({
   propName,
   propDef,
@@ -47,6 +60,7 @@ export function PropertyControl({
   const id = `prop-${propName}`
   const kind = inferControl(propDef)
   const label = propLabel(propDef)
+  const fieldNames = Object.keys(propDef.fields ?? {})
 
   const tokenNames = tokenDict ? Object.keys(tokenDict) : []
   // An explicit enum (`options`) is authoritative; a `tokenGroup` only kicks in
@@ -105,6 +119,15 @@ export function PropertyControl({
           step={propDef.step}
           value={currentValue === undefined || currentValue === null ? '' : String(currentValue)}
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+          className={FIELD_CLASS}
+        />
+      ) : kind === 'list' && propDef.fields ? (
+        // A list of objects: one item per line, its fields in order, split by "|".
+        <textarea
+          id={id}
+          rows={3}
+          value={Array.isArray(currentValue) ? currentValue.map((item) => itemToLine(item, fieldNames)).join('\n') : ''}
+          onChange={(e) => onChange(e.target.value.split('\n').filter((l) => l.trim()).map((l) => lineToItem(l, fieldNames)))}
           className={FIELD_CLASS}
         />
       ) : kind === 'list' ? (

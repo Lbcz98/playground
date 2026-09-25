@@ -383,6 +383,49 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(line).toMatch(/a JSON array of strings, exactly 2 \(default undefined\) — The two sides, left and right\./)
   })
 
+  it('E2.11b — a list of text-only objects comes in with its fields; the validator and prompt know them', () => {
+    const str = (required: boolean) => ({ name: 'string', required })
+    const item = {
+      name: 'signature',
+      type: 'object',
+      raw: '{ title: string; subtitle?: string }',
+      signature: { properties: [{ key: 'title', value: str(true) }, { key: 'subtitle', value: str(false) }] },
+    }
+    const report = parseStorybookDocgenWithReport({
+      components: {
+        Menu: {
+          displayName: 'Menu',
+          props: {
+            items: { tsType: { name: 'Array', elements: [item], raw: '{ title: string; subtitle?: string }[]' } },
+            // A field that is not text has no Blueprint shape yet.
+            links: {
+              tsType: { name: 'Array', elements: [{ ...item, signature: { properties: [{ key: 'go', value: { name: 'signature', type: 'function' } }] } }] },
+            },
+          },
+        },
+      },
+    })
+    const { props } = report.manifest.components.Menu
+    expect(Object.keys(props)).toEqual(['items'])
+    expect(props.items.fields).toMatchObject({ title: { required: true }, subtitle: { required: false } })
+    expect(manifestZodSchema.safeParse(report.manifest).success).toBe(true)
+
+    const errors = (items: unknown) => {
+      const v = validateBlueprintAgainstManifest(
+        { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Menu', props: { items } } },
+        report.manifest,
+      )
+      return v.ok ? '' : v.errors.join(' | ')
+    }
+    expect(errors([{ title: 'Previsão do tempo', subtitle: 'São Paulo, SP' }, { title: 'Brasileirão' }])).not.toMatch(/items/)
+    expect(errors([{ subtitle: 'no title' }])).toMatch(/items/)
+    expect(errors([{ title: 'x', extra: 'y' }])).toMatch(/items/)
+    expect(errors(['a string'])).toMatch(/items/)
+
+    const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- items:'))
+    expect(line).toMatch(/a JSON array of objects \{ title: string, subtitle\?: string \}/)
+  })
+
   it('E2.12 — a component\'s words go in its children prop; text where the child nodes go is caught', () => {
     const { manifest: m } = parseStorybookDocgenWithReport({
       components: {

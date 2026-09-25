@@ -38,12 +38,7 @@ import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug'
 
 /** One of the things the miscellaneous button cycles through. */
-export interface MiscellaneousItem {
-  title: string
-  subtitle?: string
-  /** Its icon — content, not a kit asset. Default: the weather glyph. */
-  iconSrc?: string
-}
+export type MiscellaneousItem = NonNullable<MainMenuProps['miscellaneousItems']>[number]
 
 export interface MainMenuProps {
   /**
@@ -80,7 +75,8 @@ export interface MainMenuProps {
    * item's icon is content (a crest, a programme logo), so it is a `src`; without
    * one the weather glyph stands in.
    */
-  miscellaneousItems?: MiscellaneousItem[]
+  // Written out (not a named interface) so react-docgen expands the fields for the importer.
+  miscellaneousItems?: { title: string; subtitle?: string; iconSrc?: string }[]
   /** Miscellaneous — opens its rail on the left: various types of interactivities. Focused, it shows the dots of "more". */
   onMiscellaneousClick?: () => void
 

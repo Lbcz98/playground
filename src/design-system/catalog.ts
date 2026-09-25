@@ -13,7 +13,7 @@ import { z } from 'zod'
 import type { AlertBugStyle } from '@/ui-kit/AlertBug'
 import type { InteractivityButtonState } from '@/ui-kit/InteractivityButton'
 import type { LabelVideoKind } from '@/ui-kit/LabelVideo'
-import type { MainMenuItem } from '@/ui-kit/MainMenu'
+import type { MainMenuItem, MiscellaneousItem } from '@/ui-kit/MainMenu'
 import type { NotificationKind } from '@/ui-kit/Notification'
 import type { RoundButtonState } from '@/ui-kit/RoundButtonShell'
 import type { WideButtonStatus } from '@/ui-kit/WideButton'
@@ -42,6 +42,8 @@ export type Control =
   | { kind: 'boolean'; label: string }
   | { kind: 'select'; label: string; options: readonly string[] }
   | { kind: 'number'; label: string; min?: number; max?: number; step?: number }
+  /** A list of objects, each with these text fields (required ones marked). */
+  | { kind: 'list'; label: string; max?: number; fields: Record<string, { label: string; required?: boolean }> }
 
 export type ComponentCategory = 'layout' | 'content' | 'form'
 
@@ -135,6 +137,9 @@ export const MAIN_MENU_ITEMS = [
   'none',
 ] as const satisfies readonly (MainMenuItem | 'none')[]
 
+/** The most items the miscellaneous button cycles through. */
+export const MISCELLANEOUS_MAX = 6
+
 export const mainMenuSchema = z
   .object({
     focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
@@ -142,6 +147,14 @@ export const mainMenuSchema = z
     programSubtitle: z.string().default(''),
     miscellaneousTitle: z.string().default(''),
     miscellaneousSubtitle: z.string().default(''),
+    miscellaneousItems: z
+      .array(
+        z
+          .object({ title: z.string(), subtitle: z.string().optional(), iconSrc: z.string().optional() })
+          .strict() satisfies z.ZodType<MiscellaneousItem>,
+      )
+      .max(MISCELLANEOUS_MAX)
+      .default([]),
   })
   .strict()
 export type MainMenuNodeProps = z.infer<typeof mainMenuSchema>
@@ -390,6 +403,12 @@ export const Catalog = {
       programSubtitle: { kind: 'text', label: 'Program subtitle' },
       miscellaneousTitle: { kind: 'text', label: 'Miscellaneous title' },
       miscellaneousSubtitle: { kind: 'text', label: 'Miscellaneous subtitle' },
+      miscellaneousItems: {
+        kind: 'list',
+        label: 'Miscellaneous items',
+        max: MISCELLANEOUS_MAX,
+        fields: { title: { label: 'Title', required: true }, subtitle: { label: 'Subtitle' }, iconSrc: { label: 'Icon URL' } },
+      },
     },
   },
   InteractivityMenu: {

@@ -106,6 +106,8 @@ function propTypeName(control: Control | undefined): { name: string } {
       return { name: 'enum' }
     case 'number':
       return { name: 'number' }
+    case 'list':
+      return { name: 'array' }
     default:
       return { name: 'string' }
   }
@@ -114,6 +116,12 @@ function propTypeName(control: Control | undefined): { name: string } {
 function controlKind(control: Control | undefined): ManifestControlKind | undefined {
   if (!control) return undefined
   return control.kind
+}
+
+function listFields(fields: Extract<Control, { kind: 'list' }>['fields']): Record<string, ManifestProp> {
+  return Object.fromEntries(
+    Object.entries(fields).map(([name, f]) => [name, { name, type: { name: 'string' }, required: f.required === true, control: 'text' as const }]),
+  )
 }
 
 function toManifestComponent(type: string): ManifestComponent {
@@ -137,6 +145,8 @@ function toManifestComponent(type: string): ManifestComponent {
       ...(control?.kind === 'number' && control.min !== undefined ? { min: control.min } : {}),
       ...(control?.kind === 'number' && control.max !== undefined ? { max: control.max } : {}),
       ...(control?.kind === 'number' && control.step !== undefined ? { step: control.step } : {}),
+      ...(control?.kind === 'list' && control.max !== undefined ? { max: control.max } : {}),
+      ...(control?.kind === 'list' ? { fields: listFields(control.fields) } : {}),
     }
   }
 

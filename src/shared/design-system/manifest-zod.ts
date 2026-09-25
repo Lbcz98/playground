@@ -89,8 +89,12 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
         break
       }
       case 'array': {
-        // A list of text; `min` / `max` bound how many items (a tuple sets both).
-        let list = z.array(z.string())
+        // A list of text, or of objects when the prop declares `fields`;
+        // `min` / `max` bound how many items (a tuple sets both).
+        const item = prop.fields
+          ? z.object(Object.fromEntries(Object.values(prop.fields).map((f) => [f.name, propToZod(f, manifest)]))).strict()
+          : z.string()
+        let list: z.ZodArray<z.ZodTypeAny> = z.array(item)
         if (prop.min !== undefined) list = list.min(prop.min)
         if (prop.max !== undefined) list = list.max(prop.max)
         schema = list
