@@ -111,3 +111,31 @@ describe('focus on an interactivity button is the second level', () => {
     expect(play().trail).toEqual(['home', 'rail'])
   })
 })
+
+describe('Back returns the focus to where you left', () => {
+  it('pressing a rail card opens its screen; Back lands on that same card', () => {
+    loadFlow()
+    useFlowStore.getState().setActiveScreen('rail')
+    play().play()
+    expect(play().trail).toEqual(['rail']) // Play starts on the frame open in the editor
+    const railCard = useFlowStore.getState().screens[1].tree.children[0].children[1].id
+    play().focus(railCard)
+    play().go('home')
+    expect(play().focusId).toBeNull()
+    play().back()
+    expect([play().trail, play().focusId]).toEqual([['rail'], railCard])
+  })
+
+  it('a page entered by the focus goes back to its own rule, not to a remembered focus', () => {
+    loadFlow()
+    play().play()
+    const home = useFlowStore.getState().screens[0].tree
+    const menu = home.children[0].children.find((n) => n.type === 'MainMenu')!
+    play().focus(menu.id, 'weather')
+    const card = home.children[0].children.find((n) => n.type === 'InteractivityMenu')!.children[0]
+    play().focus(card.id) // enters the rail
+    expect(play().trail).toEqual(['home', 'rail'])
+    play().back()
+    expect([play().trail, play().focusId, play().focusItem]).toEqual([['home'], null, null])
+  })
+})

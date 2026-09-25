@@ -22,6 +22,12 @@ interface PlayState {
   focusId: string | null
   /** Which part of that element holds it, when it has several focusable parts (a menu's item). */
   focusItem: string | null
+  /**
+   * For each screen in `trail` but the last, the focus it had when the viewer
+   * left it — Back puts the focus back there (the card you pressed, not the
+   * screen's default).
+   */
+  leftFrom: { focusId: string | null; focusItem: string | null }[]
   /** Enter Play from the screen open in the editor. */
   play: () => void
   edit: () => void
@@ -39,22 +45,35 @@ export const usePlayStore = create<PlayState>((set, get) => ({
   trail: [],
   focusId: null,
   focusItem: null,
+  leftFrom: [],
 
-  play: () => set({ mode: 'play', trail: [useFlowStore.getState().activeId], focusId: null, focusItem: null }),
-  edit: () => set({ mode: 'edit', trail: [], focusId: null, focusItem: null }),
+  play: () => set({ mode: 'play', trail: [useFlowStore.getState().activeId], focusId: null, focusItem: null, leftFrom: [] }),
+  edit: () => set({ mode: 'edit', trail: [], focusId: null, focusItem: null, leftFrom: [] }),
 
   go: (screenId) => {
     if (!useFlowStore.getState().screens.some((entry) => entry.id === screenId)) return
-    set((s) => (s.trail[s.trail.length - 1] === screenId ? s : { trail: [...s.trail, screenId], focusId: null, focusItem: null }))
+    set((s) =>
+      s.trail[s.trail.length - 1] === screenId
+        ? s
+        : {
+            trail: [...s.trail, screenId],
+            leftFrom: [...s.leftFrom, { focusId: s.focusId, focusItem: s.focusItem }],
+            focusId: null,
+            focusItem: null,
+          },
+    )
   },
 
   back: () => {
     if (get().trail.length < 2) return false
-    set((s) => ({ trail: s.trail.slice(0, -1), focusId: null, focusItem: null }))
+    set((s) => {
+      const restored = s.leftFrom[s.leftFrom.length - 1] ?? { focusId: null, focusItem: null }
+      return { trail: s.trail.slice(0, -1), leftFrom: s.leftFrom.slice(0, -1), ...restored }
+    })
     return true
   },
 
-  restart: () => set((s) => ({ trail: s.trail.slice(0, 1), focusId: null, focusItem: null })),
+  restart: () => set((s) => ({ trail: s.trail.slice(0, 1), focusId: null, focusItem: null, leftFrom: [] })),
 
   focus: (nodeId, item = null) => {
     // Moving the focus onto what only holds it one level deeper opens that page
@@ -66,7 +85,14 @@ export const usePlayStore = create<PlayState>((set, get) => ({
         ? focusEntersLevel(useDesignSystemStore.getState().active, screens, current, nodeId)
         : null
     if (entry) {
-      set((s) => ({ trail: [...s.trail, entry.screenId], focusId: entry.nodeId, focusItem: null }))
+      // Entered by the focus itself: nothing to return to — the page below opens
+      // on its own rule (Home on the channel button).
+      set((s) => ({
+        trail: [...s.trail, entry.screenId],
+        leftFrom: [...s.leftFrom, { focusId: null, focusItem: null }],
+        focusId: entry.nodeId,
+        focusItem: null,
+      }))
       return
     }
     set({ focusId: nodeId, focusItem: item })
