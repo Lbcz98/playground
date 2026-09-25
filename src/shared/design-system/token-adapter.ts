@@ -22,7 +22,7 @@ import { inferTokenTiers, rawTierFor } from './manifest'
 
 export type TokenGroup = keyof ManifestTokens
 
-const GROUPS: TokenGroup[] = ['colors', 'spacing', 'typography', 'radius', 'shadow']
+const GROUPS: TokenGroup[] = ['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients']
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -33,12 +33,14 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
 
 /** A leading path segment matching this just names the token's group — we drop it. */
 const GROUP_PREFIX =
-  /^(colou?rs?|palette|spac(e|ing)|sizes?|sizing|dimensions?|gaps?|typ(o|ography)?|fonts?|text|radi(us|i)|corners?|rounded|border-?radius|shadows?|elevations?|box-?shadow)$/i
+  /^(colou?rs?|palette|spac(e|ing)|sizes?|sizing|dimensions?|gaps?|typ(o|ography)?|fonts?|text|radi(us|i)|corners?|rounded|border-?radius|shadows?|elevations?|box-?shadow|gradients?)$/i
 
 function groupFromType(type: string | undefined): TokenGroup | null {
   switch ((type ?? '').toLowerCase().replace(/[\s_-]/g, '')) {
     case 'color':
       return 'colors'
+    case 'gradient':
+      return 'gradients'
     case 'shadow':
     case 'boxshadow':
       return 'shadow'
@@ -62,6 +64,7 @@ function groupFromType(type: string | undefined): TokenGroup | null {
 
 function groupFromName(path: string[]): TokenGroup | null {
   const p = path.join(' ').toLowerCase()
+  if (/gradient/.test(p)) return 'gradients'
   if (/colou?r|palette|background|foreground|\bfg\b|\bbg\b|fill|stroke|border(?!-radius)/.test(p)) {
     return 'colors'
   }
@@ -74,6 +77,7 @@ function groupFromName(path: string[]): TokenGroup | null {
 
 function groupFromValue(value: string): TokenGroup | null {
   const v = value.trim().toLowerCase()
+  if (/^(repeating-)?(linear|radial|conic)-gradient\(/.test(v)) return 'gradients'
   if (/^#[0-9a-f]{3,8}$/.test(v) || /^(rgb|hsl|oklch|lab|color)\(/.test(v) || /^(transparent|currentcolor)$/.test(v)) {
     return 'colors'
   }
@@ -146,6 +150,29 @@ interface RawToken {
   unresolved?: boolean
   /** Read from the tree: under a `semantic` group, or beside one (`core`, `opacity`…). */
   tier?: 'core' | 'semantic'
+  /** A gradient's CSS angle, from `$extensions["com.screenflow.css"].angle` (DTCG carries none). */
+  angle?: string
+}
+
+/** The vendor key a DTCG file uses for CSS-only hints. */
+const CSS_EXTENSION = 'com.screenflow.css'
+/** DTCG gradients carry no angle; CSS draws them top to bottom unless the token says otherwise. */
+const DEFAULT_GRADIENT_ANGLE = '180deg'
+
+/**
+ * DTCG gradient stops → `linear-gradient(...)`. A stop's colour may be an alias,
+ * resolved through `color`; null when any stop is unusable.
+ */
+function gradientToCss(stops: unknown, angle: string | undefined, color: (v: unknown) => string | null): string | null {
+  if (!Array.isArray(stops) || stops.length < 2) return null
+  const parts: string[] = []
+  for (const stop of stops) {
+    if (!isObject(stop) || typeof stop.position !== 'number') return null
+    const c = color(stop.color)
+    if (!c) return null
+    parts.push(`${c} ${Number((stop.position * 100).toFixed(2))}%`)
+  }
+  return `linear-gradient(${angle ?? DEFAULT_GRADIENT_ANGLE}, ${parts.join(', ')})`
 }
 
 /** A group named like this holds the intent tier. */
@@ -187,6 +214,8 @@ function walk(
     const alias = typeof node.$aliasOf === 'string' ? node.$aliasOf : refString(rawValue)
     const type =
       (readKeyed(node, TYPE_KEYS) as string | undefined) ?? inheritedType
+    const ext = isObject(node.$extensions) ? node.$extensions[CSS_EXTENSION] : undefined
+    const angle = isObject(ext) && typeof ext.angle === 'string' ? ext.angle : undefined
     out.push({
       path,
       value: rawValue,
@@ -194,6 +223,7 @@ function walk(
       ref: alias,
       alias,
       tier: inheritedTier,
+      angle,
     })
     return
   }
@@ -313,6 +343,7 @@ function parse(raw: unknown): ParsedTokens {
       if (target && target.value !== undefined) {
         t.value = target.value
         t.type = t.type ?? target.type
+        t.angle = t.angle ?? target.angle
         t.ref = target.ref
         t.unresolved = target.unresolved
         changed = true
@@ -338,7 +369,15 @@ function parse(raw: unknown): ParsedTokens {
     }
     if (t.value === undefined || t.value === null) continue
     let group = groupFromType(t.type) ?? groupFromName(t.path)
-    const css = valueToCss(t.value, group)
+    const css =
+      group === 'gradients' && Array.isArray(t.value)
+        ? gradientToCss(t.value, t.angle, (v) => {
+            const ref = refString(v)
+            const hit = ref ? (byPath.get(ref) ?? byPath.get(ref.replace(/\//g, '.'))) : undefined
+            const value = ref ? hit?.value : v
+            return typeof value === 'string' && !hit?.unresolved ? value : null
+          })
+        : valueToCss(t.value, group)
     if (css === null) {
       warnings.push({ token, message: `its value ${JSON.stringify(t.value)} is not a CSS value — left out` })
       continue

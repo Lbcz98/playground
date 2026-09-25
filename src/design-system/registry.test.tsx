@@ -33,12 +33,10 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
     for (const t of reg.types) expect(reg.get(t)!.generic).toBe(false)
   })
 
-  it('carries compiled schema, default props and synthesised controls', () => {
+  it('carries compiled schema and default props', () => {
     const stack = reg.get('Stack')!
     expect(stack.defaultProps.gap).toBe('sm')
     expect(stack.schema.safeParse(stack.defaultProps).success).toBe(true)
-    expect(stack.controls.gap).toEqual({ kind: 'select', label: 'Gap', options: expect.any(Array) })
-    expect(stack.controls.bordered).toEqual({ kind: 'boolean', label: 'Bordered' })
   })
 
   it('renders without throwing', () => {
@@ -133,10 +131,9 @@ describe('hydrateRegistry — imported design system', () => {
     expect(el).toBeTruthy()
   })
 
-  it('still provides default props and controls from the manifest', () => {
+  it('still provides default props from the manifest', () => {
     const hero = reg.get('Hero')!
     expect(hero.acceptsChildren).toBe(true)
-    expect(hero.controls.title).toEqual({ kind: 'text', label: 'Title' })
     expect(hero.defaultProps).toHaveProperty('title')
   })
 

@@ -390,13 +390,22 @@ Found while making the DTV system importable from Storybook alone (Phase 4):
   leaked shows none. The icon controls' accessible labels (`Fechar`, `Voltar`,
   `Conteúdo interativo`) stay: they are meaning, not placeholders.
 
+## Closed since (2026-09-25)
+
+- **Gradient tokens are parsed by the importer.** DTCG `gradient` tokens become a
+  `gradients` token group (`linear-gradient(...)`, stop aliases resolved, the
+  `com.screenflow.css` angle kept, `--sfs-gradient-*` on the canvas). `tokens.json`
+  now imports with 1 warning instead of 29 — the one left is the motion easing, a
+  cubic-bézier with no CSS value of its own.
+- **Step 4 of Phase 4 ran to completion.** `radius.semantic.content-card` moved from
+  core 6xl (40px) to 5xl (36px), `tokens:build`, `tokens:check` passed, and
+  `test:visual -- --probe` showed V3 following the token (14 Content Cards
+  measured, no failure) and exactly 7 stories changed — the five Content Card
+  stories and the two level-3 templates, nothing else. Reverted; 113 unchanged.
+
 ## Still open
 
-- **Gradient tokens aren't parsed by the importer** (28 warnings for `tokens.json`).
-  Screens still render them — the components read `global.css` — but an imported
-  system's token list lacks them.
-- **Step 4 of Phase 4** (a token change through the probe) was stopped before it
-  completed.
+- Nothing from this plan.
 
 To keep in mind: the visual baselines depend on the OS, so re-baseline only after
 proving the drift against committed code.

@@ -84,6 +84,8 @@ export interface ManifestTokens {
   typography: Record<string, string>
   radius?: Record<string, string>
   shadow?: Record<string, string>
+  /** CSS gradients (`linear-gradient(...)`), from DTCG `gradient` tokens. */
+  gradients?: Record<string, string>
 }
 
 /**
@@ -295,7 +297,7 @@ const propSchema: z.ZodType<ManifestProp> = z
     defaultValue: z.unknown().optional(),
     options: z.array(z.string().max(200)).max(MAX_OPTIONS).optional(),
     description: z.string().max(MAX_STR).optional(),
-    tokenGroup: z.enum(['colors', 'spacing', 'typography', 'radius', 'shadow']).optional(),
+    tokenGroup: z.enum(['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients']).optional(),
     control: z.enum(['text', 'textarea', 'select', 'boolean', 'number', 'list']).optional(),
     nullable: z.boolean().optional(),
     min: z.number().finite().optional(),
@@ -329,6 +331,7 @@ const tokensSchema: z.ZodType<ManifestTokens> = z
     typography: tokenGroupSchema,
     radius: tokenGroupSchema.optional(),
     shadow: tokenGroupSchema.optional(),
+    gradients: tokenGroupSchema.optional(),
   })
   .strict()
 
@@ -350,6 +353,7 @@ const tokenTiersSchema: z.ZodType<ManifestTokenTiers> = z
         typography: z.record(tierSchema).optional(),
         radius: z.record(tierSchema).optional(),
         shadow: z.record(tierSchema).optional(),
+        gradients: z.record(tierSchema).optional(),
       })
       .strict(),
   })
@@ -550,7 +554,8 @@ export function tokenCount(tokens: ManifestTokens): number {
     Object.keys(tokens.spacing).length +
     Object.keys(tokens.typography).length +
     Object.keys(tokens.radius ?? {}).length +
-    Object.keys(tokens.shadow ?? {}).length
+    Object.keys(tokens.shadow ?? {}).length +
+    Object.keys(tokens.gradients ?? {}).length
   )
 }
 
@@ -642,6 +647,7 @@ export const TOKEN_GROUPS: ReadonlyArray<keyof ManifestTokens> = [
   'typography',
   'radius',
   'shadow',
+  'gradients',
 ]
 
 const LAYOUT_GROUPS: ReadonlySet<keyof ManifestTokens> = new Set(['spacing', 'radius'])

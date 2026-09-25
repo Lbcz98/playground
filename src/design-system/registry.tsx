@@ -30,13 +30,11 @@ import type {
   ManifestComponent,
   ManifestTokens,
 } from '@/shared/design-system/manifest'
-import { inferControl, propLabel } from '@/shared/design-system/manifest'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import type { LiveComponentMap } from './liveBundle'
 import { CanvasButton, CanvasStack, CanvasText } from './canvasKit'
 import {
-  type Control,
   alertBugSchema,
   buttonSchema,
   closeButtonSchema,
@@ -88,8 +86,6 @@ export interface HydratedEntry {
   /** Per-prop schemas, for field-level validation / repair. */
   fieldSchemas: Record<string, z.ZodTypeAny>
   defaultProps: Record<string, unknown>
-  /** Legacy control metadata, synthesised for the current Inspector / Palette. */
-  controls: Record<string, Control>
   render: RenderFn
   /** True when this renders through the generic placeholder. */
   generic: boolean
@@ -252,6 +248,7 @@ const TOKEN_VAR_ALIAS: Record<keyof ManifestTokens, string> = {
   typography: 'type',
   radius: 'radius',
   shadow: 'shadow',
+  gradients: 'gradient',
 }
 
 function tokenVar(group: keyof ManifestTokens, name: string): string {
@@ -518,19 +515,6 @@ export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   AlertBug: hosted(renderAlertBug),
 }
 
-function toControl(component: ManifestComponent, name: string): Control {
-  const prop = component.props[name]
-  const label = propLabel(prop)
-  const kind = inferControl(prop)
-  if (kind === 'select' && prop.options) {
-    return { kind: 'select', label, options: prop.options }
-  }
-  if (kind === 'boolean') return { kind: 'boolean', label }
-  if (kind === 'textarea') return { kind: 'textarea', label }
-  if (kind === 'number') return { kind: 'number', label, min: prop.min, max: prop.max, step: prop.step }
-  return { kind: 'text', label }
-}
-
 export function hydrateRegistry(
   manifest: DesignSystemManifest,
   live?: LiveComponentMap,
@@ -545,8 +529,6 @@ export function hydrateRegistry(
     const codeRender = useCode ? SCREENFLOW_RENDERERS[component.id] : undefined
     const liveComponent = !useCode ? live?.[component.id] : undefined
     if (liveComponent) liveCount++
-    const controls: Record<string, Control> = {}
-    for (const name of Object.keys(component.props)) controls[name] = toControl(component, name)
 
     entries[component.id] = {
       id: component.id,
@@ -558,7 +540,6 @@ export function hydrateRegistry(
       schema,
       fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
       defaultProps: compiledDefaultProps(component, schema),
-      controls,
       render:
         codeRender ??
         (liveComponent ? makeLiveRenderer(component, liveComponent) : makeGenericRenderer(component, manifest.tokens)),

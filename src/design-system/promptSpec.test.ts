@@ -279,7 +279,8 @@ describe('the token tier rule (law 5)', () => {
     expect(system).toMatch(/colors — semantic \[semantic-theme-noite-dark, /)
     expect(system).toMatch(/spacing — layout scale \[spacing-core-none = 0px, /)
     expect(system).toMatch(/radius — semantic \[radius-semantic-pill, /)
-    expect(system).toMatch(/This system's \d+ core tokens \(core-\*, opacity-\*\) are never assigned\./)
+    // Gradients are tiered too: their core families (primary-*, overlay-*…) are listed with the colours'.
+    expect(system).toMatch(/This system's \d+ core tokens \(core-\*, opacity-\*, primary-\*[^)]*overlay-\*\) are never assigned\./)
     expect(system).not.toMatch(/colors — semantic \[[^\]]*core-neutral-white/)
   })
 

@@ -22,6 +22,7 @@ const GROUPS: Array<[keyof ManifestTokens, string]> = [
   ['typography', 'type'],
   ['radius', 'radius'],
   ['shadow', 'shadow'],
+  ['gradients', 'gradient'],
 ]
 
 /**
