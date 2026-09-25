@@ -1355,7 +1355,7 @@
     },
     "ui-kit-main-menu": {
       "name": "MainMenu",
-      "description": "The home menu along the bottom edge: profile, schedule and weather, then the live program and the channel bug.",
+      "description": "The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug.",
       "props": {
         "avatarSrc": {
           "type": "string",
@@ -1380,14 +1380,14 @@
           "type": "MainMenuItem | null",
           "kind": "enum",
           "options": [
-            "profile",
+            "login",
             "schedule",
-            "weather",
+            "miscellaneous",
             "program",
             "channel-bug"
           ],
           "required": false,
-          "description": "The one focused item. Default `channel-bug` — when Home opens, the focus is on\nthe channel button (Figma: Main Menu › Focus). `null` when focus is elsewhere\non the screen.",
+          "description": "The one focused item. Default `program` — when Home opens, the focus is on\nthe program button (Figma: Main Menu › Focus). `null` when focus is elsewhere\non the screen.",
           "nullable": true
         },
         "logoSrc": {
@@ -1396,13 +1396,25 @@
           "required": false,
           "description": ""
         },
-        "onAvatarClick": {
+        "miscellaneousSubtitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The miscellaneous button’s second line."
+        },
+        "miscellaneousTitle": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The miscellaneous button’s first line (its current item, e.g. the weather)."
+        },
+        "onBugClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
           "description": ""
         },
-        "onBugClick": {
+        "onLoginClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
@@ -1414,13 +1426,13 @@
           "required": false,
           "description": ""
         },
-        "onScheduleClick": {
+        "onMiscellaneousClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
           "description": ""
         },
-        "onWeatherClick": {
+        "onScheduleClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
@@ -1437,26 +1449,13 @@
           "kind": "string",
           "required": false,
           "description": "The live program’s name."
-        },
-        "weatherSubtitle": {
-          "type": "string",
-          "kind": "string",
-          "required": false,
-          "description": "The weather item’s second line, e.g. the city."
-        },
-        "weatherTitle": {
-          "type": "string",
-          "kind": "string",
-          "required": false,
-          "description": "The weather item’s first line."
         }
       },
       "title": "UI Kit/Main Menu",
       "stories": [
         "ui-kit-main-menu--bug-focused",
         "ui-kit-main-menu--custom-content",
-        "ui-kit-main-menu--default",
-        "ui-kit-main-menu--program-focused"
+        "ui-kit-main-menu--default"
       ],
       "subcomponents": {}
     },

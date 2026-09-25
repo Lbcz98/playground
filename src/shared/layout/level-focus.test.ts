@@ -1,6 +1,7 @@
 /** Where the focus starts is what tells the pages apart (the user's page rules). */
 import { describe, expect, it } from 'vitest'
 import { interpretPrototype, treeToBlueprint as toDoc } from '@/interpreter/interpret'
+import { buildSystemPrompt } from '@/design-system/promptSpec'
 import type { BlueprintDocument, BlueprintNode } from '@/shared/blueprint'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST as S } from '@/shared/design-system/screenflow-manifest'
@@ -14,17 +15,17 @@ const errors = (d: BlueprintDocument) => {
   return r.ok ? [] : r.errors
 }
 
-describe('page 1 · Home — focus starts on the channel rounded button', () => {
+describe('page 1 · Home — focus starts on the program button', () => {
   it('the templates do', () => {
-    expect(find(doc('home').root, 'MainMenu')!.props!.focusedItem).toBe('channel-bug')
+    expect(find(doc('home').root, 'MainMenu')!.props!.focusedItem).toBe('program')
     expect(errors(doc('home'))).toEqual([])
     expect(errors(doc('home-notification'))).toEqual([])
   })
 
-  it('rejects the menu focused anywhere else', () => {
+  it('rejects the menu focused on another button while the rail is on the right', () => {
     const d = doc('home')
-    find(d.root, 'MainMenu')!.props!.focusedItem = 'program'
-    expect(errors(d).join()).toMatch(/Level 1 \(Home\).*channel rounded button/)
+    find(d.root, 'MainMenu')!.props!.focusedItem = 'login'
+    expect(errors(d).join()).toMatch(/focusedItem "login" — the focus starts on the program button.*use "program"/)
   })
 
   it('rejects a focus on an interactivity button — that is already the second level', () => {
@@ -34,15 +35,37 @@ describe('page 1 · Home — focus starts on the channel rounded button', () => 
     expect(errors(d).join()).toMatch(/Level 1 \(Home\).*InteractivityButton.*second level/)
   })
 
-  it('repairs it: the channel button takes focus, the card rests', () => {
+  it('repairs it: the program button takes focus, the card rests', () => {
     const d = doc('home')
     find(d.root, 'MainMenu')!.props!.focusedItem = 'none'
     find(d.root, 'InteractivityButton')!.props!.interactionState = 'focus'
     const r = interpretPrototype(d, S)
     if (!r.ok) throw new Error(r.error)
     const tree = JSON.stringify(r.screens[0].tree)
-    expect(tree).toContain('"focusedItem":"channel-bug"')
+    expect(tree).toContain('"focusedItem":"program"')
     expect(tree).not.toContain('"interactionState":"focus"')
+  })
+})
+
+describe('menu roles — each button owns a rail on its side', () => {
+  const leftRail = (item: string) => {
+    const d = doc('home')
+    d.screen = { model: 'home-buttons-left', level: 1 }
+    find(d.root, 'InteractivityMenu')!.props = { align: 'start' }
+    find(d.root, 'MainMenu')!.props!.focusedItem = item
+    return d
+  }
+
+  it('a left rail is owned by a left button: miscellaneous, schedule or login', () => {
+    for (const item of ['miscellaneous', 'schedule', 'login']) expect(errors(leftRail(item)).join()).not.toMatch(/focusedItem/)
+    expect(errors(leftRail('program')).join()).toMatch(/Home rail is on the left.*"miscellaneous" or "schedule" or "login"/)
+  })
+
+  it('the prompt names every role and its side', () => {
+    const prompt = buildSystemPrompt('json')
+    expect(prompt).toMatch(/Program \(focusedItem "program"\) — its interactivity buttons sit on the right/)
+    expect(prompt).toMatch(/Schedule \(focusedItem "schedule"\) — its interactivity buttons sit on the left and hold the schedule: .*time.*live.*name/)
+    expect(prompt).toMatch(/Login \(focusedItem "login"\) — .*left and hold account settings/)
   })
 })
 

@@ -7,8 +7,8 @@ const meta = {
   component: MainMenu,
   parameters: { layout: 'fullscreen' },
   args: {
-    weatherTitle: 'Previsão do tempo',
-    weatherSubtitle: 'São Paulo, SP',
+    miscellaneousTitle: 'Previsão do tempo',
+    miscellaneousSubtitle: 'São Paulo, SP',
     programTitle: 'Copa do Mundo: Equador x Argentina',
     programSubtitle: 'A seguir Central da Copa',
   },
@@ -32,13 +32,10 @@ export const Default: Story = {}
 
 export const BugFocused: Story = { args: { focusedItem: 'channel-bug' } }
 
-/** The programme's logo holding the focus — e.g. after the viewer moves left from the channel button. */
-export const ProgramFocused: Story = { args: { focusedItem: 'program' } }
-
 export const CustomContent: Story = {
   args: {
-    weatherTitle: 'Chuva a qualquer momento',
-    weatherSubtitle: 'Rio de Janeiro, RJ',
+    miscellaneousTitle: 'Chuva a qualquer momento',
+    miscellaneousSubtitle: 'Rio de Janeiro, RJ',
     programTitle: 'Jornal Nacional',
     programSubtitle: 'Ao vivo agora',
   },

@@ -43,6 +43,7 @@ import {
   paintsBackground,
   screenLayersOf,
   screenModel,
+  menuFocusCheck,
   sidePropFor,
   unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
@@ -149,6 +150,7 @@ export function interpretBlueprint(
   repairFrameLayout(root, ctx.manifest, issues, side)
   repairLevelRoot(root, ctx.manifest, screen, issues)
   repairLevelFocus(root, ctx.manifest, screen, issues)
+  repairMenuFocus(root, ctx.manifest, screen, issues)
   repairFocus(root, ctx.manifest, issues)
   if (screen) {
     root.screen = screen
@@ -386,6 +388,27 @@ function repairLevelFocus(
       message: `Set ${prop.name} to "${value}" on <${target.type}> — ${rule.hint}`,
     })
   }
+}
+
+/** Home: the menu button that owns the rail on screen holds the focus (program by default). */
+function repairMenuFocus(
+  root: CanvasNode,
+  manifest: DesignSystemManifest,
+  screen: ScreenSpec | undefined,
+  issues: InterpretIssue[],
+): void {
+  const layers = screenLayersOf(manifest)
+  if (!screen || screenModel(layers, screen.model)?.level !== 1 || !layers.menu) return
+  const check = menuFocusCheck(manifest, root)
+  if (!check || check.allowed.includes(String(check.found)) || check.allowed.length !== 1) return
+  const menu = check.menu as CanvasNode
+  const value = check.allowed[0]
+  menu.props = { ...menu.props, [layers.menu.prop]: value }
+  issues.push({
+    level: 'warn',
+    path: 'root',
+    message: `Set ${layers.menu.prop} to "${value}" on <${menu.type}> — when Home opens, the focus is on the program button.`,
+  })
 }
 
 /** One focused element per screen: keep the first in reading order, rest the others. */

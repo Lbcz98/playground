@@ -45,9 +45,9 @@ function mainMenu(): BlueprintNode {
   return {
     type: 'MainMenu',
     props: {
-      focusedItem: 'channel-bug',
-      weatherTitle: 'Previsão do tempo',
-      weatherSubtitle: 'São Paulo, SP',
+      focusedItem: 'program',
+      miscellaneousTitle: 'Previsão do tempo',
+      miscellaneousSubtitle: 'São Paulo, SP',
       programTitle: 'Copa do Mundo: Equador x Argentina',
       programSubtitle: 'A seguir Central da Copa',
     },
@@ -195,7 +195,7 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
   {
     id: 'home',
     name: 'Home',
-    when: 'The home screen after login: the main menu along the bottom and the interactivity rail resting above it, focus on the channel button.',
+    when: 'The home screen after login: the main menu along the bottom and the interactivity rail resting above it, focus on the program button.',
     blueprint: home,
   },
   {

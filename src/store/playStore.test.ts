@@ -131,7 +131,7 @@ describe('Back returns the focus to where you left', () => {
     play().play()
     const home = useFlowStore.getState().screens[0].tree
     const menu = home.children[0].children.find((n) => n.type === 'MainMenu')!
-    play().focus(menu.id, 'weather')
+    play().focus(menu.id, 'miscellaneous')
     const card = home.children[0].children.find((n) => n.type === 'InteractivityMenu')!.children[0]
     play().focus(card.id) // enters the rail
     expect(play().trail).toEqual(['home', 'rail'])

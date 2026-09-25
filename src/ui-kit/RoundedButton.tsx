@@ -2,7 +2,7 @@
  * Rounded Button — Figma UI Kit node 2273:96230 ("Back Button").
  *
  * A specific use of `RoundButtonShell` (the back arrow); see that file for the
- * shell itself, which MainMenu's avatar/clock/weather/logo buttons also use.
+ * shell itself, which MainMenu's login/schedule/miscellaneous/program buttons also use.
  */
 
 import type { ReactNode } from 'react'

@@ -163,7 +163,7 @@ describe('global kernel', () => {
       expect(prompt).toContain('interactionState "focus"')
       expect(prompt).toContain('focusedItem "none"')
       // The trap a live run fell into: MainMenu arrives focused unless told otherwise.
-      expect(prompt).toMatch(/<MainMenu> focuses its "channel-bug" unless you set focusedItem "none"/)
+      expect(prompt).toMatch(/<MainMenu> focuses its "program" unless you set focusedItem "none"/)
     }
   })
 

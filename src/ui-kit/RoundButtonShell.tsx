@@ -1,7 +1,7 @@
 /**
  * RoundButtonShell — the circular button frame shared by every round control in
  * the kit ("ShapesHdMotionless" in Figma: RoundedButton's back button, and the
- * avatar/clock/weather/logo buttons in MainMenu are all the same outer hit
+ * login/schedule/miscellaneous/program buttons in MainMenu are all the same outer hit
  * target and inner circle, just with different content — see the
  * `round-button` size tokens for the exact sizes).
  *

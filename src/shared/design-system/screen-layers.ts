@@ -57,15 +57,14 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       allowsAnchor: true,
       initialFocus: {
         on: ['MainMenu'],
-        value: 'channel-bug',
-        hint: 'Focus starts on the channel rounded button (the main menu\'s channel-bug) and nowhere else — a focus on an interactivity button would already be the second level.',
+        hint: 'Focus starts on the main menu — on the program button by default; when the Home rail sits on the left, on the left button that owns it (miscellaneous, schedule or login). A focus on an interactivity button would already be the second level.',
       },
     },
     {
       level: 2,
       name: 'Trilho focado',
       rootEnd: true,
-      rule: 'The second level: the viewer moved up into a content rail (or focused profile, schedule or alerts). The rest of the menu is hidden and the screen is cleared around that one rail.',
+      rule: 'The second level: the viewer moved up into a content rail (or focused login, schedule or miscellaneous). The rest of the menu is hidden and the screen is cleared around that one rail.',
       maxModules: 1,
       allowsAnchor: true,
       initialFocus: {
@@ -89,6 +88,17 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       },
     },
   ],
+  menu: {
+    component: 'MainMenu',
+    prop: 'focusedItem',
+    initial: 'program',
+    roles: [
+      { item: 'program', name: 'Program', side: 'right', holds: "interactivities about the programme on air — its own context (statistics, votes, extras)" },
+      { item: 'miscellaneous', name: 'Miscellaneous', side: 'left', holds: 'various types of interactivities, not tied to the programme' },
+      { item: 'schedule', name: 'Schedule', side: 'left', holds: 'the schedule: one card per programme, with its time (overline), whether it is live (the live badge) and its name (title)' },
+      { item: 'login', name: 'Login', side: 'left', holds: 'account settings' },
+    ],
+  },
   links: {
     none: ['MainMenu'],
     back: ['RoundedButton'],
@@ -369,6 +379,16 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
       `A level ${level.level} screen (${level.name}) shows ${level.maxModules === 1 ? 'a single content module' : `at most ${level.maxModules} content modules`}: the outermost container has ${modules.length} un-anchored children — group them into one container, or pick a level 1 model. ${level.rule}`,
     )
   }
+  if (level?.level === 1) {
+    const check = menuFocusCheck(manifest, root)
+    const roles = layers.menu
+    if (check && roles && !check.allowed.includes(String(check.found))) {
+      const where = check.railSide === 'left' ? 'the Home rail is on the left, so the focus is on the left button that owns it' : 'the focus starts on the program button (its rail, the programme\'s context, is on the right)'
+      problems.push(
+        `<${roles.component}> ${roles.prop} ${JSON.stringify(check.found)} — ${where}: use ${check.allowed.map((a) => JSON.stringify(a)).join(' or ')}.`,
+      )
+    }
+  }
   const never = unanchorableTypes(manifest)
   for (const child of children) {
     if (child.anchor === true && typeof child.type === 'string' && never.has(child.type)) {
@@ -412,6 +432,51 @@ export function unanchorableTypes(manifest: DesignSystemManifest): Set<string> {
     if (level.initialFocus && !level.initialFocus.anchored) level.initialFocus.on.forEach((id) => out.add(id))
   }
   return out
+}
+
+// ---------------------------------------------------------------------------
+// Menu roles
+// ---------------------------------------------------------------------------
+
+type RoleNode = { type?: unknown; props?: unknown; children?: unknown; anchor?: unknown }
+
+function walkNodes(root: RoleNode, visit: (node: RoleNode, parent: RoleNode | null) => void): void {
+  const go = (node: RoleNode, parent: RoleNode | null): void => {
+    visit(node, parent)
+    if (Array.isArray(node.children)) for (const c of node.children) if (isObject(c)) go(c as RoleNode, node)
+  }
+  go(root, null)
+}
+
+/**
+ * On a Home screen: the menu button that should hold the focus, given the rail
+ * the screen shows — the program button when the rail is on the right (or there
+ * is none), a left button when it is on the left. `found` is what the screen has.
+ */
+export function menuFocusCheck(
+  manifest: DesignSystemManifest,
+  root: RoleNode,
+): { menu: RoleNode; found: unknown; railSide: ScreenSide | null; allowed: string[] } | null {
+  const layers = screenLayersOf(manifest)
+  const menuRoles = layers.menu
+  if (!menuRoles || !manifest.components[menuRoles.component]) return null
+  const railTypes = layers.levels.find((l) => l.level === 2)?.initialFocus?.on ?? []
+  let menu: RoleNode | null = null
+  let rail: RoleNode | null = null
+  walkNodes(root, (node, parent) => {
+    if (node.type === menuRoles.component && !menu) menu = node
+    if (typeof node.type === 'string' && railTypes.includes(node.type) && parent && !rail) rail = parent
+  })
+  if (!menu) return null
+  const component = manifest.components[menuRoles.component]
+  const props = isObject((menu as RoleNode).props) ? ((menu as RoleNode).props as Record<string, unknown>) : {}
+  const found = menuRoles.prop in props ? props[menuRoles.prop] : defaultForProp(component.props[menuRoles.prop])
+  const railSide = rail ? staticContentSide(manifest, rail) : null
+  const allowed =
+    railSide === 'left'
+      ? menuRoles.roles.filter((r) => r.side === 'left').map((r) => r.item)
+      : [menuRoles.initial]
+  return { menu, found, railSide, allowed }
 }
 
 /** A one-line description of a screen's layers, for status lines. */

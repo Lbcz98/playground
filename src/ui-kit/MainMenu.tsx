@@ -1,13 +1,13 @@
 /**
  * Main Menu — Figma UI Kit node 6024:6367.
  *
- * A left cluster (profile, schedule, a weather item) and a right cluster (the
+ * A left cluster (login, schedule, miscellaneous) and a right cluster (the
  * live program's EPG text + logo, then a channel bug), pinned to opposite
  * edges. Figma absolute-positions "Options" and "Live" within a full-width
  * frame; this uses `justify-content: space-between` instead, matching the
  * Button/WideButton convention of flow layout over percentage insets.
  *
- * Every round control here (profile, schedule, weather, logo) is the same
+ * Every round control here (login, schedule, miscellaneous, program) is the same
  * `RoundButtonShell` RoundedButton already uses — this component carries no
  * new circular-button styling of its own.
  *
@@ -25,12 +25,12 @@ import scheduleIcon from './icons/schedule.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 
-export type MainMenuItem = 'profile' | 'schedule' | 'weather' | 'program' | 'channel-bug'
+export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug'
 
 export interface MainMenuProps {
   /**
-   * The one focused item. Default `channel-bug` — when Home opens, the focus is on
-   * the channel button (Figma: Main Menu › Focus). `null` when focus is elsewhere
+   * The one focused item. Default `program` — when Home opens, the focus is on
+   * the program button (Figma: Main Menu › Focus). `null` when focus is elsewhere
    * on the screen.
    */
   focusedItem?: MainMenuItem | null
@@ -41,15 +41,15 @@ export interface MainMenuProps {
   bugFocused?: boolean
 
   avatarSrc?: string
-  onAvatarClick?: () => void
+  onLoginClick?: () => void
 
   onScheduleClick?: () => void
 
-  /** The weather item’s first line. */
-  weatherTitle?: string
-  /** The weather item’s second line, e.g. the city. */
-  weatherSubtitle?: string
-  onWeatherClick?: () => void
+  /** The miscellaneous button’s first line (its current item, e.g. the weather). */
+  miscellaneousTitle?: string
+  /** The miscellaneous button’s second line. */
+  miscellaneousSubtitle?: string
+  onMiscellaneousClick?: () => void
 
   /** The live program’s name. */
   programTitle?: string
@@ -96,16 +96,16 @@ function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: 
   )
 }
 
-/** The home menu along the bottom edge: profile, schedule and weather, then the live program and the channel bug. */
+/** The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug. */
 export function MainMenu({
   focusedItem,
   bugFocused,
   avatarSrc,
-  onAvatarClick,
+  onLoginClick,
   onScheduleClick,
-  weatherTitle,
-  weatherSubtitle,
-  onWeatherClick,
+  miscellaneousTitle,
+  miscellaneousSubtitle,
+  onMiscellaneousClick,
   programTitle,
   programSubtitle,
   logoSrc,
@@ -114,13 +114,13 @@ export function MainMenu({
   onBugClick,
 }: MainMenuProps): ReactNode {
   if (bugFocused !== undefined) warnDeprecated('ui-kit/MainMenu', 'bugFocused', 'focusedItem')
-  const focused = focusedItem !== undefined ? focusedItem : bugFocused === false ? 'program' : 'channel-bug'
+  const focused = focusedItem !== undefined ? focusedItem : bugFocused ? 'channel-bug' : 'program'
   const stateOf = (item: MainMenuItem): RoundButtonState => (item === focused ? 'focus' : 'default')
 
   return (
     <Stack as="nav" direction="row" align="center" justify="between">
       <Stack direction="row" align="center" gap="3xs">
-        <RoundButtonShell interactionState={stateOf('profile')} focusItem="profile" label="Profile" onClick={onAvatarClick}>
+        <RoundButtonShell interactionState={stateOf('login')} focusItem="login" label="Login" onClick={onLoginClick}>
           <ContentCircle src={avatarSrc} role="avatar" alt="" />
         </RoundButtonShell>
 
@@ -133,7 +133,7 @@ export function MainMenu({
         </RoundButtonShell>
 
         <Stack direction="row" align="center">
-          <RoundButtonShell interactionState={stateOf('weather')} focusItem="weather" label="Weather" onClick={onWeatherClick}>
+          <RoundButtonShell interactionState={stateOf('miscellaneous')} focusItem="miscellaneous" label="Miscellaneous" onClick={onMiscellaneousClick}>
             <img
               src={weatherIcon}
               alt=""
@@ -142,10 +142,10 @@ export function MainMenu({
           </RoundButtonShell>
           <div style={{ ...textStack, paddingInlineStart: spacing('3xs') }}>
             <Text variant="body-lg-bold" opacity="title" truncate>
-              {weatherTitle}
+              {miscellaneousTitle}
             </Text>
             <Text variant="body-md-medium" color="subtle">
-              {weatherSubtitle}
+              {miscellaneousSubtitle}
             </Text>
           </div>
         </Stack>

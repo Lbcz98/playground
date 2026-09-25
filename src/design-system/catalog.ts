@@ -128,20 +128,20 @@ export const LABEL_VIDEO_KINDS = ['live', 'replay'] as const satisfies readonly 
 /** `none` is focus elsewhere on the screen — the component's `null`. */
 export const MAIN_MENU_ITEMS = [
   'program',
-  'profile',
+  'login',
   'schedule',
-  'weather',
+  'miscellaneous',
   'channel-bug',
   'none',
 ] as const satisfies readonly (MainMenuItem | 'none')[]
 
 export const mainMenuSchema = z
   .object({
-    focusedItem: z.enum(MAIN_MENU_ITEMS).default('channel-bug'),
+    focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
     programTitle: z.string().default(''),
     programSubtitle: z.string().default(''),
-    weatherTitle: z.string().default(''),
-    weatherSubtitle: z.string().default(''),
+    miscellaneousTitle: z.string().default(''),
+    miscellaneousSubtitle: z.string().default(''),
   })
   .strict()
 export type MainMenuNodeProps = z.infer<typeof mainMenuSchema>
@@ -380,7 +380,7 @@ export const Catalog = {
     label: 'Main Menu',
     category: 'layout',
     summary:
-      'The home menu pinned along the bottom edge: profile, schedule and weather on the left, the live program and the channel bug on the right. One screen has at most one, and it belongs in the anchored cluster.',
+      'The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. One screen has at most one, and it belongs in the anchored cluster.',
     acceptsChildren: false,
     schema: mainMenuSchema,
     defaultProps: mainMenuSchema.parse({}),
@@ -388,8 +388,8 @@ export const Catalog = {
       focusedItem: { kind: 'select', label: 'Focused item', options: MAIN_MENU_ITEMS },
       programTitle: { kind: 'text', label: 'Program title' },
       programSubtitle: { kind: 'text', label: 'Program subtitle' },
-      weatherTitle: { kind: 'text', label: 'Weather title' },
-      weatherSubtitle: { kind: 'text', label: 'Weather subtitle' },
+      miscellaneousTitle: { kind: 'text', label: 'Miscellaneous title' },
+      miscellaneousSubtitle: { kind: 'text', label: 'Miscellaneous subtitle' },
     },
   },
   InteractivityMenu: {

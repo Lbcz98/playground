@@ -206,6 +206,28 @@ export interface ManifestScreenLayers {
   models: ManifestScreenModel[]
   /** Which components may link, and where. Absent: any link that follows the levels. */
   links?: ManifestLinkRules
+  /** The home menu's buttons and the rail each one owns. Absent: the menu has no roles. */
+  menu?: ManifestMenuRoles
+}
+
+/** Each menu button owns an interactivity rail on one side of the frame. */
+export interface ManifestMenuRoles {
+  /** The menu component, and the prop that names its focused button. */
+  component: string
+  prop: string
+  /** The button that holds the focus when Home opens. */
+  initial: string
+  roles: ManifestMenuRole[]
+}
+
+export interface ManifestMenuRole {
+  /** The prop value that focuses this button. */
+  item: string
+  name: string
+  /** The side its rail of interactivity buttons sits on. */
+  side: ScreenSide
+  /** What its rail holds, as the agents read it. */
+  holds: string
 }
 
 export interface ManifestLinkRules {
@@ -419,6 +441,21 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
           .strict(),
       )
       .max(MAX_MODELS),
+    menu: z
+      .object({
+        component: idSchema,
+        prop: shortStr,
+        initial: shortStr,
+        roles: z
+          .array(
+            z
+              .object({ item: shortStr, name: shortStr, side: z.enum(['left', 'right']), holds: z.string().max(MAX_STR) })
+              .strict(),
+          )
+          .max(MAX_MODELS),
+      })
+      .strict()
+      .optional(),
     links: z
       .object({
         none: z.array(idSchema).max(MAX_MODELS).optional(),
