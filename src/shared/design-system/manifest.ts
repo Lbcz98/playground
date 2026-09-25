@@ -202,6 +202,17 @@ export interface ManifestScreenLayers {
   shades: Record<ShadeId, string>
   levels: ManifestNavigationLevel[]
   models: ManifestScreenModel[]
+  /** Which components may link, and where. Absent: any link that follows the levels. */
+  links?: ManifestLinkRules
+}
+
+export interface ManifestLinkRules {
+  /** Components that never carry a link (the main menu). */
+  none?: string[]
+  /** Back controls: a link always goes up exactly one level. */
+  back?: string[]
+  /** Close controls: a link closes everything and returns to Home (level 1). */
+  close?: string[]
 }
 
 /** What a screen declares under the layer rule: its model and its navigation level. */
@@ -404,6 +415,14 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
           .strict(),
       )
       .max(MAX_MODELS),
+    links: z
+      .object({
+        none: z.array(idSchema).max(MAX_MODELS).optional(),
+        back: z.array(idSchema).max(MAX_MODELS).optional(),
+        close: z.array(idSchema).max(MAX_MODELS).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((layers, ctx) => {

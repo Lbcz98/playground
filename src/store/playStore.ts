@@ -52,16 +52,24 @@ export const usePlayStore = create<PlayState>((set, get) => ({
 
   go: (screenId) => {
     if (!useFlowStore.getState().screens.some((entry) => entry.id === screenId)) return
-    set((s) =>
-      s.trail[s.trail.length - 1] === screenId
+    set((s) => {
+      // A link to a screen already behind you returns to it (back, close): the
+      // history unwinds to there and its focus comes back, so Esc never steps
+      // forward again into what was just closed.
+      const at = s.trail.lastIndexOf(screenId)
+      if (at >= 0 && at < s.trail.length - 1) {
+        const restored = s.leftFrom[at] ?? { focusId: null, focusItem: null }
+        return { trail: s.trail.slice(0, at + 1), leftFrom: s.leftFrom.slice(0, at), ...restored }
+      }
+      return s.trail[s.trail.length - 1] === screenId
         ? s
         : {
             trail: [...s.trail, screenId],
             leftFrom: [...s.leftFrom, { focusId: s.focusId, focusItem: s.focusItem }],
             focusId: null,
             focusItem: null,
-          },
-    )
+          }
+    })
   },
 
   back: () => {

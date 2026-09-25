@@ -65,7 +65,7 @@ import {
   stretchPropFor,
   spacingPx,
 } from '@/shared/layout/frame'
-import { levelJumpProblem } from '@/shared/design-system/flow'
+import { levelJumpProblem, linkRoleProblem } from '@/shared/design-system/flow'
 import { type CanvasNode, type ScreenEntry, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
 
 export interface InterpretIssue {
@@ -257,7 +257,9 @@ export function interpretPrototype(
         if (!target) drop(node, path, `"${node.goTo}" is not a screen of this document`)
         else if (target.id === from.id) drop(node, path, 'it links the screen to itself')
         else {
-          const jump = levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level)
+          const jump =
+            levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level) ??
+            linkRoleProblem(manifest, node.type, from.tree.screen?.level, target.tree.screen?.level)
           if (jump) drop(node, path, jump)
           else linkCount += 1
         }

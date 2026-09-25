@@ -21,6 +21,8 @@ interface LinkNode {
 export interface FlowLink {
   /** Where the link sits, e.g. `root › Stack[1] › InteractivityButton[0]`. */
   path: string
+  /** The component that carries it. */
+  type: string
   target: unknown
 }
 
@@ -30,7 +32,7 @@ export function collectLinks(root: unknown, rootPath = 'root'): FlowLink[] {
   const walk = (raw: unknown, path: string): void => {
     if (typeof raw !== 'object' || raw === null) return
     const node = raw as LinkNode
-    if (node.goTo !== undefined) links.push({ path, target: node.goTo })
+    if (node.goTo !== undefined) links.push({ path, type: String(node.type), target: node.goTo })
     if (Array.isArray(node.children)) {
       node.children.forEach((child, i) => {
         const type = typeof child === 'object' && child !== null ? String((child as LinkNode).type) : '?'
@@ -50,6 +52,30 @@ export function levelJumpProblem(from: number | undefined, to: number | undefine
   if (from === undefined || to === undefined) return null
   if (to <= from + 1) return null
   return `it jumps from level ${from} to level ${to} — a link opens the next level (${from + 1}) or goes back up, never skips one`
+}
+
+/**
+ * Why a link on this component breaks its role, or null: the main menu carries
+ * no link, a back control goes up exactly one level, a close control closes
+ * everything and returns to Home (level 1).
+ */
+export function linkRoleProblem(
+  manifest: DesignSystemManifest,
+  type: string,
+  from: number | undefined,
+  to: number | undefined,
+): string | null {
+  const rules = screenLayersOf(manifest).links
+  if (!rules) return null
+  if (rules.none?.includes(type)) return `<${type}> carries no link — link the element that opens the next page (an interactivity button)`
+  if (from === undefined || to === undefined) return null
+  if (rules.back?.includes(type) && to !== from - 1) {
+    return `<${type}> is a back control: it returns exactly one level (from level ${from} to level ${from - 1}), never further — closing everything back to Home is the close button's job`
+  }
+  if (rules.close?.includes(type) && to !== 1) {
+    return `<${type}> is a close control: it closes everything and returns to Home (level 1), not to level ${to} — stepping back one level is the back button's job`
+  }
+  return null
 }
 
 /** The navigation level of a screen spec, or undefined when its model is unknown. */
@@ -91,7 +117,8 @@ export function flowProblems(screens: FlowScreen[], manifest: DesignSystemManife
         continue
       }
       const target = screens.find((s) => s.id === link.target)
-      const jump = levelJumpProblem(fromLevel, levelOfScreen(manifest, target?.screen))
+      const toLevel = levelOfScreen(manifest, target?.screen)
+      const jump = levelJumpProblem(fromLevel, toLevel) ?? linkRoleProblem(manifest, link.type, fromLevel, toLevel)
       if (jump) problems.push(`${where}: goTo "${link.target}" — ${jump}.`)
     }
   }

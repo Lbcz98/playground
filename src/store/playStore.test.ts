@@ -139,3 +139,15 @@ describe('Back returns the focus to where you left', () => {
     expect([play().trail, play().focusId, play().focusItem]).toEqual([['home'], null, null])
   })
 })
+
+describe('a link back to a screen behind you unwinds the history', () => {
+  it('back and close return to it, restoring its focus, and Esc never steps forward again', () => {
+    loadFlow()
+    play().play()
+    play().go('rail')
+    play().focus('card-x')
+    play().go('home') // a close button on the rail
+    expect(play().trail).toEqual(['home'])
+    expect(play().back()).toBe(false)
+  })
+})

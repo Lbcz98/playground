@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectLinks, flowProblems, focusEntersLevel, focusLeavesLevel, levelJumpProblem, type PlayScreen } from './flow'
+import { collectLinks, flowProblems, focusEntersLevel, focusLeavesLevel, levelJumpProblem, linkRoleProblem, type PlayScreen } from './flow'
 import { SCREENFLOW_MANIFEST as S } from './screenflow-manifest'
 import { moduleContentSide } from './screen-layers'
 
@@ -13,7 +13,7 @@ const screen = (id: string, model: string, level: number, goTo?: string) => ({
 describe('collectLinks', () => {
   it('finds every goTo, with where it sits', () => {
     const links = collectLinks(screen('a', 'home', 1, 'b').root)
-    expect(links).toEqual([{ path: 'root › Stack[0] › Button[0]', target: 'b' }])
+    expect(links).toEqual([{ path: 'root › Stack[0] › Button[0]', type: 'Button', target: 'b' }])
   })
 })
 
@@ -122,5 +122,29 @@ describe('playing — the focus decides the page', () => {
     expect(focusLeavesLevel(S, screens, 'rail', 'home')).toBe(true)
     expect(focusLeavesLevel(S, screens, 'stats', 'rail')).toBe(false)
     expect(focusLeavesLevel(S, screens, 'rail', undefined)).toBe(false)
+  })
+})
+
+describe('link roles — the main menu, back and close', () => {
+  it('the main menu carries no link', () => {
+    expect(linkRoleProblem(S, 'MainMenu', 1, 2)).toMatch(/<MainMenu> carries no link/)
+  })
+
+  it('back returns exactly one level; close returns to Home', () => {
+    expect(linkRoleProblem(S, 'RoundedButton', 3, 2)).toBeNull()
+    expect(linkRoleProblem(S, 'RoundedButton', 3, 1)).toMatch(/returns exactly one level.*close button's job/)
+    expect(linkRoleProblem(S, 'CloseButton', 3, 1)).toBeNull()
+    expect(linkRoleProblem(S, 'CloseButton', 3, 2)).toMatch(/returns to Home.*back button's job/)
+    expect(linkRoleProblem(S, 'InteractivityButton', 1, 2)).toBeNull()
+  })
+
+  it('the validator rejects them in a document', () => {
+    const doc = (type: string, from: [string, number], to: [string, number]) => [
+      { id: 'a', screen: { model: from[0], level: from[1] }, root: { type: 'Stack', children: [{ type, goTo: 'b' }] } },
+      { id: 'b', screen: { model: to[0], level: to[1] }, root: { type: 'Stack' } },
+    ]
+    expect(flowProblems(doc('MainMenu', ['home', 1], ['interactivity-buttons-right', 2]), S)[0]).toMatch(/carries no link/)
+    expect(flowProblems(doc('RoundedButton', ['interactivity-cards-right', 3], ['home', 1]), S)[0]).toMatch(/back control/)
+    expect(flowProblems(doc('CloseButton', ['interactivity-cards-right', 3], ['home', 1]), S)).toEqual([])
   })
 })

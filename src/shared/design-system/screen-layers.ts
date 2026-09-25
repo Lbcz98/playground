@@ -89,6 +89,11 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       },
     },
   ],
+  links: {
+    none: ['MainMenu'],
+    back: ['RoundedButton'],
+    close: ['CloseButton'],
+  },
   models: [
     {
       id: 'alert',
