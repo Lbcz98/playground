@@ -82,6 +82,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       maxModules: 1,
       allowsAnchor: true,
       initialFocus: {
+        anchored: true,
         on: ['CloseButton', 'RoundedButton'],
         required: true,
         hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself. The content card is focusable — the viewer moves the focus onto it from the rounded button.',
@@ -363,6 +364,14 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
       `A level ${level.level} screen (${level.name}) shows ${level.maxModules === 1 ? 'a single content module' : `at most ${level.maxModules} content modules`}: the outermost container has ${modules.length} un-anchored children — group them into one container, or pick a level 1 model. ${level.rule}`,
     )
   }
+  const never = unanchorableTypes(manifest)
+  for (const child of children) {
+    if (child.anchor === true && typeof child.type === 'string' && never.has(child.type)) {
+      problems.push(
+        `<${child.type}> is anchored — it holds the screen's focus in the content, so it never floats in the anchored corner. Remove "anchor" from it; anchor only a secondary cluster.`,
+      )
+    }
+  }
   if (level && !level.allowsAnchor && anchored > 0) {
     problems.push(`A level ${level.level} screen (${level.name}) anchors nothing — remove "anchor". ${level.rule}`)
   }
@@ -384,6 +393,20 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
     }
   }
   return problems
+}
+
+/**
+ * The components that must never be anchored: what holds a level's focus in the
+ * content (the main menu, the interactivity buttons). Anchoring is for a
+ * secondary floating cluster — only the third level's rounded button, which
+ * starts the focus from the corner, belongs there.
+ */
+export function unanchorableTypes(manifest: DesignSystemManifest): Set<string> {
+  const out = new Set<string>()
+  for (const level of screenLayersOf(manifest).levels) {
+    if (level.initialFocus && !level.initialFocus.anchored) level.initialFocus.on.forEach((id) => out.add(id))
+  }
+  return out
 }
 
 /** A one-line description of a screen's layers, for status lines. */

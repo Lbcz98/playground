@@ -44,6 +44,7 @@ import {
   screenLayersOf,
   screenModel,
   sidePropFor,
+  unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
@@ -605,6 +606,18 @@ function repairFrameLayout(
   }
 
   repairGutters(root, 'root', 0, manifest, issues)
+
+  const never = unanchorableTypes(manifest)
+  for (const child of root.children) {
+    if (child.anchor && never.has(child.type)) {
+      delete child.anchor
+      issues.push({
+        level: 'warn',
+        path: 'root',
+        message: `Un-anchored <${child.type}> — it holds the screen's focus in the content; only a secondary cluster is anchored.`,
+      })
+    }
+  }
 
   const anchored = root.children.filter((child) => child.anchor)
   for (const extra of anchored.slice(0, -1)) {

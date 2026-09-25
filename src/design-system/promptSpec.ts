@@ -464,7 +464,7 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
         ? `the outermost <${container}> never sets ${centering.join(' or ')} to "center".`
         : `the outermost <${container}> is never centered.`
     }`,
-    `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen, and only on a secondary floating cluster, never the screen's primary actions.`,
+    `* **Anchoring:** "anchor": true goes on a direct child of the outermost <${container}> — at most one per screen, and only on a secondary floating cluster, never the screen's primary actions — and never on the main menu or the interactivity buttons, which hold the focus in the content. The third level's rounded button is the one focus holder that is anchored.`,
     ...(focusSpecific(manifest) ? [focusSpecific(manifest) as string] : []),
   ]
 }

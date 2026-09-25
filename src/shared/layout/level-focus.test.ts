@@ -121,3 +121,26 @@ describe('levels 2 and 3 — the stack always sits at the end of the frame', () 
     expect(errors(d).join()).not.toMatch(/end of the frame/)
   })
 })
+
+describe('the main menu is never anchored', () => {
+  const anchoredMenu = () => {
+    const d = doc('home')
+    const inner = d.root.children![0]
+    const menu = inner.children!.find((c) => c.type === 'MainMenu')!
+    inner.children = inner.children!.filter((c) => c !== menu)
+    d.root.children!.push({ ...menu, anchor: true })
+    return d
+  }
+
+  it('rejects it, and the interpreter un-anchors it', () => {
+    expect(errors(anchoredMenu()).join()).toMatch(/<MainMenu> is anchored/)
+    const r = interpretPrototype(anchoredMenu(), S)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.screens[0].tree.children.some((c) => c.anchor)).toBe(false)
+    expect(r.issues.some((i) => /Un-anchored <MainMenu>/.test(i.message))).toBe(true)
+  })
+
+  it('still lets the third level anchor its rounded button', () => {
+    expect(errors(doc('interactivity-cards-right'))).toEqual([])
+  })
+})

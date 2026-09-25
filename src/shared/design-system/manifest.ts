@@ -175,6 +175,8 @@ export interface ManifestInitialFocus {
   value?: string
   /** The rule, as the agents read it. */
   hint: string
+  /** The focus holder sits in the anchored group (the third level's rounded button). Otherwise it must never be anchored. */
+  anchored?: boolean
   /** The screen must contain one of `on` — a level whose page is told by it (the second and third levels). */
   required?: boolean
 }
@@ -380,6 +382,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
                 value: shortStr.optional(),
                 hint: z.string().max(MAX_STR),
                 required: z.boolean().optional(),
+                anchored: z.boolean().optional(),
               })
               .strict()
               .optional(),
