@@ -27,7 +27,7 @@ function errorsOf(input: unknown): string[] {
 
 /**
  * The nível 3 Content Card screen: root Stack → [Stack(row, on the model's side) →
- * ContentCard(Header, Body(TableCell×3), Footer), CloseButton(anchored, focused)].
+ * ContentCard(Header, Body(TableCell×3), Footer), RoundedButton(anchored, focused)].
  */
 type Doc = BlueprintDocument & Record<string, unknown>
 const base = (): Doc => structuredClone(screenTemplate('interactivity-cards-right')!.blueprint) as Doc

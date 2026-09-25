@@ -1,5 +1,14 @@
 /**
- * Main Menu — Figma UI Kit node 6024:6367.
+ * Main Menu — Figma UI Kit, page "Menus e navegação", component set 3270:8678
+ * (Focus × Motion; Motion=Off is the collapsed menu).
+ *
+ * Each button owns a rail of interactivity buttons (the menu roles, declared in
+ * the layer rule — `screenLayers.menu`):
+ *   - Program — rail on the right: the programme's context. Home opens here.
+ *   - Miscellaneous — rail on the left: various types of interactivities.
+ *   - Schedule — rail on the left: one card per programme — time, live or not, name.
+ *   - Login — rail on the left: account settings.
+ * On Home the focused button is the one whose rail is on screen.
  *
  * A left cluster (login, schedule, miscellaneous) and a right cluster (the
  * live program's EPG text + logo, then a channel bug), pinned to opposite
@@ -30,9 +39,11 @@ export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 
 
 export interface MainMenuProps {
   /**
-   * The one focused item. Default `program` — when Home opens, the focus is on
-   * the program button (Figma: Main Menu › Focus). `null` when focus is elsewhere
-   * on the screen.
+   * The one focused button. Default `program` — when Home opens, the focus is on
+   * the program button (Figma: Main Menu › Focus). On Home it is the button whose
+   * rail is on screen: `program` for the rail on the right; `miscellaneous`,
+   * `schedule` or `login` for a rail on the left. `channel-bug` is the channel
+   * logo; `null` when the focus is elsewhere on the screen.
    */
   focusedItem?: MainMenuItem | null
   /**
@@ -41,25 +52,33 @@ export interface MainMenuProps {
    */
   bugFocused?: boolean
 
+  /** The viewer's avatar, on the Login button. */
   avatarSrc?: string
+  /** Login — opens its rail on the left: account settings. */
   onLoginClick?: () => void
 
+  /** Schedule — opens its rail on the left: one card per programme, with its time, whether it is live, and its name. */
   onScheduleClick?: () => void
 
   /** The miscellaneous button’s first line (its current item, e.g. the weather). */
   miscellaneousTitle?: string
   /** The miscellaneous button’s second line. */
   miscellaneousSubtitle?: string
+  /** Miscellaneous — opens its rail on the left: various types of interactivities. Focused, it shows the dots of "more". */
   onMiscellaneousClick?: () => void
 
   /** The live program’s name. */
   programTitle?: string
   /** The line under the program’s name, e.g. its time slot. */
   programSubtitle?: string
+  /** The programme's logo, on the Program button. */
   logoSrc?: string
+  /** Program — opens its rail on the right: the programme's context. Home's focus starts here. */
   onLogoClick?: () => void
 
+  /** The channel logo. */
   bugSrc?: string
+  /** The channel logo — not a menu role; it leads back to the clean broadcast. */
   onBugClick?: () => void
 }
 

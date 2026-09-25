@@ -2,9 +2,10 @@
  * Interatividades · Cards — nível 3, one interactivity with the screen to itself.
  *
  * The third level clears everything else: one interactivity holds the screen, and
- * the only other thing on it is the `<CloseButton>` that closes it, anchored in
- * the corner the focus is on — closing, not stepping back, which is why it is
- * that control and not the back arrow. The side matters twice over — the model
+ * the only other thing on it is the `<RoundedButton>` — the back arrow — anchored
+ * in the corner the focus is on. Back returns exactly one level, to the rail the
+ * interactivity was opened from; closing everything back to Home is the close
+ * button's job, not this screen's default. The side matters twice over — the model
  * shades that edge and its bottom corner, and the frame puts the anchored
  * cluster there.
  *
@@ -12,7 +13,7 @@
  * `<TableCell>` rows — the scout row heading the two sides, then a row per side —
  * and a footer saying how fresh the numbers are. The card carries its own
  * surface, so the screen does not dress it: the template only decides which side
- * it sits on. Focus stays on the close button, because a TV screen has exactly
+ * it sits on. Focus stays on the back button, because a TV screen has exactly
  * one focused element and on this level that is the way out.
  *
  * Both sides are the same screen mirrored, which is the point: a template per
@@ -94,7 +95,7 @@ function cardsTemplate(side: Side): ScreenTemplate {
             props: { direction: 'horizontal', justify: isRight ? 'end' : 'start', align: 'end', gap: 'sm' },
             children: [card()],
           },
-          { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
+          { type: 'RoundedButton', props: { label: 'Voltar', interactionState: 'focus' }, anchor: true },
         ],
       },
     },

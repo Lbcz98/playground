@@ -92,7 +92,7 @@ describe('page 3 · focus starts on the rounded button', () => {
 
   it('rejects focus on the card instead', () => {
     const d = doc('interactivity-cards-right')
-    find(d.root, 'CloseButton')!.props!.interactionState = 'default'
+    find(d.root, 'RoundedButton')!.props!.interactionState = 'default'
     find(d.root, 'ContentCard')!.props!.interactionState = 'focus'
     expect(errors(d).join()).toMatch(/Level 3.*ContentCard.*rounded button/)
   })
@@ -101,7 +101,7 @@ describe('page 3 · focus starts on the rounded button', () => {
 describe('the pages that are told by their focus must have it', () => {
   it('a third-level screen with no rounded button is rejected', () => {
     const d = doc('interactivity-cards-right')
-    d.root.children = d.root.children!.filter((c) => c.type !== 'CloseButton')
+    d.root.children = d.root.children!.filter((c) => c.type !== 'RoundedButton')
     expect(errors(d).join()).toMatch(/Level 3.*no <CloseButton> or <RoundedButton>.*add one and focus it/)
   })
 

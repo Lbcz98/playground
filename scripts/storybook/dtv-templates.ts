@@ -64,6 +64,34 @@ const home: BlueprintDocument = {
   },
 }
 
+/** Home with Schedule's rail: on the left, one card per programme, the Schedule button focused. */
+const homeSchedule: BlueprintDocument = {
+  version: 1,
+  screen: { model: 'home-buttons-left', level: 1 },
+  root: {
+    type: 'Stack',
+    props: { direction: 'column', justify: 'end', gap: 'sm', padding: 'none', grow: true },
+    children: [
+      {
+        type: 'Stack',
+        props: { direction: 'column', justify: 'end', gap: '2xl' },
+        children: [
+          {
+            type: 'InteractivityMenu',
+            props: { align: 'start' },
+            children: [
+              { type: 'InteractivityButton', props: { overline: '13:00', live: true, title: 'Jornal da Tarde', interactionState: 'default' } },
+              { type: 'InteractivityButton', props: { overline: '14:30', title: 'Cinema em Casa', interactionState: 'default' } },
+              { type: 'InteractivityButton', props: { overline: '16:00', title: 'Novela das Seis', interactionState: 'default' } },
+            ],
+          },
+          { ...mainMenu(), props: { ...mainMenu().props, focusedItem: 'schedule' } },
+        ],
+      },
+    ],
+  },
+}
+
 const homeNotification: BlueprintDocument = {
   version: 1,
   screen: { model: 'home-notification', level: 1 },
@@ -136,7 +164,7 @@ function interactivityCards(side: 'left' | 'right'): BlueprintDocument {
           props: { direction: 'row', justify: isRight ? 'end' : 'start', align: 'end', gap: 'sm' },
           children: [statsCard()],
         },
-        { type: 'CloseButton', props: { label: 'Fechar', interactionState: 'focus' }, anchor: true },
+        { type: 'RoundedButton', props: { label: 'Voltar', interactionState: 'focus' }, anchor: true },
       ],
     },
   }
@@ -170,14 +198,14 @@ function firstOf(node: BlueprintNode, type: string): BlueprintNode {
   throw new Error(`dtv-templates: no <${type}>`)
 }
 
-/** Home → the rail → one interactivity → back to Home, joined by `goTo` links. */
+/** Home → the rail → one interactivity, whose back button returns to the rail — joined by `goTo` links. */
 function prototypeFlow(): BlueprintDocument {
   const h = structuredClone(home)
   const r = structuredClone(interactivityButtonsRight)
   const c = structuredClone(interactivityCards('right'))
   firstOf(h.root, 'InteractivityButton').goTo = 'rail'
   firstOf(r.root, 'InteractivityButton').goTo = 'stats'
-  firstOf(c.root, 'CloseButton').goTo = 'home'
+  firstOf(c.root, 'RoundedButton').goTo = 'rail'
   return {
     version: 1,
     id: 'home',
@@ -197,6 +225,12 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
     name: 'Home',
     when: 'The home screen after login: the main menu along the bottom and the interactivity rail resting above it, focus on the program button.',
     blueprint: home,
+  },
+  {
+    id: 'home-schedule',
+    name: 'Home · Programação',
+    when: 'Home with the schedule rail on the left: focus on the Schedule button, one card per programme with its time, whether it is live, and its name.',
+    blueprint: homeSchedule,
   },
   {
     id: 'home-notification',
@@ -231,7 +265,7 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
   {
     id: 'prototype-flow',
     name: 'Fluxo clicável · Home → Trilho → Estatísticas',
-    when: 'A clickable prototype across the levels: Home, the rail the viewer enters, one interactivity with its rounded button back to Home. Use it for any flow or "what happens when I click" request; drop the screens the request does not need.',
+    when: 'A clickable prototype across the levels: Home, the rail the viewer enters, one interactivity whose back button returns to the rail. Use it for any flow or "what happens when I click" request; drop the screens the request does not need.',
     blueprint: prototypeFlow(),
   },
 ]

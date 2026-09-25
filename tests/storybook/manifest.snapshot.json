@@ -930,12 +930,13 @@
       "name": "Template",
       "description": "",
       "props": {},
-      "error": "No component file found for the \"Template\" component.\n  51 | }\n  52 |\n> 53 | const meta = {\n     | ^\n  54 |   title: 'Templates/Screens',\n  55 |   component: Template,\n  56 |   parameters: { layout: 'fullscreen' },\n\n./src/canvas/ScreenTemplates.stories.tsx:\nimport { cloneElement, isValidElement, type ReactNode } from 'react'\nimport type { Meta, StoryObj } from '@storybook/react-vite'\nimport type { CanvasNode } from '@/model/nodeTree'\nimport { hydrateRegistry } from '@/design-system/registry'\nimport { interpretBlueprint } from '@/interpreter/interpret'\nimport { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'\nimport { screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'\nimport { SCREEN_TEMPLATES, type ScreenTemplate, screenTemplate } from '@/shared/templates'\nimport { ScreenFrame } from './ScreenFrame'\n\n/**\n * The screen templates, each rendered through the very frame the canvas uses\n * (`ScreenFrame`) from the very blueprint the agent copies — so the snapshot the\n * visual run writes is the screen, not an illustration of it.\n */\nconst REGISTRY = hydrateRegistry(SCREENFLOW_MANIFEST)\nconst LAYERS = screenLayersOf(SCREENFLOW_MANIFEST)\n\n/** The canvas renderer without the editing chrome — no selection, no rings. */\nfunction renderNode(node: CanvasNode): ReactNode {\n  const entry = REGISTRY.get(node.type)\n  if (!entry) return null\n  const parsed = entry.schema.safeParse(node.props)\n  const props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps\n  // Keyed like the canvas does it — on the component's own element, so no\n  // wrapper ever lands between a container and its children.\n  const children = entry.acceptsChildren\n    ? node.children.map((child) => {\n        const rendered = renderNode(child)\n        return isValidElement(rendered) ? cloneElement(rendered, { key: child.id }) : rendered\n      })\n    : null\n  return entry.render(props, children)\n}\n\nfunction Template({ id }: { id: string }): ReactNode {\n  const template = screenTemplate(id) as ScreenTemplate\n  const result = interpretBlueprint(template.blueprint, SCREENFLOW_MANIFEST)\n  if (!result.ok) return <pre>{result.error}</pre>\n  const { tree } = result\n  const model = screenModel(LAYERS, template.blueprint.screen?.model)\n  return (\n    <ScreenFrame\n      tree={tree}\n      layers={LAYERS}\n      tokens={SCREENFLOW_MANIFEST.tokens}\n      focusSide={model?.side ?? 'neutral'}\n      renderNode={renderNode}\n    />\n  )\n}\n\nconst meta = {\n  title: 'Templates/Screens',\n  component: Template,\n  parameters: { layout: 'fullscreen' },\n  argTypes: { id: { control: 'select', options: SCREEN_TEMPLATES.map((t) => t.id) } },\n} satisfies Meta<typeof Template>\n\nexport default meta\ntype Story = StoryObj<typeof meta>\n\n/** Nível 1 — the home screen: interactivity rail at rest, main menu, focus on the programme. */\nexport const Home: Story = { args: { id: 'home' } }\n/** Nível 1 — the same screen while a notification shows in the top-right corner. */\nexport const HomeNotificacao: Story = { name: 'Home + Notificação', args: { id: 'home-notification' } }\n/** Nível 2 — the rail entered: no menu, one card focused, the rest selected. */\nexport const InteratividadesBotoes: Story = {\n  name: 'Interatividades · Botões Direita',\n  args: { id: 'interactivity-buttons-right' },\n}\n/** Nível 3 — one interactivity on the right, its close button anchored. */\nexport const InteratividadesCardsDireita: Story = {\n  name: 'Interatividades · Cards Direita',\n  args: { id: 'interactivity-cards-right' },\n}\n/** Nível 3 — the same screen mirrored to the left. */\nexport const InteratividadesCardsEsquerda: Story = {\n  name: 'Interatividades · Cards Esquerda',\n  args: { id: 'interactivity-cards-left' },\n}\n/** Nível 0 — the clean broadcast with the interactivity alert bug. */\nexport const Alerta: Story = { args: { id: 'alert' } }\n",
+      "error": "No component file found for the \"Template\" component.\n  51 | }\n  52 |\n> 53 | const meta = {\n     | ^\n  54 |   title: 'Templates/Screens',\n  55 |   component: Template,\n  56 |   parameters: { layout: 'fullscreen' },\n\n./src/canvas/ScreenTemplates.stories.tsx:\nimport { cloneElement, isValidElement, type ReactNode } from 'react'\nimport type { Meta, StoryObj } from '@storybook/react-vite'\nimport type { CanvasNode } from '@/model/nodeTree'\nimport { hydrateRegistry } from '@/design-system/registry'\nimport { interpretBlueprint } from '@/interpreter/interpret'\nimport { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'\nimport { screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'\nimport { SCREEN_TEMPLATES, type ScreenTemplate, screenTemplate } from '@/shared/templates'\nimport { ScreenFrame } from './ScreenFrame'\n\n/**\n * The screen templates, each rendered through the very frame the canvas uses\n * (`ScreenFrame`) from the very blueprint the agent copies — so the snapshot the\n * visual run writes is the screen, not an illustration of it.\n */\nconst REGISTRY = hydrateRegistry(SCREENFLOW_MANIFEST)\nconst LAYERS = screenLayersOf(SCREENFLOW_MANIFEST)\n\n/** The canvas renderer without the editing chrome — no selection, no rings. */\nfunction renderNode(node: CanvasNode): ReactNode {\n  const entry = REGISTRY.get(node.type)\n  if (!entry) return null\n  const parsed = entry.schema.safeParse(node.props)\n  const props = parsed.success ? (parsed.data as Record<string, unknown>) : entry.defaultProps\n  // Keyed like the canvas does it — on the component's own element, so no\n  // wrapper ever lands between a container and its children.\n  const children = entry.acceptsChildren\n    ? node.children.map((child) => {\n        const rendered = renderNode(child)\n        return isValidElement(rendered) ? cloneElement(rendered, { key: child.id }) : rendered\n      })\n    : null\n  return entry.render(props, children)\n}\n\nfunction Template({ id }: { id: string }): ReactNode {\n  const template = screenTemplate(id) as ScreenTemplate\n  const result = interpretBlueprint(template.blueprint, SCREENFLOW_MANIFEST)\n  if (!result.ok) return <pre>{result.error}</pre>\n  const { tree } = result\n  const model = screenModel(LAYERS, template.blueprint.screen?.model)\n  return (\n    <ScreenFrame\n      tree={tree}\n      layers={LAYERS}\n      tokens={SCREENFLOW_MANIFEST.tokens}\n      focusSide={model?.side ?? 'neutral'}\n      renderNode={renderNode}\n    />\n  )\n}\n\nconst meta = {\n  title: 'Templates/Screens',\n  component: Template,\n  parameters: { layout: 'fullscreen' },\n  argTypes: { id: { control: 'select', options: SCREEN_TEMPLATES.map((t) => t.id) } },\n} satisfies Meta<typeof Template>\n\nexport default meta\ntype Story = StoryObj<typeof meta>\n\n/** Nível 1 — the home screen: the program button focused, its rail (the programme's context) on the right. */\nexport const Home: Story = { args: { id: 'home' } }\n/** Nível 1 — Home with the schedule rail on the left, owned by the focused Schedule button. */\nexport const HomeProgramacao: Story = { name: 'Home · Programação', args: { id: 'home-schedule' } }\n/** Nível 1 — the same screen while a notification shows in the top-right corner. */\nexport const HomeNotificacao: Story = { name: 'Home + Notificação', args: { id: 'home-notification' } }\n/** Nível 2 — the rail entered: no menu, one card focused, the rest selected. */\nexport const InteratividadesBotoes: Story = {\n  name: 'Interatividades · Botões Direita',\n  args: { id: 'interactivity-buttons-right' },\n}\n/** Nível 3 — one interactivity on the right, its back button anchored (back returns to the rail). */\nexport const InteratividadesCardsDireita: Story = {\n  name: 'Interatividades · Cards Direita',\n  args: { id: 'interactivity-cards-right' },\n}\n/** Nível 3 — the same screen mirrored to the left. */\nexport const InteratividadesCardsEsquerda: Story = {\n  name: 'Interatividades · Cards Esquerda',\n  args: { id: 'interactivity-cards-left' },\n}\n/** Nível 0 — the clean broadcast with the interactivity alert bug. */\nexport const Alerta: Story = { args: { id: 'alert' } }\n",
       "title": "Templates/Screens",
       "stories": [
         "templates-screens--alerta",
         "templates-screens--home",
         "templates-screens--home-notificacao",
+        "templates-screens--home-programacao",
         "templates-screens--interatividades-botoes",
         "templates-screens--interatividades-cards-direita",
         "templates-screens--interatividades-cards-esquerda"
@@ -1361,7 +1362,7 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "description": ""
+          "description": "The viewer's avatar, on the Login button."
         },
         "bugFocused": {
           "type": "boolean",
@@ -1374,7 +1375,7 @@
           "type": "string",
           "kind": "string",
           "required": false,
-          "description": ""
+          "description": "The channel logo."
         },
         "focusedItem": {
           "type": "MainMenuItem | null",
@@ -1387,14 +1388,14 @@
             "channel-bug"
           ],
           "required": false,
-          "description": "The one focused item. Default `program` — when Home opens, the focus is on\nthe program button (Figma: Main Menu › Focus). `null` when focus is elsewhere\non the screen.",
+          "description": "The one focused button. Default `program` — when Home opens, the focus is on\nthe program button (Figma: Main Menu › Focus). On Home it is the button whose\nrail is on screen: `program` for the rail on the right; `miscellaneous`,\n`schedule` or `login` for a rail on the left. `channel-bug` is the channel\nlogo; `null` when the focus is elsewhere on the screen.",
           "nullable": true
         },
         "logoSrc": {
           "type": "string",
           "kind": "string",
           "required": false,
-          "description": ""
+          "description": "The programme's logo, on the Program button."
         },
         "miscellaneousSubtitle": {
           "type": "string",
@@ -1412,31 +1413,31 @@
           "type": "() => void",
           "kind": "function",
           "required": false,
-          "description": ""
+          "description": "The channel logo — not a menu role; it leads back to the clean broadcast."
         },
         "onLoginClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
-          "description": ""
+          "description": "Login — opens its rail on the left: account settings."
         },
         "onLogoClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
-          "description": ""
+          "description": "Program — opens its rail on the right: the programme's context. Home's focus starts here."
         },
         "onMiscellaneousClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
-          "description": ""
+          "description": "Miscellaneous — opens its rail on the left: various types of interactivities. Focused, it shows the dots of \"more\"."
         },
         "onScheduleClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
-          "description": ""
+          "description": "Schedule — opens its rail on the left: one card per programme, with its time, whether it is live, and its name."
         },
         "programSubtitle": {
           "type": "string",
@@ -1456,7 +1457,9 @@
         "ui-kit-main-menu--bug-focused",
         "ui-kit-main-menu--custom-content",
         "ui-kit-main-menu--default",
-        "ui-kit-main-menu--miscellaneous-focused"
+        "ui-kit-main-menu--login-focused",
+        "ui-kit-main-menu--miscellaneous-focused",
+        "ui-kit-main-menu--schedule-focused"
       ],
       "subcomponents": {}
     },

@@ -2,6 +2,7 @@ import type { ScreenTemplate } from './types'
 import { alertTemplate } from './alert'
 import { homeTemplate } from './home'
 import { homeNotificationTemplate } from './homeNotification'
+import { homeScheduleTemplate } from './homeSchedule'
 import { interactivityCardsLeftTemplate, interactivityCardsRightTemplate } from './interactivityCards'
 import { interactivityRailTemplate } from './interactivityRail'
 import { prototypeFlowTemplate } from './prototypeFlow'
@@ -13,6 +14,7 @@ export { chooseTemplate, parseScreenModel, parseTemplateLine, type TemplateChoic
 export const SCREEN_TEMPLATES: readonly ScreenTemplate[] = [
   homeTemplate,
   homeNotificationTemplate,
+  homeScheduleTemplate,
   interactivityRailTemplate,
   interactivityCardsRightTemplate,
   interactivityCardsLeftTemplate,

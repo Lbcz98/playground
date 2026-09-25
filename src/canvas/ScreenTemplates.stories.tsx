@@ -60,8 +60,10 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Nível 1 — the home screen: interactivity rail at rest, main menu, focus on the programme. */
+/** Nível 1 — the home screen: the program button focused, its rail (the programme's context) on the right. */
 export const Home: Story = { args: { id: 'home' } }
+/** Nível 1 — Home with the schedule rail on the left, owned by the focused Schedule button. */
+export const HomeProgramacao: Story = { name: 'Home · Programação', args: { id: 'home-schedule' } }
 /** Nível 1 — the same screen while a notification shows in the top-right corner. */
 export const HomeNotificacao: Story = { name: 'Home + Notificação', args: { id: 'home-notification' } }
 /** Nível 2 — the rail entered: no menu, one card focused, the rest selected. */
@@ -69,7 +71,7 @@ export const InteratividadesBotoes: Story = {
   name: 'Interatividades · Botões Direita',
   args: { id: 'interactivity-buttons-right' },
 }
-/** Nível 3 — one interactivity on the right, its close button anchored. */
+/** Nível 3 — one interactivity on the right, its back button anchored (back returns to the rail). */
 export const InteratividadesCardsDireita: Story = {
   name: 'Interatividades · Cards Direita',
   args: { id: 'interactivity-cards-right' },

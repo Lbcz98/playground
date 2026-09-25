@@ -1,10 +1,10 @@
 /**
  * Fluxo clicável — the whole way through the three levels as one document.
  *
- * Home (nível 1) → the rail (nível 2) → one interactivity (nível 3) → back to
- * Home. It is the three reference screens above, joined by `goTo` links: the rail
+ * Home (nível 1) → the rail (nível 2) → one interactivity (nível 3), and back one
+ * level at a time. It is the three reference screens above, joined by `goTo` links: the rail
  * cards resting on Home open the second page, a card of the rail opens the third,
- * and the rounded button of the third level goes back. Each page keeps where its
+ * and the third level's back button returns to the rail. Each page keeps where its
  * focus starts (the channel button, a rail card, the rounded button).
  */
 
@@ -38,7 +38,7 @@ function build(): BlueprintDocument {
 
   first(home.root, 'InteractivityButton').goTo = 'rail'
   first(rail.root, 'InteractivityButton').goTo = 'stats'
-  first(stats.root, 'CloseButton').goTo = 'home'
+  first(stats.root, 'RoundedButton').goTo = 'rail'
 
   return {
     version: 1,
@@ -56,6 +56,6 @@ function build(): BlueprintDocument {
 export const prototypeFlowTemplate: ScreenTemplate = {
   id: 'prototype-flow',
   name: 'Fluxo clicável · Home → Trilho → Estatísticas',
-  when: 'A clickable prototype across the levels: Home, the rail the viewer enters, one interactivity with its rounded button back to Home. Use it for any flow or "what happens when I click" request; drop the screens the request does not need.',
+  when: 'A clickable prototype across the levels: Home, the rail the viewer enters, one interactivity whose back button returns to the rail. Use it for any flow or "what happens when I click" request; drop the screens the request does not need.',
   blueprint: build(),
 }
