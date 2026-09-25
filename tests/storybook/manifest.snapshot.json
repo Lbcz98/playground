@@ -1387,7 +1387,7 @@
             "channel-bug"
           ],
           "required": false,
-          "description": "The one focused item. Default `program` (the live program's logo). `null`\nwhen focus is elsewhere on the screen.",
+          "description": "The one focused item. Default `channel-bug` — when Home opens, the focus is on\nthe channel button (Figma: Main Menu › Focus). `null` when focus is elsewhere\non the screen.",
           "nullable": true
         },
         "logoSrc": {
@@ -1455,7 +1455,8 @@
       "stories": [
         "ui-kit-main-menu--bug-focused",
         "ui-kit-main-menu--custom-content",
-        "ui-kit-main-menu--default"
+        "ui-kit-main-menu--default",
+        "ui-kit-main-menu--program-focused"
       ],
       "subcomponents": {}
     },

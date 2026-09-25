@@ -73,7 +73,8 @@ describe('deprecated state props', () => {
   it('MainMenu focuses exactly one item', () => {
     const rings = (node: ReactElement) => html(node).split('var(--gradient-semantic-focus-ring)').length - 1
     const outlines = (node: ReactElement) => html(node).split('var(--color-semantic-focus-outline)').length - 1
-    expect(rings(<MainMenu />)).toBe(1)
+    // The default is the channel button: an outline, no ring.
+    expect([rings(<MainMenu />), outlines(<MainMenu />)]).toEqual([0, 1])
     expect(rings(<MainMenu focusedItem="weather" />)).toBe(1)
     expect([rings(<MainMenu focusedItem="channel-bug" />), outlines(<MainMenu focusedItem="channel-bug" />)]).toEqual([0, 1])
     expect(rings(<MainMenu focusedItem={null} />) + outlines(<MainMenu focusedItem={null} />)).toBe(0)

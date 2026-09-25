@@ -29,8 +29,9 @@ export type MainMenuItem = 'profile' | 'schedule' | 'weather' | 'program' | 'cha
 
 export interface MainMenuProps {
   /**
-   * The one focused item. Default `program` (the live program's logo). `null`
-   * when focus is elsewhere on the screen.
+   * The one focused item. Default `channel-bug` — when Home opens, the focus is on
+   * the channel button (Figma: Main Menu › Focus). `null` when focus is elsewhere
+   * on the screen.
    */
   focusedItem?: MainMenuItem | null
   /**
@@ -113,7 +114,7 @@ export function MainMenu({
   onBugClick,
 }: MainMenuProps): ReactNode {
   if (bugFocused !== undefined) warnDeprecated('ui-kit/MainMenu', 'bugFocused', 'focusedItem')
-  const focused = focusedItem !== undefined ? focusedItem : bugFocused ? 'channel-bug' : 'program'
+  const focused = focusedItem !== undefined ? focusedItem : bugFocused === false ? 'program' : 'channel-bug'
   const stateOf = (item: MainMenuItem): RoundButtonState => (item === focused ? 'focus' : 'default')
 
   return (

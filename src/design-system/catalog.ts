@@ -137,7 +137,7 @@ export const MAIN_MENU_ITEMS = [
 
 export const mainMenuSchema = z
   .object({
-    focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
+    focusedItem: z.enum(MAIN_MENU_ITEMS).default('channel-bug'),
     programTitle: z.string().default(''),
     programSubtitle: z.string().default(''),
     weatherTitle: z.string().default(''),

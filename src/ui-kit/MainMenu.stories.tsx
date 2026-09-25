@@ -32,6 +32,9 @@ export const Default: Story = {}
 
 export const BugFocused: Story = { args: { focusedItem: 'channel-bug' } }
 
+/** The programme's logo holding the focus — e.g. after the viewer moves left from the channel button. */
+export const ProgramFocused: Story = { args: { focusedItem: 'program' } }
+
 export const CustomContent: Story = {
   args: {
     weatherTitle: 'Chuva a qualquer momento',
