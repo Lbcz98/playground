@@ -1,6 +1,6 @@
 /** Where the focus starts is what tells the pages apart (the user's page rules). */
 import { describe, expect, it } from 'vitest'
-import { interpretPrototype } from '@/interpreter/interpret'
+import { interpretPrototype, treeToBlueprint as toDoc } from '@/interpreter/interpret'
 import type { BlueprintDocument, BlueprintNode } from '@/shared/blueprint'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST as S } from '@/shared/design-system/screenflow-manifest'
@@ -142,5 +142,25 @@ describe('the main menu is never anchored', () => {
 
   it('still lets the third level anchor its rounded button', () => {
     expect(errors(doc('interactivity-cards-right'))).toEqual([])
+  })
+})
+
+describe('levels 2 and 3 — the outermost stack is a column', () => {
+  const rowRoot = () => {
+    const d = doc('interactivity-cards-left')
+    d.root.props = { ...d.root.props, direction: 'horizontal', justify: 'start' }
+    return d
+  }
+
+  it('rejects a row root, which would turn justify into the side and fight the model', () => {
+    expect(errors(rowRoot()).join()).toMatch(/outermost <Stack> is a column/)
+  })
+
+  it('the interpreter makes it a column and keeps the content on its side', () => {
+    const r = interpretPrototype(rowRoot(), S)
+    if (!r.ok) throw new Error(r.error)
+    const root = r.screens[0].tree
+    expect([root.props.direction, root.props.justify]).toEqual(['vertical', 'end'])
+    expect(errors({ ...toDoc(root) })).toEqual([])
   })
 })

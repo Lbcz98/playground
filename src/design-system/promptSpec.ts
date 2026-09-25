@@ -379,7 +379,7 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
   const lines = [
     `* **Layer rule:** ${layers.rule}`,
     `* **Navigation levels (screen.level):**`,
-    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}${l.rootEnd ? ' **The stack:** the outermost container sits at the end of the frame (justify "end"), still stretching across it.' : ''}${l.initialFocus ? ` **Initial focus:** ${l.initialFocus.hint}` : ''}`),
+    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}${l.rootEnd ? ' **The stack:** the outermost container is a column (direction vertical) that sits at the end of the frame (justify "end"), still stretching across it; a module that belongs on one side sits in a row inside it.' : ''}${l.initialFocus ? ` **Initial focus:** ${l.initialFocus.hint}` : ''}`),
     `* **Layer models (screen.model):**`,
     ...layers.models.map(
       (m) =>

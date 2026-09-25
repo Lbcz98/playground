@@ -54,6 +54,7 @@ import {
   centeringPropsFor,
   focusedBy,
   focusPropsFor,
+  columnDirectionFor,
   justifyPropFor,
   frameLayoutErrors,
   isModuleGroup,
@@ -298,7 +299,24 @@ function repairLevelRoot(
   const level = model ? layers.levels.find((l) => l.level === model.level) : undefined
   const component = manifest.components[root.type]
   const prop = level?.rootEnd && component ? justifyPropFor(component) : undefined
-  if (!prop || root.props[prop.name] === 'end') return
+  if (!prop) return
+  const column = component ? columnDirectionFor(component) : undefined
+  if (column && root.props[column.prop.name] !== undefined && root.props[column.prop.name] !== column.column) {
+    // A row root: its children become one module in a row inside the column, so
+    // the side they sat on is kept.
+    const un = root.children.filter((c) => !c.anchor)
+    const anchored = root.children.filter((c) => c.anchor)
+    const stretch = stretchPropFor(component!)
+    const wrapper = makeNode(root.type, { ...root.props, ...(stretch ? { [stretch.name]: 'end' } : {}) }, un)
+    root.children = [wrapper, ...anchored]
+    root.props = { ...root.props, [column.prop.name]: column.column, ...(stretch ? { [stretch.name]: 'stretch' } : {}) }
+    issues.push({
+      level: 'info',
+      path: 'root',
+      message: `Made the root a column and moved its content into a row inside it — on level ${level?.level} the stack is a column at the end of the frame.`,
+    })
+  }
+  if (root.props[prop.name] === 'end') return
   issues.push({
     level: 'info',
     path: 'root',

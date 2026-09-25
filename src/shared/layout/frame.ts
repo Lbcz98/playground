@@ -550,7 +550,18 @@ export function justifyPropFor(component: ManifestComponent): ManifestProp | und
   )
 }
 
-/** Levels whose stack always sits at the end of the frame: the outermost container's `justify` is `end`. */
+/** A container's direction prop and its column value, when it has one. */
+export function columnDirectionFor(component: ManifestComponent): { prop: ManifestProp; column: string } | undefined {
+  const prop = component.props.direction
+  const column = prop?.options?.find((o) => o === 'vertical' || o === 'column')
+  return prop && column ? { prop, column } : undefined
+}
+
+/**
+ * Levels whose stack always sits at the end of the frame: the outermost container
+ * is a column with `justify` `end`. A row would turn `justify` into the side, and
+ * fight the model — the module places itself left or right inside the column.
+ */
 export function levelRootProblems(
   manifest: DesignSystemManifest,
   screen: unknown,
@@ -563,11 +574,21 @@ export function levelRootProblems(
   const component = manifest.components[root.type]
   const prop = component ? justifyPropFor(component) : undefined
   if (!component || !prop) return []
+  const problems: string[] = []
+  const column = columnDirectionFor(component)
+  const direction = column ? propValue(root, column.prop) : undefined
+  if (column && direction !== column.column) {
+    problems.push(
+      `Level ${level.level} (${level.name}): the outermost <${component.id}> is a column — direction ${JSON.stringify(direction)}, use ${JSON.stringify(column.column)}; put the module on its side with a row inside it (justify "start" or "end").`,
+    )
+  }
   const value = propValue(root, prop)
-  if (value === 'end') return []
-  return [
-    `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
-  ]
+  if (value !== 'end') {
+    problems.push(
+      `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
+    )
+  }
+  return problems
 }
 
 function screenOf(doc: Record<string, unknown>): unknown {
