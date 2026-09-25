@@ -122,7 +122,38 @@ export function flowProblems(screens: FlowScreen[], manifest: DesignSystemManife
       if (jump) problems.push(`${where}: goTo "${link.target}" — ${jump}.`)
     }
   }
+  problems.push(...railProblems(screens, manifest))
   return problems
+}
+
+/**
+ * Entering the rail doesn't change what's in it: every second-level page shows
+ * as many interactivity buttons as the Home rail it is entered from.
+ */
+function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): string[] {
+  const on = screenLayersOf(manifest).levels.find((l) => l.level === 2)?.initialFocus?.on ?? []
+  if (on.length === 0) return []
+  const count = (root: unknown): number => {
+    let n = 0
+    const walk = (raw: unknown): void => {
+      if (typeof raw !== 'object' || raw === null) return
+      const node = raw as LinkNode
+      if (typeof node.type === 'string' && on.includes(node.type)) n += 1
+      if (Array.isArray(node.children)) node.children.forEach(walk)
+    }
+    walk(root)
+    return n
+  }
+  const home = screens.find((s) => levelOfScreen(manifest, s.screen) === 1 && count(s.root) > 0)
+  if (!home) return []
+  const expected = count(home.root)
+  return screens
+    .filter((s) => levelOfScreen(manifest, s.screen) === 2)
+    .filter((s) => count(s.root) !== expected)
+    .map(
+      (s) =>
+        `Screen "${s.id}": the rail shows ${count(s.root)} interactivity button(s), but the Home rail it is entered from ("${home.id}") shows ${expected} — the second level is the same rail, entered; keep the same cards.`,
+    )
 }
 
 // ---------------------------------------------------------------------------

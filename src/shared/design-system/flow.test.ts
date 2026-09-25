@@ -148,3 +148,21 @@ describe('link roles — the main menu, back and close', () => {
     expect(flowProblems(doc('CloseButton', ['interactivity-cards-right', 3], ['home', 1]), S)).toEqual([])
   })
 })
+
+describe('the rail keeps its cards when entered', () => {
+  const card = { type: 'InteractivityButton' }
+  const screen = (id: string, model: string, level: number, cards: number) => ({
+    id,
+    screen: { model, level },
+    root: { type: 'Stack', children: [{ type: 'InteractivityMenu', children: Array.from({ length: cards }, () => card) }] },
+  })
+
+  it('accepts one card on Home and one on the rail', () => {
+    expect(flowProblems([screen('home', 'home', 1, 1), screen('rail', 'interactivity-buttons-right', 2, 1)], S)).toEqual([])
+  })
+
+  it('rejects a rail that grew or shrank on the way in', () => {
+    const [p] = flowProblems([screen('home', 'home', 1, 1), screen('rail', 'interactivity-buttons-right', 2, 4)], S)
+    expect(p).toMatch(/rail shows 4 .* Home rail .* shows 1/)
+  })
+})
