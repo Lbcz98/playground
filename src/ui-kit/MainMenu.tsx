@@ -176,7 +176,7 @@ function CycleLayers({
   )
 }
 
-/** The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug. */
+/** The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug. At rest the miscellaneous button can cycle through several items of its own (`miscellaneousItems` — the weather, a match, a premiere), one at a time, instead of showing one still line. */
 export function MainMenu({
   focusedItem,
   bugFocused,
