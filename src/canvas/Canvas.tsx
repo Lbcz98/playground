@@ -25,6 +25,7 @@ import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } f
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { focusLeavesLevel } from '@/shared/design-system/flow'
 import { cx } from '@/lib/cx'
+import { focusableInNode, isMarkedFocus } from './focusReading'
 import { NodeRenderer } from './NodeRenderer'
 import { NodeModeContext, PlayRestContext } from './nodeMode'
 import { PlayBar } from './PlayBar'
@@ -232,15 +233,8 @@ function useTvFocus(
         }),
     )
 
-    // An element that marks itself focused (the main menu's channel button) or draws a ring is exact.
-    const isMarked = (f: Focusable): boolean => f.el.matches('[data-focused]') || f.el.querySelector('[data-focus-ring]') !== null
-    // A node's focusable: the one it draws focused (a menu's focused item), else its first.
-    const focusableIn = (id: string | null): Focusable | undefined => {
-      if (!id) return undefined
-      const node = content.querySelector(`[data-node-id="${CSS.escape(id)}"]`)
-      const inside = node ? focusables.filter((f) => f.el === node || node.contains(f.el)) : []
-      return inside.find(isMarked) ?? inside[0]
-    }
+    const focusableIn = (id: string | null): Focusable | undefined =>
+      id ? focusableInNode(content.querySelector(`[data-node-id="${CSS.escape(id)}"]`), focusables) : undefined
 
     const selected = focusableIn(selectedId)
     // Before the viewer has pressed anything, focus is where the screen itself puts
@@ -250,7 +244,7 @@ function useTvFocus(
     // (a menu's focused item) can't be told from the DOM, so it falls through.
     const declaredId = focusedNodeId(tree, manifest)
     const declaredEl = declaredId ? content.querySelector(`[data-node-id="${CSS.escape(declaredId)}"]`) : null
-    const marked = focusables.find(isMarked)
+    const marked = focusables.find((f) => isMarkedFocus(f.el))
     const declared = marked ?? focusables.find((f) => f.el === declaredEl)
     const held = selected ?? focusableIn(lastFocusedId.current)
 
