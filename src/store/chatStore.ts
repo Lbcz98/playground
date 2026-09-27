@@ -5,11 +5,19 @@
  * `send()` reads the model/effort from `settingsStore`, calls aiClient.generateUI
  * (IPC), hands the Blueprint to `flowStore.applyAgentBlueprint` (interpret + render
  * as one undo step), attaches the `AgentRun`, and accumulates token/cost usage.
+ *
+ * After a successful render, it waits for the canvas's own render measurement
+ * (`useRenderAudit` in Canvas.tsx, via `frameStore`) to settle and, if that found
+ * real problems — overflow, overlap, collapsed text; nothing a Blueprint-level
+ * check can see before it paints — sends them back for exactly one repair turn,
+ * visible in the chat like any other edit.
  */
 
 import { create } from 'zustand'
 import { generateUI } from '@/services/aiClient'
+import type { GenerateUIResponse } from '@/shared/blueprint'
 import { useFlowStore, type AgentRun } from '@/store/flowStore'
+import { useFrameStore } from '@/store/frameStore'
 import { usePlayStore } from '@/store/playStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useDesignSystemStore } from '@/store/designSystemStore'
@@ -81,6 +89,49 @@ function accumulate(prev: SessionUsage, u: GenerateUsage | undefined): SessionUs
   }
 }
 
+/**
+ * Waits for the canvas's render measurement to settle after a fresh blueprint
+ * paints — one frame for React's commit + `useRenderAudit`'s layout effect, then
+ * self-hosted webfonts (the one concrete cause of a stale first reading, measured
+ * live), then one more frame for that re-measure to land in `frameStore`.
+ */
+async function waitForRenderSettled(): Promise<string[]> {
+  await new Promise(requestAnimationFrame)
+  await document.fonts?.ready
+  await new Promise(requestAnimationFrame)
+  return useFrameStore.getState().renderProblems
+}
+
+/** Applies a generated Blueprint to the canvas and returns the message fields `patch` needs — shared by the first attempt and the one render-repair retry. */
+function applyGenerated(response: GenerateUIResponse, promptText: string): Partial<ChatMessage> {
+  if (!response.ok) {
+    return {
+      status: 'error',
+      text: `Generation failed (${response.stage}): ${response.error}`,
+      source: response.meta.source,
+      provider: response.meta.provider,
+      model: response.meta.model,
+      steps: response.meta.steps,
+    }
+  }
+  const run = useFlowStore.getState().applyAgentBlueprint(response.blueprint, promptText)
+  // A generation that produced a clickable flow opens straight in the player.
+  if (run.ok) {
+    if (run.linkCount > 0) usePlayStore.getState().play()
+    else usePlayStore.getState().edit()
+  }
+  return {
+    status: run.ok ? 'done' : 'error',
+    text: summarize(run),
+    run,
+    source: response.meta.source,
+    provider: response.meta.provider,
+    model: response.meta.model,
+    usage: response.meta.usage,
+    steps: response.meta.steps,
+  }
+}
+
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   busy: false,
@@ -126,34 +177,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage) }))
 
-      if (!response.ok) {
-        patch({
-          status: 'error',
-          text: `Generation failed (${response.stage}): ${response.error}`,
-          source: response.meta.source,
-          provider: response.meta.provider,
-          model: response.meta.model,
-          steps: response.meta.steps,
-        })
-        return
-      }
+      const applied = applyGenerated(response, trimmed)
+      patch(applied)
 
-      const run = useFlowStore.getState().applyAgentBlueprint(response.blueprint, trimmed)
-      // A generation that produced a clickable flow opens straight in the player.
-      if (run.ok) {
-        if (run.linkCount > 0) usePlayStore.getState().play()
-        else usePlayStore.getState().edit()
+      if (response.ok && applied.run?.ok) {
+        const problems = await waitForRenderSettled()
+        if (problems.length > 0) {
+          const repairPrompt = `The screen just built has problems only visible once it renders: ${problems.join('; ')}. Rebuild it, fixing these — keep everything else about the request the same.`
+          const repairUserMsg: ChatMessage = { id: createNodeId(), role: 'user', text: repairPrompt, at: Date.now(), status: 'done' }
+          const repairPendingId = createNodeId()
+          const repairPending: ChatMessage = { id: repairPendingId, role: 'assistant', text: '', at: Date.now(), status: 'thinking' }
+          set((s) => ({ messages: [...s.messages, repairUserMsg, repairPending] }))
+          const repairPatch = (fields: Partial<ChatMessage>) =>
+            set((s) => ({ messages: s.messages.map((m) => (m.id === repairPendingId ? { ...m, ...fields } : m)) }))
+          try {
+            const repairHistory: ChatTurn[] = [
+              ...history,
+              { role: 'user', content: trimmed },
+              { role: 'assistant', content: JSON.stringify(response.blueprint) },
+            ]
+            const repairResponse = await generateUI(repairPrompt, repairHistory, { model, effort }, manifest)
+            set((s) => ({ sessionUsage: accumulate(s.sessionUsage, repairResponse.meta.usage) }))
+            repairPatch(applyGenerated(repairResponse, repairPrompt))
+          } catch (err) {
+            repairPatch({ status: 'error', text: err instanceof Error ? err.message : String(err) })
+          }
+        }
       }
-      patch({
-        status: run.ok ? 'done' : 'error',
-        text: summarize(run),
-        run,
-        source: response.meta.source,
-        provider: response.meta.provider,
-        model: response.meta.model,
-        usage: response.meta.usage,
-        steps: response.meta.steps,
-      })
     } catch (err) {
       patch({ status: 'error', text: err instanceof Error ? err.message : String(err) })
     } finally {

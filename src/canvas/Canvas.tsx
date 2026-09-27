@@ -21,6 +21,7 @@ import {
   focusPropsFor,
   readingOrder,
 } from '@/shared/layout/frame'
+import { auditRender } from '@/shared/layout/renderAudit'
 import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { focusLeavesLevel } from '@/shared/design-system/flow'
@@ -66,6 +67,8 @@ export function Canvas(): JSX.Element {
   const selectedId = playing ? playFocusId : editSelectedId
   const size = useFrameStore((s) => s.size)
   const focus = useFrameStore((s) => s.focus)
+  const renderProblems = useFrameStore((s) => s.renderProblems)
+  const setRenderProblems = useFrameStore((s) => s.setRenderProblems)
   const active = useActiveDesignSystem()
   const registry = useHydratedRegistry()
   const shown = FRAME_SIZES[size]
@@ -77,6 +80,7 @@ export function Canvas(): JSX.Element {
   const fit = useFitScale(stageRef, statusRef, shown)
   const focusElRef = useRef<Element | null>(null)
   useTvFocus(surfaceRef, contentRef, tree, selectedId, playing ? playFocusItem : null, size, registry, active, playing, focusElRef)
+  useRenderAudit(surfaceRef, tree, size, registry, active, playing, setRenderProblems)
   usePlayKeys(playing, surfaceRef, tree, registry, focusElRef, active)
   useReleaseTextFocus(playing, screens)
   const rest = useMemo(() => restStates(tree, active), [tree, active])
@@ -85,8 +89,8 @@ export function Canvas(): JSX.Element {
   const layers = screenLayersOf(active)
   const model = screenModel(layers, tree.screen?.model)
   const checks = useMemo(
-    () => withFocusSide(auditFrameLayout({ root: tree }, active, size), model, focus),
-    [tree, active, size, model, focus],
+    () => withRenderCheck(withFocusSide(auditFrameLayout({ root: tree }, active, size), model, focus), renderProblems),
+    [tree, active, size, model, focus, renderProblems],
   )
 
   return (
@@ -147,6 +151,11 @@ function withFocusSide(
   return checks.map((check) =>
     check.id === 'layers' ? { ...check, ok: false, problems: [...check.problems, problem] } : check,
   )
+}
+
+/** Appends the render-measured check (`useRenderAudit`) as the QA checklist's 6th entry. */
+function withRenderCheck(checks: FrameCheck[], problems: string[]): FrameCheck[] {
+  return [...checks, { id: 'render', label: 'Render', ok: problems.length === 0, problems }]
 }
 
 /** The largest fit factor, never above 1, at which the shown frame fits under the status line. */
@@ -276,6 +285,73 @@ function useTvFocus(
       : { side: DEFAULT_FOCUS, label: null }
     setFocusReading(reading)
   }, [surfaceRef, contentRef, tree, selectedId, focusItem, size, registry, manifest, playing, focusElRef, setFocusReading])
+}
+
+/** A node's manifest component type, read off the document tree by id — for the render audit's messages only. */
+function typeOf(tree: CanvasNode, id: string): string {
+  const walk = (node: CanvasNode): string | undefined =>
+    node.id === id ? node.type : node.children.map(walk).find(Boolean)
+  return walk(tree) ?? '?'
+}
+
+/**
+ * The render-measured half of Layout QA (`renderAudit.ts`): after the screen
+ * paints, measures every node and text run in the frame — the same
+ * `getBoundingClientRect` + scale pattern `useTvFocus` uses — and reports
+ * overflow, overlap and collapsed text the Blueprint's own data can't show.
+ */
+function useRenderAudit(
+  surfaceRef: RefObject<HTMLDivElement>,
+  tree: CanvasNode,
+  size: FrameSizeId,
+  registry: HydratedRegistry,
+  manifest: DesignSystemManifest,
+  playing: boolean,
+  setProblems: (problems: string[]) => void,
+): void {
+  useLayoutEffect(() => {
+    let cancelled = false
+    const measure = (): void => {
+      const frame = surfaceRef.current
+      if (cancelled || !frame) return
+      const frameRect = frame.getBoundingClientRect()
+      const scale = frameRect.width / frame.offsetWidth || 1
+      const box = (rect: DOMRect) => ({
+        top: (rect.top - frameRect.top) / scale,
+        left: (rect.left - frameRect.left) / scale,
+        width: rect.width / scale,
+        height: rect.height / scale,
+      })
+
+      const nodes = Array.from(frame.querySelectorAll<HTMLElement>('[data-node-id]'))
+        .filter((el) => el.getClientRects().length > 0)
+        .map((el) => ({ id: el.dataset.nodeId!, type: typeOf(tree, el.dataset.nodeId!), ...box(el.getBoundingClientRect()) }))
+
+      // Every element whose own children include a real text node — measured by
+      // its text content's own extent (a Range), not the element's padded box.
+      const range = document.createRange()
+      const texts = Array.from(frame.querySelectorAll<HTMLElement>('*'))
+        .filter((el) => Array.from(el.childNodes).some((c) => c.nodeType === Node.TEXT_NODE && c.textContent?.trim()))
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.05) // mid-transition text isn't really "on screen" yet
+        .map((el) => {
+          range.selectNodeContents(el)
+          return { text: (el.textContent ?? '').trim().slice(0, 40), ...box(range.getBoundingClientRect()) }
+        })
+
+      setProblems(auditRender({ frame: { width: frame.offsetWidth, height: frame.offsetHeight }, nodes, texts }))
+    }
+
+    measure()
+    // ponytail: a self-hosted webfont finishing after the first paint shifts real
+    // text metrics (measured, not guessed — the very first live check this hook
+    // ran read 4 problems, then 5 once Inter settled) — this one re-measure covers
+    // it; a font swap mid-session or a later async image load would need a
+    // ResizeObserver on the content instead, if that turns out to matter too.
+    void document.fonts?.ready?.then(measure)
+    return () => {
+      cancelled = true
+    }
+  }, [surfaceRef, tree, size, registry, manifest, playing, setProblems])
 }
 
 /**

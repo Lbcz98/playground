@@ -1,0 +1,70 @@
+import { describe, expect, it } from 'vitest'
+import { auditRender, type RenderMeasurement } from './renderAudit'
+
+const frame = { width: 1280, height: 720 }
+const node = (over: Partial<RenderMeasurement['nodes'][number]>) => ({
+  id: 'n1',
+  type: 'ContentCard',
+  top: 100,
+  left: 100,
+  width: 200,
+  height: 200,
+  ...over,
+})
+const text = (over: Partial<RenderMeasurement['texts'][number]>) => ({
+  text: 'Título',
+  top: 100,
+  left: 100,
+  width: 60,
+  height: 20,
+  ...over,
+})
+
+describe('auditRender — problems only the real render can show', () => {
+  it('passes a clean screen', () => {
+    expect(auditRender({ frame, nodes: [node({})], texts: [text({})] })).toEqual([])
+  })
+
+  it('catches a node that runs past the frame edge', () => {
+    const cases = [
+      node({ left: -10 }),
+      node({ top: -10 }),
+      node({ left: 1200, width: 200 }), // right edge at 1400 > 1280
+      node({ top: 700, height: 100 }), // bottom edge at 800 > 720
+    ]
+    for (const n of cases) {
+      expect(auditRender({ frame, nodes: [n], texts: [] }).join()).toMatch(/runs past the edge/)
+    }
+  })
+
+  it('does not flag a node that exactly fills the frame — sub-pixel rounding is not an overflow', () => {
+    expect(auditRender({ frame, nodes: [node({ top: 0, left: 0, width: 1280.3, height: 719.8 })], texts: [] })).toEqual([])
+  })
+
+  it('catches text squeezed to a sliver by too small a container', () => {
+    const problems = auditRender({ frame, nodes: [], texts: [text({ text: 'Estatísticas', width: 1 })] })
+    expect(problems.join()).toMatch(/"Estatísticas" has been squeezed/)
+  })
+
+  it('ignores a genuinely empty text run — nothing was squeezed', () => {
+    expect(auditRender({ frame, nodes: [], texts: [text({ text: '', width: 0 })] })).toEqual([])
+  })
+
+  it('catches two text runs overlapping', () => {
+    const a = text({ text: 'Bruno Henrique', top: 100, left: 100, width: 100, height: 16 })
+    const b = text({ text: 'Placar: 1 x 0', top: 105, left: 150, width: 100, height: 16 })
+    expect(auditRender({ frame, nodes: [], texts: [a, b] }).join()).toMatch(/"Bruno Henrique" overlaps "Placar: 1 x 0"/)
+  })
+
+  it('does not flag text merely adjacent, or a collapsed run touching another', () => {
+    const a = text({ text: 'A', top: 100, left: 100, width: 40, height: 16 })
+    const b = text({ text: 'B', top: 100, left: 141, width: 40, height: 16 }) // 1px gap
+    expect(auditRender({ frame, nodes: [], texts: [a, b] })).toEqual([])
+    // A collapsed run reports its own problem, not a spurious overlap with its neighbor.
+    const collapsed = text({ text: 'C', top: 100, left: 100, width: 1, height: 16 })
+    const beside = text({ text: 'D', top: 100, left: 100, width: 40, height: 16 })
+    const problems = auditRender({ frame, nodes: [], texts: [collapsed, beside] })
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toMatch(/"C" has been squeezed/)
+  })
+})

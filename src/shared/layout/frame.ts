@@ -23,7 +23,10 @@
  *               screen names its shade model and navigation level, and its content
  *               follows them.
  *   5. QA     — `auditFrameLayout` is the checklist. The strict validator turns
- *               its failures into retry errors; the canvas shows them live.
+ *               its failures into retry errors; the canvas shows them live. A
+ *               6th check, `render` (`renderAudit.ts`), only the canvas can
+ *               run: overflow, overlap and collapsed text the Blueprint's data
+ *               can't show before it paints.
  */
 
 import { frameSpec } from '@/design-system/primitives'
@@ -365,7 +368,10 @@ export function isModuleGroup(
 // QA checklist
 // ---------------------------------------------------------------------------
 
-export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers'
+// 'render' is not produced here — `auditFrameLayout` only ever sees the
+// Blueprint's data, before it paints. It's added by the canvas, which is the
+// only place that can measure the actual rendered screen (`renderAudit.ts`).
+export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers' | 'render'
 
 export interface FrameCheck {
   id: FrameCheckId
