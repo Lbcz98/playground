@@ -42,8 +42,8 @@ export type Control =
   | { kind: 'boolean'; label: string }
   | { kind: 'select'; label: string; options: readonly string[] }
   | { kind: 'number'; label: string; min?: number; max?: number; step?: number }
-  /** A list of objects, each with these text fields (required ones marked). */
-  | { kind: 'list'; label: string; max?: number; fields: Record<string, { label: string; required?: boolean }> }
+  /** A list of objects — its item fields and length cap are read off the schema. */
+  | { kind: 'list'; label: string }
 
 export type ComponentCategory = 'layout' | 'content' | 'form'
 
@@ -137,9 +137,6 @@ export const MAIN_MENU_ITEMS = [
   'none',
 ] as const satisfies readonly (MainMenuItem | 'none')[]
 
-/** The most items the miscellaneous button cycles through. */
-export const MISCELLANEOUS_MAX = 6
-
 export const mainMenuSchema = z
   .object({
     focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
@@ -153,7 +150,7 @@ export const mainMenuSchema = z
           .object({ title: z.string(), subtitle: z.string().optional(), iconSrc: z.string().optional() })
           .strict() satisfies z.ZodType<MiscellaneousItem>,
       )
-      .max(MISCELLANEOUS_MAX)
+      .max(6)
       .default([]),
   })
   .strict()
@@ -403,12 +400,7 @@ export const Catalog = {
       programSubtitle: { kind: 'text', label: 'Program subtitle' },
       miscellaneousTitle: { kind: 'text', label: 'Miscellaneous title' },
       miscellaneousSubtitle: { kind: 'text', label: 'Miscellaneous subtitle' },
-      miscellaneousItems: {
-        kind: 'list',
-        label: 'Miscellaneous items',
-        max: MISCELLANEOUS_MAX,
-        fields: { title: { label: 'Title', required: true }, subtitle: { label: 'Subtitle' }, iconSrc: { label: 'Icon URL' } },
-      },
+      miscellaneousItems: { kind: 'list', label: 'Miscellaneous items' },
     },
   },
   InteractivityMenu: {

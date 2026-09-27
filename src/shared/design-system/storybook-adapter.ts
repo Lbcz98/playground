@@ -179,9 +179,10 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
   // (`{ title: string; subtitle?: string }[]`) is data a Blueprint carries as a
   // JSON array. Any other list, or a lone object, has a shape no Blueprint field
   // can describe — and a string in its place would break the component.
-  const fields = !options && typeNode && docgen?.kind === 'array' ? objectListFields(typeNode) : undefined
-  const list = !options && typeNode && docgen?.kind === 'array' ? (fields ? {} : stringList(typeNode)) : undefined
-  if (!options && typeNode && docgen?.kind === 'array' && !list) {
+  const listNode = !options && docgen?.kind === 'array' ? typeNode : undefined
+  const fields = listNode ? objectListFields(listNode) : undefined
+  const list = listNode ? (fields ? {} : stringList(listNode)) : undefined
+  if (listNode && !list) {
     warn(`a list of \`${written}\`, which a Blueprint field can't describe — left out`, name)
     return null
   }

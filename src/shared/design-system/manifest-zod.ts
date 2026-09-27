@@ -60,6 +60,13 @@ const SUPPORTED_VERSION = 1
 // Per-prop → Zod
 // ---------------------------------------------------------------------------
 
+/** A component's props, or a list item's fields, as one strict object. */
+function propsToZod(props: Record<string, ManifestProp>, manifest: DesignSystemManifest): z.ZodObject<z.ZodRawShape> {
+  const shape: z.ZodRawShape = {}
+  for (const prop of Object.values(props)) shape[prop.name] = propToZod(prop, manifest)
+  return z.object(shape).strict()
+}
+
 function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTypeAny {
   let schema: z.ZodTypeAny
   const group = prop.tokenGroup
@@ -91,9 +98,7 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
       case 'array': {
         // A list of text, or of objects when the prop declares `fields`;
         // `min` / `max` bound how many items (a tuple sets both).
-        const item = prop.fields
-          ? z.object(Object.fromEntries(Object.values(prop.fields).map((f) => [f.name, propToZod(f, manifest)]))).strict()
-          : z.string()
+        const item = prop.fields ? propsToZod(prop.fields, manifest) : z.string()
         let list: z.ZodArray<z.ZodTypeAny> = z.array(item)
         if (prop.min !== undefined) list = list.min(prop.min)
         if (prop.max !== undefined) list = list.max(prop.max)
@@ -148,13 +153,7 @@ export function compileManifestSchemas(
   manifest: DesignSystemManifest,
 ): Record<string, z.ZodObject<z.ZodRawShape>> {
   const out: Record<string, z.ZodObject<z.ZodRawShape>> = {}
-  for (const component of Object.values(manifest.components)) {
-    const shape: z.ZodRawShape = {}
-    for (const prop of Object.values(component.props)) {
-      shape[prop.name] = propToZod(prop, manifest)
-    }
-    out[component.id] = z.object(shape).strict()
-  }
+  for (const component of Object.values(manifest.components)) out[component.id] = propsToZod(component.props, manifest)
   return out
 }
 

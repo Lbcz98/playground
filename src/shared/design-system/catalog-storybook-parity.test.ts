@@ -52,7 +52,7 @@ function codeDefault(prop: DocgenProp): string | undefined {
 }
 
 /** An unset optional prop means this: no text, off, nothing. */
-const EMPTY: readonly unknown[] = ['', false, 0, undefined]
+const isEmpty = (v: unknown): boolean => ['', false, 0, undefined].includes(v as never) || (Array.isArray(v) && v.length === 0)
 
 /** The code props a catalog prop lands in — itself, unless the binding maps it. */
 const targetsOf = (binding: StorybookBinding, name: string): readonly string[] => binding.propMap?.[name] ?? [name]
@@ -117,8 +117,7 @@ describe.each(bound)('%s', (id, binding) => {
       // A mapped prop changes shape on the way, so its default does too.
       if (binding.propMap?.[name]) continue
       const code = codeDefault(docgen.props[name])
-      const empty = EMPTY.includes(prop.defaultValue) || (Array.isArray(prop.defaultValue) && prop.defaultValue.length === 0)
-      const same = code === undefined ? empty : String(prop.defaultValue) === code
+      const same = code === undefined ? isEmpty(prop.defaultValue) : String(prop.defaultValue) === code
       if (name in overrides) {
         expect(same, `${id}.${name} is declared a default override, but catalog and code now agree — drop it`).toBe(false)
       } else {

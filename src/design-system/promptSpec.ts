@@ -289,8 +289,23 @@ function describeComponent(c: ComponentSpec): string {
 
 function componentCatalogBrief(spec: ComponentSpec[]): string {
   return spec
-    .map((c) => `  - <${c.type}>${c.acceptsChildren ? ' (container)' : ''}: ${c.summary}`)
+    .map((c) => `  - <${c.type}>${c.acceptsChildren ? ' (container)' : ''}: ${c.summary}${listsBrief(c.props)}`)
     .join('\n')
+}
+
+/**
+ * The planner reads no props, so a list prop — a capability like a carousel's
+ * items — would stay invisible to it; name each one, its item shape and what it is for.
+ */
+function listsBrief(props: PropSpec[]): string {
+  const lists = props.filter((p) => p.control === 'list' && p.name !== 'children')
+  if (lists.length === 0) return ''
+  const one = (p: PropSpec): string => {
+    const items = p.fields ? `{${p.fields.join(', ')}}` : 'text'
+    const about = p.description ? ` — ${p.description.split(/(?<=\.)\s/)[0]}` : ''
+    return `${p.name} (${p.max !== undefined ? `up to ${p.max} ` : ''}${items} items)${about}`
+  }
+  return ` Lists: ${lists.map(one).join('; ')}`
 }
 
 /** Human label for a tier inside a token group. */

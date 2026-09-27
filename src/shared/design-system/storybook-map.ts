@@ -24,8 +24,6 @@ export type CodeOnlyReason =
   | 'asset-slot'
   /** Composition the Blueprint expresses with child nodes, or state the canvas owns. */
   | 'composition'
-  /** Content the catalog does not offer the agent yet. */
-  | 'not-in-catalog-yet'
 
 export interface StorybookBinding {
   component: string

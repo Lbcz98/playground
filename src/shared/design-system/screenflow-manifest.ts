@@ -8,7 +8,7 @@
  * library always contains it.
  */
 
-import type { z } from 'zod'
+import { z } from 'zod'
 import { Catalog, CATALOG_TYPES, getCatalogEntry, type Control } from '@/design-system/catalog'
 import { SPACE_TOKENS } from '@/design-system/tokens'
 import {
@@ -118,10 +118,18 @@ function controlKind(control: Control | undefined): ManifestControlKind | undefi
   return control.kind
 }
 
-function listFields(fields: Extract<Control, { kind: 'list' }>['fields']): Record<string, ManifestProp> {
-  return Object.fromEntries(
-    Object.entries(fields).map(([name, f]) => [name, { name, type: { name: 'string' }, required: f.required === true, control: 'text' as const }]),
+/** A list prop's schema (`z.array(z.object(…)).max(n).default([])`) → its item fields and cap. */
+function listShape(field: z.ZodTypeAny | undefined): { fields: Record<string, ManifestProp>; max?: number } {
+  const unwrapped = field instanceof z.ZodDefault ? field.removeDefault() : field
+  const array = unwrapped instanceof z.ZodArray ? unwrapped : undefined
+  const fields = Object.fromEntries(
+    Object.entries(array ? shapeOf(array.element) : {}).map(([name, f]) => [
+      name,
+      { name, type: { name: 'string' }, required: !f.isOptional(), control: 'text' as const },
+    ]),
   )
+  const max = array?._def.maxLength?.value
+  return max !== undefined ? { fields, max } : { fields }
 }
 
 function toManifestComponent(type: string): ManifestComponent {
@@ -145,8 +153,7 @@ function toManifestComponent(type: string): ManifestComponent {
       ...(control?.kind === 'number' && control.min !== undefined ? { min: control.min } : {}),
       ...(control?.kind === 'number' && control.max !== undefined ? { max: control.max } : {}),
       ...(control?.kind === 'number' && control.step !== undefined ? { step: control.step } : {}),
-      ...(control?.kind === 'list' && control.max !== undefined ? { max: control.max } : {}),
-      ...(control?.kind === 'list' ? { fields: listFields(control.fields) } : {}),
+      ...(control?.kind === 'list' ? listShape(shape[name]) : {}),
     }
   }
 

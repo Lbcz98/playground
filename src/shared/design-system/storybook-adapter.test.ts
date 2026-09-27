@@ -183,7 +183,7 @@ describe('parseStorybookDocgen', () => {
 import COMPONENTS_MANIFEST from './__fixtures__/components-manifest.json'
 import { parseStorybookDocgenWithReport } from './storybook-adapter'
 import { validateBlueprintAgainstManifest, compileManifestSchemas } from './manifest-zod'
-import { buildSystemPrompt } from '@/design-system/promptSpec'
+import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
 import { interpretBlueprint } from '@/interpreter/interpret'
 
 describe('Phase 2 — importing an external Storybook', () => {
@@ -424,6 +424,10 @@ describe('Phase 2 — importing an external Storybook', () => {
 
     const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- items:'))
     expect(line).toMatch(/a JSON array of objects \{ title: string, subtitle\?: string \}/)
+
+    // The planner reads no props, so it is told the list exists.
+    const brief = buildPlannerPrompt(report.manifest).split('\n').find((l) => l.includes('<Menu>'))
+    expect(brief).toMatch(/Lists: items \(\{title, subtitle\?\} items\)/)
   })
 
   it('E2.12 — a component\'s words go in its children prop; text where the child nodes go is caught', () => {

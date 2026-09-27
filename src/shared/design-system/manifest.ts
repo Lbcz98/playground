@@ -318,7 +318,7 @@ const propTypeSchema: z.ZodType<ManifestPropType> = z
   })
   .strict()
 
-const propSchema: z.ZodType<ManifestProp> = z.lazy(() => z
+const propSchema: z.ZodType<ManifestProp> = z
   .object({
     name: z.string().min(1).max(120),
     type: propTypeSchema,
@@ -332,9 +332,12 @@ const propSchema: z.ZodType<ManifestProp> = z.lazy(() => z
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
     step: z.number().finite().positive().optional(),
-    fields: z.record(propSchema).refine((f) => Object.keys(f).length <= MAX_PROPS_PER_COMPONENT).optional(),
+    fields: z
+      .record(z.lazy(() => propSchema))
+      .refine((f) => Object.keys(f).length <= MAX_PROPS_PER_COMPONENT)
+      .optional(),
   })
-  .strict())
+  .strict()
 
 const componentSchema: z.ZodType<ManifestComponent> = z
   .object({
