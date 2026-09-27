@@ -558,9 +558,12 @@ export function columnDirectionFor(component: ManifestComponent): { prop: Manife
 }
 
 /**
- * Levels whose stack always sits at the end of the frame: the outermost container
- * is a column with `justify` `end`. A row would turn `justify` into the side, and
- * fight the model — the module places itself left or right inside the column.
+ * Levels whose outermost container must be a column: a row would turn `justify`
+ * into the side, and fight the model — the module places itself left or right
+ * inside the column instead. `rootEnd` levels also pin that column to the end of
+ * the frame (the bottom); `rootColumn` levels (Home) only require the column —
+ * their content can sit at both the top and the bottom (a rail with a
+ * notification), so nothing fixes `justify` for them.
  */
 export function levelRootProblems(
   manifest: DesignSystemManifest,
@@ -570,23 +573,31 @@ export function levelRootProblems(
   const layers = screenLayersOf(manifest)
   const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
   const level = model ? navigationLevel(layers, model.level) : undefined
-  if (!level?.rootEnd || !root || typeof root.type !== 'string') return []
+  if (!(level?.rootEnd || level?.rootColumn) || !root || typeof root.type !== 'string') return []
   const component = manifest.components[root.type]
-  const prop = component ? justifyPropFor(component) : undefined
-  if (!component || !prop) return []
-  const problems: string[] = []
+  if (!component) return []
   const column = columnDirectionFor(component)
-  const direction = column ? propValue(root, column.prop) : undefined
-  if (column && direction !== column.column) {
+  if (!column) return []
+  const problems: string[] = []
+  const direction = propValue(root, column.prop)
+  // A level that shows at most one module wraps it in a row to keep its side; a
+  // level with no module limit (Home) just stacks its children as they are —
+  // each one already places itself with its own align/justify.
+  const oneModule = level.maxModules === 1
+  if (direction !== column.column) {
     problems.push(
-      `Level ${level.level} (${level.name}): the outermost <${component.id}> is a column — direction ${JSON.stringify(direction)}, use ${JSON.stringify(column.column)}; put the module on its side with a row inside it (justify "start" or "end").`,
+      `Level ${level.level} (${level.name}): the outermost <${component.id}> is a column — direction ${JSON.stringify(direction)}, use ${JSON.stringify(column.column)}` +
+        (oneModule ? '; put the module on its side with a row inside it (justify "start" or "end").' : '.'),
     )
   }
-  const value = propValue(root, prop)
-  if (value !== 'end') {
-    problems.push(
-      `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
-    )
+  if (level.rootEnd) {
+    const prop = justifyPropFor(component)
+    const value = prop ? propValue(root, prop) : undefined
+    if (prop && value !== 'end') {
+      problems.push(
+        `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
+      )
+    }
   }
   return problems
 }

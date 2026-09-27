@@ -47,6 +47,7 @@ import {
   unfocusedValue,
   allowedSpacingNames,
   centeringPropsFor,
+  columnDirectionFor,
   stretchPropFor,
   onGridSpacingNames,
   spacingNameForPx,
@@ -397,14 +398,20 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
   const layers = screenLayersOf(manifest)
   if (layers.models.length === 0) return []
   const column = sidePropFor(manifest, { type: container })
-  const row = sidePropFor(manifest, { type: container, props: { direction: 'horizontal' } })
   const clear = clearBackgroundFor(manifest, { type: container })
   const levelLimit = (maxModules: number | null, allowsAnchor: boolean): string =>
     `${maxModules === null ? 'No module limit' : `Shows at most ${maxModules} content module${maxModules === 1 ? '' : 's'}`}; ${allowsAnchor ? 'may anchor one cluster' : 'anchors nothing'}.`
   const lines = [
     `* **Layer rule:** ${layers.rule}`,
     `* **Navigation levels (screen.level):**`,
-    ...layers.levels.map((l) => `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}${l.rootEnd ? ' **The stack:** the outermost container is a column (direction vertical) that sits at the end of the frame (justify "end"), still stretching across it; a module that belongs on one side sits in a row inside it.' : ''}${l.initialFocus ? ` **Initial focus:** ${l.initialFocus.hint}` : ''}`),
+    ...layers.levels.map((l) => {
+      const stack = l.rootEnd
+        ? ` **The stack:** the outermost container is a column (direction vertical) that sits at the end of the frame (justify "end"), still stretching across it; ${l.maxModules === 1 ? 'the one module that belongs on one side sits in a row inside it.' : 'each module stacks in order and places itself on its own side (its own align/justify, or a row set to justify "start"/"end").'}`
+        : l.rootColumn
+          ? ' **The stack:** the outermost container is a column (direction vertical), still stretching across it — never a row. Its content can sit at both the top and the bottom of the frame (not only at the end), so each module places itself with its own align/justify, or a row set to justify "start"/"end".'
+          : ''
+      return `  - ${l.level} · ${l.name} — ${l.rule} ${levelLimit(l.maxModules, l.allowsAnchor)}${stack}${l.initialFocus ? ` **Initial focus:** ${l.initialFocus.hint}` : ''}`
+    }),
     `* **Layer models (screen.model):**`,
     ...layers.models.map(
       (m) =>
@@ -412,10 +419,12 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
     ),
   ]
   if (column) {
+    // The outermost container is always a column (Stretch, and the layer rule's own
+    // "The stack" lines above) — so its own side prop is always the column one
+    // (`align`, not `justify`); a row only ever appears nested inside it, for one
+    // module that needs a side.
     lines.push(
-      `* **Content side:** under a right model the outermost <${container}> sets ${column.prop} "${column.values.right}"; under a left model, ${column.prop} "${column.values.left}"${
-        row && row.prop !== column.prop ? ` (a horizontal <${container}>: ${row.prop})` : ''
-      }.`,
+      `* **Content side:** under a right model the outermost <${container}> sets ${column.prop} "${column.values.right}"; under a left model, ${column.prop} "${column.values.left}".`,
     )
   }
   if (clear) {
@@ -504,12 +513,15 @@ function designSystemBinding(
   const containers = spec.filter((c) => c.acceptsChildren && !c.slots && !c.parents).map((c) => c.type)
   const leaves = spec.filter((c) => !c.acceptsChildren).map((c) => c.type)
   const composed = spec.filter((c) => c.slots)
+  const direction = directionValuesFor(manifest.components[container])
 
   return [
     `### 7. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
     `The laws above, mapped onto this system's registry and tokens.`,
     `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
-    `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing, "direction": "horizontal" makes a row. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
+    `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing${
+      direction ? `, "${direction.prop}": "${direction.row}" makes a row` : ''
+    }. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
     ...textChildrenSpecifics(spec),
     `* **Defaults show:** a prop you leave out renders the default listed beside it — placeholder text included. Set a text prop to "" to leave its text off the screen.`,
     ...composed.map(
@@ -538,6 +550,108 @@ export function templatesFor(manifest: DesignSystemManifest): readonly ManifestS
   return manifest.templates ?? []
 }
 
+/** A container's `direction` values, in the active system's own words — never hardcoded. */
+function directionValuesFor(component: ManifestComponent | undefined): { prop: string; row: string; column: string } | undefined {
+  const column = component && columnDirectionFor(component)
+  const row = column?.prop.options?.find((o) => o !== column.column)
+  return column && row ? { prop: column.prop.name, row, column: column.column } : undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * A short structural outline of a template's root — component types and layout
+ * props only, so the planner sees the real shape instead of re-describing it from
+ * scratch (and drifting into a shape the law forbids, like a row root). Text
+ * content, ids and any further linked screens are left out; the generator gets
+ * the full JSON once the planner names the template.
+ */
+function templateOutline(blueprint: object): string[] {
+  if (!isRecord(blueprint) || !isRecord(blueprint.root)) return []
+  const LAYOUT_PROPS = ['direction', 'align', 'justify']
+  const describe = (node: Record<string, unknown>): string => {
+    const type = typeof node.type === 'string' ? node.type : '?'
+    const props = isRecord(node.props) ? node.props : {}
+    const bits = LAYOUT_PROPS.filter((k) => props[k] !== undefined).map((k) => String(props[k]))
+    return `${type}${bits.length > 0 ? ` (${bits.join(', ')})` : ''}${node.anchor ? ' anchored' : ''}`
+  }
+  const lines = [describe(blueprint.root)]
+  const walk = (node: Record<string, unknown>, depth: number): void => {
+    const children = (Array.isArray(node.children) ? node.children : []).filter(isRecord)
+    // Runs of siblings that render identically (ten TableCell rows) collapse to
+    // one line — keyed on the whole description, not just the type, so two
+    // differently-shaped Stacks (a row, a column) never hide one another.
+    const runs: { node: Record<string, unknown>; text: string; count: number }[] = []
+    for (const child of children) {
+      const text = describe(child)
+      const last = runs[runs.length - 1]
+      if (last && last.text === text) last.count++
+      else runs.push({ node: child, text, count: 1 })
+    }
+    for (const { node: child, text, count } of runs) {
+      lines.push(`${'  '.repeat(depth)}${text}${count > 1 ? ` × ${count}` : ''}`)
+      if (count === 1) walk(child, depth + 1)
+    }
+  }
+  walk(blueprint.root, 1)
+  return lines
+}
+
+const EXAMPLE_TEXT_PROPS = ['title', 'label', 'children', 'subtitle', 'overline']
+const EXAMPLE_LAYOUT_PROPS = ['direction', 'align', 'justify', 'gap', 'padding']
+
+/**
+ * The planner's worked example of the "Output format" below — built from a REAL
+ * template (preferring "home") so it can never drift from what the reference
+ * screens above actually contain. A hand-written pricing-card example used to
+ * sit here labelled "Template: home" while describing an unrelated bordered-card
+ * layout — a real generation copied that mismatch and built a screen that had
+ * nothing to do with the home template it named. With no templates at all
+ * (a from-scratch system), a generic worked example stands in instead.
+ */
+function examplePlan(
+  templates: readonly ManifestScreenTemplate[],
+  container: string,
+  gutter: string | undefined,
+  zero: string | undefined,
+): string {
+  const template = templates.find((t) => t.id === 'home') ?? templates[0]
+  const root = template && isRecord(template.blueprint) && isRecord(template.blueprint.root) ? template.blueprint.root : undefined
+  if (template && root) {
+    const screen = isRecord(template.blueprint) && isRecord(template.blueprint.screen) ? template.blueprint.screen : undefined
+    const describe = (node: Record<string, unknown>): string => {
+      const type = typeof node.type === 'string' ? node.type : '?'
+      const props = isRecord(node.props) ? node.props : {}
+      const layout = EXAMPLE_LAYOUT_PROPS.filter((k) => props[k] !== undefined).map((k) => `${k} ${JSON.stringify(props[k])}`)
+      const text = EXAMPLE_TEXT_PROPS.map((k) => props[k]).find((v): v is string => typeof v === 'string' && v.length > 0)
+      return `${type}${layout.length > 0 ? ` (${layout.join(', ')})` : ''}${node.anchor ? ' (anchored)' : ''}${text ? ` — "${text}"` : ''}`
+    }
+    const lines: string[] = []
+    let n = 0
+    const walk = (node: Record<string, unknown>, depth: number): void => {
+      n++
+      lines.push(`${n}. ${'  '.repeat(depth)}${describe(node)}`)
+      for (const child of (Array.isArray(node.children) ? node.children : []).filter(isRecord)) walk(child, depth + 1)
+    }
+    walk(root, 0)
+    const screenLine = screen ? `Screen: model "${screen.model}", level ${screen.level} — ${template.when}` : `Screen: ${template.when}`
+    return `Template: ${template.id}\n${screenLine}\n${lines.join('\n')}`
+  }
+  return `Screen: model "<layer model id>", level <n> — why this model fits where the content sits.
+1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align stretch, no background) — the content layer.
+2.   Header ${container} (vertical, gap xs).
+3.     A prominent title: "Choose your plan".
+4.     A muted body line: "Switch or cancel at any time.".
+5.   Card ${container} (vertical, gap md, padding lg, surface, bordered, radius lg, shadow sm).
+6.     A heading: "Premium".
+7.     A muted body line: "Every channel, live and on demand.".
+8.     Primary button: "Start watching" — first focusable, so it holds initial focus.
+9.   Help ${container} (horizontal, gap sm) — anchored, a secondary floating cluster.
+10.    Ghost button: "Need help?".`
+}
+
 /** The planner's template menu: what exists, and when each one is the right start. */
 function templateSection(templates: readonly ManifestScreenTemplate[]): string {
   if (templates.length === 0) return ''
@@ -545,9 +659,13 @@ function templateSection(templates: readonly ManifestScreenTemplate[]): string {
 
 These screens are already built and already obey every law above. Start from one
 whenever the request is that screen or a variation of it — it is faster and safer
-than composing from nothing, and the next agent is given its JSON to adapt.
+than composing from nothing, and the next agent is given its JSON to adapt. The
+indented lines under each one are its root's real shape (component, then layout
+props) — read it before describing your own plan's structure.
 
-${templates.map((t) => `- ${t.id} — ${t.name}. ${t.when}`).join('\n')}
+${templates
+  .map((t) => `- ${t.id} — ${t.name}. ${t.when}\n${templateOutline(t.blueprint).map((l) => `    ${l}`).join('\n')}`)
+  .join('\n')}
 
 Name your choice on the first line, before the screen line:
 Template: <id>, or "Template: none" when the request is a screen none of these fit.
@@ -574,6 +692,8 @@ export function buildPlannerPrompt(
   const gap = component ? spacingPropFor(component, 'gutter') : undefined
   const zero = padding ? spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0) : undefined
   const gutter = gap ? spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter) : undefined
+  const direction = directionValuesFor(component)
+  const layered = screenLayersOf(manifest).models.length > 0
 
   return `You are the PLANNER for ScreenFlow Studio. Given a request for a screen,
 you write a short, concrete build plan — which components to use and how to nest
@@ -582,9 +702,10 @@ them in ${container}s. You do NOT write JSON or code; the next agent does that.
 # Product Blueprint
 
 Design system: ${manifest.name} (v${manifest.version})
-- The primary layout tool is <${container}> — a flex row ("direction: horizontal")
-  or column. Build every layout by nesting them. There is no absolute positioning,
-  no grid.
+- The primary layout tool is <${container}> — a flex row${
+    direction ? ` ("${direction.prop}": "${direction.row}")` : ''
+  } or column${direction ? ` ("${direction.column}")` : ''}. Build every layout by nesting them. There is no
+  absolute positioning, no grid.${layered ? ` The outermost <${container}> is a column on every screen — see the layer rule's levels below.` : ''}
 - Design tokens available (spacing, colors, radius, shadow): ${tokens}.
 - Components available:
 ${componentCatalogBrief(spec)}
@@ -603,22 +724,10 @@ In ${manifest.name}:
 ${[...tokenTierSpecifics(manifest), ...frameSpecifics(manifest, container), ...screenLayerSpecifics(manifest, container)].join('\n')}
 
 Accessibility rules:
-- Heading hierarchy must be logical: one prominent heading as the screen title,
-  smaller headings for sections, body/caption for supporting copy.
 - Every button label must say what it does ("Create account", not "Submit").
 - Use a muted tone for secondary text, never a faint custom color.
 - Name every color by its role (primary text, elevated surface, default border),
   never by its look — the token tier rule allows semantic tokens only.
-
-Common layout patterns:
-- Card: a vertical container with padding, gap, a surface, a border, a radius and
-  a small shadow.
-- Equal columns / tiers: a horizontal container (align stretch) of child
-  containers that each grow.
-- Page header: a vertical container with a title then a muted body line.
-- Section: a vertical container with a heading then its content.
-- Floating action cluster: a horizontal container of secondary quick actions
-  (options, help), anchored so it follows focus — never the screen's primary actions.
 
 ${templateSection(templates)}# Output format
 
@@ -631,17 +740,7 @@ screen), then the numbered list for each screen under its own "Screen <id>:" hea
 When you had to approximate something the registry lacks, or a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.
 Example:
 
-${templates.length > 0 ? 'Template: home\n' : ''}Screen: model "home", level 1 — a home screen whose content spans the frame.
-1. Root ${container} (vertical, gap ${gutter ?? 'md'}, padding ${zero ?? 'none'}, align stretch, no background) — the content layer.
-2.   Header ${container} (vertical, gap xs).
-3.     A prominent title: "Choose your plan".
-4.     A muted body line: "Switch or cancel at any time.".
-5.   Card ${container} (vertical, gap md, padding lg, surface, bordered, radius lg, shadow sm).
-6.     A heading: "Premium".
-7.     A muted body line: "Every channel, live and on demand.".
-8.     Primary button: "Start watching" — first focusable, so it holds initial focus.
-9.   Help ${container} (horizontal, gap sm) — anchored, a secondary floating cluster.
-10.    Ghost button: "Need help?".`
+${examplePlan(templates, container, gutter, zero)}`
 }
 
 export type PromptOutputMode = 'tool' | 'json'

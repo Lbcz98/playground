@@ -291,7 +291,12 @@ export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
   return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
 }
 
-/** On the levels whose stack sits at the end of the frame, the root's `justify` is `end`. */
+/**
+ * On a level whose outermost container must be a column (`rootEnd` or
+ * `rootColumn`), fix a row root; `rootEnd` levels also pin `justify` to `end` —
+ * `rootColumn` levels (Home) leave it alone, since their content can sit at both
+ * the top and the bottom (a rail with a notification), not only at the end.
+ */
 function repairLevelRoot(
   root: CanvasNode,
   manifest: DesignSystemManifest,
@@ -302,29 +307,42 @@ function repairLevelRoot(
   const model = screen ? screenModel(layers, screen.model) : undefined
   const level = model ? layers.levels.find((l) => l.level === model.level) : undefined
   const component = manifest.components[root.type]
-  const prop = level?.rootEnd && component ? justifyPropFor(component) : undefined
-  if (!prop) return
-  const column = component ? columnDirectionFor(component) : undefined
+  if (!(level?.rootEnd || level?.rootColumn) || !component) return
+  const column = columnDirectionFor(component)
   if (column && root.props[column.prop.name] !== undefined && root.props[column.prop.name] !== column.column) {
-    // A row root: its children become one module in a row inside the column, so
-    // the side they sat on is kept.
-    const un = root.children.filter((c) => !c.anchor)
-    const anchored = root.children.filter((c) => c.anchor)
-    const stretch = stretchPropFor(component!)
-    const wrapper = makeNode(root.type, { ...root.props, ...(stretch ? { [stretch.name]: 'end' } : {}) }, un)
-    root.children = [wrapper, ...anchored]
-    root.props = { ...root.props, [column.prop.name]: column.column, ...(stretch ? { [stretch.name]: 'stretch' } : {}) }
-    issues.push({
-      level: 'info',
-      path: 'root',
-      message: `Made the root a column and moved its content into a row inside it — on level ${level?.level} the stack is a column at the end of the frame.`,
-    })
+    // A level that shows at most one module: its children become one module in a
+    // row inside the column, so the side they sat on is kept. A level with no
+    // module limit (Home) just stacks its children as they are — each one
+    // already places itself with its own align/justify, so wrapping them
+    // together would squeeze them side by side instead.
+    if (level.maxModules === 1) {
+      const un = root.children.filter((c) => !c.anchor)
+      const anchored = root.children.filter((c) => c.anchor)
+      const stretch = stretchPropFor(component)
+      const wrapper = makeNode(root.type, { ...root.props, ...(stretch ? { [stretch.name]: 'end' } : {}) }, un)
+      root.children = [wrapper, ...anchored]
+      root.props = { ...root.props, [column.prop.name]: column.column, ...(stretch ? { [stretch.name]: 'stretch' } : {}) }
+      issues.push({
+        level: 'info',
+        path: 'root',
+        message: `Made the root a column and moved its content into a row inside it — on level ${level.level} the stack is a column at the end of the frame.`,
+      })
+    } else {
+      root.props = { ...root.props, [column.prop.name]: column.column }
+      issues.push({
+        level: 'info',
+        path: 'root',
+        message: `Made the root a column, keeping its children stacked in order — on level ${level.level} the outermost container must be a column.`,
+      })
+    }
   }
-  if (root.props[prop.name] === 'end') return
+  if (!level.rootEnd) return
+  const prop = justifyPropFor(component)
+  if (!prop || root.props[prop.name] === 'end') return
   issues.push({
     level: 'info',
     path: 'root',
-    message: `Set ${prop.name} to "end" on the root (was ${brief(root.props[prop.name])}) — the stack on level ${level?.level} sits at the end of the frame.`,
+    message: `Set ${prop.name} to "end" on the root (was ${brief(root.props[prop.name])}) — the stack on level ${level.level} sits at the end of the frame.`,
   })
   root.props = { ...root.props, [prop.name]: 'end' }
 }

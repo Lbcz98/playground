@@ -45,6 +45,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
     {
       level: 0,
       name: 'Transmissão limpa',
+      rootEnd: true,
       rule: 'The clean broadcast: only the video, plus at most one alert bug or one notification. No menu, no rail.',
       maxModules: 1,
       allowsAnchor: false,
@@ -52,6 +53,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
     {
       level: 1,
       name: 'Home',
+      rootColumn: true,
       rule: 'The first navigation level, right after login: the main menu and the content rail. Everything on screen is reachable, and the channel logo leads back to the clean broadcast.',
       maxModules: null,
       allowsAnchor: true,

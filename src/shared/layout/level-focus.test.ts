@@ -187,3 +187,48 @@ describe('levels 2 and 3 — the outermost stack is a column', () => {
     expect(errors({ ...toDoc(root) })).toEqual([])
   })
 })
+
+describe('level 1 (Home) — the outermost stack must be a column, but not pinned to the end', () => {
+  const rowRoot = () => {
+    const d = doc('home')
+    d.root.props = { ...d.root.props, direction: 'horizontal' }
+    return d
+  }
+
+  it('rejects a row root — Home has no module limit, so nothing wraps children in a row', () => {
+    const message = errors(rowRoot()).join()
+    expect(message).toMatch(/outermost <Stack> is a column/)
+    expect(message).not.toMatch(/put the module on its side/)
+  })
+
+  it('the interpreter makes it a column, keeping its children stacked as they were', () => {
+    const before = doc('home').root.children
+    const r = interpretPrototype(rowRoot(), S)
+    if (!r.ok) throw new Error(r.error)
+    const root = r.screens[0].tree
+    expect(root.props.direction).toBe('vertical')
+    expect(root.children).toHaveLength(before!.length)
+    expect(errors({ ...toDoc(root), screen: { model: 'home', level: 1 } })).toEqual([])
+  })
+
+  it('does not require justify "end" — a notification can sit at the top, the rail at the bottom', () => {
+    expect(errors(doc('home-notification'))).toEqual([])
+    expect(find(doc('home-notification').root, 'Stack')!.props!.justify).toBe('between')
+  })
+})
+
+describe('level 0 (clean broadcast) — the outermost stack is a column at the end of the frame', () => {
+  it('the template does', () => {
+    expect(errors(doc('alert'))).toEqual([])
+  })
+
+  it('rejects a row root and the interpreter repairs it', () => {
+    const d = doc('alert')
+    d.root.props = { ...d.root.props, direction: 'horizontal', justify: 'start' }
+    expect(errors(d).join()).toMatch(/outermost <Stack> is a column/)
+    const r = interpretPrototype(d, S)
+    if (!r.ok) throw new Error(r.error)
+    const root = r.screens[0].tree
+    expect([root.props.direction, root.props.justify]).toEqual(['vertical', 'end'])
+  })
+})

@@ -50,15 +50,23 @@ describe('interpretBlueprint', () => {
   })
 
   it('removes unsupported props and coerces invalid token values to the default', () => {
+    // Nested one level deep — the ROOT is also held to the active screen level's
+    // own layout rules (default: Home, whose outermost container must be a
+    // column), which this test isn't about.
     const result = interpretBlueprint({
       version: 1,
       root: {
         type: 'Stack',
-        props: { gap: 'ginormous', padding: '10px', boxShadow: '0 0 4px red', direction: 'horizontal' },
+        children: [
+          {
+            type: 'Stack',
+            props: { gap: 'ginormous', padding: '10px', boxShadow: '0 0 4px red', direction: 'horizontal' },
+          },
+        ],
       },
     })
     if (!result.ok) throw new Error('expected ok')
-    const p = result.tree.props
+    const p = result.tree.children[0].props
     expect(p.direction).toBe('horizontal') // valid -> kept
     expect(p.gap).toBe('sm') // invalid enum -> default
     expect(p.padding).toBe('none') // "10px" rejected -> default

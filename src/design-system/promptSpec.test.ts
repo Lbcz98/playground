@@ -56,12 +56,10 @@ describe('registry spec / system prompt', () => {
     }
   })
 
-  it('planner prompt carries the Product Blueprint (a11y + patterns) and every component', () => {
+  it('planner prompt carries the Product Blueprint (a11y rules) and every component', () => {
     const p = buildPlannerPrompt()
     expect(p).toMatch(/PLANNER/)
     expect(p).toMatch(/Accessibility rules/)
-    expect(p.toLowerCase()).toContain('heading hierarchy')
-    expect(p).toMatch(/Common layout patterns/)
     for (const type of CATALOG_TYPES) expect(p).toContain(`<${type}>`)
     // it must NOT ask for JSON
     expect(p).not.toContain(RENDER_TOOL_NAME)
@@ -172,10 +170,16 @@ describe('global kernel', () => {
       expect(prompt).toContain("never the screen's primary actions")
       expect(prompt).toContain('an anchored element never holds initial focus')
     }
-    // The planner's worked example must not anchor a primary button (a live run copied that).
+    // The planner's worked example is a real template (`home`), which anchors
+    // nothing — so it can't repeat the old fabricated example's mistake of
+    // anchoring its primary button. A template that DOES anchor something
+    // (`interactivity-cards-right`) anchors its back control, never the content.
     const planner = buildPlannerPrompt()
-    expect(planner).not.toMatch(/— anchored[^\n]*\n\s*\d+\.\s+Primary button/)
-    expect(planner).toMatch(/Primary button: "Start watching" — first focusable, so it holds initial focus\.\n\d+\.\s+Help Stack \(horizontal, gap sm\) — anchored/)
+    const example = planner.slice(planner.indexOf('Example:'))
+    expect(example).not.toMatch(/anchored[^\n]*\n\s*\d+\.\s+\S/)
+    // `home` itself anchors nothing; confirm the outline of a template that does
+    // (interactivity-cards-right, above the example) anchors its back control.
+    expect(planner).toMatch(/RoundedButton anchored/)
   })
 
   it('always targets the 1280×720 base — the upscale is the engine’s job', () => {
@@ -194,6 +198,54 @@ describe('reference screens in the planner prompt', () => {
     }
     expect(planner).toMatch(/Template: <id>, or "Template: none"/)
     expect(planner).toMatch(/First the template line, then the screen line/)
+  })
+
+  it("shows each template's root as a real structural outline, not just its one-line description", () => {
+    const planner = buildPlannerPrompt()
+    const homeIndex = planner.indexOf('- home — Home.')
+    const outline = planner.slice(homeIndex, planner.indexOf('- home-schedule'))
+    // The built-in `home` template: a column root holding a column module of
+    // [InteractivityMenu, MainMenu] — component types and layout props, no text.
+    expect(outline).toContain('Stack (vertical, end)')
+    expect(outline).toContain('InteractivityMenu (end)')
+    expect(outline).toContain('MainMenu')
+    expect(outline).not.toContain('Copa do Mundo') // text content is left out
+  })
+
+  it('collapses only siblings that render identically — two differently-shaped Stacks stay apart', () => {
+    const template = {
+      id: 'two-stacks',
+      name: 'Two Stacks',
+      when: 'A row cluster and a column cluster side by side.',
+      blueprint: {
+        version: 1 as const,
+        root: {
+          type: 'Stack' as const,
+          props: { direction: 'vertical' },
+          children: [
+            { type: 'Stack', props: { direction: 'horizontal' }, children: [{ type: 'Text' }] },
+            { type: 'Stack', props: { direction: 'vertical' }, children: [{ type: 'Text' }, { type: 'Text' }] },
+          ],
+        },
+      },
+    }
+    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme', templates: [template] }
+    const planner = buildPlannerPrompt(imported)
+    expect(planner).toContain('      Stack (horizontal)\n        Text\n      Stack (vertical)\n        Text × 2')
+  })
+
+  it('collapses a long run of identical rows to one line', () => {
+    const template = {
+      id: 'table',
+      name: 'Table',
+      when: 'Ten identical rows.',
+      blueprint: {
+        version: 1 as const,
+        root: { type: 'Stack' as const, children: Array.from({ length: 10 }, () => ({ type: 'TableCell' })) },
+      },
+    }
+    const imported = { ...SCREENFLOW_MANIFEST, id: 'acme', name: 'Acme', templates: [template] }
+    expect(buildPlannerPrompt(imported)).toContain('TableCell × 10')
   })
 
   it('offers none of them to an imported design system that ships none', () => {
@@ -321,7 +373,10 @@ describe('the layer rule (law 6, Camadas)', () => {
 
   it('names the root props that obey it in the active system', () => {
     const system = buildSystemPrompt()
-    expect(system).toContain('under a right model the outermost <Stack> sets align "end"; under a left model, align "start" (a horizontal <Stack>: justify).')
+    // The outermost container is always a column (every level is `rootEnd` or
+    // `rootColumn`), so its side prop is always the column one — never a row's.
+    expect(system).toContain('under a right model the outermost <Stack> sets align "end"; under a left model, align "start".')
+    expect(system).not.toContain('a horizontal <Stack>: justify')
     expect(system).toContain('the outermost <Stack> sets surface "none"')
     // The generic Container can't place or clear itself, so those lines are left out.
     const w3c = buildSystemPrompt('tool', W3C_MANIFEST)

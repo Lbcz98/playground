@@ -175,6 +175,12 @@ export interface ManifestNavigationLevel {
   initialFocus?: ManifestInitialFocus
   /** The outermost container sits at the end of the frame (the bottom): its `justify` is `end`. */
   rootEnd?: boolean
+  /**
+   * The outermost container must be a column, with no fixed `justify` — a level
+   * whose content can sit at both the top and the bottom (Home with a
+   * notification) rather than always at the end.
+   */
+  rootColumn?: boolean
 }
 
 export interface ManifestInitialFocus {
@@ -426,6 +432,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
             maxModules: z.number().int().min(0).nullable(),
             allowsAnchor: z.boolean(),
             rootEnd: z.boolean().optional(),
+            rootColumn: z.boolean().optional(),
             initialFocus: z
               .object({
                 on: z.array(idSchema).min(1).max(8),
