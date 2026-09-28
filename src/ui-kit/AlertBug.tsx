@@ -19,7 +19,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import {
   FocusRing,
-  resolveInteractionState,
   size,
   token,
   type InteractionState,
@@ -69,12 +68,7 @@ export function AlertBug({
   label = 'Conteúdo interativo',
   onClick,
 }: AlertBugProps): ReactNode {
-  const state = resolveInteractionState(
-    'ui-kit/AlertBug',
-    interactionState,
-    { prop: 'focus', value: undefined },
-    'default',
-  )
+  const state = (interactionState ?? 'default')
   const focus = state === 'focus' && bugStyle === 'interface'
   const edge = edgeFor(bugStyle, focus)
   const circle: CSSProperties = {

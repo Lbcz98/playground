@@ -35,7 +35,6 @@
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import {
   FocusRing,
-  resolveInteractionState,
   RestingBorder,
   size,
   spacing,
@@ -102,12 +101,7 @@ function warnOnNestedControls(card: HTMLDivElement | null): void {
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
 export function ContentCard({ interactionState, height, gap, onClick, children }: ContentCardProps): ReactNode {
-  const state = resolveInteractionState(
-    'ui-kit/ContentCard',
-    interactionState,
-    { prop: 'focus', value: undefined },
-    'default',
-  )
+  const state = (interactionState ?? 'default')
   const focus = state === 'focus'
 
   const frame: CSSProperties = {

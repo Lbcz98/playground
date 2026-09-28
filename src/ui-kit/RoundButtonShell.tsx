@@ -15,8 +15,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import {
   FocusRing,
-  fromFocusFlag,
-  resolveInteractionState,
   RestingBorder,
   size,
   token,
@@ -28,8 +26,6 @@ export type RoundButtonState = Extract<InteractionState, 'default' | 'focus'>
 export interface RoundButtonShellProps {
   /** Default `default`. */
   interactionState?: RoundButtonState
-  /** @deprecated Use `interactionState="focus"`. */
-  focus?: boolean
   /** Accessible name — every consumer so far is icon/image-only. */
   label: string
   onClick?: () => void
@@ -68,19 +64,13 @@ const restCircle: CSSProperties = {
 
 export function RoundButtonShell({
   interactionState,
-  focus: legacyFocus,
   label,
   onClick,
   focusItem,
   children,
 }: RoundButtonShellProps): ReactNode {
   const focus =
-    resolveInteractionState(
-      'ui-kit/RoundButtonShell',
-      interactionState,
-      { prop: 'focus', value: fromFocusFlag(legacyFocus) },
-      'default',
-    ) === 'focus'
+    (interactionState ?? 'default') === 'focus'
 
   return (
     <button type="button" className="sfs-motion" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>

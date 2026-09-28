@@ -152,10 +152,9 @@ describe.each(bound)('%s', (id, binding) => {
       .map(([name]) => name)
     expect(undeclared, `${id}: add each to catalog.ts or to its codeOnly list in storybook-map.ts`).toEqual([])
 
-    for (const [name, reason] of Object.entries(binding.codeOnly ?? {})) {
+    for (const name of Object.keys(binding.codeOnly ?? {})) {
       expect(docgen.props[name], `${id}.${name} is declared code-only but the code has no such prop`).toBeDefined()
       expect(name in props, `${id}.${name} is declared code-only but catalog.ts has it`).toBe(false)
-      if (reason === 'deprecated-alias') expect(docgen.props[name].deprecated, `${id}.${name}`).toBe(true)
     }
   })
 })

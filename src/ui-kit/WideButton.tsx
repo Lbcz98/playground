@@ -10,7 +10,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import {
   FocusRing,
-  resolveInteractionState,
   RestingBorder,
   size,
   spacing,
@@ -27,8 +26,6 @@ export type WideButtonStatus = Extract<InteractionState, 'default' | 'focus' | '
 export interface WideButtonProps {
   /** Default `focus`. */
   interactionState?: WideButtonStatus
-  /** @deprecated Use `interactionState` — same values. */
-  status?: WideButtonStatus
   /** The call to action, e.g. "Assistir". */
   label?: string
   /** Shows the icon before the label. */
@@ -80,13 +77,12 @@ function centerFor(state: WideButtonStatus): CSSProperties {
 /** The pill call-to-action of a screen — text with optional icons. */
 export function WideButton({
   interactionState,
-  status,
   label,
   iconLeft = false,
   iconRight = false,
   onClick,
 }: WideButtonProps): ReactNode {
-  const state = resolveInteractionState('ui-kit/WideButton', interactionState, { prop: 'status', value: status }, 'focus')
+  const state = (interactionState ?? 'focus')
   const isLoading = state === 'loading'
   const isDisabled = state === 'disabled'
 

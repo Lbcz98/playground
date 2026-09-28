@@ -12,8 +12,7 @@
  * The DTV system is every `UI Kit/*` component, less the overlays (the engine
  * paints those from the screen's layer model, a Blueprint never places one), plus
  * `Primitives/Stack`, the layout every screen is built from. The other primitives
- * (Box, Button, Heading, Text) are web building blocks, not DTV components: the kit
- * draws its own text and controls. `Canvas Kit/*` (ScreenFlow's own Tailwind
+ * (Box, Text) are building blocks, not DTV components: the kit draws its own text. `Canvas Kit/*` (ScreenFlow's own Tailwind
  * layout) and `Templates/*` stay out.
  *
  * The export also carries `templates` — `dtv-templates.ts`'s reference screens,

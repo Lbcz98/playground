@@ -13,7 +13,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { resolveInteractionState, size } from '@/primitives'
+import { size } from '@/primitives'
 import closeFocusIcon from './icons/close-focus.svg'
 import closeRestIcon from './icons/close-rest.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
@@ -32,12 +32,7 @@ export function CloseButton({
   label = 'Fechar',
   onClick,
 }: CloseButtonProps): ReactNode {
-  const state = resolveInteractionState(
-    'ui-kit/CloseButton',
-    interactionState,
-    { prop: 'focus', value: undefined },
-    'focus',
-  )
+  const state = (interactionState ?? 'focus')
   const focus = state === 'focus'
   const iconSize = size(focus ? 'icon-xl' : 'icon-round-rest')
 

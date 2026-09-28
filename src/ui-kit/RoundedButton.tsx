@@ -6,7 +6,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { fromFocusFlag, resolveInteractionState, size } from '@/primitives'
+import { size } from '@/primitives'
 import backFocusIcon from './icons/back-focus.svg'
 import backRestIcon from './icons/back-rest.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
@@ -14,8 +14,6 @@ import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 export interface RoundedButtonProps {
   /** Default `focus`. */
   interactionState?: RoundButtonState
-  /** @deprecated Use `interactionState` (`focus` or `default`). */
-  focus?: boolean
   /** Accessible name — the control is icon-only. */
   label?: string
   onClick?: () => void
@@ -24,16 +22,10 @@ export interface RoundedButtonProps {
 /** The icon-only round control that steps back a level. */
 export function RoundedButton({
   interactionState,
-  focus: legacyFocus,
   label = 'Voltar',
   onClick,
 }: RoundedButtonProps): ReactNode {
-  const state = resolveInteractionState(
-    'ui-kit/RoundedButton',
-    interactionState,
-    { prop: 'focus', value: fromFocusFlag(legacyFocus) },
-    'focus',
-  )
+  const state = (interactionState ?? 'focus')
   const focus = state === 'focus'
   const iconSize = size(focus ? 'icon-xl' : 'icon-round-rest')
 

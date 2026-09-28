@@ -5,16 +5,8 @@
  */
 
 export { Box, type BoxElement, type BoxProps } from './Box'
-export { Button, type ButtonProps, type ButtonSize, type ButtonStatus, type ButtonVariant } from './Button'
 export { FocusRing, focusOutline, type FocusRingProps } from './FocusRing'
-export { Heading, type HeadingLevel, type HeadingProps, type HeadingWeight } from './Heading'
-export {
-  fromFocusFlag,
-  resetDeprecationWarnings,
-  resolveInteractionState,
-  warnDeprecated,
-  type InteractionState,
-} from './interactionState'
+export type { InteractionState } from './interactionState'
 export { RestingBorder, type RestingBorderProps } from './RestingBorder'
 export { Spinner, type SpinnerProps } from './Spinner'
 export { Stack, type StackAlign, type StackJustify, type StackProps } from './Stack'

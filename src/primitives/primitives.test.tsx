@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import tokens from '../../tokens/tokens.json'
 import { frameSpec } from '@/design-system/primitives'
 import { CSS_VARS } from '@/styles/global-tokens'
-import { Box, Button, GRID_SPACING, Heading, OFF_GRID_SPACING, Stack, Text } from '.'
+import { Box, GRID_SPACING, OFF_GRID_SPACING, Stack, Text } from '.'
 
 const html = (node: ReactElement): string => renderToStaticMarkup(node)
 
@@ -74,16 +74,6 @@ describe('<Text>', () => {
   })
 })
 
-describe('<Heading>', () => {
-  it('pairs level with the matching element and heading style', () => {
-    expect(html(<Heading level={4} weight="medium">x</Heading>)).toMatch(/^<h4 class="text-heading-4-medium"/)
-  })
-
-  it('keeps the style when the element is overridden', () => {
-    expect(html(<Heading as="h1">x</Heading>)).toMatch(/^<h1 class="text-heading-3-bold"/)
-  })
-})
-
 describe('<Box> and <Stack>', () => {
   it('Box resolves every surface prop to a token', () => {
     const out = html(
@@ -116,25 +106,3 @@ describe('<Box> and <Stack>', () => {
   })
 })
 
-describe('<Button>', () => {
-  it('maps variants to functional surfaces', () => {
-    expect(html(<Button>Go</Button>)).toContain('background-color:var(--color-semantic-functional-background-elevated)')
-    expect(html(<Button variant="secondary">Go</Button>)).toContain(
-      'background-color:var(--color-semantic-functional-background-overlay)',
-    )
-    expect(html(<Button variant="ghost">Go</Button>)).toContain('color:var(--color-semantic-functional-text-secondary)')
-  })
-
-  it('draws the kit focus ring only when focused', () => {
-    expect(html(<Button interactionState="focus">Go</Button>)).toContain('var(--gradient-semantic-focus-ring)')
-    expect(html(<Button>Go</Button>)).not.toContain('var(--gradient-semantic-focus-ring)')
-  })
-
-  it('is a non-submitting button that disables and reports loading', () => {
-    expect(html(<Button>Go</Button>)).toContain('type="button"')
-    expect(html(<Button interactionState="disabled">Go</Button>)).toContain('disabled=""')
-    const loading = html(<Button interactionState="loading">Go</Button>)
-    expect(loading).toContain('aria-busy="true"')
-    expect(loading).toContain('class="sfs-spin"')
-  })
-})

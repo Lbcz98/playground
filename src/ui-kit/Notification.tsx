@@ -31,7 +31,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import {
   FocusRing,
-  resolveInteractionState,
   RestingBorder,
   size,
   spacing,
@@ -136,12 +135,7 @@ export function Notification({
   logoSrc,
   onClick,
 }: NotificationProps): ReactNode {
-  const state = resolveInteractionState(
-    'ui-kit/Notification',
-    interactionState,
-    { prop: 'focus', value: undefined },
-    'default',
-  )
+  const state = (interactionState ?? 'default')
   const focus = state === 'focus'
   const rounded = kind === 'rounded'
 

@@ -18,8 +18,6 @@
 
 /** Why a prop exists in code but not in the catalog. */
 export type CodeOnlyReason =
-  /** A `@deprecated` alias of a catalog prop — old call sites only. */
-  | 'deprecated-alias'
   /** An image URL or a node slot — the agent has no assets to pass. */
   | 'asset-slot'
   /** Composition the Blueprint expresses with child nodes, or state the canvas owns. */
@@ -51,7 +49,6 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
       avatarSrc: 'asset-slot',
       logoSrc: 'asset-slot',
       bugSrc: 'asset-slot',
-      bugFocused: 'deprecated-alias',
     },
     // The catalog's "none" is the code's `null`: focus is elsewhere on the screen.
     valueMap: { focusedItem: { none: 'null' } },
@@ -62,26 +59,23 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   },
   InteractivityButton: {
     component: 'ui-kit-interactivity-button',
-    codeOnly: { state: 'deprecated-alias', thumbnail: 'asset-slot' },
+    codeOnly: { thumbnail: 'asset-slot' },
     // The sponsor's wording; its logo is an image slot the agent can't fill.
     propMap: { advertisingLabel: ['advertising'] },
     defaultOverrides: { interactionState: RESTS },
   },
   LabelVideo: {
     component: 'ui-kit-label-video',
-    codeOnly: { focus: 'deprecated-alias' },
     defaultOverrides: { interactionState: RESTS },
   },
   WideButton: {
     component: 'ui-kit-wide-button',
-    codeOnly: { status: 'deprecated-alias' },
     defaultOverrides: { interactionState: RESTS },
   },
   Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
   AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
   RoundedButton: {
     component: 'ui-kit-rounded-button',
-    codeOnly: { focus: 'deprecated-alias' },
     defaultOverrides: { interactionState: RESTS },
   },
   CloseButton: { component: 'ui-kit-close-button', defaultOverrides: { interactionState: RESTS } },
@@ -139,8 +133,6 @@ export const STORYBOOK_ONLY: Record<string, string> = {
   'ui-kit-overlay': 'The scrim is drawn by the screen model (Camadas), never placed by a Blueprint.',
   'ui-kit-overlay-screen-models': 'The screen model preview; a Blueprint names the model in `screen`, not as a node.',
   'primitives-box': 'Primitive used to build the kit; the catalog exposes Stack instead.',
-  'primitives-button': 'Primitive used to build the kit; the catalog Button is Canvas Kit/Button.',
-  'primitives-heading': 'Primitive used to build the kit.',
   'primitives-stack': 'Primitive used to build the kit; the catalog Stack is Canvas Kit/Stack.',
   'primitives-text': 'Primitive used to build the kit; the catalog Text is Canvas Kit/Text.',
 }

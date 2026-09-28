@@ -4,8 +4,7 @@
  * Its look is exactly one generated `.text-*` utility class (`variant`, one of
  * the contract's typography composites), one functional colour role and,
  * optionally, one semantic opacity role. There is no `style` or `className`
- * escape hatch, so text can't drift off the type scale. For headings, use
- * `<Heading>`.
+ * escape hatch, so text can't drift off the type scale.
  */
 
 import { createElement, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'

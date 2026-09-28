@@ -13,7 +13,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import {
   FocusRing,
-  resolveInteractionState,
   RestingBorder,
   size,
   spacing,
@@ -30,8 +29,6 @@ export type InteractivityButtonState = Extract<InteractionState, 'default' | 'fo
 export interface InteractivityButtonProps {
   /** Default `focus`. */
   interactionState?: InteractivityButtonState
-  /** @deprecated Use `interactionState` — same values. */
-  state?: InteractivityButtonState
   /** The card’s title — as an interactivity, the only text it carries. */
   title?: string
   /** Small line above the title (schedule section only). */
@@ -93,7 +90,6 @@ const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' 
 /** One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge. */
 export function InteractivityButton({
   interactionState,
-  state: legacyState,
   title,
   overline,
   subtitle,
@@ -103,7 +99,7 @@ export function InteractivityButton({
   thumbnail,
   onClick,
 }: InteractivityButtonProps): ReactNode {
-  const state = resolveInteractionState('ui-kit/InteractivityButton', interactionState, { prop: 'state', value: legacyState }, 'focus')
+  const state = (interactionState ?? 'focus')
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'

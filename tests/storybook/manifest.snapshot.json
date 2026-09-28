@@ -427,153 +427,6 @@
       ],
       "subcomponents": {}
     },
-    "primitives-button": {
-      "name": "Button",
-      "description": "",
-      "props": {
-        "children": {
-          "type": "ReactNode",
-          "kind": "node",
-          "required": true,
-          "description": "The label."
-        },
-        "iconLeft": {
-          "type": "ReactNode",
-          "kind": "node",
-          "required": false,
-          "description": ""
-        },
-        "iconRight": {
-          "type": "ReactNode",
-          "kind": "node",
-          "required": false,
-          "description": ""
-        },
-        "interactionState": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "loading",
-            "disabled"
-          ],
-          "required": false,
-          "description": "Default `default`."
-        },
-        "size": {
-          "type": "'md' | 'lg'",
-          "kind": "enum",
-          "options": [
-            "md",
-            "lg"
-          ],
-          "required": false,
-          "defaultValue": "md",
-          "description": ""
-        },
-        "status": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "loading",
-            "disabled"
-          ],
-          "required": false,
-          "description": "@deprecated Use `interactionState` — same values.",
-          "deprecated": true
-        },
-        "type": {
-          "type": "unknown",
-          "kind": "unresolved",
-          "required": false,
-          "defaultValue": "button",
-          "description": ""
-        },
-        "variant": {
-          "type": "'primary' | 'secondary' | 'ghost'",
-          "kind": "enum",
-          "options": [
-            "primary",
-            "secondary",
-            "ghost"
-          ],
-          "required": false,
-          "defaultValue": "primary",
-          "description": ""
-        }
-      },
-      "title": "Primitives/Button",
-      "stories": [
-        "primitives-button--all-states",
-        "primitives-button--disabled",
-        "primitives-button--focus",
-        "primitives-button--ghost",
-        "primitives-button--large",
-        "primitives-button--loading",
-        "primitives-button--primary",
-        "primitives-button--secondary",
-        "primitives-button--with-icons"
-      ],
-      "subcomponents": {}
-    },
-    "primitives-heading": {
-      "name": "Heading",
-      "description": "",
-      "props": {
-        "as": {
-          "type": "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'",
-          "kind": "enum",
-          "options": [
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6"
-          ],
-          "required": false,
-          "description": ""
-        },
-        "children": {
-          "type": "ReactNode",
-          "kind": "node",
-          "required": false,
-          "description": "The heading's words."
-        },
-        "level": {
-          "type": "3 | 4 | 5",
-          "kind": "enum",
-          "options": [
-            "3",
-            "4",
-            "5"
-          ],
-          "required": false,
-          "defaultValue": "3",
-          "description": ""
-        },
-        "weight": {
-          "type": "'medium' | 'bold'",
-          "kind": "enum",
-          "options": [
-            "medium",
-            "bold"
-          ],
-          "required": false,
-          "defaultValue": "bold",
-          "description": ""
-        }
-      },
-      "title": "Primitives/Heading",
-      "stories": [
-        "primitives-heading--all-levels",
-        "primitives-heading--default"
-      ],
-      "subcomponents": {}
-    },
     "primitives-stack": {
       "name": "Stack",
       "description": "",
@@ -1232,18 +1085,6 @@
           "required": false,
           "description": "Small line above the title (schedule section only)."
         },
-        "state": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'selected'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "selected"
-          ],
-          "required": false,
-          "description": "@deprecated Use `interactionState` — same values.",
-          "deprecated": true
-        },
         "subtitle": {
           "type": "string",
           "kind": "string",
@@ -1329,13 +1170,6 @@
       "name": "LabelVideo",
       "description": "The AO VIVO / REPLAY chip that says what the video behind the screen is.",
       "props": {
-        "focus": {
-          "type": "boolean",
-          "kind": "boolean",
-          "required": false,
-          "description": "@deprecated Use `interactionState` (`focus` or `default`).",
-          "deprecated": true
-        },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
           "kind": "enum",
@@ -1385,13 +1219,6 @@
           "kind": "string",
           "required": false,
           "description": "The viewer's avatar, on the Login button."
-        },
-        "bugFocused": {
-          "type": "boolean",
-          "kind": "boolean",
-          "required": false,
-          "description": "@deprecated Use `focusedItem=\"channel-bug\"`. Like that, it moves focus off the\nprogram logo — a TV screen has one focused item.",
-          "deprecated": true
         },
         "bugSrc": {
           "type": "string",
@@ -1613,13 +1440,6 @@
       "name": "RoundedButton",
       "description": "The icon-only round control that steps back a level.",
       "props": {
-        "focus": {
-          "type": "boolean",
-          "kind": "boolean",
-          "required": false,
-          "description": "@deprecated Use `interactionState` (`focus` or `default`).",
-          "deprecated": true
-        },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
           "kind": "enum",
@@ -1801,19 +1621,6 @@
           "kind": "function",
           "required": false,
           "description": ""
-        },
-        "status": {
-          "type": "Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>",
-          "kind": "enum",
-          "options": [
-            "default",
-            "focus",
-            "loading",
-            "disabled"
-          ],
-          "required": false,
-          "description": "@deprecated Use `interactionState` — same values.",
-          "deprecated": true
         }
       },
       "title": "UI Kit/Wide Button",

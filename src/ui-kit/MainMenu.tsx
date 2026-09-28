@@ -29,7 +29,7 @@
  */
 
 import { type CSSProperties, type ReactNode, useState } from 'react'
-import { focusOutline, size, spacing, Stack, Text, token, warnDeprecated, type SizeRole } from '@/primitives'
+import { focusOutline, size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import miscellaneousFocusIcon from './icons/miscellaneous-focus.svg'
 import weatherIcon from './icons/weather.svg'
@@ -49,11 +49,6 @@ export interface MainMenuProps {
    * logo; `null` when the focus is elsewhere on the screen.
    */
   focusedItem?: MainMenuItem | null
-  /**
-   * @deprecated Use `focusedItem="channel-bug"`. Like that, it moves focus off the
-   * program logo — a TV screen has one focused item.
-   */
-  bugFocused?: boolean
 
   /** The viewer's avatar, on the Login button. */
   avatarSrc?: string
@@ -179,7 +174,6 @@ function CycleLayers({
 /** The home menu along the bottom edge: login, schedule and miscellaneous, then the live program and the channel bug. */
 export function MainMenu({
   focusedItem,
-  bugFocused,
   avatarSrc,
   onLoginClick,
   onScheduleClick,
@@ -194,8 +188,7 @@ export function MainMenu({
   bugSrc,
   onBugClick,
 }: MainMenuProps): ReactNode {
-  if (bugFocused !== undefined) warnDeprecated('ui-kit/MainMenu', 'bugFocused', 'focusedItem')
-  const focused = focusedItem !== undefined ? focusedItem : bugFocused ? 'channel-bug' : 'program'
+  const focused = focusedItem !== undefined ? focusedItem : 'program'
   const stateOf = (item: MainMenuItem): RoundButtonState => (item === focused ? 'focus' : 'default')
 
   const items: MiscellaneousItem[] = miscellaneousItems?.length

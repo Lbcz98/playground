@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { Heading, Stack, Text, spacing, token } from '@/primitives'
+import { Stack, Text, spacing, token } from '@/primitives'
 import { OVERLAY_DIRECTIONS, Overlay, type OverlayDirection } from './Overlay'
 import { WideButton } from './WideButton'
 
@@ -95,7 +95,7 @@ export const InATemplate: Story = {
             <Text variant="footnote-medium" color="muted">
               A seguir
             </Text>
-            <Heading level={3}>Copa do Mundo: Equador x Argentina</Heading>
+            <Text as="h3" variant="heading-3-bold">Copa do Mundo: Equador x Argentina</Text>
           </Stack>
           <WideButton label="Assistir" interactionState="focus" />
         </Stack>
