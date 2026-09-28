@@ -24,7 +24,7 @@ import type {
   GenerateUIResponse,
   GenerateUsage,
 } from '@/shared/blueprint'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-system/promptSpec'
 import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
@@ -50,10 +50,10 @@ export async function generateUI(
 
   const provider = await resolveProvider()
   if (!provider) {
-    steps.push('no AI provider available — returning the built-in pricing-card fixture')
+    steps.push('no AI provider available — returning the home template')
     return {
       ok: true,
-      blueprint: PRICING_CARD_BLUEPRINT,
+      blueprint: homeTemplate.blueprint,
       meta: { source: 'dummy', durationMs: Date.now() - startedAt, steps },
     }
   }

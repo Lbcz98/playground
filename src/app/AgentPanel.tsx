@@ -7,7 +7,7 @@ import { EFFORT_LEVELS, MODEL_OPTIONS, modelLabel, type EffortLevel } from '@/sh
 import { cx } from '@/lib/cx'
 
 const SUGGESTIONS = [
-  'Build a 3-tier pricing card',
+  'Home with a notification about a live vote',
   'Show the match statistics on the right',
   'Design a settings screen with sections',
 ]

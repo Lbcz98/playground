@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useFlowStore } from './flowStore'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import type { BlueprintDocument } from '@/shared/blueprint'
 import { frameLayoutErrors } from '@/shared/layout/frame'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
@@ -15,31 +15,31 @@ describe('applyAgentBlueprint — per-turn undo', () => {
   it('renders the Blueprint and records exactly one history step', () => {
     const before = store().tree
 
-    const run = store().applyAgentBlueprint(PRICING_CARD_BLUEPRINT, 'Build a 3-tier pricing card')
+    const run = store().applyAgentBlueprint(homeTemplate.blueprint, 'Build a 3-tier pricing card')
 
     expect(run.ok).toBe(true)
     expect(store().past).toHaveLength(1)
     expect(store().tree).not.toBe(before)
-    expect(store().tree.children).toHaveLength(2) // header + tier row
+    expect(store().tree.children).toHaveLength(1) // one module: rail + menu
     expect(store().lastActionLabel).toMatch(/^AI · /)
   })
 
   it('is reverted by a single undo, and re-applied by a single redo', () => {
     const initialLabels = store().tree.children.map((c) => c.props.content)
 
-    store().applyAgentBlueprint(PRICING_CARD_BLUEPRINT, 'pricing')
-    expect(store().tree.children.length).toBe(2)
+    store().applyAgentBlueprint(homeTemplate.blueprint, 'pricing')
+    expect(store().tree.children.length).toBe(1)
 
     store().undo()
     expect(store().past).toHaveLength(0)
     expect(store().tree.children.map((c) => c.props.content)).toEqual(initialLabels)
 
     store().redo()
-    expect(store().tree.children.length).toBe(2)
+    expect(store().tree.children.length).toBe(1)
   })
 
   it('treats two generations as two independent undo steps', () => {
-    store().applyAgentBlueprint(PRICING_CARD_BLUEPRINT, 'first')
+    store().applyAgentBlueprint(homeTemplate.blueprint, 'first')
     const firstTreeChildCount = store().tree.children.length
 
     const smaller: BlueprintDocument = {
@@ -113,7 +113,7 @@ describe('the layer rule on the canvas document', () => {
   })
 
   it('takes the generated screen’s model', () => {
-    store().applyAgentBlueprint({ ...PRICING_CARD_BLUEPRINT, screen: { model: 'home-notification', level: 1 } }, 'pricing')
+    store().applyAgentBlueprint({ ...homeTemplate.blueprint, screen: { model: 'home-notification', level: 1 } }, 'pricing')
     expect(store().tree.screen).toEqual({ model: 'home-notification', level: 1 })
     store().undo()
     expect(store().tree.screen).toEqual({ model: 'home', level: 1 })
@@ -122,14 +122,14 @@ describe('the layer rule on the canvas document', () => {
 
 describe('screens — several frames in one document', () => {
   const doc = (): BlueprintDocument => ({
-    ...PRICING_CARD_BLUEPRINT,
+    ...homeTemplate.blueprint,
     id: 'a',
     name: 'Option A',
     screens: ['b', 'c'].map((id) => ({
       id,
       name: `Option ${id.toUpperCase()}`,
-      screen: PRICING_CARD_BLUEPRINT.screen,
-      root: PRICING_CARD_BLUEPRINT.root,
+      screen: homeTemplate.blueprint.screen,
+      root: homeTemplate.blueprint.root,
     })),
   })
 
@@ -192,7 +192,7 @@ describe('screens — several frames in one document', () => {
 
 describe('agent notes', () => {
   it('ride on the run report', () => {
-    const run = store().applyAgentBlueprint({ ...PRICING_CARD_BLUEPRINT, notes: ['Aproximei o mapa.'] }, 'x')
+    const run = store().applyAgentBlueprint({ ...homeTemplate.blueprint, notes: ['Aproximei o mapa.'] }, 'x')
     expect(run.ok && run.notes).toEqual(['Aproximei o mapa.'])
   })
 })

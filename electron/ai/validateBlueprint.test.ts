@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { validateBlueprint } from './validateBlueprint'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
 describe('validateBlueprint (strict, pipeline step 3)', () => {
-  it('accepts the pricing-card fixture', () => {
-    expect(validateBlueprint(PRICING_CARD_BLUEPRINT)).toEqual({ ok: true })
+  it('accepts the home template', () => {
+    expect(validateBlueprint(homeTemplate.blueprint)).toEqual({ ok: true })
   })
 
   it('rejects an unknown component with a helpful message', () => {

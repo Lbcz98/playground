@@ -13,7 +13,7 @@ import {
   snapSpacingName,
 } from './frame'
 import { interpretBlueprint } from '@/interpreter/interpret'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
@@ -36,8 +36,8 @@ describe('frame sizes', () => {
   })
 
   it('judges the 1280×720 layout, naming how it is shown (1080p by default)', () => {
-    expect(auditFrameLayout(PRICING_CARD_BLUEPRINT, S)[0].label).toBe('Layout 1280×720, shown at 1920×1080 (× 1.5)')
-    expect(auditFrameLayout(PRICING_CARD_BLUEPRINT, S, '720p')[0].label).toBe('Layout 1280×720')
+    expect(auditFrameLayout(homeTemplate.blueprint, S)[0].label).toBe('Layout 1280×720, shown at 1920×1080 (× 1.5)')
+    expect(auditFrameLayout(homeTemplate.blueprint, S, '720p')[0].label).toBe('Layout 1280×720')
   })
 })
 
@@ -174,8 +174,8 @@ describe('one focused element per screen', () => {
 })
 
 describe('auditFrameLayout — the layout QA checklist', () => {
-  it('passes the pricing-card fixture on every check', () => {
-    const checks = auditFrameLayout(PRICING_CARD_BLUEPRINT, S)
+  it('passes the home template on every check', () => {
+    const checks = auditFrameLayout(homeTemplate.blueprint, S)
     expect(checks.map((c) => c.id)).toEqual(['frame', 'margins', 'grid', 'focus', 'layers'])
     expect(checks.every((c) => c.ok)).toBe(true)
   })

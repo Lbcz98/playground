@@ -1,6 +1,6 @@
 import type { ChatTurn, GenerateOptions, GenerateUIResponse } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 
 /**
  * Renderer-side wrapper around the `window.flow` IPC bridge.
@@ -27,11 +27,11 @@ export async function generateUI(
 
   return {
     ok: true,
-    blueprint: PRICING_CARD_BLUEPRINT,
+    blueprint: homeTemplate.blueprint,
     meta: {
       source: 'web-fallback',
       durationMs: 0,
-      steps: ['window.flow bridge unavailable — served local fixture'],
+      steps: ['window.flow bridge unavailable — served the home template'],
     },
   }
 }

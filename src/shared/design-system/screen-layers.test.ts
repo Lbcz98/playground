@@ -10,7 +10,7 @@ import { type DesignSystemManifest, manifestZodSchema } from './manifest'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 import { CSS_VARS } from '@/styles/global-tokens'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import { interpretBlueprint } from '@/interpreter/interpret'
 import { frameLayoutErrors } from '@/shared/layout/frame'
 import { homeNotificationTemplate } from '@/shared/templates/homeNotification'
@@ -100,8 +100,8 @@ describe('the layer rule in the manifest schema', () => {
 })
 
 describe('auditScreenLayers', () => {
-  it('passes the pricing-card fixture', () => {
-    expect(auditScreenLayers(PRICING_CARD_BLUEPRINT, S)).toEqual([])
+  it('passes the home template', () => {
+    expect(auditScreenLayers(homeTemplate.blueprint, S)).toEqual([])
   })
 
   it('requires a real model, listing the choices', () => {

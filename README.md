@@ -75,11 +75,11 @@ src/
     blueprint.ts         Blueprint DSL types + IPC/tool contract constants
     models.ts            Model list, effort levels, pricing for the spend estimate
     fixtures/
-      pricingCard.ts     The hardcoded pricing card (used when no AI provider is set up)
+      w3cManifest.ts     A token-tiered imported system, for tests (with w3cTokenSource.ts)
     design-system/       Framework-free — shared by the renderer AND Electron main
       manifest.ts        DesignSystemManifest / ManifestComponent / ManifestProp / ManifestTokens
       storybook-adapter.ts  parseStorybookDocgen() — react-docgen / argTypes -> manifest
-      token-adapter.ts   parseDesignTokens() — DTCG / Style Dictionary / grouped / flat -> tokens
+      token-adapter.ts   parseDesignTokens() — DTCG -> tokens
       manifest-zod.ts    Compiles a manifest into per-component Zod schemas at runtime
       screenflow-manifest.ts  The built-in system, DERIVED from design-system/catalog.ts
       ipc.ts             DS_IPC channel names shared by preload + main
@@ -360,9 +360,8 @@ generateUI(prompt, history, options, manifest)   electron/ai/ai-orchestrator.ts
    the generic placeholder rather than taking the canvas down.
 5. Design-system tokens re-theme the canvas only, never the tool's own UI — the
    app shell is insulated from whichever design system is active (spec §7b).
-6. `tokens/tokens.json` is the only place a token value is authored. `global.css`,
-   its typed names, and the built-in "Global CSS Tokens" system are all derived
-   from it, and `npm test` fails while the generated files are stale.
+6. `tokens/tokens.json` is the only place a token value is authored. `global.css` and
+   its typed names are derived from it, and `npm test` fails while the generated files are stale.
 7. Components (`src/ui-kit`, `src/primitives`) reference **semantic** tokens only —
    never a core value — through the typed `token()`, `size()` and `spacing()`
    helpers, and `npm test` fails otherwise. Every focus state is the one

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { interpretBlueprint } from './interpret'
-import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
+import { homeTemplate } from '@/shared/templates/home'
 import { countNodes, type CanvasNode } from '@/model/nodeTree'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 
@@ -11,20 +11,20 @@ function allIds(node: CanvasNode, acc: string[] = []): string[] {
 }
 
 describe('interpretBlueprint', () => {
-  it('accepts the pricing-card fixture with no corrections', () => {
-    const result = interpretBlueprint(PRICING_CARD_BLUEPRINT)
+  it('accepts the home template with no corrections', () => {
+    const result = interpretBlueprint(homeTemplate.blueprint)
     expect(result.ok).toBe(true)
     if (!result.ok) return
 
     expect(result.issues).toHaveLength(0)
     expect(result.nodeCount).toBe(countNodes(result.tree))
-    // header + 3 tiers row
-    expect(result.tree.children).toHaveLength(2)
-    expect(result.tree.children[1].children).toHaveLength(3)
+    // one module: the rail over the main menu
+    expect(result.tree.children).toHaveLength(1)
+    expect(result.tree.children[0].children).toHaveLength(2)
   })
 
   it('assigns a fresh unique id to every node', () => {
-    const result = interpretBlueprint(PRICING_CARD_BLUEPRINT)
+    const result = interpretBlueprint(homeTemplate.blueprint)
     if (!result.ok) throw new Error('expected ok')
     const ids = allIds(result.tree)
     expect(new Set(ids).size).toBe(ids.length)
