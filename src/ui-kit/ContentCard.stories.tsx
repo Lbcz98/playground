@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box, Stack, Text, size, spacing, token } from '@/primitives'
 import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } from './ContentCard'
@@ -184,23 +184,6 @@ const standings: [string, string, string, string][] = [
   ['JUV', '28', '28', '7'], ['VIT', '26', '28', '6'], ['CUI', '22', '28', '5'], ['CRI', '19', '28', '4'],
 ]
 
-/** The card holds ten team rows at most, so the table pages: the whole card flips 1–10 ↔ 11–20. */
-function TabelaDeClassificacao(): ReactNode {
-  const [secondHalf, setSecondHalf] = useState(false)
-  const first = secondHalf ? 10 : 0
-  return (
-    <ContentCard onClick={() => setSecondHalf((s) => !s)}>
-      <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
-      <ContentCardBody>
-        {standings.slice(first, first + 10).map(([name, pts, j, v], i) => (
-          <TableCell key={name} position={String(first + i + 1)} shield={home} name={name} stats={[pts, j, v]} />
-        ))}
-      </ContentCardBody>
-      <ContentCardFooter caption={secondHalf ? 'Clique para voltar ao topo' : 'Clique para ver mais'} />
-    </ContentCard>
-  )
-}
-
 /**
  * Tabela de classificação — Figma 6371:7480 (288×410). Title, then the round with
  * the column headings beside it, ten team rows and a "see more" footer. Click the
@@ -209,7 +192,18 @@ function TabelaDeClassificacao(): ReactNode {
 export const TabelaDeCampeonato: Story = {
   name: 'Tabela de campeonato',
   args: {},
-  render: () => <TabelaDeClassificacao />,
+  render: () => (
+    // Ten team rows fill the card, so the twenty page: a click on the card shows the next ten.
+    <ContentCard rowsPerPage={10}>
+      <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
+      <ContentCardBody>
+        {standings.map(([name, pts, j, v], i) => (
+          <TableCell key={name} position={String(i + 1)} shield={home} name={name} stats={[pts, j, v]} />
+        ))}
+      </ContentCardBody>
+      <ContentCardFooter caption="Clique para ver mais" />
+    </ContentCard>
+  ),
 }
 
 /** Tabela de grupos — Figma 6371:12305 (288×209). A group's four teams, no footer. */

@@ -1,8 +1,8 @@
-import type { ReactElement, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'
+import { cardPress, ContentCard, ContentCardBody, ContentCardHeader, warnOnNestedControls } from '@/ui-kit/ContentCard'
 import { DecorationHost, hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { parseStorybookDocgenWithReport } from '@/shared/design-system/storybook-adapter'
@@ -109,29 +109,30 @@ describe('the content card is focusable', () => {
 
   it('with onClick, the whole card is the one button: click, Enter and Space, nothing nested', () => {
     let presses = 0
-    const card = ContentCard({ onClick: () => presses++, children: <ContentCardHeader title="Grupo A" /> }) as ReactElement<
-      Record<string, (e: object) => void>
-    >
-    const key = (k: string) => card.props.onKeyDown({ key: k, preventDefault() {} })
-    card.props.onClick({})
-    key('Enter')
-    key(' ')
-    key('a')
+    const press = cardPress(() => presses++)
+    press.onClick()
+    for (const key of ['Enter', ' ', 'a']) press.onKeyDown({ key, preventDefault() {} })
     expect(presses).toBe(3)
-    const out = renderToStaticMarkup(card)
+    const out = renderToStaticMarkup(<ContentCard onClick={() => {}}><ContentCardHeader title="Grupo A" /></ContentCard>)
     expect(out).toMatch(/^<div[^>]*role="button"/)
     expect(out).not.toMatch(/<(button|a)[\s>]/)
   })
 
   it('warns in development when a control is nested inside a clickable card', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    // React 18 keeps `ref` on the element, not in its props.
-    const ref = (ContentCard({ onClick: () => {} }) as unknown as { ref: (el: object) => void }).ref
-    ref({ querySelector: () => null })
+    warnOnNestedControls({ querySelector: () => null })
     expect(warn).not.toHaveBeenCalled()
-    ref({ querySelector: () => ({ tagName: 'BUTTON' }) })
+    warnOnNestedControls({ querySelector: () => ({ tagName: 'BUTTON' }) as never })
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('remove the nested <button>'))
     warn.mockRestore()
+  })
+
+  it('pages its rows: rowsPerPage shows that many, and the card becomes the button that turns the page', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => <span key={i}>{`row-${i + 1}.`}</span>)
+    const out = renderToStaticMarkup(<ContentCard rowsPerPage={10}><ContentCardBody>{rows}</ContentCardBody></ContentCard>)
+    expect(out).toMatch(/^<div[^>]*role="button"/)
+    expect(out).toContain('row-10.')
+    expect(out).not.toContain('row-11.')
   })
 })
 

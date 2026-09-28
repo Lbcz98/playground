@@ -888,7 +888,7 @@
     },
     "ui-kit-content-card": {
       "name": "ContentCard",
-      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens.",
+      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.",
       "props": {
         "children": {
           "type": "ReactNode",
@@ -923,6 +923,12 @@
           "kind": "function",
           "required": false,
           "description": "Makes the whole card one button (Enter / Space too). The card is the only\ninteractive surface: nothing inside it may be a `<button>` or `<a>`."
+        },
+        "rowsPerPage": {
+          "type": "number",
+          "kind": "number",
+          "required": false,
+          "description": "Rows per page, from `1` to `10` in steps of `1`: the body shows that many of its\nrows, and a click on the card (or Enter / Space) shows the next ones, wrapping\nback to the first. Omitted: every row at once."
         }
       },
       "title": "UI Kit/Content Card",

@@ -225,6 +225,9 @@ function onGridGap() {
     .optional()
 }
 
+/** The most rows a card shows at once — its tallest body, measured (`contentCardSpec.rowsAtMax`). */
+const CARD_ROWS_MAX = Math.max(...Object.values(contentCardSpec.rowsAtMax))
+
 export const contentCardSchema = z
   .object({
     interactionState: z.enum(CONTROL_STATES).default('default'),
@@ -236,6 +239,8 @@ export const contentCardSchema = z
       // Omitted: the card hugs its content, up to the tallest card.
       .optional(),
     gap: onGridGap(),
+    /** Rows per page: the viewer clicks the card for the next rows. Omitted: every row at once. */
+    rowsPerPage: z.number().min(1).max(CARD_ROWS_MAX).multipleOf(1).optional(),
   })
   .strict()
 
@@ -530,7 +535,7 @@ export const Catalog = {
     label: 'Content Card',
     category: 'content',
     summary:
-      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: split a longer table across screens.`,
+      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.`,
     acceptsChildren: true,
     slots: CONTENT_CARD_ZONES,
     schema: contentCardSchema,
@@ -545,6 +550,7 @@ export const Catalog = {
         step: frameSpec.grid,
       },
       gap: { kind: 'number', label: 'Zone gap', min: 0, max: CARD_GAP_MAX, grid: true },
+      rowsPerPage: { kind: 'number', label: 'Rows per page', min: 1, max: CARD_ROWS_MAX, step: 1 },
     },
   },
   ContentCardHeader: {

@@ -32,7 +32,17 @@
  * medium), all in the kit's one face.
  */
 
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
+import {
+  Children,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import {
   FocusRing,
   RestingBorder,
@@ -66,6 +76,12 @@ export interface ContentCardProps {
    * interactive surface: nothing inside it may be a `<button>` or `<a>`.
    */
   onClick?: () => void
+  /**
+   * Rows per page, from `1` to `10` in steps of `1`: the body shows that many of its
+   * rows, and a click on the card (or Enter / Space) shows the next ones, wrapping
+   * back to the first. Omitted: every row at once.
+   */
+  rowsPerPage?: number
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -87,10 +103,9 @@ function gridHeight(px: number): string {
 
 /**
  * Development only: a clickable card is the one control, so a `<button>` or `<a>`
- * inside it is a second control nested in the first. Checked when the card mounts.
+ * inside it is a second control nested in the first. Checked after every render.
  */
-// ponytail: mount-time check only — a control added by a later re-render goes unseen.
-function warnOnNestedControls(card: HTMLDivElement | null): void {
+export function warnOnNestedControls(card: Pick<HTMLElement, 'querySelector'> | null): void {
   const nested = card?.querySelector('button, a, [role="button"]')
   if (nested) {
     console.warn(
@@ -99,10 +114,41 @@ function warnOnNestedControls(card: HTMLDivElement | null): void {
   }
 }
 
-/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
-export function ContentCard({ interactionState, height, gap, onClick, children }: ContentCardProps): ReactNode {
+/**
+ * The whole card as one button: a click, Enter or Space. A div, not a `<button>`:
+ * the zones are block content, which a `<button>` may not hold.
+ */
+export function cardPress(onClick: () => void) {
+  return {
+    role: 'button',
+    onClick,
+    onKeyDown: (e: Pick<KeyboardEvent, 'key' | 'preventDefault'>) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault() // Space would scroll the page
+      onClick()
+    },
+  }
+}
+
+/** Which page of rows the card is on, for its body. */
+const CardPage = createContext<{ page: number; rowsPerPage?: number }>({ page: 0 })
+
+/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
+export function ContentCard({ interactionState, height, gap, onClick, rowsPerPage, children }: ContentCardProps): ReactNode {
   const state = (interactionState ?? 'default')
   const focus = state === 'focus'
+  const [page, setPage] = useState(0)
+  const card = useRef<HTMLDivElement>(null)
+  const act =
+    rowsPerPage === undefined
+      ? onClick
+      : () => {
+          setPage((p) => p + 1)
+          onClick?.()
+        }
+  useEffect(() => {
+    if (import.meta.env.DEV && act) warnOnNestedControls(card.current)
+  })
 
   const frame: CSSProperties = {
     position: 'relative',
@@ -119,20 +165,9 @@ export function ContentCard({ interactionState, height, gap, onClick, children }
     flexShrink: 0,
     backgroundColor: focus ? undefined : token('--color-semantic-functional-background-translucent'),
     outline: 'none',
-    cursor: onClick ? 'pointer' : undefined,
+    cursor: act ? 'pointer' : undefined,
   }
 
-  // A div, not a <button>: the zones are block content, which a <button> may not hold.
-  const press = onClick && {
-    role: 'button',
-    ref: import.meta.env.DEV ? warnOnNestedControls : undefined,
-    onClick,
-    onKeyDown: (e: KeyboardEvent) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault() // Space would scroll the page
-      onClick()
-    },
-  }
 
   const zones: CSSProperties = {
     position: 'relative',
@@ -146,9 +181,11 @@ export function ContentCard({ interactionState, height, gap, onClick, children }
 
   return (
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
-    <div tabIndex={0} className="sfs-motion" style={frame} {...press}>
+    <div ref={card} tabIndex={0} className="sfs-motion" style={frame} {...(act && cardPress(act))}>
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
-      <div style={zones}>{children}</div>
+      <CardPage.Provider value={{ page, rowsPerPage }}>
+        <div style={zones}>{children}</div>
+      </CardPage.Provider>
     </div>
   )
 }
@@ -339,6 +376,13 @@ export interface ContentCardBodyProps {
  * card's inset rather than pushing past it.
  */
 export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps): ReactNode {
+  const { page, rowsPerPage } = useContext(CardPage)
+  let rows = children
+  if (rowsPerPage) {
+    const all = Children.toArray(children)
+    const first = (page % Math.max(1, Math.ceil(all.length / rowsPerPage))) * rowsPerPage
+    rows = all.slice(first, first + rowsPerPage)
+  }
   return (
     <div
       style={{
@@ -354,7 +398,7 @@ export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps):
       }}
       data-card-body=""
     >
-      {children}
+      {rows}
       {quote ? (
         <Text as="span" variant="body-lg-medium">
           {quote}
