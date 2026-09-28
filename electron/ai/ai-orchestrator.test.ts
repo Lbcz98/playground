@@ -9,6 +9,7 @@ vi.mock('./providers', async (importActual) => {
 const { resolveProvider } = await import('./providers')
 const { generateUI } = await import('./ai-orchestrator')
 const { MalformedOutputError } = await import('./providers/types')
+const { SCREEN_TEMPLATES } = await import('@/shared/templates')
 
 const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
 const INVALID = { version: 1, root: { type: 'Stack', children: [{ type: 'Carousel' }] } }
@@ -149,6 +150,24 @@ describe('generateUI pipeline', () => {
     const retryMessages = renderUi.mock.calls[1][0].messages
     expect(retryMessages.at(-1).content).toMatch(/invalid[\s\S]*Carousel/i)
     expect(res.ok && res.meta.steps.some((s) => /valid on attempt 2/.test(s))).toBe(true)
+  })
+
+  it('rests a focus the level rules out instead of spending a retry on it', async () => {
+    // Home, with a rail card drawn focused — the menu holds Home's focus.
+    const home = structuredClone(SCREEN_TEMPLATES.find((t) => t.id === 'home')!.blueprint)
+    const find = (n: { type: string; props?: Record<string, unknown>; children?: unknown[] }): typeof n | undefined =>
+      n.type === 'InteractivityButton' ? n : (n.children as (typeof n)[] | undefined)?.map(find).find(Boolean)
+    const card = find(home.root as never)!
+    card.props = { ...card.props, interactionState: 'focus' }
+    const renderUi = vi.fn(async () => ({ blueprint: home, model: 'm' }))
+    vi.mocked(resolveProvider).mockResolvedValue(fakeProvider({ renderUi }))
+
+    const res = await generateUI('home')
+
+    expect(renderUi).toHaveBeenCalledOnce()
+    expect(card.props.interactionState).toBe('default')
+    expect(res.ok && res.meta.steps.some((s) => /valid on attempt 1/.test(s))).toBe(true)
+    expect(res.ok && res.meta.steps.some((s) => /rested 1 stray focus: root: <InteractivityButton>/.test(s))).toBe(true)
   })
 
   it('gives up after MAX retries but still returns the best attempt', async () => {

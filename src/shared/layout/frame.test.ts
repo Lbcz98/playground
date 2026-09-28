@@ -12,6 +12,7 @@ import {
   readingOrder,
   snapSpacingName,
 } from './frame'
+import { interpretBlueprint } from '@/interpreter/interpret'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
@@ -202,6 +203,21 @@ describe('auditFrameLayout — the layout QA checklist', () => {
     expect(errors.some((e) => /^root <Stack>: gap "lg" is 24px .*use "sm"/.test(e))).toBe(true)
     expect(errors.some((e) => /^root › Stack\[0\] <Stack>: gap "xl" is 32px/.test(e))).toBe(true)
     expect(errors.some((e) => e.includes('Stack[1]'))).toBe(false)
+  })
+
+  it('stops at a module: stacked rows inside a card keep the card spacing, and the interpreter leaves them', () => {
+    const rows = { type: 'Stack', props: { gap: '2xs' }, children: [{ type: 'Stack' }, { type: 'Stack' }] }
+    const doc = {
+      version: 1,
+      root: {
+        type: 'Stack',
+        props: { gap: 'sm', padding: 'none', align: 'stretch' },
+        children: [{ type: 'ContentCard', children: [{ type: 'ContentCardBody', children: [rows] }] }],
+      },
+    }
+    expect(frameLayoutErrors(doc, S).filter((e) => /apart/.test(e))).toEqual([])
+    const out = interpretBlueprint(doc, S)
+    expect(out.issues.some((i) => /sit exactly/.test(i.message))).toBe(false)
   })
 
   it('flags off-grid spacing on any node, including an unset prop whose default is off-grid', () => {

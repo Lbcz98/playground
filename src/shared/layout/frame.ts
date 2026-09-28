@@ -35,7 +35,7 @@ import type {
   ManifestComponent,
   ManifestProp,
 } from '@/shared/design-system/manifest'
-import { defaultForProp, tokenNames } from '@/shared/design-system/manifest'
+import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { auditScreenLayers, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 
 export const FRAME = {
@@ -344,7 +344,9 @@ function propValue(node: FrameNode, prop: ManifestProp): unknown {
 /**
  * Whether a container's gap is a gutter. The root's always is — its children are
  * the frame's top-level modules — and so is the gap of any container whose two or
- * more children are all containers: stacked widget modules, or columns.
+ * more children are all containers: stacked widget modules, or columns. Only the
+ * layout's own stacks are asked: inside a module (a card, a menu) the spacing is
+ * the module's, so callers stop at the first component that isn't `layoutId`.
  */
 export function isModuleGroup(
   node: FrameNode,
@@ -411,7 +413,9 @@ export function auditFrameLayout(
     if (!isOnGrid(px)) frame.push(`The frame ${name} (${px}px) is off the ${FRAME.grid}pt grid.`)
   }
 
-  const walk = (node: FrameNode, path: string, depth: number): void => {
+  const layoutId = rootContainerId(manifest)
+  /** `inModule`: below a component that isn't the layout's stack, where gutters don't apply. */
+  const walk = (node: FrameNode, path: string, depth: number, inModule: boolean): void => {
     const component =
       typeof node.type === 'string' ? manifest.components[node.type] : undefined
 
@@ -444,7 +448,7 @@ export function auditFrameLayout(
     }
 
     const gap = component.acceptsChildren ? spacingPropFor(component, 'gutter') : undefined
-    if (gap && isModuleGroup(node, depth, manifest)) {
+    if (gap && !inModule && isModuleGroup(node, depth, manifest)) {
       const value = propValue(node, gap)
       const px = spacingPx(manifest, value)
       if (px !== null && isOnGrid(px) && px !== FRAME.gutter) {
@@ -459,7 +463,7 @@ export function auditFrameLayout(
 
     if (component.acceptsChildren) {
       childList(node).forEach((child, i) => {
-        if (isObject(child)) walk(child, `${path} › ${component.id}[${i}]`, depth + 1)
+        if (isObject(child)) walk(child, `${path} › ${component.id}[${i}]`, depth + 1, inModule || component.id !== layoutId)
       })
     }
   }
@@ -500,7 +504,7 @@ export function auditFrameLayout(
       }
     }
 
-    walk(root, 'root', 0)
+    walk(root, 'root', 0, false)
 
     const anchored = childList(root).filter((child) => isObject(child) && child.anchor === true)
     if (anchored.length > 1) {
@@ -649,6 +653,46 @@ export function levelFocusProblems(
     return [`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`]
   }
   return []
+}
+
+/**
+ * Rests every element a screen's level says can't hold the focus — a Home card
+ * drawn focused because it links to the rail, a card focused on the third level.
+ * Such a focus has one right answer (rest it), so it is fixed here instead of
+ * costing a model retry. Only the level's own rule is applied: a missing focus, or
+ * the wrong value on the right component, is a design choice left to the validator.
+ * Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
+ */
+export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest): string[] {
+  if (!isObject(doc)) return []
+  const layers = screenLayersOf(manifest)
+  const pages = [
+    { root: doc.root, screen: screenOf(doc), where: 'root' },
+    ...(Array.isArray(doc.screens) ? doc.screens : []).filter(isObject).map((s, i) => ({
+      root: s.root,
+      screen: s.screen,
+      where: `screens[${i}]`,
+    })),
+  ]
+  const changed: string[] = []
+  for (const { root, screen, where } of pages) {
+    const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+    const level = model ? navigationLevel(layers, model.level) : undefined
+    const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
+    if (!level || on.length === 0 || !isObject(root)) continue
+    const visit = (node: Record<string, unknown>): void => {
+      const component = typeof node.type === 'string' ? manifest.components[node.type] : undefined
+      const prop = component && !on.includes(component.id) ? focusedBy(node, component) : undefined
+      if (prop) {
+        const rest = unfocusedValue(prop)
+        node.props = { ...(isObject(node.props) ? node.props : {}), [prop.name]: rest }
+        changed.push(`${where}: <${component!.id}> ${prop.name} → ${JSON.stringify(rest)} (level ${level.level} focuses ${on.join('/')})`)
+      }
+      childList(node).filter(isObject).forEach(visit)
+    }
+    visit(root)
+  }
+  return changed
 }
 
 /** Every failed checklist item as one error string each — the validator's retry signal. */

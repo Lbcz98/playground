@@ -29,6 +29,7 @@ import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-sy
 import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { restStrayFocus } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
 import { validateBlueprint } from './validateBlueprint'
@@ -112,6 +113,9 @@ export async function generateUI(
         usage = addUsage(usage, gen.usage)
         model = gen.model ?? model
         lastBlueprint = unwrapBlueprint(gen.blueprint)
+        // A focus the level rules out has one fix; make it here rather than spend a retry on it.
+        const rested = restStrayFocus(lastBlueprint, manifest)
+        if (rested.length > 0) steps.push(`step 2 · rested ${rested.length} stray focus: ${rested.join('; ')}`)
         reply = JSON.stringify(lastBlueprint)
 
         const validation = validateBlueprint(lastBlueprint, manifest)

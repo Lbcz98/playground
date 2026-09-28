@@ -712,6 +712,8 @@ function repairGutters(
       node.props = { ...node.props, [gap.name]: gutter }
     }
   }
+  // Inside a module (a card, a menu) the spacing is the module's own, not a gutter.
+  if (node.type !== rootContainerId(manifest)) return
   node.children.forEach((child, i) =>
     repairGutters(child, `${path} › ${node.type}[${i}]`, depth + 1, manifest, issues),
   )

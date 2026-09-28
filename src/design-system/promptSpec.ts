@@ -490,8 +490,8 @@ function frameSpecifics(manifest: DesignSystemManifest, container: string): stri
     }`,
     `* **Gutters:** ${
       gap && gutter
-        ? `the outermost <${container}>, and any container whose children are all containers (stacked modules, columns), set ${gap.name} "${gutter}".`
-        : `stacked modules and columns sit ${px(FRAME.gutter)} apart.`
+        ? `the outermost <${container}>, and any <${container}> of the layout whose children are all containers (stacked modules, columns), set ${gap.name} "${gutter}". Inside a module (a card, a menu) spacing is the module's own — this rule stops there.`
+        : `stacked modules and columns sit ${px(FRAME.gutter)} apart; inside a module (a card, a menu) spacing is the module's own.`
     }`,
     `* **Stretch:** ${
       stretch
