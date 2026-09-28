@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from 'react'
 import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'
 import { DecorationHost, hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
@@ -121,6 +121,17 @@ describe('the content card is focusable', () => {
     const out = renderToStaticMarkup(card)
     expect(out).toMatch(/^<div[^>]*role="button"/)
     expect(out).not.toMatch(/<(button|a)[\s>]/)
+  })
+
+  it('warns in development when a control is nested inside a clickable card', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // React 18 keeps `ref` on the element, not in its props.
+    const ref = (ContentCard({ onClick: () => {} }) as unknown as { ref: (el: object) => void }).ref
+    ref({ querySelector: () => null })
+    expect(warn).not.toHaveBeenCalled()
+    ref({ querySelector: () => ({ tagName: 'BUTTON' }) })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('remove the nested <button>'))
+    warn.mockRestore()
   })
 })
 

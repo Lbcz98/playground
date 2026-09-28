@@ -86,6 +86,20 @@ function gridHeight(px: number): string {
   return `calc(${steps} * ${spacing('2xs')})`
 }
 
+/**
+ * Development only: a clickable card is the one control, so a `<button>` or `<a>`
+ * inside it is a second control nested in the first. Checked when the card mounts.
+ */
+// ponytail: mount-time check only — a control added by a later re-render goes unseen.
+function warnOnNestedControls(card: HTMLDivElement | null): void {
+  const nested = card?.querySelector('button, a, [role="button"]')
+  if (nested) {
+    console.warn(
+      `[ui-kit/ContentCard] a clickable card is one control: remove the nested <${nested.tagName.toLowerCase()}> and act in the card's onClick.`,
+    )
+  }
+}
+
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
 export function ContentCard({ interactionState, height, gap, onClick, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
@@ -117,6 +131,7 @@ export function ContentCard({ interactionState, height, gap, onClick, children }
   // A div, not a <button>: the zones are block content, which a <button> may not hold.
   const press = onClick && {
     role: 'button',
+    ref: import.meta.env.DEV ? warnOnNestedControls : undefined,
     onClick,
     onKeyDown: (e: KeyboardEvent) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
