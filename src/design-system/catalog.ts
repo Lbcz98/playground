@@ -31,6 +31,7 @@ import {
   TEXT_VARIANTS,
 } from './tokens'
 import { contentCardSpec, frameSpec, spacingScale } from './primitives'
+import { describeGrid, isOnGrid } from '@/shared/layout/frame'
 
 // ---------------------------------------------------------------------------
 // Inspector control metadata (drives the properties panel UI)
@@ -41,7 +42,7 @@ export type Control =
   | { kind: 'textarea'; label: string }
   | { kind: 'boolean'; label: string }
   | { kind: 'select'; label: string; options: readonly string[] }
-  | { kind: 'number'; label: string; min?: number; max?: number; step?: number }
+  | { kind: 'number'; label: string; min?: number; max?: number; step?: number; grid?: boolean }
   /** A list of objects — its item fields and length cap are read off the schema. */
   | { kind: 'list'; label: string }
 
@@ -217,6 +218,19 @@ export type CloseButtonNodeProps = z.infer<typeof closeButtonSchema>
 
 const CARD_HEIGHT_MIN = 2 * parseFloat(spacingScale[contentCardSpec.inset])
 
+/** The most a card's gap can be — the 2xl step. */
+export const CARD_GAP_MAX = 40
+
+/** A gap in px anywhere on the 8pt scale (`isOnGrid`), up to CARD_GAP_MAX. Omitted: the component's own. */
+function onGridGap() {
+  return z
+    .number()
+    .min(0)
+    .max(CARD_GAP_MAX)
+    .refine(isOnGrid, { message: `must be on the 8pt scale: ${describeGrid()}` })
+    .optional()
+}
+
 export const contentCardSchema = z
   .object({
     interactionState: z.enum(CONTROL_STATES).default('default'),
@@ -227,6 +241,7 @@ export const contentCardSchema = z
       .multipleOf(frameSpec.grid)
       // Omitted: the card hugs its content, up to the tallest card.
       .optional(),
+    gap: onGridGap(),
   })
   .strict()
 export type ContentCardNodeProps = z.infer<typeof contentCardSchema>
@@ -256,6 +271,7 @@ export type ContentCardHeaderNodeProps = z.infer<typeof contentCardHeaderSchema>
 export const contentCardBodySchema = z
   .object({
     quote: z.string().default(''),
+    gap: onGridGap(),
   })
   .strict()
 export type ContentCardBodyNodeProps = z.infer<typeof contentCardBodySchema>
@@ -541,6 +557,7 @@ export const Catalog = {
         max: contentCardSpec.maxHeight,
         step: frameSpec.grid,
       },
+      gap: { kind: 'number', label: 'Zone gap', min: 0, max: CARD_GAP_MAX, grid: true },
     },
   },
   ContentCardHeader: {
@@ -579,6 +596,7 @@ export const Catalog = {
     defaultProps: contentCardBodySchema.parse({}),
     controls: {
       quote: { kind: 'textarea', label: 'Quote' },
+      gap: { kind: 'number', label: 'Row gap', min: 0, max: CARD_GAP_MAX, grid: true },
     },
   },
   ContentCardFooter: {

@@ -1043,6 +1043,12 @@
           "required": false,
           "description": "Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order."
         },
+        "gap": {
+          "type": "number",
+          "kind": "number",
+          "required": false,
+          "description": "Space between the header, body and footer in px, from `0` to `40`, on the 8pt\nscale: a multiple of 8, or 4 or 12. Omitted: 16, the kit's gutter."
+        },
         "height": {
           "type": "number",
           "kind": "number",
@@ -1083,6 +1089,12 @@
               "kind": "node",
               "required": false,
               "description": "The card's content — rows of Table Cells, or any stack of kit text."
+            },
+            "gap": {
+              "type": "number",
+              "kind": "number",
+              "required": false,
+              "description": "Space between the body's rows in px, from `0` to `40`, on the 8pt scale: a\nmultiple of 8, or 4 or 12. Scout rows still sit flush. Omitted: 8\n(`table-row-gap`)."
             },
             "quote": {
               "type": "string",

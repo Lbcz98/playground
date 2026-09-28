@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ManifestProp } from '@/shared/design-system/manifest'
-import { itemToLine, lineToItem, parseListDraft } from './PropertyControl'
+import { itemToLine, lineToItem, numberProblem, parseListDraft } from './PropertyControl'
 
 const text = (name: string, required = false): ManifestProp => ({ name, type: { name: 'string' }, required })
 const items: ManifestProp = {
@@ -31,5 +31,19 @@ describe('list-of-objects inspector lines', () => {
     })
     expect(parseListDraft('A\n| São Paulo', items)).toEqual({ error: 'Line 2 needs a title.' })
     expect(parseListDraft('A\nB\nC', items)).toEqual({ error: 'At most 2 items.' })
+  })
+})
+
+describe('number fields — saved only when they keep the prop\'s limits', () => {
+  const gap: ManifestProp = { name: 'gap', type: { name: 'number' }, required: false, min: 0, max: 40, grid: true }
+  it('takes any number on the 8pt scale inside the range', () => {
+    for (const ok of [0, 4, 8, 12, 16, 24, 32, 40]) expect(numberProblem(ok, gap), `${ok}`).toBeNull()
+  })
+  it('says why an off-scale or out-of-range number is not saved', () => {
+    expect(numberProblem(20, gap)).toMatch(/20 isn't on the 8pt scale/)
+    expect(numberProblem(5, gap)).toMatch(/8pt scale/)
+    expect(numberProblem(48, gap)).toBe('At most 40.')
+    const height: ManifestProp = { name: 'height', type: { name: 'number' }, required: false, min: 48, max: 456, step: 8 }
+    expect(numberProblem(452, height)).toBe('A multiple of 8.')
   })
 })

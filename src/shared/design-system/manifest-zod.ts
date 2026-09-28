@@ -48,6 +48,8 @@ import {
   slotOrderErrors,
 } from './manifest'
 import {
+  describeGrid,
+  isOnGrid,
   frameLayoutErrors,
   isOffGridSpacingToken,
   onGridSpacingNames,
@@ -92,7 +94,7 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
         if (prop.min !== undefined) n = n.min(prop.min)
         if (prop.max !== undefined) n = n.max(prop.max)
         if (prop.step !== undefined) n = n.multipleOf(prop.step)
-        schema = n
+        schema = prop.grid ? n.refine(isOnGrid, { message: `must be on the 8pt scale: ${describeGrid()}` }) : n
         break
       }
       case 'array': {
@@ -361,12 +363,13 @@ function validateNode(
         continue
       }
       const spec = component.props[key]
-      if (spec.type.name === 'number' && (spec.min !== undefined || spec.max !== undefined || spec.step !== undefined)) {
+      if (spec.type.name === 'number' && (spec.min !== undefined || spec.max !== undefined || spec.step !== undefined || spec.grid)) {
         const range = [
           spec.step !== undefined ? `a multiple of ${spec.step}` : 'a number',
           spec.min !== undefined && spec.max !== undefined ? `from ${spec.min} to ${spec.max}` : '',
           spec.min !== undefined && spec.max === undefined ? `of at least ${spec.min}` : '',
           spec.max !== undefined && spec.min === undefined ? `of at most ${spec.max}` : '',
+          spec.grid ? `on the 8pt scale (${describeGrid()})` : '',
         ].filter(Boolean).join(' ')
         errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
         continue

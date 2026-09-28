@@ -259,3 +259,37 @@ export const Estatisticas: Story = {
     </ContentCard>
   ),
 }
+
+/**
+ * Both gaps are yours to set, in px, anywhere on the 8pt scale — a multiple of 8,
+ * or the tight 4 and 12. `gap` on the card spaces its header, body and footer
+ * (default 16); `gap` on the body spaces its rows (default 8, `table-row-gap`).
+ * Anything off the scale (5, 20, 28) is rejected by the validator.
+ */
+export const Gaps: Story = {
+  args: {},
+  render: () => (
+    <Stack direction="row" align="start" gap="lg">
+      {([
+        [8, 4],
+        [16, 8],
+        [24, 16],
+      ] as const).map(([zones, rows]) => (
+        <Stack key={zones} direction="column" gap="2xs">
+          <Text variant="caption-medium" color="subtle">
+            {`card gap ${zones} · body gap ${rows}`}
+          </Text>
+          <ContentCard gap={zones}>
+            <ContentCardHeader title="Grupo A" subtitle="Fase de Grupos" stats={['Pts', 'J', 'V']} />
+            <ContentCardBody gap={rows}>
+              {[['MEX', '9', '3', '3'], ['AFR', '4', '3', '1'], ['COR', '3', '3', '1'], ['TCH', '1', '3', '0']].map(([name, pts, j, v], i) => (
+                <TableCell key={name} position={String(i + 1)} shield={away} name={name} stats={[pts, j, v]} />
+              ))}
+            </ContentCardBody>
+            <ContentCardFooter caption="Atualizado há 1 min" />
+          </ContentCard>
+        </Stack>
+      ))}
+    </Stack>
+  ),
+}

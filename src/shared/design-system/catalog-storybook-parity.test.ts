@@ -131,9 +131,9 @@ describe.each(bound)('%s', (id, binding) => {
   it('P1.10 — a number prop\'s limits are stated in its JSDoc, the same as the catalog\'s', () => {
     for (const [name, prop] of Object.entries(props)) {
       if (prop.type.name !== 'number' || binding.propMap?.[name]) continue
-      const catalog = { min: prop.min, max: prop.max, step: prop.step }
-      // An imported system only gets these limits from the JSDoc ("from `a` to `b` in steps of `s`").
-      expect({ min: undefined, max: undefined, step: undefined, ...documentedRange(docgen.props[name].description) }, `${id}.${name}`).toEqual(catalog)
+      const catalog = { min: prop.min, max: prop.max, step: prop.step, grid: prop.grid }
+      // An imported system only gets these limits from the JSDoc ("from `a` to `b` in steps of `s`", "on the 8pt scale").
+      expect({ min: undefined, max: undefined, step: undefined, grid: undefined, ...documentedRange(docgen.props[name].description) }, `${id}.${name}`).toEqual(catalog)
     }
   })
 
@@ -171,11 +171,12 @@ describe('P1.5 — numeric props agree with the grid and the Content Card spec',
     expect(SNAPSHOT.components['ui-kit-content-card'].props.height.defaultValue).toBeUndefined()
   })
 
-  it('every catalog number prop has a range and a step', () => {
+  it('every catalog number prop has a range, and a step or the 8pt scale', () => {
     for (const component of Object.values(catalog)) {
       for (const [name, prop] of Object.entries(component.props)) {
         if (prop.type.name !== 'number') continue
-        expect([prop.min, prop.max, prop.step].every((v) => typeof v === 'number'), `${component.id}.${name}`).toBe(true)
+        expect([prop.min, prop.max].every((v) => typeof v === 'number'), `${component.id}.${name} range`).toBe(true)
+        expect(typeof prop.step === 'number' || prop.grid === true, `${component.id}.${name} step or grid`).toBe(true)
       }
     }
   })

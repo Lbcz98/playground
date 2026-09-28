@@ -20,6 +20,7 @@
 import type { ManifestProp } from '@/shared/design-system/manifest'
 import { inferControl, propLabel } from '@/shared/design-system/manifest'
 import { useEffect, useRef, useState } from 'react'
+import { describeGrid, isOnGrid } from '@/shared/layout/frame'
 import { cx } from '@/lib/cx'
 
 export interface PropertyControlProps {
@@ -66,6 +67,65 @@ export function parseListDraft(text: string, prop: ManifestProp): { items: Recor
     if (missing) return { error: `Line ${i + 1} needs a ${missing.name}.` }
   }
   return { items }
+}
+
+/** Why `value` breaks the prop's limits, or null when it keeps them — the same rules the validator holds it to. */
+export function numberProblem(value: number, prop: ManifestProp): string | null {
+  if (!Number.isFinite(value)) return 'Type a number.'
+  if (prop.min !== undefined && value < prop.min) return `At least ${prop.min}.`
+  if (prop.max !== undefined && value > prop.max) return `At most ${prop.max}.`
+  if (prop.step !== undefined && value % prop.step !== 0) return `A multiple of ${prop.step}.`
+  if (prop.grid && !isOnGrid(value)) return `${value} isn't on the 8pt scale — ${describeGrid()}.`
+  return null
+}
+
+/**
+ * A number, saved only when it keeps the prop's limits (range, step, the 8pt
+ * scale). An off-limits value stays in the field with the reason under it —
+ * written through, it would fail the node's schema and the canvas would drop
+ * every prop of the node back to its defaults.
+ */
+function NumberField({ id, propDef, currentValue, onChange }: {
+  id: string
+  propDef: ManifestProp
+  currentValue: unknown
+  onChange: (value: unknown) => void
+}): JSX.Element {
+  const saved = currentValue === undefined || currentValue === null ? '' : String(currentValue)
+  const [draft, setDraft] = useState(saved)
+  const [error, setError] = useState<string | null>(null)
+  // A change from elsewhere (undo, another node, the agent) replaces the draft.
+  useEffect(() => {
+    setDraft(saved)
+    setError(null)
+  }, [saved])
+
+  return (
+    <>
+      <input
+        id={id}
+        type="number"
+        min={propDef.min}
+        max={propDef.max}
+        step={propDef.step ?? (propDef.grid ? 4 : undefined)}
+        value={draft}
+        aria-invalid={error !== null}
+        onChange={(e) => {
+          const text = e.target.value
+          setDraft(text)
+          if (text === '') {
+            setError(null)
+            return onChange(undefined)
+          }
+          const problem = numberProblem(Number(text), propDef)
+          setError(problem)
+          if (!problem) onChange(Number(text))
+        }}
+        className={FIELD_CLASS}
+      />
+      {error ? <span className="text-xs text-danger">{error}</span> : null}
+    </>
+  )
 }
 
 /**
@@ -179,16 +239,7 @@ export function PropertyControl({
           ))}
         </select>
       ) : kind === 'number' ? (
-        <input
-          id={id}
-          type="number"
-          min={propDef.min}
-          max={propDef.max}
-          step={propDef.step}
-          value={currentValue === undefined || currentValue === null ? '' : String(currentValue)}
-          onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-          className={FIELD_CLASS}
-        />
+        <NumberField id={id} propDef={propDef} currentValue={currentValue} onChange={onChange} />
       ) : kind === 'list' && propDef.fields ? (
         <ObjectListField id={id} propDef={propDef} currentValue={currentValue} onChange={onChange} />
       ) : kind === 'list' ? (

@@ -153,6 +153,7 @@ function toManifestComponent(type: string): ManifestComponent {
       ...(control?.kind === 'number' && control.min !== undefined ? { min: control.min } : {}),
       ...(control?.kind === 'number' && control.max !== undefined ? { max: control.max } : {}),
       ...(control?.kind === 'number' && control.step !== undefined ? { step: control.step } : {}),
+      ...(control?.kind === 'number' && control.grid ? { grid: true } : {}),
       ...(control?.kind === 'list' ? listShape(shape[name]) : {}),
     }
   }

@@ -48,6 +48,7 @@ import {
   allowedSpacingNames,
   centeringPropsFor,
   columnDirectionFor,
+  describeGrid,
   stretchPropFor,
   onGridSpacingNames,
   spacingNameForPx,
@@ -71,6 +72,8 @@ export interface PropSpec {
   min?: number
   max?: number
   step?: number
+  /** A px number on the 8pt scale (multiples of 8, plus the frame's tight steps). */
+  grid?: boolean
   /** A list of objects: each item's fields, `?` marking the optional ones. */
   fields?: string[]
 }
@@ -108,6 +111,7 @@ function specForComponent(component: ManifestComponent, manifest: DesignSystemMa
       ...(prop.min !== undefined ? { min: prop.min } : {}),
       ...(prop.max !== undefined ? { max: prop.max } : {}),
       ...(prop.step !== undefined ? { step: prop.step } : {}),
+      ...(prop.grid ? { grid: true } : {}),
       ...(prop.fields ? { fields: Object.values(prop.fields).map((f) => `${f.name}${f.required ? '' : '?'}`) } : {}),
     }
   })
@@ -246,6 +250,7 @@ function propType(p: PropSpec): string {
     const rule = [
       p.step !== undefined ? `a multiple of ${p.step}` : '',
       p.min !== undefined && p.max !== undefined ? `from ${p.min} to ${p.max}` : '',
+      p.grid ? `on the 8pt scale (${describeGrid()})` : '',
     ].filter(Boolean).join(' ')
     return `      - ${p.name}: number${rule ? `, ${rule}` : ''} (default ${def})`
   }

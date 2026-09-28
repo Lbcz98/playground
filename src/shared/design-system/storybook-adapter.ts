@@ -151,8 +151,8 @@ function objectListFields(node: Record<string, unknown>): Record<string, Manifes
   return Object.keys(fields).length > 0 ? fields : undefined
 }
 
-/** "from `48` to `456` in steps of `8`" in a number prop's JSDoc → its min / max / step. */
-export function documentedRange(description: string | undefined): { min?: number; max?: number; step?: number } {
+/** "from `48` to `456` in steps of `8`" / "on the 8pt scale" in a number prop's JSDoc → its min / max / step / grid. */
+export function documentedRange(description: string | undefined): { min?: number; max?: number; step?: number; grid?: boolean } {
   if (!description) return {}
   const num = (s: string | undefined): number | undefined => (s !== undefined && Number.isFinite(Number(s)) ? Number(s) : undefined)
   const bounds = description.match(/\bfrom `(-?[\d.]+)` to `(-?[\d.]+)`/)
@@ -163,6 +163,7 @@ export function documentedRange(description: string | undefined): { min?: number
     ...(min !== undefined ? { min } : {}),
     ...(max !== undefined ? { max } : {}),
     ...(step !== undefined && step > 0 ? { step } : {}),
+    ...(/\bon the 8pt\s+scale\b/.test(description) ? { grid: true } : {}),
   }
 }
 

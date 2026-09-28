@@ -57,6 +57,11 @@ export interface ContentCardProps {
    * hugs its content, up to 456, like the Figma cards built from it.
    */
   height?: number
+  /**
+   * Space between the header, body and footer in px, from `0` to `40`, on the 8pt
+   * scale: a multiple of 8, or 4 or 12. Omitted: 16, the kit's gutter.
+   */
+  gap?: number
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -77,7 +82,7 @@ function gridHeight(px: number): string {
 }
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
-export function ContentCard({ interactionState, height, children }: ContentCardProps): ReactNode {
+export function ContentCard({ interactionState, height, gap, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
     'ui-kit/ContentCard',
     interactionState,
@@ -109,7 +114,7 @@ export function ContentCard({ interactionState, height, children }: ContentCardP
     minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing('sm'),
+    gap: gap === undefined ? spacing('sm') : `${gap}px`,
     opacity: focus ? undefined : token('--opacity-semantic-content-muted'),
   }
 
@@ -293,6 +298,12 @@ export function ContentCardHeader({
 export interface ContentCardBodyProps {
   /** A quote under the body's content. Omitted or empty: not drawn. */
   quote?: string
+  /**
+   * Space between the body's rows in px, from `0` to `40`, on the 8pt scale: a
+   * multiple of 8, or 4 or 12. Scout rows still sit flush. Omitted: 8
+   * (`table-row-gap`).
+   */
+  gap?: number
   /** The card's content — rows of Table Cells, or any stack of kit text. */
   children?: ReactNode
 }
@@ -301,7 +312,7 @@ export interface ContentCardBodyProps {
  * The main zone. It takes the height the header and footer leave and clips at the
  * card's inset rather than pushing past it.
  */
-export function ContentCardBody({ quote, children }: ContentCardBodyProps): ReactNode {
+export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps): ReactNode {
   return (
     <div
       style={{
@@ -311,6 +322,9 @@ export function ContentCardBody({ quote, children }: ContentCardBodyProps): Reac
         display: 'flex',
         flexDirection: 'column',
         gap: BODY_GAP,
+        // A gap set per use re-points the table-row-gap token inside this body, so
+        // the flush rule for scout rows (primitives.css) cancels the same amount.
+        ...(gap === undefined ? {} : { ['--dimension-spacing-semantic-table-row-gap' as string]: `${gap}px` }),
       }}
       data-card-body=""
     >

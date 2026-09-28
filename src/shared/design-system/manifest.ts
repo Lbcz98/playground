@@ -56,6 +56,12 @@ export interface ManifestProp {
   /** For a number prop: values must be a whole multiple of this (a grid step). */
   step?: number
   /**
+   * For a number prop in px: it must sit on the 8pt scale — a multiple of 8, or
+   * one of the tight steps the frame allows (4, 12). Any such number, not only
+   * the named spacing steps.
+   */
+  grid?: boolean
+  /**
    * For a list (`array`) of objects: each item's fields, in order — e.g. a
    * carousel's `{ title, subtitle?, iconSrc? }`. Absent: a list of text.
    */
@@ -338,6 +344,7 @@ const propSchema: z.ZodType<ManifestProp> = z
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
     step: z.number().finite().positive().optional(),
+    grid: z.boolean().optional(),
     fields: z
       .record(z.lazy(() => propSchema))
       .refine((f) => Object.keys(f).length <= MAX_PROPS_PER_COMPONENT)

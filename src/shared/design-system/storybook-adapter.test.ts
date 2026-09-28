@@ -408,6 +408,30 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(errors(456)).not.toMatch(/height/)
   })
 
+  it('E2.11d — a gap "on the 8pt scale" takes any typed number on the scale, and nothing off it', () => {
+    const { manifest } = parseStorybookDocgenWithReport({
+      components: {
+        Body: {
+          displayName: 'Body',
+          props: { gap: { tsType: { name: 'number' }, description: 'Space between rows in px, from `0` to `40`, on the 8pt\nscale: a multiple of 8, or 4 or 12.' } },
+        },
+      },
+    })
+    expect(manifest.components.Body.props.gap).toMatchObject({ min: 0, max: 40, grid: true })
+    const errors = (gap: number) => {
+      const v = validateBlueprintAgainstManifest(
+        { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Body', props: { gap } } },
+        manifest,
+      )
+      return v.ok ? '' : v.errors.join(' | ')
+    }
+    for (const ok of [0, 4, 8, 12, 16, 24, 32, 40]) expect(errors(ok), `${ok}`).not.toMatch(/gap/)
+    for (const off of [5, 10, 20, 28]) expect(errors(off), `${off}`).toMatch(/gap.*8pt scale/)
+    expect(errors(48)).toMatch(/gap/) // past the range
+    const line = buildSystemPrompt('tool', manifest).split('\n').find((l) => l.includes('- gap:'))
+    expect(line).toMatch(/from 0 to 40 on the 8pt scale/)
+  })
+
   it('E2.11b — a list of text-only objects comes in with its fields; the validator and prompt know them', () => {
     const str = (required: boolean) => ({ name: 'string', required })
     const item = {
