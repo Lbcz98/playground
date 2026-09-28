@@ -5,9 +5,6 @@
  * shape (flat `Record<name, cssValue>` per semantic group). It targets:
  *
  *   - W3C Design Tokens (DTCG):        { color: { brand: { $value, $type } } }
- *   - pre-DTCG Style Dictionary:       { color: { brand: { value, type } } }
- *   - already-grouped ManifestTokens:  { colors: { brand: <hex> }, spacing: {…} }
- *   - a flat map:                      { "color-brand": <hex>, "space-md": <length> }
  *
  * `$type` is inherited from the nearest ancestor group; `{dot.path}` / `$aliasOf`
  * references are resolved. Every token is categorised into colors / spacing /
@@ -18,7 +15,7 @@
  */
 
 import type { ManifestTokens, TokenTier, TokenTierMap } from './manifest'
-import { inferTokenTiers, rawTierFor } from './manifest'
+import { rawTierFor } from './manifest'
 import { isSpringSpec, springToCss } from './spring'
 
 export type TokenGroup = keyof ManifestTokens
@@ -192,16 +189,8 @@ const SEMANTIC_KEY = /^semantic$/i
 /** A group named like this holds raw values, even without a `semantic` sibling. */
 const RAW_KEY = /^(core|primitives?|palette|refs?|references?)$/i
 
-const VALUE_KEYS = ['$value', 'value']
-const TYPE_KEYS = ['$type', 'type']
-
-function readKeyed(node: Record<string, unknown>, keys: string[]): unknown {
-  for (const k of keys) if (k in node) return node[k]
-  return undefined
-}
-
 function isTokenNode(node: Record<string, unknown>): boolean {
-  return VALUE_KEYS.some((k) => k in node) || '$aliasOf' in node
+  return '$value' in node || '$aliasOf' in node
 }
 
 function refString(v: unknown): string | undefined {
@@ -222,10 +211,9 @@ function walk(
   if (!isObject(node)) return
 
   if (isTokenNode(node)) {
-    const rawValue = readKeyed(node, VALUE_KEYS)
+    const rawValue = node.$value
     const alias = typeof node.$aliasOf === 'string' ? node.$aliasOf : refString(rawValue)
-    const type =
-      (readKeyed(node, TYPE_KEYS) as string | undefined) ?? inheritedType
+    const type = node.$type ?? inheritedType
     const ext = isObject(node.$extensions) ? node.$extensions[CSS_EXTENSION] : undefined
     const angle = isObject(ext) && typeof ext.angle === 'string' ? ext.angle : undefined
     out.push({
@@ -240,9 +228,9 @@ function walk(
     return
   }
 
-  const groupType = readKeyed(node, TYPE_KEYS)
+  const groupType = node.$type
   const nextType = typeof groupType === 'string' ? groupType : inheritedType
-  const children = Object.entries(node).filter(([key]) => !key.startsWith('$') && key !== 'type')
+  const children = Object.entries(node).filter(([key]) => !key.startsWith('$'))
   // In a group that has a `semantic` child, every other child is the raw tier.
   const hasSemantic = children.some(([key]) => SEMANTIC_KEY.test(key))
 
@@ -259,18 +247,6 @@ function walk(
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
-
-/** True for an object that is already `{ colors: {...}, spacing: {...} }`-shaped. */
-function looksGrouped(raw: Record<string, unknown>): boolean {
-  const keys = Object.keys(raw)
-  return (
-    keys.length > 0 &&
-    keys.every((k) => (GROUPS as string[]).includes(k)) &&
-    Object.values(raw).every(
-      (v) => isObject(v) && Object.values(v).every((x) => typeof x === 'string'),
-    )
-  )
-}
 
 /** Drop one leading path segment when it just names the token's group. */
 function stripGroupPrefix(path: string[]): string[] {
@@ -316,33 +292,8 @@ interface ParsedTokens {
 function parse(raw: unknown): ParsedTokens {
   if (!isObject(raw)) return { tokens: {}, tiers: {}, warnings: [] }
 
-  // Shape 1 — already grouped.
-  if (looksGrouped(raw)) {
-    const out: Partial<ManifestTokens> = {}
-    for (const g of GROUPS) {
-      const dict = raw[g]
-      if (isObject(dict) && Object.keys(dict).length > 0) {
-        out[g] = Object.fromEntries(
-          Object.entries(dict).map(([k, v]) => [k, String(v)]),
-        )
-      }
-    }
-    return { tokens: out, tiers: inferTokenTiers(mergeTokens(out)), warnings: [] }
-  }
-
-  // Shape 2/3 — DTCG / Style Dictionary tree, or a flat primitive map.
   const collected: RawToken[] = []
-  const flatEntries = Object.entries(raw).filter(
-    ([, v]) => typeof v === 'string' || typeof v === 'number',
-  )
-  const flat = flatEntries.length === Object.keys(raw).length && flatEntries.length > 0
-  if (flat) {
-    for (const [key, value] of flatEntries) {
-      collected.push({ path: key.split(/[./]/).flatMap((s) => s.split('-')), value })
-    }
-  } else {
-    walk(raw, [], undefined, undefined, collected)
-  }
+  walk(raw, [], undefined, undefined, collected)
 
   // Reference resolution — index by dotted path, then resolve up to a few hops.
   const byPath = new Map<string, RawToken>()
@@ -401,7 +352,6 @@ function parse(raw: unknown): ParsedTokens {
     if (t.tier) (tiers[group] ??= {})[name] = t.tier === 'core' ? rawTierFor(group) : 'semantic'
   }
 
-  if (flat) return { tokens: result, tiers: inferTokenTiers(mergeTokens(result)), warnings }
   // A group is tiered only when it has a semantic layer to point components at.
   const tiered: TokenTierMap = {}
   for (const group of GROUPS) {

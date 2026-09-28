@@ -94,8 +94,11 @@ describe('designSystemStore', () => {
     })
 
     it('merges additively across successive imports', async () => {
-      await store().importTokens({ colors: { brand: '#111111' } })
-      await store().importTokens({ colors: { accent: '#222222' }, radius: { md: '8px' } })
+      await store().importTokens({ color: { $type: 'color', brand: { $value: '#111111' } } })
+      await store().importTokens({
+        color: { $type: 'color', accent: { $value: '#222222' } },
+        radius: { $type: 'dimension', md: { $value: '8px' } },
+      })
       expect(store().active.tokens.colors).toEqual({ brand: '#111111', accent: '#222222' })
       expect(store().active.tokens.radius).toEqual({ md: '8px' })
     })
@@ -118,7 +121,7 @@ describe('designSystemStore', () => {
 
     it('refuses to re-theme the built-in ScreenFlow system', async () => {
       await store().setActive(SCREENFLOW_MANIFEST_ID)
-      const result = await store().importTokens({ colors: { brand: '#000000' } })
+      const result = await store().importTokens({ color: { $type: 'color', brand: { $value: '#000000' } } })
       expect(result.ok).toBe(false)
     })
 

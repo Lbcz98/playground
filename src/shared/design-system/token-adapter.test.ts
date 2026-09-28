@@ -41,43 +41,7 @@ describe('parseDesignTokens — W3C Design Tokens (DTCG)', () => {
   })
 })
 
-describe('parseDesignTokens — Style Dictionary (pre-DTCG)', () => {
-  it('reads `value` / `type`', () => {
-    const t = parseDesignTokens({
-      color: {
-        primary: { value: '#ff0000', type: 'color' },
-        secondary: { value: '{color.primary}', type: 'color' },
-      },
-      size: {
-        font: { small: { value: '12px', type: 'dimension' } },
-      },
-    })
-    expect(t.colors).toEqual({ primary: '#ff0000', secondary: '#ff0000' })
-    // "font" in the path routes a dimension to typography
-    expect(t.typography).toEqual({ 'font-small': '12px' })
-  })
-})
-
 describe('parseDesignTokens — other shapes', () => {
-  it('passes an already-grouped ManifestTokens object through', () => {
-    const t = parseDesignTokens({
-      colors: { brand: '#123456' },
-      spacing: { md: '16px' },
-    })
-    expect(t).toEqual({ colors: { brand: '#123456' }, spacing: { md: '16px' } })
-  })
-
-  it('handles a flat "group-name": value map', () => {
-    const t = parseDesignTokens({
-      'color-brand': '#0a0a0a',
-      'space-md': '16px',
-      'radius-lg': '12px',
-    })
-    expect(t.colors).toEqual({ brand: '#0a0a0a' })
-    expect(t.spacing).toEqual({ md: '16px' })
-    expect(t.radius).toEqual({ lg: '12px' })
-  })
-
   it('falls back to value-shape when type and name are ambiguous', () => {
     const t = parseDesignTokens({ misc: { a: { $value: '#abcdef' }, b: { $value: '8px' } } })
     expect(t.colors).toEqual({ 'misc-a': '#abcdef' })
