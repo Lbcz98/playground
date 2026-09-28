@@ -21,7 +21,7 @@ import {
   focusPropsFor,
   readingOrder,
 } from '@/shared/layout/frame'
-import { auditRender } from '@/shared/layout/renderAudit'
+import { auditRender, type ClipBox } from '@/shared/layout/renderAudit'
 import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
 import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { focusLeavesLevel } from '@/shared/design-system/flow'
@@ -323,9 +323,34 @@ function useRenderAudit(
         height: rect.height / scale,
       })
 
-      const nodes = Array.from(frame.querySelectorAll<HTMLElement>('[data-node-id]'))
-        .filter((el) => el.getClientRects().length > 0)
-        .map((el) => ({ id: el.dataset.nodeId!, type: typeOf(tree, el.dataset.nodeId!), ...box(el.getBoundingClientRect()) }))
+      // A kit node's host is `display: contents` (DecorationHost) and has no box of
+      // its own — its box is the union of what it renders.
+      const rectOf = (el: Element): DOMRect | null => {
+        if (el.getClientRects().length > 0) return el.getBoundingClientRect()
+        const rects = Array.from(el.children).map(rectOf).filter((r): r is DOMRect => r !== null)
+        if (rects.length === 0) return null
+        const left = Math.min(...rects.map((r) => r.left))
+        const top = Math.min(...rects.map((r) => r.top))
+        return new DOMRect(left, top, Math.max(...rects.map((r) => r.right)) - left, Math.max(...rects.map((r) => r.bottom)) - top)
+      }
+      // The nearest ancestor inside the frame that clips its overflow (a card), and the node that owns it.
+      const clipOf = (el: Element): ClipBox | undefined => {
+        for (let a = el.parentElement; a && a !== frame; a = a.parentElement) {
+          const style = getComputedStyle(a)
+          if (style.overflowX === 'visible' && style.overflowY === 'visible') continue
+          const owner = a.closest<HTMLElement>('[data-node-id]')
+          const ownerId = owner?.dataset.nodeId
+          if (!ownerId) return undefined
+          return { ownerId, ownerType: typeOf(tree, ownerId), ...box(a.getBoundingClientRect()) }
+        }
+        return undefined
+      }
+
+      const nodes = Array.from(frame.querySelectorAll<HTMLElement>('[data-node-id]')).flatMap((el) => {
+        const rect = rectOf(el)
+        const id = el.dataset.nodeId!
+        return rect ? [{ id, type: typeOf(tree, id), ...box(rect), clip: clipOf(el) }] : []
+      })
 
       // Every element whose own children include a real text node — measured by
       // its text content's own extent (a Range), not the element's padded box.
@@ -335,7 +360,7 @@ function useRenderAudit(
         .filter((el) => Number(getComputedStyle(el).opacity) > 0.05) // mid-transition text isn't really "on screen" yet
         .map((el) => {
           range.selectNodeContents(el)
-          return { text: (el.textContent ?? '').trim().slice(0, 40), ...box(range.getBoundingClientRect()) }
+          return { text: (el.textContent ?? '').trim().slice(0, 40), ...box(range.getBoundingClientRect()), clip: clipOf(el) }
         })
 
       setProblems(auditRender({ frame: { width: frame.offsetWidth, height: frame.offsetHeight }, nodes, texts }))

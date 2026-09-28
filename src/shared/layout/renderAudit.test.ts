@@ -50,6 +50,25 @@ describe('auditRender — problems only the real render can show', () => {
     expect(auditRender({ frame, nodes: [], texts: [text({ text: '', width: 0 })] })).toEqual([])
   })
 
+  it('reports rows a card cuts off once per card, counted — not the frame edge they hide past', () => {
+    const card = { ownerId: 'card', ownerType: 'ContentCard', top: 104, left: 960, width: 288, height: 456 }
+    const rows = Array.from({ length: 20 }, (_, i) =>
+      node({ id: `r${i}`, type: 'TableCell', top: 200 + i * 34, left: 984, width: 240, height: 28, clip: card }),
+    )
+    const problems = auditRender({ frame, nodes: rows, texts: [] })
+    // Rows from y=200 in 34px steps: the card's bottom edge (560) falls after the 10th.
+    expect(problems).toEqual([
+      '<ContentCard> cuts off 10 <TableCell>s — it holds more than fits; trim it, make it taller, or split it.',
+    ])
+  })
+
+  it('ignores text its container hides — the viewer never sees it overlap anything', () => {
+    const card = { ownerId: 'card', ownerType: 'ContentCard', top: 100, left: 100, width: 200, height: 100 }
+    const hidden = text({ text: 'Time 20', top: 600, left: 120, width: 60, height: 16, clip: card })
+    const below = text({ text: 'Voltar', top: 602, left: 130, width: 60, height: 16 })
+    expect(auditRender({ frame, nodes: [], texts: [hidden, below] })).toEqual([])
+  })
+
   it('catches two text runs overlapping', () => {
     const a = text({ text: 'Bruno Henrique', top: 100, left: 100, width: 100, height: 16 })
     const b = text({ text: 'Placar: 1 x 0', top: 105, left: 150, width: 100, height: 16 })

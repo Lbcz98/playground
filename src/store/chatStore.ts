@@ -89,14 +89,22 @@ function accumulate(prev: SessionUsage, u: GenerateUsage | undefined): SessionUs
   }
 }
 
+/** Longest the repair waits for the canvas to measure a fresh screen before giving up (no canvas mounted, say). */
+const RENDER_SETTLE_TIMEOUT_MS = 2000
+
 /**
- * Waits for the canvas's render measurement to settle after a fresh blueprint
- * paints — one frame for React's commit + `useRenderAudit`'s layout effect, then
- * self-hosted webfonts (the one concrete cause of a stale first reading, measured
- * live), then one more frame for that re-measure to land in `frameStore`.
+ * The canvas's render problems for the screen just applied, or null when no
+ * fresh measurement arrived. `sinceVersion` is `frameStore.renderVersion` read
+ * before the apply: waiting for it to move is what keeps this from returning the
+ * previous screen's reading. Then webfonts (a stale first reading was measured
+ * live) and one more frame for that re-measure to land.
  */
-async function waitForRenderSettled(): Promise<string[]> {
-  await new Promise(requestAnimationFrame)
+async function waitForRenderSettled(sinceVersion: number): Promise<string[] | null> {
+  const deadline = Date.now() + RENDER_SETTLE_TIMEOUT_MS
+  while (useFrameStore.getState().renderVersion === sinceVersion) {
+    if (Date.now() > deadline) return null
+    await new Promise(requestAnimationFrame)
+  }
   await document.fonts?.ready
   await new Promise(requestAnimationFrame)
   return useFrameStore.getState().renderProblems
@@ -177,12 +185,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage) }))
 
+      const measuredBefore = useFrameStore.getState().renderVersion
       const applied = applyGenerated(response, trimmed)
       patch(applied)
 
       if (response.ok && applied.run?.ok) {
-        const problems = await waitForRenderSettled()
-        if (problems.length > 0) {
+        const problems = await waitForRenderSettled(measuredBefore)
+        if (problems && problems.length > 0) {
           const repairPrompt = `The screen just built has problems only visible once it renders: ${problems.join('; ')}. Rebuild it, fixing these — keep everything else about the request the same.`
           const repairUserMsg: ChatMessage = { id: createNodeId(), role: 'user', text: repairPrompt, at: Date.now(), status: 'done' }
           const repairPendingId = createNodeId()
