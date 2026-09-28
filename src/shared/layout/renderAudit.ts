@@ -74,17 +74,22 @@ export function auditRender(m: RenderMeasurement): string[] {
   const frame: Box = { top: 0, left: 0, width: m.frame.width, height: m.frame.height }
 
   // Content its own container clips away: one problem per container, counted —
-  // twenty table rows in a card that holds ten is one fact, not ten.
-  const cutOff = new Map<string, { ownerType: string; type: string; count: number }>()
+  // twenty table rows in a card that holds nine is one fact, not eleven. The
+  // rows it does show are the measured capacity, so the message states it: a
+  // repair told only "cuts off 11" split a table into two cards of ten.
+  const byOwner = new Map<string, { ownerType: string; type: string; shown: number; cut: number }>()
   for (const n of m.nodes) {
-    if (!n.clip || !spills(n, n.clip)) continue
-    const entry = cutOff.get(n.clip.ownerId) ?? { ownerType: n.clip.ownerType, type: n.type, count: 0 }
-    entry.count++
-    cutOff.set(n.clip.ownerId, entry)
+    if (!n.clip) continue
+    const entry = byOwner.get(n.clip.ownerId) ?? { ownerType: n.clip.ownerType, type: n.type, shown: 0, cut: 0 }
+    if (n.type !== entry.type) continue // capacity is counted in one kind of child
+    if (spills(n, n.clip)) entry.cut++
+    else entry.shown++
+    byOwner.set(n.clip.ownerId, entry)
   }
-  for (const { ownerType, type, count } of cutOff.values()) {
+  for (const { ownerType, type, shown, cut } of byOwner.values()) {
+    if (cut === 0) continue
     problems.push(
-      `<${ownerType}> cuts off ${count} <${type}>${count === 1 ? '' : 's'} — it holds more than fits; trim it, make it taller, or split it.`,
+      `<${ownerType}> fits ${shown} <${type}>${shown === 1 ? '' : 's'} and cuts off ${cut} — keep it to ${shown}, or move the rest onto another screen. That count is for the card as built: a taller header or an added footer leaves room for fewer.`,
     )
   }
 

@@ -15,6 +15,7 @@ import type { ManifestProp } from './manifest'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import type { DocgenComponent, DocgenProp, StorybookSnapshot } from './storybook-components-manifest'
 import { STORYBOOK_MAP, STORYBOOK_ONLY, type StorybookBinding } from './storybook-map'
+import { documentedRange } from './storybook-adapter'
 
 const SNAPSHOT: StorybookSnapshot = JSON.parse(
   readFileSync(new URL('../../../tests/storybook/manifest.snapshot.json', import.meta.url), 'utf8'),
@@ -127,6 +128,15 @@ describe.each(bound)('%s', (id, binding) => {
     for (const name of Object.keys(overrides)) expect(props, `${id}.${name} overrides a prop the catalog lacks`).toHaveProperty(name)
   })
 
+  it('P1.10 — a number prop\'s limits are stated in its JSDoc, the same as the catalog\'s', () => {
+    for (const [name, prop] of Object.entries(props)) {
+      if (prop.type.name !== 'number' || binding.propMap?.[name]) continue
+      const catalog = { min: prop.min, max: prop.max, step: prop.step }
+      // An imported system only gets these limits from the JSDoc ("from `a` to `b` in steps of `s`").
+      expect({ min: undefined, max: undefined, step: undefined, ...documentedRange(docgen.props[name].description) }, `${id}.${name}`).toEqual(catalog)
+    }
+  })
+
   it('P1.7 — the component and every catalog prop carry a JSDoc description', () => {
     expect(docgen.description, `${id} has no JSDoc on its component`).not.toBe('')
     const bare = Object.keys(props)
@@ -193,5 +203,14 @@ describe('P1.8 — no inherited DOM props leak into the documented surface', () 
     expect(Object.keys(component.props)).not.toContain('style')
     expect(Object.keys(component.props)).not.toContain('className')
     expect(Object.keys(component.props).filter((name) => name.startsWith('aria-'))).toEqual([])
+  })
+})
+
+describe('Content Card capacity — one measured number, stated the same everywhere', () => {
+  it("the component's JSDoc (what an imported system reads) and the catalog state contentCardSpec.rowsAtMax", () => {
+    const { team, athlete, scout } = contentCardSpec.rowsAtMax
+    const said = `holds ${team} team rows, ${athlete} athlete rows or ${scout} scout rows`
+    expect(docgenFor(STORYBOOK_MAP.ContentCard)!.description).toContain(said)
+    expect(SCREENFLOW_MANIFEST.components.ContentCard.description).toContain(said)
   })
 })

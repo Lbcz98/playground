@@ -1035,7 +1035,7 @@
     },
     "ui-kit-content-card": {
       "name": "ContentCard",
-      "description": "The tall card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order.",
+      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 12 athlete rows or 8 scout rows under a header and footer: split a longer table across screens.",
       "props": {
         "children": {
           "type": "ReactNode",
@@ -1048,7 +1048,7 @@
           "kind": "number",
           "required": false,
           "defaultValue": "440",
-          "description": "Total height in px, a multiple of the 8pt grid up to `contentCardSpec.maxHeight`.\nAnything else is snapped onto the grid and held inside the range. Default 440."
+          "description": "Total height in px, from `48` to `456` in steps of `8` (the grid). Anything\nelse is snapped onto the grid and held inside the range. Default 440."
         },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
@@ -1649,7 +1649,7 @@
           "type": "number",
           "kind": "number",
           "required": false,
-          "description": "Goals scored (athlete rows). `0` or omitted: not drawn."
+          "description": "Goals scored (athlete rows), from `0` to `9` in steps of `1`. `0` or omitted: not drawn."
         },
         "label": {
           "type": "string",

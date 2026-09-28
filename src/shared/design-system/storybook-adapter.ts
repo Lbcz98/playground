@@ -151,6 +151,21 @@ function objectListFields(node: Record<string, unknown>): Record<string, Manifes
   return Object.keys(fields).length > 0 ? fields : undefined
 }
 
+/** "from `48` to `456` in steps of `8`" in a number prop's JSDoc → its min / max / step. */
+export function documentedRange(description: string | undefined): { min?: number; max?: number; step?: number } {
+  if (!description) return {}
+  const num = (s: string | undefined): number | undefined => (s !== undefined && Number.isFinite(Number(s)) ? Number(s) : undefined)
+  const bounds = description.match(/\bfrom `(-?[\d.]+)` to `(-?[\d.]+)`/)
+  const step = num(description.match(/\bsteps? of `([\d.]+)`/)?.[1])
+  const min = num(bounds?.[1])
+  const max = num(bounds?.[2])
+  return {
+    ...(min !== undefined ? { min } : {}),
+    ...(max !== undefined ? { max } : {}),
+    ...(step !== undefined && step > 0 ? { step } : {}),
+  }
+}
+
 function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null {
   if (!isObject(raw)) return null
 
@@ -242,6 +257,11 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
     }
   }
 
+  // A number's limits, stated the same way: "from `48` to `456` in steps of `8`".
+  // Docgen sees only `number`; without these the validator can't hold a value to
+  // the range the component clamps it into.
+  const range = typeName === 'number' ? documentedRange(description) : {}
+
   const prop: ManifestProp = {
     name,
     type: { name: typeName, ...(typeof typeNode?.raw === 'string' ? { raw: typeNode.raw } : {}) },
@@ -249,6 +269,7 @@ function parseProp(name: string, raw: unknown, warn: Warn): ManifestProp | null 
     ...(docgen?.nullable ? { nullable: true } : {}),
     ...(defaultValue !== undefined && !list ? { defaultValue } : {}),
     ...(list?.count !== undefined ? { min: list.count, max: list.count } : {}),
+    ...range,
     ...(options ? { options } : {}),
     ...(description ? { description } : {}),
     ...(tokenGroup ? { tokenGroup } : {}),

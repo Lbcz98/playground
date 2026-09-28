@@ -181,7 +181,7 @@ describe('parseStorybookDocgen', () => {
 // ---------------------------------------------------------------------------
 
 import COMPONENTS_MANIFEST from './__fixtures__/components-manifest.json'
-import { parseStorybookDocgenWithReport } from './storybook-adapter'
+import { documentedRange, parseStorybookDocgenWithReport } from './storybook-adapter'
 import { validateBlueprintAgainstManifest, compileManifestSchemas } from './manifest-zod'
 import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
 import { interpretBlueprint } from '@/interpreter/interpret'
@@ -381,6 +381,31 @@ describe('Phase 2 — importing an external Storybook', () => {
     // And the prompt says so, with what the prop is for.
     const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- values:'))
     expect(line).toMatch(/a JSON array of strings, exactly 2 \(default undefined\) — The two sides, left and right\./)
+  })
+
+  it('E2.11c — a number prop\'s documented range becomes limits the validator enforces', () => {
+    expect(documentedRange('Total height in px, from `48` to `456` in steps of `8` (the grid).')).toEqual({ min: 48, max: 456, step: 8 })
+    expect(documentedRange('Goals scored.')).toEqual({})
+    const { manifest } = parseStorybookDocgenWithReport({
+      components: {
+        Card: {
+          displayName: 'Card',
+          props: { height: { tsType: { name: 'number' }, description: 'Total height in px, from `48` to `456` in steps of `8`.' } },
+        },
+      },
+    })
+    expect(manifest.components.Card.props.height).toMatchObject({ min: 48, max: 456, step: 8 })
+    const errors = (height: number) => {
+      const v = validateBlueprintAgainstManifest(
+        { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Card', props: { height } } },
+        manifest,
+      )
+      return v.ok ? '' : v.errors.join(' | ')
+    }
+    // The audit's runs asked for 600 and 640; the card silently clamped both to 456.
+    expect(errors(640)).toMatch(/height/)
+    expect(errors(452)).toMatch(/height/) // off the 8pt step
+    expect(errors(456)).not.toMatch(/height/)
   })
 
   it('E2.11b — a list of text-only objects comes in with its fields; the validator and prompt know them', () => {

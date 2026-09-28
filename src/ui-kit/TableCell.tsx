@@ -51,7 +51,7 @@ export interface AthleteCellProps extends TableCellBase {
   name: string
   yellowCard?: boolean
   redCard?: boolean
-  /** Goals scored. `0` or omitted: not drawn. */
+  /** Goals scored, from `0` to `9` in steps of `1`. `0` or omitted: not drawn. */
   goals?: number
   /** Who came on for them. Omitted: not drawn. */
   substitute?: string
@@ -93,7 +93,7 @@ export interface TableCellFields {
   yellowCard?: boolean
   /** A red card beside the name (athlete rows). */
   redCard?: boolean
-  /** Goals scored (athlete rows). `0` or omitted: not drawn. */
+  /** Goals scored (athlete rows), from `0` to `9` in steps of `1`. `0` or omitted: not drawn. */
   goals?: number
   /** Who came on for them (athlete rows). Omitted: not drawn. */
   substitute?: string

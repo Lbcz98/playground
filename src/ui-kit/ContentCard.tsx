@@ -19,8 +19,8 @@
  *
  * Geometry: Button Tall's own radius (`content-card`, 40), and the Content Card
  * spec's `lg` inset (24) on every side where Button Tall draws 36×32. The width is
- * fixed; the height is a count of 8pt grid steps, set per use, up to
- * `contentCardSpec.maxHeight`. The body takes whatever height the
+ * fixed (288); the height is a count of 8pt grid steps, set per use, up to
+ * `contentCardSpec.maxHeight` (456). The body takes whatever height the
  * header and footer leave, and the footer is pinned to the bottom edge whether or
  * not a body sits above it.
  *
@@ -51,8 +51,8 @@ export interface ContentCardProps {
   /** Default `default`. */
   interactionState?: ContentCardState
   /**
-   * Total height in px, a multiple of the 8pt grid up to `contentCardSpec.maxHeight`.
-   * Anything else is snapped onto the grid and held inside the range. Default 440.
+   * Total height in px, from `48` to `456` in steps of `8` (the grid). Anything
+   * else is snapped onto the grid and held inside the range. Default 440.
    */
   height?: number
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
@@ -74,7 +74,7 @@ function gridHeight(px: number): string {
   return `calc(${steps} * ${spacing('2xs')})`
 }
 
-/** The tall card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. */
+/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 12 athlete rows or 8 scout rows under a header and footer: split a longer table across screens. */
 export function ContentCard({ interactionState, height = contentCardSpec.height, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
     'ui-kit/ContentCard',

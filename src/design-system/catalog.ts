@@ -526,7 +526,7 @@ export const Catalog = {
     label: 'Content Card',
     category: 'content',
     summary:
-      'The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need.',
+      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: split a longer table across screens.`,
     acceptsChildren: true,
     slots: CONTENT_CARD_ZONES,
     schema: contentCardSchema,

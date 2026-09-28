@@ -58,7 +58,7 @@ describe('auditRender — problems only the real render can show', () => {
     const problems = auditRender({ frame, nodes: rows, texts: [] })
     // Rows from y=200 in 34px steps: the card's bottom edge (560) falls after the 10th.
     expect(problems).toEqual([
-      '<ContentCard> cuts off 10 <TableCell>s — it holds more than fits; trim it, make it taller, or split it.',
+      '<ContentCard> fits 10 <TableCell>s and cuts off 10 — keep it to 10, or move the rest onto another screen. That count is for the card as built: a taller header or an added footer leaves room for fewer.',
     ])
   })
 

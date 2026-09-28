@@ -139,4 +139,11 @@ export const contentCardSpec = {
   maxHeight: 456,
   /** Its inset on every side — the spacing step, so the smallest card is two of these. */
   inset: 'lg',
+  /**
+   * Table Cell rows a tallest card's body holds under a header and a footer —
+   * measured in the app on 2026-09-28, not derived: re-measure if a row, header or
+   * footer token changes. The component's own JSDoc states the same numbers for
+   * imported systems (held equal by catalog-storybook-parity.test.ts).
+   */
+  rowsAtMax: { team: 9, athlete: 12, scout: 8 },
 } as const
