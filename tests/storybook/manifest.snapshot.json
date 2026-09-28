@@ -1064,6 +1064,12 @@
           ],
           "required": false,
           "description": "Default `default`."
+        },
+        "onClick": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": "Makes the whole card one button (Enter / Space too). The card is the only\ninteractive surface: nothing inside it may be a `<button>` or `<a>`."
         }
       },
       "title": "UI Kit/Content Card",
@@ -1072,6 +1078,7 @@
         "ui-kit-content-card--escalacao",
         "ui-kit-content-card--estatisticas",
         "ui-kit-content-card--focus",
+        "ui-kit-content-card--gaps",
         "ui-kit-content-card--headers",
         "ui-kit-content-card--heights",
         "ui-kit-content-card--opt-outs",
@@ -1118,7 +1125,7 @@
               "type": "ReactNode",
               "kind": "node",
               "required": false,
-              "description": "Controls or a call to action, laid out beside the caption."
+              "description": "Text laid out beside the caption. Never a `<button>` or `<a>`: the card itself is the one control."
             }
           }
         },

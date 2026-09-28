@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box, Stack, Text, size, spacing, token } from '@/primitives'
 import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } from './ContentCard'
@@ -179,27 +179,37 @@ export const Heights: Story = {
 const standings: [string, string, string, string][] = [
   ['FLA', '60', '28', '18'], ['PAL', '57', '28', '16'], ['CAP', '49', '28', '14'], ['FLU', '48', '28', '13'],
   ['BAH', '46', '28', '12'], ['CRU', '45', '28', '13'], ['CAM', '40', '28', '11'], ['SAN', '38', '28', '10'],
-  ['CFC', '38', '28', '10'], ['RBR', '36', '28', '10'],
+  ['CFC', '38', '28', '10'], ['RBR', '36', '28', '10'], ['BOT', '35', '28', '9'], ['SAO', '34', '28', '9'],
+  ['GRE', '33', '28', '9'], ['VAS', '32', '28', '8'], ['INT', '31', '28', '8'], ['COR', '30', '28', '7'],
+  ['JUV', '28', '28', '7'], ['VIT', '26', '28', '6'], ['CUI', '22', '28', '5'], ['CRI', '19', '28', '4'],
 ]
 
+/** The card holds ten team rows at most, so the table pages: the whole card flips 1–10 ↔ 11–20. */
+function TabelaDeClassificacao(): ReactNode {
+  const [secondHalf, setSecondHalf] = useState(false)
+  const first = secondHalf ? 10 : 0
+  return (
+    <ContentCard onClick={() => setSecondHalf((s) => !s)}>
+      <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
+      <ContentCardBody>
+        {standings.slice(first, first + 10).map(([name, pts, j, v], i) => (
+          <TableCell key={name} position={String(first + i + 1)} shield={home} name={name} stats={[pts, j, v]} />
+        ))}
+      </ContentCardBody>
+      <ContentCardFooter caption={secondHalf ? 'Clique para voltar ao topo' : 'Clique para ver mais'} />
+    </ContentCard>
+  )
+}
+
 /**
- * Tabela de campeonato — Figma 6371:7480 (288×410). Title, then the round with
- * the column headings beside it, ten team rows and a "see more" footer.
+ * Tabela de classificação — Figma 6371:7480 (288×410). Title, then the round with
+ * the column headings beside it, ten team rows and a "see more" footer. Click the
+ * card (or Enter / Space on it) for teams 11–20, and again to go back.
  */
 export const TabelaDeCampeonato: Story = {
   name: 'Tabela de campeonato',
   args: {},
-  render: () => (
-    <ContentCard>
-      <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
-      <ContentCardBody>
-        {standings.map(([name, pts, j, v], i) => (
-          <TableCell key={name} position={String(i + 1)} shield={home} name={name} stats={[pts, j, v]} />
-        ))}
-      </ContentCardBody>
-      <ContentCardFooter caption="Clique para ver mais" />
-    </ContentCard>
-  ),
+  render: () => <TabelaDeClassificacao />,
 }
 
 /** Tabela de grupos — Figma 6371:12305 (288×209). A group's four teams, no footer. */

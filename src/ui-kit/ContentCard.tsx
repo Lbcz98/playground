@@ -32,7 +32,7 @@
  * medium), all in the kit's one face.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import {
   FocusRing,
   resolveInteractionState,
@@ -62,6 +62,11 @@ export interface ContentCardProps {
    * scale: a multiple of 8, or 4 or 12. Omitted: 16, the kit's gutter.
    */
   gap?: number
+  /**
+   * Makes the whole card one button (Enter / Space too). The card is the only
+   * interactive surface: nothing inside it may be a `<button>` or `<a>`.
+   */
+  onClick?: () => void
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -82,7 +87,7 @@ function gridHeight(px: number): string {
 }
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
-export function ContentCard({ interactionState, height, gap, children }: ContentCardProps): ReactNode {
+export function ContentCard({ interactionState, height, gap, onClick, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
     'ui-kit/ContentCard',
     interactionState,
@@ -106,6 +111,18 @@ export function ContentCard({ interactionState, height, gap, children }: Content
     flexShrink: 0,
     backgroundColor: focus ? undefined : token('--color-semantic-functional-background-translucent'),
     outline: 'none',
+    cursor: onClick ? 'pointer' : undefined,
+  }
+
+  // A div, not a <button>: the zones are block content, which a <button> may not hold.
+  const press = onClick && {
+    role: 'button',
+    onClick,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault() // Space would scroll the page
+      onClick()
+    },
   }
 
   const zones: CSSProperties = {
@@ -120,7 +137,7 @@ export function ContentCard({ interactionState, height, gap, children }: Content
 
   return (
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
-    <div tabIndex={0} className="sfs-motion" style={frame}>
+    <div tabIndex={0} className="sfs-motion" style={frame} {...press}>
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
       <div style={zones}>{children}</div>
     </div>
@@ -341,7 +358,7 @@ export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps):
 export interface ContentCardFooterProps {
   /** A centred caption, drawn at 70% like Figma's. Omitted or empty: not drawn. */
   caption?: string
-  /** Controls or a call to action, laid out beside the caption. */
+  /** Text laid out beside the caption. Never a `<button>` or `<a>`: the card itself is the one control. */
   children?: ReactNode
 }
 

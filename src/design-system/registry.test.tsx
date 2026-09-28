@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ContentCardHeader } from '@/ui-kit/ContentCard'
+import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'
 import { DecorationHost, hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { parseStorybookDocgen } from '@/shared/design-system/storybook-adapter'
@@ -105,6 +105,22 @@ describe('the content card is focusable', () => {
   it('takes a tab stop, so the TV focus can move onto it', () => {
     const entry = hydrateRegistry(SCREENFLOW_MANIFEST).get('ContentCard')!
     expect(renderToStaticMarkup(entry.render({}, null))).toContain('tabindex="0"')
+  })
+
+  it('with onClick, the whole card is the one button: click, Enter and Space, nothing nested', () => {
+    let presses = 0
+    const card = ContentCard({ onClick: () => presses++, children: <ContentCardHeader title="Grupo A" /> }) as ReactElement<
+      Record<string, (e: object) => void>
+    >
+    const key = (k: string) => card.props.onKeyDown({ key: k, preventDefault() {} })
+    card.props.onClick({})
+    key('Enter')
+    key(' ')
+    key('a')
+    expect(presses).toBe(3)
+    const out = renderToStaticMarkup(card)
+    expect(out).toMatch(/^<div[^>]*role="button"/)
+    expect(out).not.toMatch(/<(button|a)[\s>]/)
   })
 })
 
