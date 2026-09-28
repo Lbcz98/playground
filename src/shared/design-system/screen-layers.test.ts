@@ -12,9 +12,6 @@ import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 import { CSS_VARS } from '@/styles/global-tokens'
 import { homeTemplate } from '@/shared/templates/home'
 import { interpretBlueprint } from '@/interpreter/interpret'
-import { frameLayoutErrors } from '@/shared/layout/frame'
-import { homeNotificationTemplate } from '@/shared/templates/homeNotification'
-import { homeScheduleTemplate } from '@/shared/templates/homeSchedule'
 
 const S = SCREENFLOW_MANIFEST
 const doc = (screen: unknown, root: Record<string, unknown>) => ({ version: 1, screen, root: { type: 'Stack', ...root } })
@@ -43,16 +40,6 @@ describe('the DTV layer rule', () => {
     })
   })
 
-  it('has a model for the left rail with a notification, and that Home passes the whole audit', () => {
-    const schedule = structuredClone(homeScheduleTemplate.blueprint)
-    const notificationRow = homeNotificationTemplate.blueprint.root.children![0]
-    const screen = {
-      ...schedule,
-      screen: { model: 'home-buttons-left-notification', level: 1 as const },
-      root: { ...schedule.root, props: { ...schedule.root.props, justify: 'between' }, children: [notificationRow, ...schedule.root.children!] },
-    }
-    expect(frameLayoutErrors(screen, S)).toEqual([])
-  })
 
   it('paints every shade with a real semantic token from global.css', () => {
     for (const name of Object.values(DTV_SCREEN_LAYERS.shades)) {

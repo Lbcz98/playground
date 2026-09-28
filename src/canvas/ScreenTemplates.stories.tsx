@@ -66,6 +66,11 @@ export const Home: Story = { args: { id: 'home' } }
 export const HomeProgramacao: Story = { name: 'Home · Programação', args: { id: 'home-schedule' } }
 /** Nível 1 — the same screen while a notification shows in the top-right corner. */
 export const HomeNotificacao: Story = { name: 'Home + Notificação', args: { id: 'home-notification' } }
+/** Home with the schedule rail on the left and a notification in the top-right corner. */
+export const HomeProgramacaoNotificacao: Story = {
+  name: 'Home · Programação + Notificação',
+  args: { id: 'home-schedule-notification' },
+}
 /** Nível 2 — the rail entered: no menu, one card focused, the rest selected. */
 export const InteratividadesBotoes: Story = {
   name: 'Interatividades · Botões Direita',

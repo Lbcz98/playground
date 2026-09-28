@@ -114,6 +114,17 @@ const homeNotification: BlueprintDocument = {
   },
 }
 
+/** The schedule Home with the notification row on top: left rail, a notification in the top-right corner. */
+const homeScheduleNotification: BlueprintDocument = {
+  version: 1,
+  screen: { model: 'home-buttons-left-notification', level: 1 },
+  root: {
+    ...homeSchedule.root,
+    props: { ...homeSchedule.root.props, justify: 'between' },
+    children: [homeNotification.root.children![0], ...homeSchedule.root.children!],
+  },
+}
+
 const interactivityButtonsRight: BlueprintDocument = {
   version: 1,
   screen: { model: 'interactivity-buttons-right', level: 2 },
@@ -231,6 +242,12 @@ export const DTV_TEMPLATES: ManifestScreenTemplate[] = [
     name: 'Home · Programação',
     when: 'Home with the schedule rail on the left: focus on the Schedule button, one card per programme with its time, whether it is live, and its name.',
     blueprint: homeSchedule,
+  },
+  {
+    id: 'home-schedule-notification',
+    name: 'Home · Programação + Notificação',
+    when: 'Home with a left rail (schedule, miscellaneous or login) while a notification shows in the top-right corner — focus stays on the left menu button.',
+    blueprint: homeScheduleNotification,
   },
   {
     id: 'home-notification',
