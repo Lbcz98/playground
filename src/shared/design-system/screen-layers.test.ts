@@ -12,6 +12,9 @@ import { W3C_MANIFEST } from './w3c-manifest'
 import { CSS_VARS } from '@/styles/global-tokens'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import { interpretBlueprint } from '@/interpreter/interpret'
+import { frameLayoutErrors } from '@/shared/layout/frame'
+import { homeNotificationTemplate } from '@/shared/templates/homeNotification'
+import { homeScheduleTemplate } from '@/shared/templates/homeSchedule'
 
 const S = SCREENFLOW_MANIFEST
 const doc = (screen: unknown, root: Record<string, unknown>) => ({ version: 1, screen, root: { type: 'Stack', ...root } })
@@ -31,11 +34,24 @@ describe('the DTV layer rule', () => {
       'home-notification': [1, null, ['scrim', 'bottom', 'top-right', 'bottom-right', 'bottom-left']],
       'home-buttons-right': [1, 'right', ['scrim', 'bottom', 'bottom-right']],
       'home-buttons-left': [1, 'left', ['scrim', 'bottom', 'bottom-left']],
+      // Not in the Figma table: the left rail's shades plus the notification's corner.
+      'home-buttons-left-notification': [1, 'left', ['scrim', 'bottom', 'top-right', 'bottom-left']],
       'interactivity-buttons-right': [2, 'right', ['scrim', 'bottom-right', 'bottom']],
       'interactivity-buttons-left': [2, 'left', ['scrim', 'bottom-left', 'bottom']],
       'interactivity-cards-right': [3, 'right', ['scrim', 'bottom-right', 'right']],
       'interactivity-cards-left': [3, 'left', ['scrim', 'bottom-left', 'left']],
     })
+  })
+
+  it('has a model for the left rail with a notification, and that Home passes the whole audit', () => {
+    const schedule = structuredClone(homeScheduleTemplate.blueprint)
+    const notificationRow = homeNotificationTemplate.blueprint.root.children![0]
+    const screen = {
+      ...schedule,
+      screen: { model: 'home-buttons-left-notification', level: 1 as const },
+      root: { ...schedule.root, props: { ...schedule.root.props, justify: 'between' }, children: [notificationRow, ...schedule.root.children!] },
+    }
+    expect(frameLayoutErrors(screen, S)).toEqual([])
   })
 
   it('paints every shade with a real semantic token from global.css', () => {

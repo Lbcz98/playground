@@ -48,6 +48,11 @@ export const HomeNotificacao: Story = { name: 'Home + Notificação', args: { mo
 export const HomeBotoesDireita: Story = { name: 'Home · Botões Direita', args: { model: 'home-buttons-right' } }
 /** Nível 1 — home buttons on the left. */
 export const HomeBotoesEsquerda: Story = { name: 'Home · Botões Esquerda', args: { model: 'home-buttons-left' } }
+/** Nível 1 — home buttons on the left, with a notification in the top-right corner. */
+export const HomeBotoesEsquerdaNotificacao: Story = {
+  name: 'Home · Botões Esquerda + Notificação',
+  args: { model: 'home-buttons-left-notification' },
+}
 /** Nível 2 — a focused rail on the right. */
 export const InteratividadesBotoesDireita: Story = {
   name: 'Interatividades · Botões Direita',

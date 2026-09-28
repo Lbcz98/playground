@@ -154,6 +154,14 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       use: 'The home screen with its buttons grouped on the left.',
     },
     {
+      id: 'home-buttons-left-notification',
+      name: 'Home · Botões Esquerda + Notificação',
+      level: 1,
+      side: 'left',
+      shades: ['scrim', 'bottom', 'top-right', 'bottom-left'],
+      use: 'The home screen with its rail on the left (miscellaneous, schedule or login) while a notification shows in the top-right corner.',
+    },
+    {
       id: 'interactivity-buttons-right',
       name: 'Interatividades · Botões Direita',
       level: 2,
@@ -279,7 +287,9 @@ export function staticContentSide(manifest: DesignSystemManifest, root: LayerNod
 
 /**
  * The side the content sits on when the root stretches (as it always should): the
- * first un-anchored module places itself — a menu's `align`, a row's `justify`.
+ * last un-anchored module places itself — a menu's `align`, a row's `justify`.
+ * The last, because on Home the rail and menu close the column and a notification
+ * tops it in its own corner; every other level shows a single module.
  * `via` names the node whose prop to change.
  */
 export function moduleContentSide(
@@ -287,7 +297,7 @@ export function moduleContentSide(
   root: LayerNode,
 ): { side: ScreenSide; prop: string; type: string; values: Record<ScreenSide, string> } | null {
   const children = Array.isArray(root.children) ? root.children.filter(isObject) : []
-  const module = children.find((child) => child.anchor !== true) as LayerNode | undefined
+  const module = children.filter((child) => child.anchor !== true).at(-1) as LayerNode | undefined
   if (!module || typeof module.type !== 'string') return null
   const side = staticContentSide(manifest, module)
   const prop = sidePropFor(manifest, module)
