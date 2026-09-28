@@ -106,6 +106,14 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
       'outline-none',
       isSelected ? 'ring ring-brand' : 'hover:ring hover:ring-brand-subtle',
     ),
+    // Editing, a click on this node's own surface only selects it: caught before
+    // the component sees it, so a component's own click (a card turning its
+    // page) runs in Play, never here. A click on a child node is the child's.
+    onClickCapture: (event: MouseEvent) => {
+      if ((event.target as Element).closest('[data-node-id]')?.getAttribute('data-node-id') !== node.id) return
+      event.stopPropagation()
+      select(node.id)
+    },
     onClick: (event: MouseEvent) => {
       event.stopPropagation()
       select(node.id)

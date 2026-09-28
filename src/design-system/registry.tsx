@@ -460,10 +460,12 @@ function makeLiveRenderer(
 export function DecorationHost({
   children,
   onClick,
+  onClickCapture,
   ...rest
 }: {
   children?: ReactNode
   onClick?: (event: MouseEvent) => void
+  onClickCapture?: (event: MouseEvent) => void
   'data-node-id'?: string
   /** Edit mode's chrome: `selected` rings the kit's own root, `editable` rings it on hover. */
   'data-selected'?: boolean
@@ -485,7 +487,7 @@ export function DecorationHost({
   }, [selected, editable])
 
   return (
-    <span ref={host} data-node-id={rest['data-node-id']} onClick={onClick} style={{ display: 'contents' }}>
+    <span ref={host} data-node-id={rest['data-node-id']} onClick={onClick} onClickCapture={onClickCapture} style={{ display: 'contents' }}>
       {children}
     </span>
   )
