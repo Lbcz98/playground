@@ -20,7 +20,7 @@ names the test that runs it.
 | `npm test` | Phases 1–3 (unit and contract tests, 589 tests) | nothing |
 | `npm run storybook:manifest:check` | Phase 0: the snapshot matches Storybook | builds Storybook (~1 min) |
 | `npm run storybook:manifest` | Phase 0: refresh the snapshot after a story or component change | builds Storybook |
-| `npm run dtv:export` | Phase 4: the DTV system as an external import — `dist-dtv/dtv-storybook.json` (Storybook's components manifest cut to UI Kit + Primitives, with `tokens.json` inside) and `dist-dtv/dtv.bundle.js` (the same components as a live bundle) | builds Storybook |
+| `npm run dtv:export` | Phase 4: the DTV system as an external import — `dist-dtv/dtv-storybook.json` (Storybook's components manifest cut to the UI Kit plus the layout Stack, with `tokens.json` inside) and `dist-dtv/dtv.bundle.js` (the same components as a live bundle) | builds Storybook |
 | `npm run test:visual -- --probe` | Phase 1 V1–V5: pixels plus measurements | Storybook on :6006 |
 | `npm run typecheck`, `npm run lint:tokens`, `npm run tokens:check`, `npm run tokens:audit` | The static token gates V4 builds on | nothing |
 

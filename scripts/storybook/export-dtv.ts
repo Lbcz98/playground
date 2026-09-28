@@ -9,10 +9,12 @@
  *                                react-dom from the app's window globals) —
  *                                Design system › Import component bundle…
  *
- * The DTV system is every `UI Kit/*` and `Primitives/*` component, less the
- * overlays: the engine paints those from the screen's layer model, a Blueprint
- * never places one. `Canvas Kit/*` (ScreenFlow's own Tailwind layout) and
- * `Templates/*` stay out.
+ * The DTV system is every `UI Kit/*` component, less the overlays (the engine
+ * paints those from the screen's layer model, a Blueprint never places one), plus
+ * `Primitives/Stack`, the layout every screen is built from. The other primitives
+ * (Box, Button, Heading, Text) are web building blocks, not DTV components: the kit
+ * draws its own text and controls. `Canvas Kit/*` (ScreenFlow's own Tailwind
+ * layout) and `Templates/*` stay out.
  *
  * The export also carries `templates` — `dtv-templates.ts`'s reference screens,
  * translated from `src/shared/templates` into the DTV import's own component and
@@ -42,7 +44,7 @@ const OUT = join(ROOT, 'dist-dtv')
 const from = process.argv.find((arg) => arg.startsWith('--from='))?.slice('--from='.length)
 
 /** The Storybook component ids that make up the DTV system. */
-const DTV = /^(ui-kit|primitives)-/
+const DTV = /^(ui-kit-|primitives-stack$)/
 const ENGINE_DRAWN = /^ui-kit-overlay/
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
