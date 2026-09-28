@@ -31,7 +31,7 @@ describe('the DTV layer rule', () => {
       'home-notification': [1, null, ['scrim', 'bottom', 'top-right', 'bottom-right', 'bottom-left']],
       'home-buttons-right': [1, 'right', ['scrim', 'bottom', 'bottom-right']],
       'home-buttons-left': [1, 'left', ['scrim', 'bottom', 'bottom-left']],
-      // Not in the Figma table: the left rail's shades plus the notification's corner.
+      // Figma mode "Home - Botões Esquerda + Notificação" (Overlays collection, mode 6431:0).
       'home-buttons-left-notification': [1, 'left', ['scrim', 'bottom', 'top-right', 'bottom-left']],
       'interactivity-buttons-right': [2, 'right', ['scrim', 'bottom-right', 'bottom']],
       'interactivity-buttons-left': [2, 'left', ['scrim', 'bottom-left', 'bottom']],
