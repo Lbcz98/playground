@@ -1,4 +1,4 @@
-import 'dotenv/config' // load .env before anything reads process.env
+import './env'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { app, BrowserWindow } from 'electron'

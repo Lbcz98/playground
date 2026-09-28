@@ -49,7 +49,7 @@ scripts/
 docs/
   ui-kit-token-audit.md Token architecture, the per-batch refactor plan, before/after results
 electron/
-  main.ts               Window creation + dotenv + registerIpcHandlers()
+  main.ts               Window creation + .env (env.ts) + registerIpcHandlers()
   ipc.ts                 Binds ai/handler.ts + storage.ts to ipcMain.handle
   preload.ts             The audited renderer<->main bridge: window.flow
   storage.ts             Design-system persistence — userData/design-systems/*.json

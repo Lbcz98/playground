@@ -26,7 +26,7 @@ export default defineConfig({
               // Keep the Node SDKs as runtime requires instead of bundling them
               // into main.js (the Anthropic SDK uses dynamic imports and would
               // otherwise force code-splitting).
-              external: ['@anthropic-ai/sdk', 'dotenv'],
+              external: ['@anthropic-ai/sdk'],
             },
           },
         },
