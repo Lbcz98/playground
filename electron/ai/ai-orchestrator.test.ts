@@ -170,6 +170,19 @@ describe('generateUI pipeline', () => {
     expect(res.ok && res.meta.steps.some((s) => /rested 1 stray focus: root: <InteractivityButton>/.test(s))).toBe(true)
   })
 
+  it('stretches a root that does not, on every screen, instead of spending a retry on it', async () => {
+    const home = structuredClone(SCREEN_TEMPLATES.find((t) => t.id === 'home')!.blueprint)
+    home.root.props = { ...home.root.props, align: 'start' }
+    const renderUi = vi.fn(async () => ({ blueprint: home, model: 'm' }))
+    vi.mocked(resolveProvider).mockResolvedValue(fakeProvider({ renderUi }))
+
+    const res = await generateUI('home')
+
+    expect(renderUi).toHaveBeenCalledOnce()
+    expect(home.root.props!.align).toBe('stretch')
+    expect(res.ok && res.meta.steps.some((s) => /stretched 1 root\(s\): root: root <Stack> align "start"/.test(s))).toBe(true)
+  })
+
   it('gives up after MAX retries but still returns the best attempt', async () => {
     const renderUi = vi.fn(async () => ({ blueprint: INVALID, model: 'm' }))
     vi.mocked(resolveProvider).mockResolvedValue(fakeProvider({ renderUi }))

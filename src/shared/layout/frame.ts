@@ -695,6 +695,34 @@ export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest): st
   return changed
 }
 
+/**
+ * Sets every screen's root stack to stretch. The stack that holds the components
+ * always stretches (a module places itself inside it), so a root `align` of
+ * anything else has one right answer — fixed here instead of costing a model
+ * retry. Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
+ */
+export function stretchRoots(doc: unknown, manifest: DesignSystemManifest): string[] {
+  if (!isObject(doc)) return []
+  const roots = [
+    { root: doc.root, where: 'root' },
+    ...(Array.isArray(doc.screens) ? doc.screens : [])
+      .filter(isObject)
+      .map((s, i) => ({ root: s.root, where: `screens[${i}]` })),
+  ]
+  const changed: string[] = []
+  for (const { root, where } of roots) {
+    if (!isObject(root) || typeof root.type !== 'string') continue
+    const component = manifest.components[root.type]
+    const prop = component ? stretchPropFor(component) : undefined
+    const value = prop ? propValue(root, prop) : 'stretch'
+    if (prop && value !== 'stretch') {
+      root.props = { ...(isObject(root.props) ? root.props : {}), [prop.name]: 'stretch' }
+      changed.push(`${where}: root <${component!.id}> ${prop.name} ${JSON.stringify(value)} → "stretch"`)
+    }
+  }
+  return changed
+}
+
 /** Every failed checklist item as one error string each — the validator's retry signal. */
 export function frameLayoutErrors(doc: unknown, manifest: DesignSystemManifest): string[] {
   return auditFrameLayout(doc, manifest).flatMap((check) => check.problems)

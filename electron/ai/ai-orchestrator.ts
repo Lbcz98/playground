@@ -30,7 +30,7 @@ import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
-import { restStrayFocus } from '@/shared/layout/frame'
+import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
 
@@ -113,9 +113,12 @@ export async function generateUI(
         usage = addUsage(usage, gen.usage)
         model = gen.model ?? model
         lastBlueprint = unwrapBlueprint(gen.blueprint)
-        // A focus the level rules out has one fix; make it here rather than spend a retry on it.
+        // A focus the level rules out, or a root that doesn't stretch, has one fix;
+        // make it here rather than spend a retry on it.
         const rested = restStrayFocus(lastBlueprint, manifest)
         if (rested.length > 0) steps.push(`step 2 · rested ${rested.length} stray focus: ${rested.join('; ')}`)
+        const stretched = stretchRoots(lastBlueprint, manifest)
+        if (stretched.length > 0) steps.push(`step 2 · stretched ${stretched.length} root(s): ${stretched.join('; ')}`)
         reply = JSON.stringify(lastBlueprint)
 
         const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest)
