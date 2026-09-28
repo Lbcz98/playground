@@ -1432,6 +1432,7 @@
         "ui-kit-overlay-screen-models--all-models",
         "ui-kit-overlay-screen-models--home",
         "ui-kit-overlay-screen-models--home-botoes-direita",
+        "ui-kit-overlay-screen-models--home-botoes-direita-notificacao",
         "ui-kit-overlay-screen-models--home-botoes-esquerda",
         "ui-kit-overlay-screen-models--home-botoes-esquerda-notificacao",
         "ui-kit-overlay-screen-models--home-notificacao",

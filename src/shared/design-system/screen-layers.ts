@@ -152,6 +152,14 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       use: 'The home screen with its buttons grouped on the left.',
     },
     {
+      id: 'home-buttons-right-notification',
+      name: 'Home · Botões Direita + Notificação',
+      level: 1,
+      side: 'right',
+      shades: ['scrim', 'bottom', 'top-right', 'bottom-right'],
+      use: 'The home screen with its rail on the right (the program rail) while a notification shows in the top-right corner — nothing on the left.',
+    },
+    {
       id: 'home-buttons-left-notification',
       name: 'Home · Botões Esquerda + Notificação',
       level: 1,
