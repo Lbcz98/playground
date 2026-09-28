@@ -167,3 +167,95 @@ export const Heights: Story = {
     </Stack>
   ),
 }
+
+// ---------------------------------------------------------------------------
+// The four sports cards as Figma composes them (UI Kit, page "Botões"). Each one
+// is built here from the same library components the Figma frame uses — one
+// ContentCardHeader, a body of Table Cells, and a footer where Figma has one —
+// with Figma's content. Crests and flags are the stand-in badge, as in every
+// story here. No height is set: the card hugs its content, as Figma's frames do.
+// ---------------------------------------------------------------------------
+
+const standings: [string, string, string, string][] = [
+  ['FLA', '60', '28', '18'], ['PAL', '57', '28', '16'], ['CAP', '49', '28', '14'], ['FLU', '48', '28', '13'],
+  ['BAH', '46', '28', '12'], ['CRU', '45', '28', '13'], ['CAM', '40', '28', '11'], ['SAN', '38', '28', '10'],
+  ['CFC', '38', '28', '10'], ['RBR', '36', '28', '10'],
+]
+
+/**
+ * Tabela de campeonato — Figma 6371:7480 (288×410). Title, then the round with
+ * the column headings beside it, ten team rows and a "see more" footer.
+ */
+export const TabelaDeCampeonato: Story = {
+  name: 'Tabela de campeonato',
+  args: {},
+  render: () => (
+    <ContentCard>
+      <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
+      <ContentCardBody>
+        {standings.map(([name, pts, j, v], i) => (
+          <TableCell key={name} position={String(i + 1)} shield={home} name={name} stats={[pts, j, v]} />
+        ))}
+      </ContentCardBody>
+      <ContentCardFooter caption="Clique para ver mais" />
+    </ContentCard>
+  ),
+}
+
+/** Tabela de grupos — Figma 6371:12305 (288×209). A group's four teams, no footer. */
+export const TabelaDeGrupos: Story = {
+  name: 'Tabela de grupos',
+  args: {},
+  render: () => (
+    <ContentCard>
+      <ContentCardHeader title="Grupo A" subtitle="Fase de Grupos" stats={['Pts', 'J', 'V']} />
+      <ContentCardBody>
+        {[['MEX', '9', '3', '3'], ['AFR', '4', '3', '1'], ['COR', '3', '3', '1'], ['TCH', '1', '3', '0']].map(([name, pts, j, v], i) => (
+          <TableCell key={name} position={String(i + 1)} shield={away} name={name} stats={[pts, j, v]} />
+        ))}
+      </ContentCardBody>
+    </ContentCard>
+  ),
+}
+
+const lineup: [string, string][] = [
+  ['2', 'Félix Torrez'], ['3', 'Hincapié'], ['4', 'Ordóñez'], ['6', 'Pacho'], ['7', 'Arévalo'], ['9', 'Yeboah'],
+  ['10', 'Páez'], ['12', 'Ramirez'], ['13', 'Castillo'], ['21', 'Alan Franco'], ['23', 'Caicedo'],
+]
+
+/** Escalação — Figma 6371:15578 (288×405). The flag beside the team and its formation, eleven athlete rows. */
+export const Escalacao: Story = {
+  name: 'Escalação',
+  args: {},
+  render: () => (
+    <ContentCard>
+      <ContentCardHeader icon={home} title="Equador" subtitle="4-3-3" />
+      <ContentCardBody>
+        {lineup.map(([number, name], i) => (
+          <TableCell key={number} type="athlete" number={number} name={name} divider={i < lineup.length - 1} />
+        ))}
+      </ContentCardBody>
+    </ContentCard>
+  ),
+}
+
+const scouts: [string, string, string][] = [
+  ['Posse de bola', '49%', '51%'], ['Finalizações', '7', '9'], ['Escanteios a favor', '5', '6'], ['Desarmes', '11', '8'],
+  ['Faltas', '3', '9'], ['Cartões amarelos', '1', '2'], ['Cartões vermelhos', '0', '1'],
+]
+
+/** Estatísticas — Figma 6371:18685 (288×366). The match in the header, seven scout rows. */
+export const Estatisticas: Story = {
+  name: 'Estatísticas',
+  args: {},
+  render: () => (
+    <ContentCard>
+      <ContentCardHeader title="" match={{ home: { badge: home, name: 'EQU' }, away: { badge: away, name: 'ARG' } }} />
+      <ContentCardBody>
+        {scouts.map(([label, left, right], i) => (
+          <TableCell key={label} type="scout" label={label} values={[left, right]} divider={i < scouts.length - 1} />
+        ))}
+      </ContentCardBody>
+    </ContentCard>
+  ),
+}

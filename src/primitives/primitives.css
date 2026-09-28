@@ -255,3 +255,15 @@
     transition: none;
   }
 }
+
+/*
+ * Flush table rows (TableCell scout rows): a run of them sits flush under its
+ * dividers, as in Figma's Estatísticas card — every one after the first cancels
+ * the Content Card body's gap. The second selector sees through the canvas's
+ * `display: contents` node hosts, where rows are cousins, not siblings.
+ */
+[data-card-body] > [data-flush-row] + [data-flush-row],
+[data-card-body] > :has(> [data-flush-row]) + :has(> [data-flush-row]) > [data-flush-row] {
+  /* The body's gap (BODY_GAP in TableCell.tsx). */
+  margin-top: calc(-1 * var(--dimension-spacing-semantic-table-row-gap));
+}

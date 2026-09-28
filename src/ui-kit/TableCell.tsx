@@ -105,25 +105,51 @@ export interface TableCellFields {
 
 const MAX_STATS = 4
 
+/**
+ * The gap `ContentCardBody` puts between its children (`table-row-gap`, the `2xs`
+ * step the user set for team and athlete tables); primitives.css cancels it for
+ * scout rows. Scout rows cancel it between each other and sit flush
+ * under their dividers, as in Figma's Estatísticas card (primitives.css).
+ */
+export const BODY_GAP = token('--dimension-spacing-semantic-table-row-gap')
+
 function Row({
   height,
   divider,
+  below,
+  flush,
   children,
 }: {
   height: string
   divider?: boolean
+  /** Space under the content, above the divider (Figma's athlete row: a 16 line, 8 under it). */
+  below?: string
+  /**
+   * Scout rows sit flush, as in Figma's Estatísticas card: primitives.css cancels
+   * the body's gap above every scout row that follows another.
+   */
+  flush?: boolean
   children: ReactNode
 }): ReactNode {
   const style: CSSProperties = {
     boxSizing: 'border-box',
     height,
+    paddingBottom: below,
+    // A row keeps its height: in a body too short for it, it is cut off (and the
+    // render check reports it) rather than every row squeezed — scout rows were
+    // rendering at 30 of their 40.
+    flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing('2xs'),
     borderBottom: divider ? DIVIDER : undefined,
   }
-  return <div style={style}>{children}</div>
+  return (
+    <div data-flush-row={flush ? '' : undefined} style={style}>
+      {children}
+    </div>
+  )
 }
 
 /** A mark that sits in the text, so it takes its size from the row's type. */
@@ -232,7 +258,7 @@ function AthleteCell({
   divider,
 }: AthleteCellProps): ReactNode {
   return (
-    <Row height={size('table-cell-sm')} divider={divider}>
+    <Row height={size('table-cell-md')} below={spacing('2xs')} divider={divider}>
       <div style={{ display: 'flex', alignItems: 'center', gap: spacing('3xs'), minWidth: 0 }}>
         {number ? (
           <Text as="span" variant="footnote-bold" color="secondary">
@@ -268,7 +294,7 @@ function AthleteCell({
 function ScoutCell({ label, values, divider }: ScoutCellProps): ReactNode {
   const column: CSSProperties = { width: size('table-value-column'), flexShrink: 0 }
   return (
-    <Row height={size('table-cell-lg')} divider={divider}>
+    <Row height={size('table-cell-lg')} divider={divider} flush>
       {values ? (
         <span style={column}>
           <Text as="span" variant="footnote-bold" align="start">

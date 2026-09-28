@@ -1035,7 +1035,7 @@
     },
     "ui-kit-content-card": {
       "name": "ContentCard",
-      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 12 athlete rows or 8 scout rows under a header and footer: split a longer table across screens.",
+      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens.",
       "props": {
         "children": {
           "type": "ReactNode",
@@ -1047,8 +1047,7 @@
           "type": "number",
           "kind": "number",
           "required": false,
-          "defaultValue": "440",
-          "description": "Total height in px, from `48` to `456` in steps of `8` (the grid). Anything\nelse is snapped onto the grid and held inside the range. Default 440."
+          "description": "Total height in px, from `48` to `456` in steps of `8` (the grid). Anything\nelse is snapped onto the grid and held inside the range. Omitted: the card\nhugs its content, up to 456, like the Figma cards built from it."
         },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
@@ -1064,11 +1063,15 @@
       "title": "UI Kit/Content Card",
       "stories": [
         "ui-kit-content-card--default",
+        "ui-kit-content-card--escalacao",
+        "ui-kit-content-card--estatisticas",
         "ui-kit-content-card--focus",
         "ui-kit-content-card--headers",
         "ui-kit-content-card--heights",
         "ui-kit-content-card--opt-outs",
-        "ui-kit-content-card--sports-table"
+        "ui-kit-content-card--sports-table",
+        "ui-kit-content-card--tabela-de-campeonato",
+        "ui-kit-content-card--tabela-de-grupos"
       ],
       "subcomponents": {
         "ContentCardBody": {

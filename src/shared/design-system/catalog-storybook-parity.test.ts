@@ -161,14 +161,14 @@ describe.each(bound)('%s', (id, binding) => {
 })
 
 describe('P1.5 — numeric props agree with the grid and the Content Card spec', () => {
-  it('ContentCard height: step is the grid, range is the spec, default is the shipped height', () => {
+  it('ContentCard height: step is the grid, range is the spec, and unset by default — the card hugs', () => {
     const height = catalog.ContentCard.props.height
     const minHeight = Math.ceil((2 * parseFloat(spacingScale[contentCardSpec.inset])) / frameSpec.grid) * frameSpec.grid
     expect(height.step).toBe(frameSpec.grid)
     expect(height.min).toBe(minHeight)
     expect(height.max).toBe(contentCardSpec.maxHeight)
-    expect(height.defaultValue).toBe(contentCardSpec.height)
-    expect(SNAPSHOT.components['ui-kit-content-card'].props.height.defaultValue).toBe(String(contentCardSpec.height))
+    expect(height.defaultValue).toBeUndefined()
+    expect(SNAPSHOT.components['ui-kit-content-card'].props.height.defaultValue).toBeUndefined()
   })
 
   it('every catalog number prop has a range and a step', () => {

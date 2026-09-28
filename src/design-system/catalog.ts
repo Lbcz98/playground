@@ -225,7 +225,8 @@ export const contentCardSchema = z
       .min(CARD_HEIGHT_MIN)
       .max(contentCardSpec.maxHeight)
       .multipleOf(frameSpec.grid)
-      .default(contentCardSpec.height),
+      // Omitted: the card hugs its content, up to the tallest card.
+      .optional(),
   })
   .strict()
 export type ContentCardNodeProps = z.infer<typeof contentCardSchema>

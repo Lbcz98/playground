@@ -19,8 +19,8 @@
  *
  * Geometry: Button Tall's own radius (`content-card`, 40), and the Content Card
  * spec's `lg` inset (24) on every side where Button Tall draws 36×32. The width is
- * fixed (288); the height is a count of 8pt grid steps, set per use, up to
- * `contentCardSpec.maxHeight` (456). The body takes whatever height the
+ * fixed (288); by default the card hugs its content up to `contentCardSpec.maxHeight`
+ * (456), or takes a height set per use as a count of 8pt grid steps. The body takes whatever height the
  * header and footer leave, and the footer is pinned to the bottom edge whether or
  * not a body sits above it.
  *
@@ -44,6 +44,7 @@ import {
   type InteractionState,
 } from '@/primitives'
 import { contentCardSpec, frameSpec, spacingScale } from '@/design-system/primitives'
+import { BODY_GAP } from './TableCell'
 
 export type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
 
@@ -52,7 +53,8 @@ export interface ContentCardProps {
   interactionState?: ContentCardState
   /**
    * Total height in px, from `48` to `456` in steps of `8` (the grid). Anything
-   * else is snapped onto the grid and held inside the range. Default 440.
+   * else is snapped onto the grid and held inside the range. Omitted: the card
+   * hugs its content, up to 456, like the Figma cards built from it.
    */
   height?: number
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
@@ -74,8 +76,8 @@ function gridHeight(px: number): string {
   return `calc(${steps} * ${spacing('2xs')})`
 }
 
-/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 12 athlete rows or 8 scout rows under a header and footer: split a longer table across screens. */
-export function ContentCard({ interactionState, height = contentCardSpec.height, children }: ContentCardProps): ReactNode {
+/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: split a longer table across screens. */
+export function ContentCard({ interactionState, height, children }: ContentCardProps): ReactNode {
   const state = resolveInteractionState(
     'ui-kit/ContentCard',
     interactionState,
@@ -88,7 +90,9 @@ export function ContentCard({ interactionState, height = contentCardSpec.height,
     position: 'relative',
     boxSizing: 'border-box',
     width: size('content-card-width'),
-    height: gridHeight(height),
+    // Omitted: hug the content, capped at the tallest card — what doesn't fit is
+    // cut off by the body, where the render check sees it.
+    ...(height === undefined ? { maxHeight: gridHeight(contentCardSpec.maxHeight) } : { height: gridHeight(height) }),
     padding: INSET,
     borderRadius: RADIUS,
     display: 'flex',
@@ -306,8 +310,9 @@ export function ContentCardBody({ quote, children }: ContentCardBodyProps): Reac
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        gap: spacing('xs'),
+        gap: BODY_GAP,
       }}
+      data-card-body=""
     >
       {children}
       {quote ? (

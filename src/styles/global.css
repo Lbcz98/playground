@@ -233,6 +233,8 @@
   --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-lg);
   /* Gap between a content-filled control's edge and its outside focus outline */
   --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
+  /* Space between team and athlete rows in a Content Card table; scout rows cancel it and sit flush under their dividers */
+  --dimension-spacing-semantic-table-row-gap: var(--dimension-spacing-core-2xs);
 
   /* ===== Dimension · Size · Semantic ===== */
   /* Inline icon in a control or pill */
