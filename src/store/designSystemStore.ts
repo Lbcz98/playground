@@ -22,7 +22,6 @@ import {
   SCREENFLOW_MANIFEST,
   SCREENFLOW_MANIFEST_ID,
 } from '@/shared/design-system/screenflow-manifest'
-import { W3C_MANIFEST, W3C_MANIFEST_ID } from '@/shared/design-system/w3c-manifest'
 import {
   parseStorybookDocgenWithReport,
   tokenImportWarning,
@@ -74,19 +73,17 @@ function ds() {
   return typeof window !== 'undefined' ? window.flow?.designSystems : undefined
 }
 
-const BUILT_IN_IDS = new Set([SCREENFLOW_MANIFEST_ID, W3C_MANIFEST_ID])
+const BUILT_IN_IDS = new Set([SCREENFLOW_MANIFEST_ID])
 
-/** Built-ins first (ScreenFlow, then the global.css tokens), then imported
- *  systems sorted by name; de-duped by id. */
+/** The built-in ScreenFlow system first, then imported systems sorted by name; de-duped by id. */
 function composeLibrary(imported: DesignSystemManifest[]): DesignSystemManifest[] {
   const byId = new Map<string, DesignSystemManifest>()
   byId.set(SCREENFLOW_MANIFEST_ID, SCREENFLOW_MANIFEST)
-  byId.set(W3C_MANIFEST_ID, W3C_MANIFEST)
   for (const m of imported) if (!BUILT_IN_IDS.has(m.id)) byId.set(m.id, m)
   const rest = [...byId.values()]
     .filter((m) => !BUILT_IN_IDS.has(m.id))
     .sort((a, b) => a.name.localeCompare(b.name))
-  return [SCREENFLOW_MANIFEST, W3C_MANIFEST, ...rest]
+  return [SCREENFLOW_MANIFEST, ...rest]
 }
 
 function liveMapOf(state: LiveBundleState | undefined): LiveComponentMap | undefined {

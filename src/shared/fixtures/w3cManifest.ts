@@ -1,6 +1,6 @@
 /**
  * A second, always-available design system whose tokens are the SAME W3C
- * values behind `src/styles/global.css` (via `w3c-token-source.ts` +
+ * values behind `src/styles/global.css` (via `w3cTokenSource.ts` +
  * `token-adapter.ts`'s `parseDesignTokens` — the Phase 7A adapter already
  * built and tested for this exact DTCG shape).
  *
@@ -27,10 +27,10 @@
  * `gradient.semantic.overlay.*` tokens.
  */
 
-import { TOKEN_TIER_RULE, type DesignSystemManifest, type ManifestComponent } from './manifest'
-import { mergeTokens, parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
-import { W3C_TOKEN_SOURCE } from './w3c-token-source'
-import { DTV_SCREEN_LAYERS } from './screen-layers'
+import { TOKEN_TIER_RULE, type DesignSystemManifest, type ManifestComponent } from '@/shared/design-system/manifest'
+import { mergeTokens, parseDesignTokenTiers, parseDesignTokens } from '@/shared/design-system/token-adapter'
+import { W3C_TOKEN_SOURCE } from './w3cTokenSource'
+import { DTV_SCREEN_LAYERS } from '@/shared/design-system/screen-layers'
 
 export const W3C_MANIFEST_ID = 'global-css-tokens'
 

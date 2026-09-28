@@ -19,7 +19,7 @@ import { compileManifestSchemas, compiledDefaultProps, validateBlueprintAgainstM
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { parseStorybookDocgen } from './storybook-adapter'
 import { parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
-import { W3C_MANIFEST } from './w3c-manifest'
+import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
 /** A small tiered system: a core palette, the semantic roles over it, and a spacing scale. */
 const TIERED: DesignSystemManifest = {

@@ -1,7 +1,7 @@
 /**
  * The token scales behind the "Global CSS Tokens" design system, read straight
  * from `tokens/tokens.json` — the same contract `src/styles/global.css` is
- * compiled from — so `w3c-manifest.ts` can run them through the SAME
+ * compiled from — so `w3cManifest.ts` can run them through the SAME
  * `parseDesignTokens` adapter Phase 7A built for imported Storybook design
  * systems (`token-adapter.ts`), never a second, drifting copy.
  *

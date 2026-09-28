@@ -8,7 +8,7 @@ import {
 } from './screen-layers'
 import { type DesignSystemManifest, manifestZodSchema } from './manifest'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
-import { W3C_MANIFEST } from './w3c-manifest'
+import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 import { CSS_VARS } from '@/styles/global-tokens'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import { interpretBlueprint } from '@/interpreter/interpret'

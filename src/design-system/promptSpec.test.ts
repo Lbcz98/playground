@@ -11,7 +11,7 @@ import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { CATALOG_TYPES, getCatalogEntry } from './catalog'
 import { RENDER_TOOL_NAME } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
-import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
+import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 import { TOKEN_TIER_RULE, isCoreToken } from '@/shared/design-system/manifest'
 import { DTV_SCREEN_LAYERS } from '@/shared/design-system/screen-layers'
 

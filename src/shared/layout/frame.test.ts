@@ -15,7 +15,7 @@ import {
 import { interpretBlueprint } from '@/interpreter/interpret'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
-import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
+import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
 const S = SCREENFLOW_MANIFEST
 

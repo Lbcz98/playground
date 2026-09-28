@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateBlueprint } from './validateBlueprint'
 import { PRICING_CARD_BLUEPRINT } from '@/shared/fixtures/pricingCard'
-import { W3C_MANIFEST } from '@/shared/design-system/w3c-manifest'
+import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
 describe('validateBlueprint (strict, pipeline step 3)', () => {
   it('accepts the pricing-card fixture', () => {
