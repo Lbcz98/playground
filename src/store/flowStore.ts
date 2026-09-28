@@ -86,8 +86,6 @@ interface FlowState {
   /** Add a component under `parentId` — at `index` when given, else last. */
   addNode: (parentId: NodeId, type: string, index?: number) => void
   updateProps: (id: NodeId, patch: Record<string, unknown>) => void
-  /** Spec §8 alias for `updateProps` — the name the Property Inspector uses. */
-  updateNodeProps: (id: NodeId, patch: Record<string, unknown>) => void
   deleteNode: (id: NodeId) => void
   /** Anchor (or release) a direct child of the root to the focus zone. At most one is anchored. */
   setAnchor: (id: NodeId, anchored: boolean) => void
@@ -304,7 +302,6 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       })
     }, 'Edit properties'),
 
-  updateNodeProps: (id, patch) => get().updateProps(id, patch),
 
   deleteNode: (id) => {
     if (id === ROOT_ID) return
@@ -408,9 +405,5 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
 // Convenience selectors (kept outside the store so components subscribe narrowly).
 /** Spec §8 name for the current selection. */
-export const selectActiveNodeId = (s: FlowState) => s.selectedId
 export const selectCanUndo = (s: FlowState) => s.past.length > 0
 export const selectCanRedo = (s: FlowState) => s.future.length > 0
-export const selectUndoLabel = (s: FlowState) =>
-  s.past.length > 0 ? s.lastActionLabel : null
-export const selectRedoLabel = (s: FlowState) => (s.future.length > 0 ? s.future[0].label : null)

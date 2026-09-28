@@ -114,8 +114,6 @@ export interface ManifestTokens {
  */
 export type TokenTier = 'core' | 'semantic' | 'layout'
 
-export const TOKEN_TIERS: readonly TokenTier[] = ['core', 'semantic', 'layout']
-
 /** What each tier holds and who may name it — the words the agents are given. */
 export const TOKEN_TIER_RULE: Record<TokenTier, string> = {
   core: 'Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.',
@@ -505,17 +503,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
     }
   })
 
-/** Manifests saved before the rename carried the token tiers under `layers`. */
-function migrateLegacyKeys(value: unknown): unknown {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return value
-  const { layers, ...rest } = value as Record<string, unknown>
-  if (layers === undefined || 'tokenTiers' in rest) return value
-  return { ...rest, tokenTiers: layers }
-}
-
-export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z.preprocess(
-  migrateLegacyKeys,
-  z
+export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
     .object({
       id: idSchema,
       name: shortStr,
@@ -531,12 +519,7 @@ export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z.preprocess(
           message: `a manifest may declare at most ${MAX_COMPONENTS} components`,
         }),
     })
-    .strict(),
-) as z.ZodType<DesignSystemManifest>
-
-export const screenSpecSchema: z.ZodType<ScreenSpec> = z
-  .object({ model: z.string().min(1).max(120), level: levelSchema })
-  .strict()
+    .strict() as z.ZodType<DesignSystemManifest>
 
 export function isDesignSystemManifest(value: unknown): value is DesignSystemManifest {
   return manifestZodSchema.safeParse(value).success

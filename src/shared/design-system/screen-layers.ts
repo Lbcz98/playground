@@ -21,10 +21,8 @@ import {
   type ManifestNavigationLevel,
   type ManifestScreenLayers,
   type ManifestScreenModel,
-  type NavigationLevel,
   type ScreenSide,
   type ScreenSpec,
-  NAVIGATION_LEVELS,
   SCREEN_LAYER_STACK,
   defaultForProp,
 } from './manifest'
@@ -219,10 +217,6 @@ export function navigationLevel(
 export function defaultScreen(layers: ManifestScreenLayers): ScreenSpec | null {
   const model = screenModel(layers, DEFAULT_SCREEN_MODEL) ?? layers.models[0]
   return model ? { model: model.id, level: model.level } : null
-}
-
-export function isNavigationLevel(value: unknown): value is NavigationLevel {
-  return (NAVIGATION_LEVELS as readonly unknown[]).includes(value)
 }
 
 // ---------------------------------------------------------------------------

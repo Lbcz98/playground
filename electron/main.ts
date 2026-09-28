@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { registerIpcHandlers } from './ipc'
-import { describeAiSetup } from './ai/llm'
+import { describeAiSetup } from './ai/providers'
 import { registerDesignSystemProtocolSchemes, installDesignSystemProtocolHandler } from './protocol'
 import { palette } from '@/design-system/primitives'
 

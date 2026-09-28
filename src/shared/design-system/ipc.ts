@@ -23,4 +23,3 @@ export const DS_IPC = {
   hasBundle: 'ds:hasBundle',
 } as const
 
-export type DsIpcChannel = (typeof DS_IPC)[keyof typeof DS_IPC]

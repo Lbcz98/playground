@@ -2,7 +2,7 @@
  * Storybook ingestion — the Adapter pattern.
  *
  * External design systems are imported by feeding us Storybook's `react-docgen`
- * JSON extraction. `parseStorybookDocgen` normalises that AST into our strict
+ * JSON extraction. `parseStorybookDocgenWithReport` normalises that AST into our strict
  * `DesignSystemManifest`: it drops individual story metadata and keeps only the
  * component definitions and their prop schemas (`argTypes` / docgen `props`).
  *
@@ -489,7 +489,7 @@ function aliasScaleSteps(
   }
 }
 
-/** `parseStorybookDocgen`, plus everything the import accepted with a loss. */
+/** The manifest, plus everything the import accepted with a loss. */
 export function parseStorybookDocgenWithReport(
   rawJson: unknown,
   meta: StorybookAdapterMeta = {},
@@ -583,11 +583,4 @@ function screenTemplatesFrom(
 /** A token the parse left out, in the importer's warning shape. */
 export function tokenImportWarning(w: TokenWarning): StorybookImportWarning {
   return { component: 'tokens', prop: w.token, message: w.message }
-}
-
-export function parseStorybookDocgen(
-  rawJson: unknown,
-  meta: StorybookAdapterMeta = {},
-): DesignSystemManifest {
-  return parseStorybookDocgenWithReport(rawJson, meta).manifest
 }

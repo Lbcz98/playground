@@ -155,7 +155,6 @@ export const mainMenuSchema = z
       .default([]),
   })
   .strict()
-export type MainMenuNodeProps = z.infer<typeof mainMenuSchema>
 
 export const RAIL_ALIGN = ['start', 'end'] as const
 
@@ -165,7 +164,6 @@ export const interactivityMenuSchema = z
     align: z.enum(RAIL_ALIGN).default('start'),
   })
   .strict()
-export type InteractivityMenuNodeProps = z.infer<typeof interactivityMenuSchema>
 
 export const interactivityCardSchema = z
   .object({
@@ -188,7 +186,6 @@ export const labelVideoSchema = z
     mini: z.boolean().default(false),
   })
   .strict()
-export type LabelVideoNodeProps = z.infer<typeof labelVideoSchema>
 
 export const wideButtonSchema = z
   .object({
@@ -198,7 +195,6 @@ export const wideButtonSchema = z
     iconRight: z.boolean().default(false),
   })
   .strict()
-export type WideButtonNodeProps = z.infer<typeof wideButtonSchema>
 
 export const roundedButtonSchema = z
   .object({
@@ -206,7 +202,6 @@ export const roundedButtonSchema = z
     interactionState: z.enum(CONTROL_STATES).default('default'),
   })
   .strict()
-export type RoundedButtonNodeProps = z.infer<typeof roundedButtonSchema>
 
 export const closeButtonSchema = z
   .object({
@@ -214,7 +209,6 @@ export const closeButtonSchema = z
     interactionState: z.enum(CONTROL_STATES).default('default'),
   })
   .strict()
-export type CloseButtonNodeProps = z.infer<typeof closeButtonSchema>
 
 const CARD_HEIGHT_MIN = 2 * parseFloat(spacingScale[contentCardSpec.inset])
 
@@ -244,7 +238,6 @@ export const contentCardSchema = z
     gap: onGridGap(),
   })
   .strict()
-export type ContentCardNodeProps = z.infer<typeof contentCardSchema>
 
 export const contentCardHeaderSchema = z
   .object({
@@ -266,7 +259,6 @@ export const contentCardHeaderSchema = z
     adLabel: z.string().default(''),
   })
   .strict()
-export type ContentCardHeaderNodeProps = z.infer<typeof contentCardHeaderSchema>
 
 export const contentCardBodySchema = z
   .object({
@@ -274,14 +266,12 @@ export const contentCardBodySchema = z
     gap: onGridGap(),
   })
   .strict()
-export type ContentCardBodyNodeProps = z.infer<typeof contentCardBodySchema>
 
 export const contentCardFooterSchema = z
   .object({
     caption: z.string().default(''),
   })
   .strict()
-export type ContentCardFooterNodeProps = z.infer<typeof contentCardFooterSchema>
 
 const CONTENT_CARD_ZONES = ['ContentCardHeader', 'ContentCardBody', 'ContentCardFooter'] as const
 
@@ -318,7 +308,6 @@ export const tableCellSchema = z
     divider: z.boolean().default(false),
   })
   .strict()
-export type TableCellNodeProps = z.infer<typeof tableCellSchema>
 
 export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
 
@@ -329,7 +318,6 @@ export const notificationSchema = z
     interactionState: z.enum(CONTROL_STATES).default('default'),
   })
   .strict()
-export type NotificationNodeProps = z.infer<typeof notificationSchema>
 
 export const ALERT_BUG_STYLES = ['interface', 'transmission'] as const satisfies readonly AlertBugStyle[]
 
@@ -340,7 +328,6 @@ export const alertBugSchema = z
     interactionState: z.enum(CONTROL_STATES).default('default'),
   })
   .strict()
-export type AlertBugNodeProps = z.infer<typeof alertBugSchema>
 
 // ===========================================================================
 // Catalog

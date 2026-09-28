@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'
 import { DecorationHost, hydrateRegistry } from './registry'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
-import { parseStorybookDocgen } from '@/shared/design-system/storybook-adapter'
+import { parseStorybookDocgenWithReport } from '@/shared/design-system/storybook-adapter'
 
 describe('hydrateRegistry — built-in ScreenFlow', () => {
   const reg = hydrateRegistry(SCREENFLOW_MANIFEST)
@@ -136,7 +136,7 @@ describe('the content card is focusable', () => {
 })
 
 describe('hydrateRegistry — imported design system', () => {
-  const imported = parseStorybookDocgen(
+  const imported = parseStorybookDocgenWithReport(
     {
       components: {
         Hero: {
@@ -149,7 +149,7 @@ describe('hydrateRegistry — imported design system', () => {
       },
     },
     { id: 'acme', name: 'Acme', version: '1.0.0' },
-  )
+  ).manifest
   const reg = hydrateRegistry(imported)
 
   it('falls back to the generic renderer for every component', () => {
@@ -182,7 +182,7 @@ describe('hydrateRegistry — imported design system', () => {
 })
 
 describe('hydrateRegistry — generic renderer resolves token-typed props', () => {
-  const imported = parseStorybookDocgen(
+  const imported = parseStorybookDocgenWithReport(
     {
       components: {
         Badge: {
@@ -199,7 +199,7 @@ describe('hydrateRegistry — generic renderer resolves token-typed props', () =
       },
     },
     { id: 'acme2', name: 'Acme2', version: '1.0.0' },
-  )
+  ).manifest
   const reg = hydrateRegistry(imported)
 
   it('a component-declared token prop overrides the box background/radius', () => {
@@ -225,7 +225,7 @@ describe('hydrateRegistry — generic renderer resolves token-typed props', () =
 })
 
 describe('hydrateRegistry — live components (Phase 8B)', () => {
-  const imported = parseStorybookDocgen(
+  const imported = parseStorybookDocgenWithReport(
     {
       components: {
         Hero: { displayName: 'Hero', props: { title: { required: false, type: { name: 'string' } } } },
@@ -233,7 +233,7 @@ describe('hydrateRegistry — live components (Phase 8B)', () => {
       },
     },
     { id: 'acme3', name: 'Acme3', version: '1.0.0' },
-  )
+  ).manifest
 
   function LiveHero(props: Record<string, unknown>) {
     return { type: 'live-hero-marker', props, key: null } as unknown as null
@@ -275,10 +275,10 @@ describe('hydrateRegistry — live components (Phase 8B)', () => {
   })
 
   it('keeps a component\'s text children when the Blueprint nests no nodes, and nests nodes when it does', () => {
-    const withText = parseStorybookDocgen(
+    const withText = parseStorybookDocgenWithReport(
       { components: { Label: { displayName: 'Label', props: { children: { tsType: { name: 'ReactNode' } } } } } },
       { id: 'acme4', name: 'Acme4', version: '1.0.0' },
-    )
+    ).manifest
     function LiveLabel({ children }: { children?: ReactNode }) {
       return <span>{children}</span>
     }

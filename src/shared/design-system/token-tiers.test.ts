@@ -17,7 +17,7 @@ import {
 } from './manifest'
 import { compileManifestSchemas, compiledDefaultProps, validateBlueprintAgainstManifest } from './manifest-zod'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
-import { parseStorybookDocgen } from './storybook-adapter'
+import { parseStorybookDocgenWithReport } from './storybook-adapter'
 import { parseDesignTokenTiers, parseDesignTokens } from './token-adapter'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 
@@ -185,11 +185,11 @@ describe('tiers read from a token tree', () => {
   })
 
   it('travels with a Storybook import', () => {
-    const m = parseStorybookDocgen({
+    const m = parseStorybookDocgenWithReport({
       name: 'Tiered import',
       components: { Btn: { displayName: 'Btn', props: {} } },
       tokens: tree,
-    })
+    }).manifest
     expect(m.tokenTiers?.tiers.colors?.['opacity-dark-10']).toBe('core')
     expect(m.tokenTiers?.rule).toEqual(TOKEN_TIER_RULE)
   })

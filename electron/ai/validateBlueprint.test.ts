@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { validateBlueprint } from './validateBlueprint'
+import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
+import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+
+/** The strict validator the orchestrator runs, on the built-in system unless told otherwise. */
+const validateBlueprint = (input: unknown, manifest = SCREENFLOW_MANIFEST) => validateBlueprintAgainstManifest(input, manifest)
 import { homeTemplate } from '@/shared/templates/home'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 

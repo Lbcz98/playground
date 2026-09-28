@@ -84,14 +84,6 @@ export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'childre
 /** The id of a document's first screen when it names none. */
 export const FIRST_SCREEN_ID = 'screen-1'
 
-/** The screens of a document as one list — the first, then the rest. */
-export function documentScreens(doc: BlueprintDocument): BlueprintScreen[] {
-  return [
-    { id: doc.id ?? FIRST_SCREEN_ID, name: doc.name, screen: doc.screen, root: doc.root },
-    ...(doc.screens ?? []),
-  ]
-}
-
 /**
  * Why a key the DSL does not have is refused. Focus gets its own reason: a TV
  * screen always has something focused, and the engine reads which from the

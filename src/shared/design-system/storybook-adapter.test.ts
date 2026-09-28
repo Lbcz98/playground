@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { parseStorybookDocgen } from './storybook-adapter'
 import { manifestZodSchema } from './manifest'
 import { templatesFor } from '@/design-system/promptSpec'
 import { chooseTemplate } from '@/shared/templates'
@@ -68,8 +67,8 @@ const STORYBOOK_PAYLOAD = {
   },
 }
 
-describe('parseStorybookDocgen', () => {
-  const manifest = parseStorybookDocgen(STORYBOOK_PAYLOAD)
+describe('parseStorybookDocgenWithReport', () => {
+  const manifest = parseStorybookDocgenWithReport(STORYBOOK_PAYLOAD).manifest
 
   it('produces a schema-valid manifest', () => {
     expect(manifestZodSchema.safeParse(manifest).success).toBe(true)
@@ -112,7 +111,7 @@ describe('parseStorybookDocgen', () => {
   })
 
   it('reads the Storybook argTypes shape too', () => {
-    const m = parseStorybookDocgen(
+    const m = parseStorybookDocgenWithReport(
       {
         components: {
           Badge: {
@@ -129,17 +128,17 @@ describe('parseStorybookDocgen', () => {
         },
       },
       { id: 'acme', name: 'Acme', version: '1.0.0' },
-    )
+    ).manifest
     expect(m.components.Badge.props.tone.options).toEqual(['info', 'warn', 'error'])
     expect(m.components.Badge.props.tone.defaultValue).toBe('info')
   })
 
   it('throws when there are no component definitions', () => {
-    expect(() => parseStorybookDocgen({ stories: { 'x--y': {} } })).toThrow(/No component definitions/)
+    expect(() => parseStorybookDocgenWithReport({ stories: { 'x--y': {} } }).manifest).toThrow(/No component definitions/)
   })
 
   it('infers tokenGroup for token-typed props by name', () => {
-    const m = parseStorybookDocgen({
+    const m = parseStorybookDocgenWithReport({
       components: {
         Box: {
           displayName: 'Box',
@@ -152,7 +151,7 @@ describe('parseStorybookDocgen', () => {
           },
         },
       },
-    })
+    }).manifest
     const p = m.components.Box.props
     expect(p.background.tokenGroup).toBe('colors')
     expect(p.padding.tokenGroup).toBe('spacing')
@@ -162,14 +161,14 @@ describe('parseStorybookDocgen', () => {
   })
 
   it('ingests design tokens carried in the same JSON', () => {
-    const m = parseStorybookDocgen({
+    const m = parseStorybookDocgenWithReport({
       name: 'Toked',
       components: { Btn: { displayName: 'Btn', props: {} } },
       tokens: {
         color: { $type: 'color', brand: { $value: '#0055ff' } },
         space: { $type: 'dimension', md: { $value: '16px' } },
       },
-    })
+    }).manifest
     expect(m.tokens.colors).toEqual({ brand: '#0055ff' })
     expect(m.tokens.spacing).toEqual({ md: '16px' })
   })
@@ -219,7 +218,7 @@ describe('Phase 2 — importing an external Storybook', () => {
   })
 
   it('E2.2 — Storybook argTypes give the same component as the docgen export', () => {
-    const fromArgTypes = parseStorybookDocgen({
+    const fromArgTypes = parseStorybookDocgenWithReport({
       components: {
         LabelVideo: {
           displayName: 'LabelVideo',
@@ -229,7 +228,7 @@ describe('Phase 2 — importing an external Storybook', () => {
           },
         },
       },
-    })
+    }).manifest
     expect(fromArgTypes.components.LabelVideo.props.kind.options).toEqual(manifest.components.LabelVideo.props.kind.options)
     expect(fromArgTypes.components.LabelVideo.props.mini.type.name).toBe(manifest.components.LabelVideo.props.mini.type.name)
   })
@@ -543,8 +542,8 @@ describe('Phase 2 — importing an external Storybook', () => {
   })
 
   it('E2.5 — a payload with no components throws a readable error', () => {
-    expect(() => parseStorybookDocgen({ components: {} })).toThrow(/No component definitions found/)
-    expect(() => parseStorybookDocgen('not json at all')).toThrow(/No component definitions found/)
+    expect(() => parseStorybookDocgenWithReport({ components: {} }).manifest).toThrow(/No component definitions found/)
+    expect(() => parseStorybookDocgenWithReport('not json at all').manifest).toThrow(/No component definitions found/)
   })
 
   it('E2.14 — an export can carry its own reference screens, each held to its own manifest', () => {
@@ -587,7 +586,7 @@ describe('Phase 2 — importing an external Storybook', () => {
   })
 
   it('E2.6 — a docs or index file says which file to import instead', () => {
-    expect(() => parseStorybookDocgen({ v: 5, entries: {} })).toThrow(/Import manifests\/components\.json instead/)
+    expect(() => parseStorybookDocgenWithReport({ v: 5, entries: {} }).manifest).toThrow(/Import manifests\/components\.json instead/)
   })
 
   it('E2.7 — the imported manifest compiles, and holds a Blueprint to its own components', () => {

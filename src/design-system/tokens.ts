@@ -7,7 +7,7 @@
  * including on LLM output.
  */
 
-import { spacingScale, radiusScale, fontSizeScale, fontWeightScale, shadowScale } from './primitives'
+import { spacingScale, radiusScale, shadowScale } from './primitives'
 
 // ---------------------------------------------------------------------------
 // Scales (derived from primitives so they can never drift out of sync)
@@ -18,15 +18,6 @@ export const SPACE_TOKENS = Object.keys(spacingScale) as [SpaceToken, ...SpaceTo
 
 export type RadiusToken = keyof typeof radiusScale
 export const RADIUS_TOKENS = Object.keys(radiusScale) as [RadiusToken, ...RadiusToken[]]
-
-export type FontSizeToken = keyof typeof fontSizeScale
-export const FONT_SIZE_TOKENS = Object.keys(fontSizeScale) as [FontSizeToken, ...FontSizeToken[]]
-
-export type FontWeightToken = keyof typeof fontWeightScale
-export const FONT_WEIGHT_TOKENS = Object.keys(fontWeightScale) as [
-  FontWeightToken,
-  ...FontWeightToken[],
-]
 
 export type ShadowToken = keyof typeof shadowScale
 export const SHADOW_TOKENS = Object.keys(shadowScale) as [ShadowToken, ...ShadowToken[]]
@@ -54,7 +45,6 @@ export const COLOR_ROLES = [
   'success',
   'success-subtle',
 ] as const
-export type ColorRole = (typeof COLOR_ROLES)[number]
 
 // ---------------------------------------------------------------------------
 // Higher-level presentation tokens used by components
@@ -64,19 +54,15 @@ export const SURFACE_TOKENS = ['none', 'surface', 'subtle', 'brand-subtle'] as c
 export type SurfaceToken = (typeof SURFACE_TOKENS)[number]
 
 export const TEXT_VARIANTS = ['display', 'title', 'heading', 'body', 'caption'] as const
-export type TextVariant = (typeof TEXT_VARIANTS)[number]
 
 export const TEXT_TONES = ['default', 'muted', 'inverse', 'brand'] as const
-export type TextTone = (typeof TEXT_TONES)[number]
 
 export const CONTROL_SIZES = ['sm', 'md', 'lg'] as const
-export type ControlSize = (typeof CONTROL_SIZES)[number]
 
 export const BUTTON_VARIANTS = ['primary', 'secondary', 'ghost', 'danger'] as const
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number]
 
 export const STACK_DIRECTIONS = ['vertical', 'horizontal'] as const
-export type StackDirection = (typeof STACK_DIRECTIONS)[number]
 
 export const STACK_ALIGN = ['start', 'center', 'end', 'stretch'] as const
 export type StackAlign = (typeof STACK_ALIGN)[number]

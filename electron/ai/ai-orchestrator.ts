@@ -8,7 +8,7 @@
  *                  Produces a short prose build plan (no JSON).
  *   2. GENERATOR — provider.renderUi() constrained to the render_ui tool schema.
  *                  Translates the plan into the strict Blueprint JSON.
- *   3. VALIDATE  — validateBlueprint() (strict Zod, main process). On failure the
+ *   3. VALIDATE  — validateBlueprintAgainstManifest() (strict Zod, main process). On failure the
  *                  error list is fed back to the GENERATOR and it retries.
  *                  Max `AI_MAX_VALIDATION_RETRIES` (default 2) retries.
  *
@@ -29,10 +29,10 @@ import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-sy
 import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { restStrayFocus } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
-import { validateBlueprint } from './validateBlueprint'
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
 
@@ -118,7 +118,7 @@ export async function generateUI(
         if (rested.length > 0) steps.push(`step 2 · rested ${rested.length} stray focus: ${rested.join('; ')}`)
         reply = JSON.stringify(lastBlueprint)
 
-        const validation = validateBlueprint(lastBlueprint, manifest)
+        const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest)
         if (validation.ok) {
           steps.push(`step 2 · generator: valid on attempt ${attempt}`)
           return success(lastBlueprint, provider, model, usage, steps, startedAt)

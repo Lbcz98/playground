@@ -4,7 +4,7 @@
  * Reactive, systems-driven: it subscribes to the selected node, looks that node's
  * `componentType` up in the ACTIVE `DesignSystemManifest`, and maps over the
  * component's `props` to render one `<PropertyControl>` each. Editing a control
- * fires `updateNodeProps(activeNodeId, { [prop]: value })`, which the canvas
+ * fires `updateProps(activeNodeId, { [prop]: value })`, which the canvas
  * re-renders from instantly.
  *
  * Spacing controls only offer on-grid steps, token controls never offer a core
@@ -18,7 +18,7 @@ import { findNode } from '@/model/nodeTree'
 import type { DesignSystemManifest, ManifestProp } from '@/shared/design-system/manifest'
 import { assignableTokenNames, isCoreToken } from '@/shared/design-system/manifest'
 import { anchorZone, onGridSpacingNames } from '@/shared/layout/frame'
-import { selectActiveNodeId, useFlowStore } from '@/store/flowStore'
+import { useFlowStore } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
 import { PropertyControl } from './PropertyControl'
 
@@ -46,8 +46,8 @@ function controlTokens(
 export function PropertyInspector(): JSX.Element {
   const tree = useFlowStore((s) => s.tree)
   const focusSide = useFrameStore((s) => s.focus.side)
-  const activeNodeId = useFlowStore(selectActiveNodeId)
-  const updateNodeProps = useFlowStore((s) => s.updateNodeProps)
+  const activeNodeId = useFlowStore((s) => s.selectedId)
+  const updateProps = useFlowStore((s) => s.updateProps)
   const setAnchor = useFlowStore((s) => s.setAnchor)
   const manifest = useActiveDesignSystem()
 
@@ -99,7 +99,7 @@ export function PropertyInspector(): JSX.Element {
                   propName={name}
                   propDef={controlProp(manifest, propDef)}
                   currentValue={(node.props as Record<string, unknown>)[name]}
-                  onChange={(value) => updateNodeProps(node.id, { [name]: value })}
+                  onChange={(value) => updateProps(node.id, { [name]: value })}
                   tokenDict={controlTokens(manifest, propDef)}
                 />
               ))}

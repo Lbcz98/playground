@@ -90,13 +90,6 @@ describe('the layer rule in the manifest schema', () => {
     const noLevel2 = { ...W3C_MANIFEST, screenLayers: { ...DTV_SCREEN_LAYERS, levels: DTV_SCREEN_LAYERS.levels.filter((l) => l.level !== 2) } }
     expect(manifestZodSchema.safeParse(noLevel2).success).toBe(false) // models on level 2 remain
   })
-
-  it('still loads a manifest saved with the token tiers under the old `layers` key', () => {
-    const { tokenTiers, ...rest } = W3C_MANIFEST
-    const parsed = manifestZodSchema.safeParse({ ...rest, layers: tokenTiers })
-    expect(parsed.success).toBe(true)
-    if (parsed.success) expect(parsed.data.tokenTiers).toEqual(tokenTiers)
-  })
 })
 
 describe('auditScreenLayers', () => {
