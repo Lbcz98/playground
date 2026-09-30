@@ -35,6 +35,7 @@ import {
   type BlueprintDocument,
   type BlueprintNode,
   type ScreenMode,
+  screenMode,
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, type Declaration } from '@/shared/design-system/deviations'
@@ -144,7 +145,7 @@ function readScreenDeviations(
 ): RuleDeviation[] {
   if (!isObject(raw) || raw[DEVIATION_KEY] === undefined) return []
   const list = raw[DEVIATION_KEY]
-  if (mode === 'faithful') {
+  if (mode !== 'exploratory') {
     issues?.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: 'Removed "deviation" from the screen — a Faithful screen keeps every pattern.' })
     return []
   }
@@ -172,7 +173,7 @@ function readNodeDeviation(
   issues: InterpretIssue[],
 ): RuleDeviation | undefined {
   if (raw === undefined) return undefined
-  if (ctx.mode === 'faithful') {
+  if (ctx.mode !== 'exploratory') {
     issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: `Removed "deviation" from <${type}> — a Faithful screen keeps every pattern.` })
     return undefined
   }
@@ -228,8 +229,8 @@ export function interpretBlueprint(
   if (!rootType) {
     return { ok: false, error: 'The active design system has no container component.', issues }
   }
-  // The pipeline stamps the mode; anything else is a screen built by the Faithful rules.
-  const mode: ScreenMode = doc.mode === 'exploratory' ? 'exploratory' : 'faithful'
+  // The pipeline stamps the mode; an absent one is a screen built by the Faithful rules.
+  const mode = screenMode(doc)
   const ctx: InterpretCtx = {
     manifest,
     schemas: compileManifestSchemas(manifest, mode),
@@ -289,7 +290,7 @@ export function interpretBlueprint(
   // the interpreted tree, because the repairs above may have resolved violations;
   // an Exploratory screen's declared patterns are held to its declarations.
   const remaining = frameLayoutIssues(treeToBlueprint(root), ctx.manifest)
-  if (mode === 'faithful') {
+  if (mode !== 'exploratory') {
     for (const problem of remaining) {
       issues.push({ ruleId: problem.ruleId, level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem.message}` })
     }

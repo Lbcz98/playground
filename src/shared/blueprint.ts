@@ -140,7 +140,19 @@ export const REQUESTED_MODES = ['auto', 'faithful', 'exploratory', 'both'] as co
 export type RequestedMode = (typeof REQUESTED_MODES)[number]
 
 /** The mode a screen was actually generated in. */
-export type ScreenMode = 'faithful' | 'exploratory'
+export const SCREEN_MODES = ['faithful', 'exploratory'] as const
+export type ScreenMode = (typeof SCREEN_MODES)[number]
+
+/**
+ * The mode a screen ran in, read off its entry, document or response. The one place
+ * that says an absent (or unrecognised) mode means Faithful, so no caller compares
+ * against a default of its own. `fallback` is for a caller that has a policy to
+ * fall back to instead (the validator, given the mode it generated for).
+ */
+export function screenMode(entry: unknown, fallback: ScreenMode = 'faithful'): ScreenMode {
+  const mode = typeof entry === 'object' && entry !== null ? (entry as { mode?: unknown }).mode : undefined
+  return SCREEN_MODES.find((m) => m === mode) ?? fallback
+}
 
 /** Per-request overrides chosen in the AI Agent panel. */
 export interface GenerateOptions {

@@ -21,7 +21,7 @@ import { useFrameStore } from '@/store/frameStore'
 import { usePlayStore } from '@/store/playStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useDesignSystemStore } from '@/store/designSystemStore'
-import type { ChatTurn, GenerateUISource, GenerateUsage, RequestedMode, RouterQuestion, ScreenMode } from '@/shared/blueprint'
+import { screenMode, type ChatTurn, type GenerateUISource, type GenerateUsage, type RequestedMode, type RouterQuestion, type ScreenMode } from '@/shared/blueprint'
 import { createNodeId } from '@/model/nodeTree'
 
 export interface ChatMessage {
@@ -249,7 +249,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               { role: 'assistant', content: JSON.stringify(response.blueprint) },
             ]
             // The repair keeps the mode this screen ran in: it never re-routes, never asks again.
-            const repairMode: RequestedMode = mode === 'auto' ? (response.meta.mode ?? 'faithful') : mode
+            const repairMode: RequestedMode = mode === 'auto' ? screenMode(response.meta) : mode
             const repairResponse = await generateUI(repairPrompt, repairHistory, { model, effort, mode: repairMode }, manifest)
             set((s) => ({ sessionUsage: accumulate(s.sessionUsage, repairResponse.meta.usage) }))
             repairPatch(applyGenerated(repairResponse, repairPrompt))

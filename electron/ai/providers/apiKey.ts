@@ -101,7 +101,7 @@ const DEVIATION_SHAPE = {
  * `deviation` field to the node and to the `screen` object.
  */
 export function renderToolFor(mode: ScreenMode = 'faithful'): Anthropic.Tool {
-  if (mode === 'faithful') return renderTool
+  if (mode !== 'exploratory') return renderTool
   const tool = structuredClone(renderTool) as unknown as {
     input_schema: { properties: { blueprint: { properties: Record<string, any> } } }
   } & Anthropic.Tool

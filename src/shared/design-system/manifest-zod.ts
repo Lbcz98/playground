@@ -34,7 +34,9 @@ import {
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   MAX_SCREENS,
+  SCREEN_MODES,
   nodeKeysFor,
+  screenMode,
   unknownBlueprintKeyReason,
 } from '../blueprint'
 import { flowIssues, type FlowScreen } from './flow'
@@ -306,13 +308,13 @@ export function validateBlueprintAgainstManifest(
   const bases: IssuePath[] = [[]]
   /** The mode each screen is held to: its stamped `mode`, else `policy`. */
   const modes: Policy[] = []
-  const modeOf = (raw: unknown, base: IssuePath): Policy => {
-    if (raw === undefined) return policy
-    if (raw === 'faithful' || raw === 'exploratory') return raw
-    add('blueprint.dsl', [...base, 'mode'], '"mode" must be "faithful" or "exploratory" — and the pipeline sets it, not you.')
-    return policy
+  const modeOf = (screen: Record<string, unknown>, base: IssuePath): Policy => {
+    if (screen.mode !== undefined && !SCREEN_MODES.some((m) => m === screen.mode)) {
+      add('blueprint.dsl', [...base, 'mode'], '"mode" must be "faithful" or "exploratory" — and the pipeline sets it, not you.')
+    }
+    return screenMode(screen, policy)
   }
-  modes.push(modeOf(input.mode, []))
+  modes.push(modeOf(input, []))
   if (input.screens !== undefined) {
     if (!Array.isArray(input.screens)) {
       add('blueprint.dsl', ['screens'], '"screens" must be a list of screens: [{ "id", "name", "screen", "root" }].')
@@ -336,7 +338,7 @@ export function validateBlueprintAgainstManifest(
         }
         screens.push({ id: raw.id, screen: raw.screen, root: raw.root })
         bases.push(['screens', i])
-        modes.push(modeOf(raw.mode, ['screens', i]))
+        modes.push(modeOf(raw, ['screens', i]))
       })
     }
   }
@@ -347,7 +349,7 @@ export function validateBlueprintAgainstManifest(
   const flow = flowIssues(screens, manifest)
   screens.forEach((s, i) => {
     const found = validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest, modes[i])
-    if (modes[i] === 'faithful') {
+    if (modes[i] !== 'exploratory') {
       found.issues.forEach((issue) => emit(i, issue))
       return
     }
@@ -356,7 +358,7 @@ export function validateBlueprintAgainstManifest(
     auditDeviations([...found.issues, ...own], found.declarations, manifest).forEach((issue) => emit(i, issue))
   })
   // Faithful screens: the cross-screen issues after the per-screen ones, as before.
-  for (const found of flow) if (modes[found.screen] === 'faithful') emit(found.screen, found)
+  for (const found of flow) if (modes[found.screen] !== 'exploratory') emit(found.screen, found)
 
   return invalid(issues)
 }
@@ -385,7 +387,7 @@ function validateScreen(
   }
   if (isObject(input.screen) && input.screen[DEVIATION_KEY] !== undefined) {
     const list = input.screen[DEVIATION_KEY]
-    if (policy === 'faithful') {
+    if (policy !== 'exploratory') {
       issues.push({
         ruleId: 'blueprint.dsl',
         path: ['screen', DEVIATION_KEY],
