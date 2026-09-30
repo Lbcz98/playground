@@ -8,6 +8,8 @@ import { declarableRules, MAX_WHY_LENGTH, ruleScope } from '@/shared/design-syst
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { rulesOf } from '@/shared/design-system/rules'
 import { SHADE_IDS } from '@/shared/design-system/manifest'
+import { MAX_PROPOSED_PROPS } from '@/shared/design-system/manifest-zod'
+import { PRIMITIVE_MAX_CHAIN, PRIMITIVE_MAX_PER_SCREEN, PRIMITIVE_TYPES, withVocabulary } from '@/shared/design-system/primitives'
 
 const laws = (manifest: DesignSystemManifest): string =>
   rulesOf(manifest)
@@ -61,4 +63,60 @@ sentence in the language of the request, up to ${MAX_WHY_LENGTH} characters>" }.
 
 Patterns that may be declared (id — what it is):
 ${patterns(manifest)}`
+}
+
+// ── The Exploratory vocabulary (phase 9E) ───────────────────────────────────────────────────────
+
+/** One primitive's props as the prompt shows them: a token prop says its group; an enum lists its values. */
+function primitiveProps(manifest: DesignSystemManifest, type: string): string {
+  const component = withVocabulary(manifest).components[type]
+  return Object.values(component.props)
+    .map((p) => {
+      if (p.options && p.tokenGroup) return `${p.name} (${p.options.join(' | ')})`
+      if (p.tokenGroup) return `${p.name} (a ${p.tokenGroup} token, same names as the components use)`
+      if (p.options) return `${p.name} (${p.options.join(' | ')})`
+      return `${p.name}${p.required ? ' (required text)' : ''}`
+    })
+    .join(', ')
+}
+
+/** For the Planner: when a primitive or a Proposal is the answer, and the lines that record it. */
+export function plannerVocabularyContract(): string {
+  return `# Exploratory mode — beyond the registry
+
+Prefer the registry's components, recomposed. Only when none of them expresses the need:
+- a small piece the registry lacks (a coloured title, a wrapper that places something) is a PRIMITIVE —
+  ${PRIMITIVE_TYPES.join(', ')}. For each, add a line "Primitive: <type> — considered <the components you
+  looked at, by name> — <why none of them does it>".
+- a real new component (a scoreboard, a widget with its own props) is a PROPOSAL — add a line "Proposal:
+  <what it is> — <its props: name: type, …>". It is shown as a placeholder, not built.
+At most ${PRIMITIVE_MAX_CHAIN} primitives inside each other and ${PRIMITIVE_MAX_PER_SCREEN} per screen, text included: past that, it is a Proposal.
+A request that fits the registry uses no primitive and no Proposal.
+
+`
+}
+
+/** For the Generator: the vocabulary, the "reuse" contract, the budget and the Proposal shape. */
+export function generatorVocabularyContract(manifest: DesignSystemManifest): string {
+  const components = Object.keys(manifest.components).join(', ')
+  return `
+
+# Exploratory mode — beyond the registry
+
+Prefer the registry's components. Use the vocabulary below only when no component expresses the need; a
+request that fits the registry uses none of it. The laws hold for it exactly as for components: tokens only
+(never a hex, px or rgb), the semantic tier, the 8pt grid, only the props listed.
+
+Primitives — each carries "reuse": { "considered": "<the registry components you looked at, by id, comma-separated>",
+"why": "<why none of them expresses the need, in the language of the request>" }. "considered" names real
+components (${components}); a primitive without a valid "reuse" is an error.
+${PRIMITIVE_TYPES.map((t) => `- ${t}: ${primitiveProps(manifest, t)}${withVocabulary(manifest).components[t].acceptsChildren ? '; holds children' : '; no children'}`).join('\n')}
+Budget: at most ${PRIMITIVE_MAX_CHAIN} primitives nested in primitives, and ${PRIMITIVE_MAX_PER_SCREEN} per screen, primitive:Text included.
+Past it, the need is a new component: group it into one Proposal.
+
+Proposal — a component the registry lacks, shown as a placeholder and never built:
+{ "type": "Proposal", "props": { "description": "<what it is and does>", "proposedApi": { "<propName>": "<short type or description>" } },
+  "deviation": { "ruleId": "registry.new-component", "why": "<why the registry lacks it>" } }
+proposedApi has 1 to ${MAX_PROPOSED_PROPS} props, each an identifier (letters and digits) with a short string. A Proposal has no children and
+declares registry.new-component — nothing else, on its own node.`
 }

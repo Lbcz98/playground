@@ -112,8 +112,21 @@ export function renderToolFor(mode: ScreenMode = 'faithful'): Anthropic.Tool {
     items: DEVIATION_SHAPE,
   }
   blueprint.root.description +=
-    ' In Exploratory mode a node may also carry `deviation: { ruleId, why }` — a pattern rule it breaks, declared at the node where it happens.'
+    ' In Exploratory mode a node may also carry `deviation: { ruleId, why }` — a pattern rule it breaks, declared at the node where it happens.' +
+    ' A node may also be a primitive (`primitive:Box`, `primitive:Stack`, `primitive:Text`), which must carry `reuse: { considered, why }`,' +
+    ' or a `Proposal` (props `description` and `proposedApi`, declaring `registry.new-component`) — only when no registry component expresses the need.'
   blueprint.root.properties.deviation = DEVIATION_SHAPE
+  blueprint.root.properties.reuse = {
+    type: 'object',
+    description: 'On a primitive only: the registry components considered (by id, comma-separated) and why none of them does it.',
+    properties: { considered: { type: 'string' }, why: { type: 'string' } },
+    required: ['considered', 'why'],
+  }
+  blueprint.screen.properties.shades = {
+    type: 'array',
+    description: 'With model "composed" only: the shade pieces of a composed overlay, each once (declare layers.overlay-model on the screen).',
+    items: { type: 'string' },
+  }
   return tool
 }
 

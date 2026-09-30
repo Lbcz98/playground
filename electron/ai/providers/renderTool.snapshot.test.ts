@@ -42,6 +42,9 @@ describe('render_ui tool by mode', () => {
     expect(bp.root.properties.deviation.required).toEqual(['ruleId', 'why'])
     expect(bp.screen.properties.deviation.type).toBe('array')
     expect(bp.root.description).toMatch(/In Exploratory mode a node may also carry `deviation/)
+    expect(bp.root.properties.reuse.required).toEqual(['considered', 'why'])
+    expect(bp.root.description).toMatch(/`primitive:Box`, `primitive:Stack`, `primitive:Text`.*`reuse: \{ considered, why \}`.*`Proposal`/)
+    expect(bp.screen.properties.shades.type).toBe('array')
     expect(JSON.stringify(renderToolFor('faithful'))).toBe(before)
   })
 
