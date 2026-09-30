@@ -341,6 +341,15 @@ const SCOPE_CASES: Record<string, ScopeCase> = {
     node: (d) => d.root,
     screen: (d) => d.screen,
   },
+  'registry.new-component': {
+    doc: () => {
+      const d = home()
+      d.root.children[0].children.push({ type: 'Proposal', props: { description: 'Placar ao vivo', proposedApi: { homeScore: 'number' } } })
+      return d
+    },
+    node: (d) => d.root.children[0].children[2],
+    screen: (d) => d.screen,
+  },
   'layers.overlay-model': {
     doc: () => { const d = home(); d.screen = { model: 'nope', level: 1 }; return d },
     node: (d) => d.root,

@@ -41,7 +41,7 @@ import {
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, treeDeclarations } from '@/shared/design-system/deviations'
-import { budgetProblems, isPrimitive, reuseProblem, withVocabulary } from '@/shared/design-system/primitives'
+import { PROPOSAL_TYPE, budgetProblems, isPrimitive, reuseProblem, withVocabulary } from '@/shared/design-system/primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
@@ -663,6 +663,13 @@ function interpretNode(
   for (const key of Object.keys(raw)) {
     if (!keys.includes(key) && key !== DEVIATION_KEY) {
       issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
+    }
+  }
+  // A Proposal that does not declare what it is stays on the canvas — reported, not repaired.
+  if (ctx.mode === 'exploratory' && type === PROPOSAL_TYPE) {
+    const declared = isObject(raw[DEVIATION_KEY]) ? (raw[DEVIATION_KEY] as Record<string, unknown>).ruleId : undefined
+    if (declared !== 'registry.new-component') {
+      issues.push({ ruleId: 'registry.new-component', level: 'warn', path, message: 'Kept <Proposal>, reported, not repaired — a Proposal declares "registry.new-component" (a component the registry lacks).' })
     }
   }
   // A primitive's "reuse" is kept when it holds; when it doesn't, the node stays — reported, not repaired.

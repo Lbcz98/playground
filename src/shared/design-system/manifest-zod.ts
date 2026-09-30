@@ -507,6 +507,20 @@ function validateNode(
           : unknownBlueprintKeyReason(key)
     add('blueprint.dsl', [...at, key], `${path} <${type}>: unknown node key "${key}" — ${why}. Remove it.`)
   }
+  // A Proposal is a component the registry lacks: a break of registry.new-component at its own node, which it
+  // declares itself — and only that rule (the audit turns an undeclared one into a composition choice).
+  if (ctx.policy === 'exploratory' && type === PROPOSAL_TYPE) {
+    const description = isObject(raw.props) && typeof raw.props.description === 'string' ? ` ("${raw.props.description.slice(0, 60)}")` : ''
+    issues.push({
+      ruleId: 'registry.new-component',
+      path: at,
+      message: `${path} <Proposal>${description} is a component the registry lacks — it declares "deviation": { "ruleId": "registry.new-component", "why": "<why the registry lacks it>" }.`,
+    })
+    const declared = isObject(raw[DEVIATION_KEY]) ? (raw[DEVIATION_KEY] as Record<string, unknown>).ruleId : undefined
+    if (declared !== undefined && declared !== 'registry.new-component') {
+      add('blueprint.dsl', [...at, DEVIATION_KEY], `${path} <Proposal>: a Proposal declares "registry.new-component" and nothing else (got ${JSON.stringify(declared)}).`)
+    }
+  }
   // A primitive says which components it considered and why none would do; without it, it is a composition choice nobody made.
   if (ctx.policy === 'exploratory' && isPrimitive(type)) {
     const problem = reuseProblem(ctx.manifest, raw[REUSE_KEY])

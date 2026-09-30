@@ -25,8 +25,6 @@ export interface Declaration {
 const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
   'layers.overlay-model':
     'composing a new overlay arrives in 9E — for now keep to one of the layer models',
-  // ponytail: until the Proposal node exists (a later 9E commit), nothing can carry this declaration.
-  'registry.new-component': 'a Proposal carries it, and Proposals arrive later in 9E',
 }
 
 /**
@@ -53,6 +51,8 @@ export const RULE_SCOPE: Readonly<Record<string, DeclarationScope>> = {
   'layout.no-static-center': 'screen',
   'layout.anchor': 'screen',
   'layers.overlay-model': 'screen',
+  // A Proposal is the break, at its own node.
+  'registry.new-component': 'node',
 }
 
 /** A rule with no entry (an imported system's own) is treated as screen-wide. */
