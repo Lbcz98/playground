@@ -61,3 +61,14 @@ describe('the router prompt and its few-shot', () => {
     }
   })
 })
+
+describe('the few-shot stays apart from the evaluation requests', () => {
+  it('no request of the 9G seed appears in the router few-shot', async () => {
+    const { readFileSync } = await import('node:fs')
+    const seed = JSON.parse(readFileSync(new URL('../../tests/eval/seed-9d.json', import.meta.url), 'utf8')) as { requests: { prompt: string }[] }
+    const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\W+/g, ' ').trim()
+    const shots = new Set(ROUTER_FEWSHOT.map((s) => norm(s.request)))
+    expect(seed.requests.length).toBe(10)
+    for (const { prompt } of seed.requests) expect(shots.has(norm(prompt)), prompt).toBe(false)
+  })
+})
