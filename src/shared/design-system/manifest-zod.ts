@@ -247,21 +247,14 @@ export interface ValidationIssue {
   kind?: IssueKind
 }
 
-export type BlueprintValidation =
-  | { ok: true }
-  | {
-      ok: false
-      /** @deprecated `issues.map((i) => i.message)`, kept for the current callers. Removed in 9D — read `issues`. */
-      errors: string[]
-      issues: ValidationIssue[]
-    }
+export type BlueprintValidation = { ok: true } | { ok: false; issues: ValidationIssue[] }
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
 function invalid(issues: ValidationIssue[]): BlueprintValidation {
-  return issues.length === 0 ? { ok: true } : { ok: false, errors: issues.map((i) => i.message), issues }
+  return issues.length === 0 ? { ok: true } : { ok: false, issues }
 }
 
 /**

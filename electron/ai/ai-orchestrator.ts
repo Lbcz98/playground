@@ -172,7 +172,7 @@ export async function generateUI(
           steps.push(`step 2 · generator: valid on attempt ${attempt}`)
           return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp)
         }
-        errors = validation.errors
+        errors = validation.issues.map((i) => i.message)
       } catch (err) {
         // A reply that isn't JSON is the model's mistake, not the provider's: say so and retry.
         if (!(err instanceof MalformedOutputError)) throw err

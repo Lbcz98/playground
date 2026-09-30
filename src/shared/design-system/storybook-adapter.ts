@@ -570,7 +570,7 @@ function screenTemplatesFrom(
       warnings.push({
         component: 'templates',
         prop: entry.id,
-        message: `its blueprint does not pass validation against its own manifest — skipped (${result.errors[0]})`,
+        message: `its blueprint does not pass validation against its own manifest — skipped (${result.issues[0].message})`,
       })
       return
     }

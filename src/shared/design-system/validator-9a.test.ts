@@ -29,7 +29,7 @@ describe('schema cache (manifest × policy)', () => {
     doc.root.reuse = { considered: 'Stack', why: 'test' }
     const v = validateBlueprintAgainstManifest(doc, m)
     expect(v.ok).toBe(false)
-    if (!v.ok) expect(v.errors.join('\n')).toMatch(/unknown node key "reuse"/)
+    if (!v.ok) expect(v.issues.map((i) => i.message).join('\n')).toMatch(/unknown node key "reuse"/)
   })
 
   it('returns the same verdict on a cache hit', () => {
@@ -61,13 +61,12 @@ function corpus(): unknown[] {
 describe('structured issues', () => {
   const ids = new Set<string>(RULES.map((r) => r.id))
 
-  it('derives the deprecated errors from issues, message for message', () => {
+  it('names a rule of the book on every issue, over broken copies of every reference screen', () => {
     let invalid = 0
     for (const doc of corpus()) {
       const v = validateBlueprintAgainstManifest(doc, SCREENFLOW_MANIFEST)
       if (v.ok) continue
       invalid += 1
-      expect(v.errors).toEqual(v.issues.map((i) => i.message))
       for (const issue of v.issues) expect(ids.has(issue.ruleId), issue.ruleId).toBe(true)
     }
     expect(invalid).toBe(SCREEN_TEMPLATES.length * 4)
