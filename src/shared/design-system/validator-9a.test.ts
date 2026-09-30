@@ -127,6 +127,33 @@ describe('structured issues', () => {
   })
 })
 
+describe('full descent', () => {
+  it('reports the children of an unknown or untyped node in the same pass', () => {
+    const v = validateBlueprintAgainstManifest(
+      {
+        version: 1,
+        root: {
+          type: 'Stack',
+          children: [
+            { type: 'Carousel', children: [{ type: 'Text', props: { bogus: 1 } }, { type: 'ContentCardBody' }] },
+            { children: [{ type: 'Gallery' }] },
+          ],
+        },
+      },
+      SCREENFLOW_MANIFEST,
+    )
+    expect(v.ok).toBe(false)
+    if (v.ok) return
+    const at = (path: string) => v.issues.filter((i) => i.path.join('.') === path).map((i) => i.ruleId)
+    expect(at('root.children.0.type')).toEqual(['component.api'])
+    expect(at('root.children.0.children.0.props.bogus')).toEqual(['component.api'])
+    expect(at('root.children.1.type')).toEqual(['blueprint.dsl'])
+    expect(at('root.children.1.children.0.type')).toEqual(['component.api'])
+    // No parent is known, so the card zone isn't misreported as standing alone.
+    expect(v.issues.some((i) => i.path.join('.').startsWith('root.children.0.children.1') && i.ruleId === 'layout.slots')).toBe(false)
+  })
+})
+
 function findType(node: Record<string, unknown>, type: string): Record<string, unknown> | undefined {
   if (node.type === type) return node
   for (const child of (node.children as Record<string, unknown>[]) ?? []) {

@@ -371,15 +371,24 @@ function validateNode(
     return
   }
 
+  // A node the validator can't type is reported, and its children are still
+  // checked, so every error in the tree reaches the Generator in one attempt.
+  // Under an unknown parent no placement rule applies.
+  const descend = (label: string): void => {
+    if (!Array.isArray(raw.children)) return
+    raw.children.forEach((child, i) => validateNode(child, `${path} › ${label}[${i}]`, [...at, 'children', i], ctx, issues, label))
+  }
   const type = raw.type
   if (typeof type !== 'string') {
     add('blueprint.dsl', [...at, 'type'], `${path}: node is missing a string "type".`)
+    descend('?')
     return
   }
 
   const component: ManifestComponent | undefined = ctx.manifest.components[type]
   if (!component) {
     add('component.api', [...at, 'type'], `${path}: <${type}> is not a real component. Allowed: ${ctx.allowed.join(', ')}.`)
+    descend(type)
     return
   }
   for (const key of Object.keys(raw)) {
