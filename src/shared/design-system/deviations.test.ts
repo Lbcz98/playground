@@ -246,3 +246,28 @@ describe('the schema cache stays immutable across policies', () => {
     expect(validateBlueprintAgainstManifest(doc, m, 'exploratory')).toEqual({ ok: true })
   })
 })
+
+describe('declaration scope (from the first real Exploratory runs)', () => {
+  it('a node-only rule declared on the screen is refused, and the break stays undeclared', () => {
+    const doc = home()
+    doc.root.children[0].children.push({ type: 'ContentCardHeader' })
+    doc.screen.deviation = [dev('layout.slots')]
+    const found = issuesOf(doc)
+    expect(found.some((i) => /"layout\.slots" \(Slots, order and parents\) breaks at one node, so it is declared on that node/.test(i.message))).toBe(true)
+    expect(found.some((i) => i.ruleId === 'layout.slots' && i.kind === 'undeclared-deviation')).toBe(true)
+  })
+
+  it('the same rule on the node is fine', () => {
+    const doc = home()
+    doc.root.children[0].deviation = dev('layout.slots')
+    doc.root.children[0].children.push({ type: 'ContentCardHeader' })
+    expect(issuesOf(doc)).toEqual([])
+  })
+
+  it('a screen-wide rule may still be declared on the screen', () => {
+    const doc = breaksRootAlign()
+    doc.screen.deviation = [dev('layout.root-align')]
+    expect(issuesOf(doc)).toEqual([])
+  })
+})
+

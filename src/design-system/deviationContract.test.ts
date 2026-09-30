@@ -10,7 +10,10 @@ describe('Exploratory prompts', () => {
   it('the planner is told which breaks to plan and how to record them', () => {
     const p = buildPlannerPrompt(M, { prompt: 'x', mode: 'exploratory' })
     expect(p).toContain('# Exploratory mode — declared deviations')
-    expect(p).toContain('"Deviation: <rule id> — <why, in one short sentence>"')
+    expect(p).toContain('"Deviation: <rule id> — <why, in one short sentence, in the language of the request>"')
+    expect(p).toContain('- layout.slots — Slots, order and parents: ')
+    expect(p).toMatch(/- layout\.slots — .* \(on its node only\)/)
+    expect(p).not.toMatch(/- layout\.root-align — .* \(on its node only\)/)
     expect(p).toContain('composing a new overlay is not available yet')
   })
 
@@ -21,6 +24,8 @@ describe('Exploratory prompts', () => {
       expect(p).toContain('it covers that node and everything inside it')
       expect(p).toContain('A break that is not declared is an error, and so is a declaration')
       expect(p).toContain('"screen": { "model": …, "level": …, "deviation": [')
+      expect(p).toContain('A rule marked "on its node only" is never declared there')
+      expect(p).toContain('one short\nsentence in the language of the request')
     }
   })
 

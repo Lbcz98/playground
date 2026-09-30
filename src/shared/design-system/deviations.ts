@@ -27,13 +27,28 @@ const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
     'composing a new overlay arrives in 9E — for now keep to one of the layer models',
 }
 
+/**
+ * Patterns that break at one node — a misplaced slot, one link — and so are declared
+ * on that node only. A screen-level declaration of one would cover every such break
+ * anywhere on the screen, which says more than the screen means (seen in the first
+ * real Exploratory runs). Every other pattern is screen-wide and may be declared either way.
+ */
+export const NODE_ONLY_RULES: readonly string[] = ['layout.slots', 'flow.next-level', 'flow.link-roles']
+
+/** Where a declaration is written: on a node, or in the screen's own list. */
+export type DeclarationScope = 'node' | 'screen'
+
 /** The pattern rules a screen may declare: every pattern of the book, but the one 9E has not built yet. */
 export function declarableRules(manifest: DesignSystemManifest): PatternRule[] {
   return rulesOf(manifest).filter((r) => r.flexibility === 'pattern' && !(r.id in NOT_DECLARABLE_YET))
 }
 
 /** Why `raw` is not a usable deviation, as a sentence the Generator can act on — or null. */
-export function declarationProblem(manifest: DesignSystemManifest, raw: unknown): string | null {
+export function declarationProblem(
+  manifest: DesignSystemManifest,
+  raw: unknown,
+  scope: DeclarationScope = 'node',
+): string | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     return '"deviation" must be { "ruleId": "<rule id>", "why": "<the reason>" }.'
   }
@@ -56,6 +71,9 @@ export function declarationProblem(manifest: DesignSystemManifest, raw: unknown)
     return `"${ruleId}" (${rule.title}) is a convention — breaking it only produces a note, so it needs no declaration.`
   }
   if (ruleId in NOT_DECLARABLE_YET) return `"${ruleId}" cannot be declared yet: ${NOT_DECLARABLE_YET[ruleId]}.`
+  if (scope === 'screen' && NODE_ONLY_RULES.includes(ruleId)) {
+    return `"${ruleId}" (${rule.title}) breaks at one node, so it is declared on that node — put "deviation" on the node where it happens, not on the screen.`
+  }
   return null
 }
 
@@ -65,11 +83,11 @@ export function declarationProblem(manifest: DesignSystemManifest, raw: unknown)
  * break alone (the pipeline's `stretchRoots` and `restStrayFocus`).
  */
 export function declaresRule(manifest: DesignSystemManifest, root: unknown, screen: unknown, ruleId: string): boolean {
-  const valid = (raw: unknown): boolean =>
-    declarationProblem(manifest, raw) === null && (raw as { ruleId: string }).ruleId === ruleId
-  const onRoot = typeof root === 'object' && root !== null && valid((root as { deviation?: unknown }).deviation)
+  const valid = (raw: unknown, scope: DeclarationScope): boolean =>
+    declarationProblem(manifest, raw, scope) === null && (raw as { ruleId: string }).ruleId === ruleId
+  const onRoot = typeof root === 'object' && root !== null && valid((root as { deviation?: unknown }).deviation, 'node')
   const list = typeof screen === 'object' && screen !== null ? (screen as { deviation?: unknown }).deviation : undefined
-  return onRoot || (Array.isArray(list) && list.some(valid))
+  return onRoot || (Array.isArray(list) && list.some((raw) => valid(raw, 'screen')))
 }
 
 const startsWith = (path: IssuePath, prefix: IssuePath): boolean =>

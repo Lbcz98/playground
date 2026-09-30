@@ -154,7 +154,7 @@ function readScreenDeviations(
     return []
   }
   return list.flatMap((entry, j): RuleDeviation[] => {
-    const problem = declarationProblem(manifest, entry)
+    const problem = declarationProblem(manifest, entry, 'screen')
     if (problem) {
       issues?.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: `Ignored the screen's deviation[${j}] — ${problem}` })
       return []

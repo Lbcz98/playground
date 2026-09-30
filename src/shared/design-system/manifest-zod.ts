@@ -402,7 +402,7 @@ function validateScreen(
     } else {
       list.forEach((raw, j) => {
         const at = ['screen', DEVIATION_KEY, j]
-        const problem = declarationProblem(manifest, raw)
+        const problem = declarationProblem(manifest, raw, 'screen')
         if (problem) issues.push({ ruleId: 'blueprint.dsl', path: at, message: `"screen".deviation[${j}]: ${problem}` })
         else {
           const { ruleId, why } = raw as { ruleId: string; why: string }

@@ -237,7 +237,7 @@ describe('where a declaration reaches', () => {
     expect(walk(grandchild('sibling').tree).some((n) => n.type === 'ContentCardHeader')).toBe(false)
   })
 
-  it('a link is kept by a declaration on the link, on an element above it, or on the screen', () => {
+  it('a link is kept by a declaration on the link or on an element above it — never by one on the screen (node-only rule)', () => {
     const make = (where: 'link' | 'above' | 'screen') => {
       const doc = home('exploratory')
       const rail = doc.root.children[0].children[0]
@@ -247,7 +247,10 @@ describe('where a declaration reaches', () => {
       if (where === 'screen') doc.screen.deviation = [dev('flow.next-level')]
       return { ...doc, id: 'home', screens: [{ id: 'deep', mode: 'exploratory', screen: { model: model(3), level: 3 }, root: { type: 'Stack', children: [] } }] }
     }
-    for (const where of ['link', 'above', 'screen'] as const) expect(interpret(make(where)).linkCount, where).toBe(1)
+    for (const where of ['link', 'above'] as const) expect(interpret(make(where)).linkCount, where).toBe(1)
+    const screen = interpret(make('screen'))
+    expect(screen.linkCount).toBe(0)
+    expect(screen.issues.some((i) => i.level === 'warn' && /breaks at one node, so it is declared on that node/.test(i.message))).toBe(true)
   })
 
   it('mode is per screen: each entry records the mode it ran in', () => {
