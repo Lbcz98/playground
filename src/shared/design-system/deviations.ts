@@ -82,6 +82,37 @@ function coveringDeclaration(declarations: Declaration[], ruleId: string, path: 
   return nodes[0] ?? same.find((d) => d.scope === 'screen')
 }
 
+/** Whether one of the declarations covers `issue`: a pattern the screen declared, at or above where it happens. */
+export function coveredBy(issue: RuleProblem, declarations: readonly Declaration[], manifest: DesignSystemManifest): boolean {
+  const rule = ruleById(manifest, issue.ruleId)
+  if (!rule || rule.flexibility !== 'pattern' || issue.ruleId in NOT_DECLARABLE_YET) return false
+  return coveringDeclaration(declarations as Declaration[], issue.ruleId, issue.path) !== undefined
+}
+
+/** A tree in either shape that carries deviations: a canvas node, or anything with `deviation` and `children`. */
+export interface DeviationNode {
+  deviation?: { ruleId: string; why: string }
+  children: readonly DeviationNode[]
+}
+
+/**
+ * Every deviation a tree declares, with the path frame audit issues use
+ * (`['root', 'children', 0, …]`), and the screen's own list.
+ */
+export function treeDeclarations(
+  root: DeviationNode,
+  screen?: { deviation?: readonly { ruleId: string; why: string }[] },
+): Declaration[] {
+  const out: Declaration[] = []
+  const walk = (node: DeviationNode, at: IssuePath): void => {
+    if (node.deviation) out.push({ ...node.deviation, path: at, scope: 'node', at: [...at, 'deviation'] })
+    node.children.forEach((child, i) => walk(child, [...at, 'children', i]))
+  }
+  walk(root, ['root'])
+  ;(screen?.deviation ?? []).forEach((d, j) => out.push({ ...d, path: [], scope: 'screen', at: ['screen', 'deviation', j] }))
+  return out
+}
+
 /**
  * Holds an Exploratory screen's issues to its declarations. A law breaks in every
  * mode; a pattern breaks only where declared (an undeclared one stays an error,

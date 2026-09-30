@@ -38,7 +38,7 @@ import type {
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { auditScreenLayerIssues, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
-import { declaresRule } from '@/shared/design-system/deviations'
+import { coveredBy, declaresRule, type Declaration } from '@/shared/design-system/deviations'
 import type { ScreenMode } from '@/shared/blueprint'
 
 export const FRAME = {
@@ -381,8 +381,22 @@ export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers' | '
 export interface FrameCheck {
   id: FrameCheckId
   label: string
+  /** No failing problem; a break the screen declares is not one. */
   ok: boolean
   problems: string[]
+  /** Breaks of a pattern the screen declares (Exploratory): shown apart, never counted as failures. */
+  declared: string[]
+}
+
+/** The checklist as the status line reads it: `Layout QA 5/6 · 1 declared`. */
+export function summarizeChecks(checks: readonly FrameCheck[]): { passed: number; total: number; failing: number; declared: number } {
+  return {
+    // A check with a declared break is neither a pass nor a failure.
+    passed: checks.filter((check) => check.ok && check.declared.length === 0).length,
+    total: checks.length,
+    failing: checks.filter((check) => !check.ok).length,
+    declared: checks.reduce((sum, check) => sum + check.declared.length, 0),
+  }
 }
 
 /**
@@ -396,13 +410,20 @@ export function auditFrameLayout(
   doc: unknown,
   manifest: DesignSystemManifest,
   size: FrameSizeId = DEFAULT_FRAME_SIZE,
+  declarations: readonly Declaration[] = [],
 ): FrameCheck[] {
-  return auditFrameIssues(doc, manifest, size).map(({ id, label, issues }) => ({
-    id,
-    label,
-    ok: issues.length === 0,
-    problems: issues.map((issue) => issue.message),
-  }))
+  return auditFrameIssues(doc, manifest, size).map(({ id, label, issues }) => {
+    // A pattern the screen declares, at or above where it breaks, is shown as declared. A law never is.
+    const declared = issues.filter((issue) => coveredBy(issue, declarations, manifest))
+    const failing = issues.filter((issue) => !declared.includes(issue))
+    return {
+      id,
+      label,
+      ok: failing.length === 0,
+      problems: failing.map((issue) => issue.message),
+      declared: declared.map((issue) => issue.message),
+    }
+  })
 }
 
 /** The same checklist, each problem naming the rule it breaks and where (relative to `{ screen, root }`). */

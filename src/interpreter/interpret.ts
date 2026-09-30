@@ -38,7 +38,7 @@ import {
   screenMode,
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
-import { auditDeclared, declarationProblem, type Declaration } from '@/shared/design-system/deviations'
+import { auditDeclared, declarationProblem, treeDeclarations } from '@/shared/design-system/deviations'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
@@ -184,18 +184,6 @@ function readNodeDeviation(
   }
   const { ruleId, why } = raw as RuleDeviation
   return { ruleId, why }
-}
-
-/** Every deviation a tree declares, with the path frame audit issues use (`['root', 'children', 0, …]`). */
-function treeDeclarations(root: CanvasNode, screen: ScreenSpec | undefined): Declaration[] {
-  const out: Declaration[] = []
-  const walk = (node: CanvasNode, at: (string | number)[]): void => {
-    if (node.deviation) out.push({ ...node.deviation, path: at, scope: 'node', at: [...at, DEVIATION_KEY] })
-    node.children.forEach((child, i) => walk(child, [...at, 'children', i]))
-  }
-  walk(root, ['root'])
-  ;(screen?.deviation ?? []).forEach((d, j) => out.push({ ...d, path: [], scope: 'screen', at: ['screen', DEVIATION_KEY, j] }))
-  return out
 }
 
 export function interpretBlueprint(

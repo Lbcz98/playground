@@ -1,5 +1,7 @@
 import { type MutableRefObject, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasNode } from '@/model/nodeTree'
+import { screenMode } from '@/shared/blueprint'
+import { treeDeclarations } from '@/shared/design-system/deviations'
 import { useFlowStore } from '@/store/flowStore'
 import { currentPlayScreenId, usePlayStore } from '@/store/playStore'
 import { type FocusReading, useFrameStore } from '@/store/frameStore'
@@ -20,6 +22,7 @@ import {
   focusedBy,
   focusPropsFor,
   readingOrder,
+  summarizeChecks,
 } from '@/shared/layout/frame'
 import { auditRender, type ClipBox } from '@/shared/layout/renderAudit'
 import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
@@ -88,9 +91,13 @@ export function Canvas(): JSX.Element {
   const zone = anchorZone(focus.side)
   const layers = screenLayersOf(active)
   const model = screenModel(layers, tree.screen?.model)
+  // The breaks an Exploratory screen declares are shown apart in the QA line, not counted as failures.
+  const exploratory = screenMode(screens.find((entry) => entry.tree === tree)) === 'exploratory'
+  const declarations = useMemo(() => (exploratory ? treeDeclarations(tree, tree.screen) : []), [tree, exploratory])
   const checks = useMemo(
-    () => withRenderCheck(withFocusSide(auditFrameLayout({ root: tree }, active, size), model, focus), renderProblems),
-    [tree, active, size, model, focus, renderProblems],
+    () =>
+      withRenderCheck(withFocusSide(auditFrameLayout({ root: tree }, active, size, declarations), model, focus), renderProblems),
+    [tree, active, size, model, focus, renderProblems, declarations],
   )
 
   return (
@@ -155,7 +162,7 @@ function withFocusSide(
 
 /** Appends the render-measured check (`useRenderAudit`) as the QA checklist's 6th entry. */
 function withRenderCheck(checks: FrameCheck[], problems: string[]): FrameCheck[] {
-  return [...checks, { id: 'render', label: 'Render', ok: problems.length === 0, problems }]
+  return [...checks, { id: 'render', label: 'Render', ok: problems.length === 0, problems, declared: [] }]
 }
 
 /** The largest fit factor, never above 1, at which the shown frame fits under the status line. */
@@ -585,7 +592,8 @@ function FrameStatus({
   screen: string | null
 }): JSX.Element {
   const problems = checks.flatMap((check) => check.problems)
-  const passed = checks.filter((check) => check.ok).length
+  const declared = checks.flatMap((check) => check.declared)
+  const { passed, total, declared: declaredCount } = summarizeChecks(checks)
 
   return (
     <div
@@ -604,15 +612,28 @@ function FrameStatus({
         </span>
         <span>{screen ? `Camadas: ${screen}` : 'No layer model'}</span>
         <span
-          title={checks.map((check) => `${check.ok ? '✓' : '✗'} ${check.label}`).join('\n')}
+          title={checks.map((check) => `${check.ok ? (check.declared.length > 0 ? '◇' : '✓') : '✗'} ${check.label}`).join('\n')}
           className={cx(
             'rounded-full px-2xs py-3xs font-medium',
-            problems.length > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success',
+            problems.length > 0
+              ? 'bg-danger-subtle text-danger'
+              : declaredCount > 0
+                ? 'bg-brand-subtle text-brand-strong'
+                : 'bg-success-subtle text-success',
           )}
         >
-          Layout QA {passed}/{checks.length}
+          Layout QA {passed}/{total}
+          {declaredCount > 0 ? ` · ${declaredCount} declared` : ''}
         </span>
       </div>
+      {declared.length > 0 ? (
+        <ul className="m-none flex list-none flex-col items-center gap-3xs p-none text-xs text-ink-muted">
+          {declared.slice(0, MAX_LISTED_PROBLEMS).map((message) => (
+            <li key={message}>◇ declared · {message}</li>
+          ))}
+          {declared.length > MAX_LISTED_PROBLEMS ? <li>+{declared.length - MAX_LISTED_PROBLEMS} more declared</li> : null}
+        </ul>
+      ) : null}
       {problems.length > 0 ? (
         <ul className="m-none flex list-none flex-col items-center gap-3xs p-none text-xs text-danger">
           {problems.slice(0, MAX_LISTED_PROBLEMS).map((problem) => (
