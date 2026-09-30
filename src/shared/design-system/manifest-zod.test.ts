@@ -129,7 +129,7 @@ describe('validateBlueprintAgainstManifest', () => {
     )
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.some((e) => /"padding" = "huge" is not an allowed value/.test(e))).toBe(true)
+    expect(v.issues.map((i) => i.message).some((e) => /"padding" = "huge" is not an allowed value/.test(e))).toBe(true)
   })
 
   it('rejects components not in the manifest, listing what is allowed', () => {
@@ -139,7 +139,7 @@ describe('validateBlueprintAgainstManifest', () => {
     )
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join(' ')).toMatch(/<Carousel> is not a real component\. Allowed: Box, Chip/)
+    expect(v.issues.map((i) => i.message).join(' ')).toMatch(/<Carousel> is not a real component\. Allowed: Box, Chip/)
   })
 
   it('rejects children on a leaf and a non-container root', () => {
@@ -148,10 +148,10 @@ describe('validateBlueprintAgainstManifest', () => {
       MANIFEST,
     )
     expect(leaf.ok).toBe(false)
-    if (!leaf.ok) expect(leaf.errors.some((e) => /<Chip>: cannot have children/.test(e))).toBe(true)
+    if (!leaf.ok) expect(leaf.issues.map((i) => i.message).some((e) => /<Chip>: cannot have children/.test(e))).toBe(true)
 
     const badRoot = validateBlueprintAgainstManifest({ version: 1, root: { type: 'Chip' } }, MANIFEST)
     expect(badRoot.ok).toBe(false)
-    if (!badRoot.ok) expect(badRoot.errors.some((e) => /root node must be a <Box>/.test(e))).toBe(true)
+    if (!badRoot.ok) expect(badRoot.issues.map((i) => i.message).some((e) => /root node must be a <Box>/.test(e))).toBe(true)
   })
 })

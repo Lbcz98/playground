@@ -59,24 +59,24 @@ describe('a document with several screens', () => {
     doc.screens![0].root.children![0].children![0].goTo = 'ghost'
     const result = validateBlueprintAgainstManifest(doc, S)
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.errors.join('\n')).toMatch(/screen "rail".*goTo "ghost" is not a screen/)
+    if (!result.ok) expect(result.issues.map((i) => i.message).join('\n')).toMatch(/screen "rail".*goTo "ghost" is not a screen/)
   })
 
   it('rejects more screens than a document carries, and a screen with no id', () => {
     const doc = flow()
     doc.screens = Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, screen: doc.screen, root: doc.root }))
     const tooMany = validateBlueprintAgainstManifest(doc, S)
-    expect(!tooMany.ok && tooMany.errors.join()).toMatch(/at most 6 screens/)
+    expect(!tooMany.ok && tooMany.issues.map((i) => i.message).join()).toMatch(/at most 6 screens/)
     const noId = { ...flow(), screens: [{ root: home().root }] }
     const result = validateBlueprintAgainstManifest(noId, S)
-    expect(!result.ok && result.errors.join()).toMatch(/needs a string "id"/)
+    expect(!result.ok && result.issues.map((i) => i.message).join()).toMatch(/needs a string "id"/)
   })
 
   it('validates each screen against the frame rules, prefixed with its id', () => {
     const doc = flow()
     doc.screens![0].root.props = { ...doc.screens![0].root.props, align: 'end' }
     const result = validateBlueprintAgainstManifest(doc, S)
-    expect(!result.ok && result.errors.join()).toMatch(/Screen "rail": root <Stack>: align "end"/)
+    expect(!result.ok && result.issues.map((i) => i.message).join()).toMatch(/Screen "rail": root <Stack>: align "end"/)
   })
 })
 
@@ -160,7 +160,7 @@ describe('notes — what the user should know', () => {
   it('are rejected when not a short list of strings', () => {
     for (const notes of ['nope', [1], ['x'.repeat(301)], ['a', 'b', 'c', 'd', 'e']]) {
       const r = validateBlueprintAgainstManifest({ ...home(), notes } as never, S)
-      expect(!r.ok && r.errors.join()).toMatch(/"notes" must be a list/)
+      expect(!r.ok && r.issues.map((i) => i.message).join()).toMatch(/"notes" must be a list/)
     }
   })
 

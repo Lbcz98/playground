@@ -120,7 +120,7 @@ describe('the token tier rule in the validator', () => {
     const v = validateBlueprintAgainstManifest(blueprint(node('Label', { color: 'core-white' })), TIERED)
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join('\n')).toContain(
+    expect(v.issues.map((i) => i.message).join('\n')).toContain(
       '"color" = "core-white" is a core token. The token tier rule forbids core tokens in a screen — use the semantic token "semantic-text-primary" (same value).',
     )
   })
@@ -129,14 +129,14 @@ describe('the token tier rule in the validator', () => {
     const v = validateBlueprintAgainstManifest(blueprint(node('Label', { color: 'core-blue' })), TIERED)
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join('\n')).toMatch(/"core-blue" is a core token\..*use the semantic colors token that matches the element's role/)
+    expect(v.issues.map((i) => i.message).join('\n')).toMatch(/"core-blue" is a core token\..*use the semantic colors token that matches the element's role/)
   })
 
   it('rejects raw values, pointing at the token that holds the same value', () => {
     const v = validateBlueprintAgainstManifest(blueprint(node('Label', { color: '#eeeeee' })), TIERED)
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join('\n')).toContain('"#eeeeee" is a raw value. The token tier rule only allows tokens — use "semantic-text-primary".')
+    expect(v.issues.map((i) => i.message).join('\n')).toContain('"#eeeeee" is a raw value. The token tier rule only allows tokens — use "semantic-text-primary".')
   })
 
   it('accepts semantic colors and layout steps', () => {

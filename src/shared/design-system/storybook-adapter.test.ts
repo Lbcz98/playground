@@ -371,7 +371,7 @@ describe('Phase 2 — importing an external Storybook', () => {
     })
     const errors = (rowProps: Record<string, unknown>) => {
       const v = validateBlueprintAgainstManifest(doc(rowProps), report.manifest)
-      return v.ok ? '' : v.errors.join(' | ')
+      return v.ok ? '' : v.issues.map((i) => i.message).join(' | ')
     }
     expect(errors({ stats: ['Pts', 'J'], values: ['62%', '38%'] })).not.toMatch(/stats|values/)
     expect(errors({ stats: 'Pts / J' })).toMatch(/stats/)
@@ -399,7 +399,7 @@ describe('Phase 2 — importing an external Storybook', () => {
         { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Card', props: { height } } },
         manifest,
       )
-      return v.ok ? '' : v.errors.join(' | ')
+      return v.ok ? '' : v.issues.map((i) => i.message).join(' | ')
     }
     // The audit's runs asked for 600 and 640; the card silently clamped both to 456.
     expect(errors(640)).toMatch(/height/)
@@ -422,7 +422,7 @@ describe('Phase 2 — importing an external Storybook', () => {
         { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Body', props: { gap } } },
         manifest,
       )
-      return v.ok ? '' : v.errors.join(' | ')
+      return v.ok ? '' : v.issues.map((i) => i.message).join(' | ')
     }
     for (const ok of [0, 4, 8, 12, 16, 24, 32, 40]) expect(errors(ok), `${ok}`).not.toMatch(/gap/)
     for (const off of [5, 10, 20, 28]) expect(errors(off), `${off}`).toMatch(/gap.*8pt scale/)
@@ -463,7 +463,7 @@ describe('Phase 2 — importing an external Storybook', () => {
         { version: 1, screen: { model: 'interactivity-cards-right', level: 3 }, root: { type: 'Menu', props: { items } } },
         report.manifest,
       )
-      return v.ok ? '' : v.errors.join(' | ')
+      return v.ok ? '' : v.issues.map((i) => i.message).join(' | ')
     }
     expect(errors([{ title: 'Previsão do tempo', subtitle: 'São Paulo, SP' }, { title: 'Brasileirão' }])).not.toMatch(/items/)
     expect(errors([{ subtitle: 'no title' }])).toMatch(/items/)
@@ -492,7 +492,7 @@ describe('Phase 2 — importing an external Storybook', () => {
     })
     const misplaced = doc({ children: 'Ao vivo' })
     const v = validateBlueprintAgainstManifest(misplaced, m)
-    expect(v.ok ? '' : v.errors.join(' | ')).toMatch(/"children" is a list of nodes.*set "props": \{ "children": "Ao vivo" \}/)
+    expect(v.ok ? '' : v.issues.map((i) => i.message).join(' | ')).toMatch(/"children" is a list of nodes.*set "props": \{ "children": "Ao vivo" \}/)
 
     const repaired = interpretBlueprint(misplaced, m)
     expect(repaired.ok && repaired.tree.children[0].props.children).toBe('Ao vivo')
@@ -532,9 +532,9 @@ describe('Phase 2 — importing an external Storybook', () => {
     })
     // Left unset, the menu focuses "program" — two focused elements, and the fix is null.
     const twice = validateBlueprintAgainstManifest(doc({}), m)
-    expect(twice.ok ? '' : twice.errors.join(' | ')).toMatch(/focusedItem null/)
+    expect(twice.ok ? '' : twice.issues.map((i) => i.message).join(' | ')).toMatch(/focusedItem null/)
     const rested = validateBlueprintAgainstManifest(doc({ focusedItem: null }), m)
-    expect(rested.ok ? [] : rested.errors.filter((e) => /focus/.test(e))).toEqual([])
+    expect(rested.ok ? [] : rested.issues.map((i) => i.message).filter((e) => /focus/.test(e))).toEqual([])
 
     const prompt = buildSystemPrompt('tool', m)
     expect(prompt).toMatch(/- focusedItem: one of \[program, weather\] or null/)
@@ -603,13 +603,13 @@ describe('Phase 2 — importing an external Storybook', () => {
       },
     }
     const result = validateBlueprintAgainstManifest(own, manifest)
-    expect(result.ok ? [] : result.errors).toEqual([])
+    expect(result.ok ? [] : result.issues.map((i) => i.message)).toEqual([])
 
     const offCatalog = { version: 1, screen, root: { type: 'ContentCard', props: { interactionState: 'selected' } } }
     const offResult = validateBlueprintAgainstManifest(offCatalog, manifest)
-    expect(offResult.ok ? '' : offResult.errors.join('\n')).toMatch(/interactionState/)
+    expect(offResult.ok ? '' : offResult.issues.map((i) => i.message).join('\n')).toMatch(/interactionState/)
     const builtInOnly = { version: 1, screen, root: { type: 'MainMenu' } }
     const builtInResult = validateBlueprintAgainstManifest(builtInOnly, manifest)
-    expect(builtInResult.ok ? '' : builtInResult.errors.join('\n')).toMatch(/MainMenu/)
+    expect(builtInResult.ok ? '' : builtInResult.issues.map((i) => i.message).join('\n')).toMatch(/MainMenu/)
   })
 })

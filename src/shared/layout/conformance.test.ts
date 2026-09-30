@@ -22,7 +22,7 @@ const manifest = SCREENFLOW_MANIFEST
 
 function errorsOf(input: unknown): string[] {
   const result = validateBlueprintAgainstManifest(input, manifest)
-  return result.ok ? [] : result.errors
+  return result.ok ? [] : result.issues.map((i) => i.message)
 }
 
 /**

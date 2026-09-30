@@ -14,7 +14,7 @@ describe('screen templates', () => {
     describe(template.id, () => {
       it('passes the strict validator', () => {
         const result = validateBlueprintAgainstManifest(template.blueprint, SCREENFLOW_MANIFEST)
-        expect(result.ok ? [] : result.errors).toEqual([])
+        expect(result.ok ? [] : result.issues.map((i) => i.message)).toEqual([])
       })
 
       it('passes the frame rules', () => {

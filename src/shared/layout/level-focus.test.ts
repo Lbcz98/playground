@@ -12,7 +12,7 @@ const find = (n: BlueprintNode, type: string): BlueprintNode | undefined =>
   n.type === type ? n : (n.children ?? []).map((c) => find(c, type)).find(Boolean)
 const errors = (d: BlueprintDocument) => {
   const r = validateBlueprintAgainstManifest(d, S)
-  return r.ok ? [] : r.errors
+  return r.ok ? [] : r.issues.map((i) => i.message)
 }
 
 describe('page 1 · Home — focus starts on the program button', () => {

@@ -19,7 +19,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.join(' ')).toMatch(/<Carousel> is not a real component/)
+    expect(v.issues.map((i) => i.message).join(' ')).toMatch(/<Carousel> is not a real component/)
   })
 
   it('rejects unknown props and non-token values (the retry signal)', () => {
@@ -30,8 +30,8 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     expect(v.ok).toBe(false)
     if (v.ok) return
     // A raw value on a token prop is a token-tier violation, and the message says so.
-    expect(v.errors.some((e) => /"padding" = "10px" is a raw value\. The token tier rule only allows tokens/.test(e))).toBe(true)
-    expect(v.errors.some((e) => /unknown prop "boxShadow"/.test(e))).toBe(true)
+    expect(v.issues.map((i) => i.message).some((e) => /"padding" = "10px" is a raw value\. The token tier rule only allows tokens/.test(e))).toBe(true)
+    expect(v.issues.map((i) => i.message).some((e) => /unknown prop "boxShadow"/.test(e))).toBe(true)
   })
 
   it('rejects children on a leaf component', () => {
@@ -41,7 +41,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors.some((e) => /<Text>: cannot have children/.test(e))).toBe(true)
+    expect(v.issues.map((i) => i.message).some((e) => /<Text>: cannot have children/.test(e))).toBe(true)
   })
 
   it('rejects a non-Stack root and a bad version', () => {
@@ -62,7 +62,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    const text = v.errors.join('\n')
+    const text = v.issues.map((i) => i.message).join('\n')
     expect(text).toMatch(/padding "lg" adds 24px .* set padding to "none"/)
     expect(text).toMatch(/gap "2xs" is 8px .* use "sm"/)
     expect(text).toMatch(/only a direct child of the root can be anchored/)
@@ -72,7 +72,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     const v = validateBlueprint({ version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { justify: 'center' } } })
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors).toEqual([expect.stringMatching(/justify "center" statically centers the master layout/)])
+    expect(v.issues.map((i) => i.message)).toEqual([expect.stringMatching(/justify "center" statically centers the master layout/)])
   })
 
   it('accepts one anchored action group', () => {
@@ -110,7 +110,7 @@ describe('validateBlueprint (strict, pipeline step 3)', () => {
     )
     expect(v.ok).toBe(false)
     if (v.ok) return
-    expect(v.errors).toEqual([expect.stringMatching(/"spacing-core-md" is 20px — off the 8pt grid/)])
+    expect(v.issues.map((i) => i.message)).toEqual([expect.stringMatching(/"spacing-core-md" is 20px — off the 8pt grid/)])
   })
 })
 
@@ -135,7 +135,7 @@ describe('validateBlueprint — Content Card structure', () => {
   const card = (children: unknown[], props: Record<string, unknown> = {}) => ({ type: 'ContentCard', props, children })
   const errorsOf = (doc: unknown): string => {
     const v = validateBlueprint(doc)
-    return v.ok ? '' : v.errors.join(' | ')
+    return v.ok ? '' : v.issues.map((i) => i.message).join(' | ')
   }
 
   // Every subset of the three zones, in order — the opt-out the card exists for.
