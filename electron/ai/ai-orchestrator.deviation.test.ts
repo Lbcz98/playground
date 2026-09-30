@@ -216,6 +216,21 @@ describe('the replan', () => {
     expect(res.meta.steps.some((s) => /replan/.test(s))).toBe(false)
   })
 
+  it('a node-local rule declared on the screen is fed back to the generator, not the planner', async () => {
+    const wrong = slot()
+    wrong.screen.deviation = [dev('layout.slots')]
+    const right = slot()
+    right.root.children[1].deviation = dev('layout.slots') // on the node where it happens
+    const p = fake([wrong, right])
+    const res = await run(p)
+    expect(res.ok).toBe(true)
+    expect(p.complete).toHaveBeenCalledTimes(1) // no replan
+    expect(p.renderUi).toHaveBeenCalledTimes(2)
+    const retry = vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content
+    expect(retry).toMatch(/\[blueprint\.dsl\] at screen\.deviation\.0: "screen"\.deviation\[0\]: "layout\.slots" \(Slots, order and parents\) breaks at one node, so it is declared on that node/)
+    expect(res.ok && res.blueprint.root.children?.[1].deviation).toEqual(dev('layout.slots'))
+  })
+
   it('an unknown or law ruleId in a declaration is an expression error too: the generator fixes it', async () => {
     const bad = home() // nothing breaks: only the declaration is wrong
     bad.root.deviation = dev('tokens.only')

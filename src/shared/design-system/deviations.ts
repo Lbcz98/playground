@@ -28,12 +28,33 @@ const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
 }
 
 /**
- * Patterns that break at one node — a misplaced slot, one link — and so are declared
- * on that node only. A screen-level declaration of one would cover every such break
- * anywhere on the screen, which says more than the screen means (seen in the first
- * real Exploratory runs). Every other pattern is screen-wide and may be declared either way.
+ * Where a pattern's violations are reported, which decides where it may be declared:
+ *   - `node`: reported at a node below the root (a misplaced slot, one link). Only a
+ *     declaration on that node covers it; a screen-level one would cover every such
+ *     break on the screen, which says more than the screen means (seen in the first
+ *     real Exploratory runs, r09). A screen-level declaration is an error.
+ *   - `screen`: reported at the root or the screen, never deeper (the root's layout,
+ *     a level's module limit, where focus starts, the anchored groups, the layer
+ *     model, the rail count). It may be declared on the screen, or on the root node.
+ * `deviations.test.ts` holds this table to where the validator really reports each
+ * rule, and to every declarable pattern having an entry.
  */
-export const NODE_ONLY_RULES: readonly string[] = ['layout.slots', 'flow.next-level', 'flow.link-roles']
+export const RULE_SCOPE: Readonly<Record<string, DeclarationScope>> = {
+  'layout.slots': 'node',
+  'flow.next-level': 'node',
+  'flow.link-roles': 'node',
+  'flow.rail-consistency': 'screen',
+  'level.module-limit': 'screen',
+  'level.root-direction': 'screen',
+  'level.initial-focus': 'screen',
+  'layout.root-align': 'screen',
+  'layout.no-static-center': 'screen',
+  'layout.anchor': 'screen',
+  'layers.overlay-model': 'screen',
+}
+
+/** A rule with no entry (an imported system's own) is treated as screen-wide. */
+export const ruleScope = (ruleId: string): DeclarationScope => RULE_SCOPE[ruleId] ?? 'screen'
 
 /** Where a declaration is written: on a node, or in the screen's own list. */
 export type DeclarationScope = 'node' | 'screen'
@@ -71,7 +92,7 @@ export function declarationProblem(
     return `"${ruleId}" (${rule.title}) is a convention — breaking it only produces a note, so it needs no declaration.`
   }
   if (ruleId in NOT_DECLARABLE_YET) return `"${ruleId}" cannot be declared yet: ${NOT_DECLARABLE_YET[ruleId]}.`
-  if (scope === 'screen' && NODE_ONLY_RULES.includes(ruleId)) {
+  if (scope === 'screen' && ruleScope(ruleId) === 'node') {
     return `"${ruleId}" (${rule.title}) breaks at one node, so it is declared on that node — put "deviation" on the node where it happens, not on the screen.`
   }
   return null

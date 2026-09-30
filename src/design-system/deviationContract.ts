@@ -4,7 +4,7 @@
  * a Faithful screen keeps every pattern and declares nothing.
  */
 
-import { declarableRules, MAX_WHY_LENGTH, NODE_ONLY_RULES } from '@/shared/design-system/deviations'
+import { declarableRules, MAX_WHY_LENGTH, ruleScope } from '@/shared/design-system/deviations'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { rulesOf } from '@/shared/design-system/rules'
 
@@ -16,7 +16,7 @@ const laws = (manifest: DesignSystemManifest): string =>
 
 const patterns = (manifest: DesignSystemManifest): string =>
   declarableRules(manifest)
-    .map((r) => `- ${r.id} — ${r.title}: ${r.statement}${NODE_ONLY_RULES.includes(r.id) ? ' (on its node only)' : ''}`)
+    .map((r) => `- ${r.id} — ${r.title}: ${r.statement}${ruleScope(r.id) === 'node' ? ' (on its node only)' : ''}`)
     .join('\n')
 
 /** For the Planner: which breaks to plan, and the "Deviation:" lines that record them. */

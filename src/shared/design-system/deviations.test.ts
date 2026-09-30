@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { compileManifestSchemas, validateBlueprintAgainstManifest, type ValidationIssue } from './manifest-zod'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { DTV_SCREEN_LAYERS } from './screen-layers'
+import { RULE_SCOPE, declarableRules, ruleScope } from './deviations'
 import { homeTemplate } from '@/shared/templates/home'
 
 type Doc = Record<string, any>
@@ -269,5 +270,124 @@ describe('declaration scope (from the first real Exploratory runs)', () => {
     doc.screen.deviation = [dev('layout.root-align')]
     expect(issuesOf(doc)).toEqual([])
   })
+})
+
+// ── Scope: where a rule's violations are reported decides where it may be declared ──────────────
+
+const model = (level: number) => DTV_SCREEN_LAYERS.models.find((m) => m.level === level)!.id
+const lvl = (n: number) => ({ model: model(n), level: n })
+
+interface ScopeCase {
+  /** A document that breaks the rule, nothing else. */
+  doc: () => Doc
+  /** The node a node-scoped declaration belongs on. */
+  node: (doc: Doc) => Doc
+  /** The screen object a screen-level declaration belongs in (where the break is reported). */
+  screen: (doc: Doc) => Doc
+}
+const SCOPE_CASES: Record<string, ScopeCase> = {
+  'layout.slots': {
+    doc: () => { const d = home(); d.root.children[0].children.push({ type: 'ContentCardHeader' }); return d },
+    node: (d) => d.root.children[0],
+    screen: (d) => d.screen,
+  },
+  'flow.next-level': {
+    doc: () => {
+      const d = home()
+      d.root.children[0].children[0].children[0].goTo = 'other'
+      return { ...d, id: 'home', screens: [{ id: 'other', screen: lvl(3), root: { type: 'Stack', children: [] } }] }
+    },
+    node: (d) => d.root.children[0].children[0].children[0],
+    screen: (d) => d.screen,
+  },
+  'flow.link-roles': {
+    doc: () => {
+      const d = home()
+      d.root.children[0].children[1].goTo = 'other' // the main menu carries no link
+      return { ...d, id: 'home', screens: [{ id: 'other', screen: lvl(2), root: { type: 'Stack', children: [] } }] }
+    },
+    node: (d) => d.root.children[0].children[1],
+    screen: (d) => d.screen,
+  },
+  'flow.rail-consistency': {
+    // A level-2 page that shows fewer cards than the Home rail it is entered from: reported on that page's root.
+    doc: () => ({ ...home(), id: 'home', screens: [{ id: 'rail', screen: lvl(2), root: { type: 'Stack', children: [] } }] }),
+    node: (d) => d.screens[0].root,
+    screen: (d) => d.screens[0].screen,
+  },
+  'level.module-limit': {
+    doc: () => ({ version: 1, screen: lvl(3), root: { type: 'Stack', props: { direction: 'vertical', justify: 'end' }, children: [{ type: 'Stack' }, { type: 'Stack' }] } }),
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+  'level.root-direction': {
+    doc: () => { const d = home(); d.root.props = { ...d.root.props, direction: 'horizontal' }; return d },
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+  'level.initial-focus': {
+    doc: () => { const d = home(); d.root.children[0].children[0].children[0].props = { title: 'Um', interactionState: 'focus' }; return d },
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+  'layout.root-align': { doc: breaksRootAlign, node: (d) => d.root, screen: (d) => d.screen },
+  'layout.no-static-center': {
+    doc: () => { const d = home(); d.root.props = { ...d.root.props, justify: 'center' }; return d },
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+  'layout.anchor': {
+    doc: () => { const d = home(); d.root.children.push({ type: 'Button', props: { label: 'A' }, anchor: true }, { type: 'Button', props: { label: 'B' }, anchor: true }); return d },
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+  'layers.overlay-model': {
+    doc: () => { const d = home(); d.screen = { model: 'nope', level: 1 }; return d },
+    node: (d) => d.root,
+    screen: (d) => d.screen,
+  },
+}
+
+describe('rule scope: the table agrees with where the validator reports each rule', () => {
+  it('has an entry for every declarable pattern, and a fixture for every entry', () => {
+    for (const rule of declarableRules(M)) expect(rule.id in RULE_SCOPE, `${rule.id} has no scope`).toBe(true)
+    expect(Object.keys(SCOPE_CASES).sort()).toEqual(Object.keys(RULE_SCOPE).sort())
+  })
+
+  it.each(Object.keys(RULE_SCOPE))('%s is reported %s', (rule) => {
+    const found = issuesOf(SCOPE_CASES[rule].doc()).filter((i) => i.ruleId === rule)
+    expect(found.length, `${rule}: the fixture breaks nothing`).toBeGreaterThan(0)
+    // Node-scoped: reported at a node below the root. Screen-scoped: at the root or the screen, never deeper.
+    for (const issue of found) expect(issue.path.includes('children'), `${rule} @ ${issue.path.join('.')}`).toBe(ruleScope(rule) === 'node')
+  })
+})
+
+describe.each(Object.keys(RULE_SCOPE).filter((r) => r !== 'layers.overlay-model'))('declaring %s', (rule) => {
+  const c = SCOPE_CASES[rule]
+  const covered = (doc: Doc) => issuesOf(doc).filter((i) => i.ruleId === rule || i.kind === 'unused-deviation')
+
+  it('on its node covers the break', () => {
+    const doc = c.doc()
+    c.node(doc).deviation = dev(rule)
+    expect(covered(doc)).toEqual([])
+  })
+
+  if (ruleScope(rule) === 'node') {
+    it('on the screen is refused: an error naming the node, and the break stays undeclared', () => {
+      const doc = c.doc()
+      const screen = c.screen(doc)
+      screen.deviation = [dev(rule)]
+      const found = issuesOf(doc)
+      expect(found.some((i) => i.ruleId === 'blueprint.dsl' && /breaks at one node, so it is declared on that node/.test(i.message))).toBe(true)
+      expect(found.some((i) => i.ruleId === rule && i.kind === 'undeclared-deviation')).toBe(true)
+    })
+  } else {
+    it('on the screen covers the break, with no scope error', () => {
+      const doc = c.doc()
+      c.screen(doc).deviation = [dev(rule)]
+      expect(covered(doc)).toEqual([])
+      expect(issuesOf(doc).some((i) => /breaks at one node/.test(i.message))).toBe(false)
+    })
+  }
 })
 
