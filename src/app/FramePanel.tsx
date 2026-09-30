@@ -8,7 +8,7 @@
  */
 
 import { FRAME, FRAME_SIZES, FRAME_SIZE_IDS, anchorZone } from '@/shared/layout/frame'
-import { modelOfScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { COMPOSED_MODEL, modelOfScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
 import { useFlowStore } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
@@ -79,6 +79,12 @@ export function FramePanel(): JSX.Element {
             className="rounded-md border border-line bg-surface px-2xs py-3xs text-sm font-normal text-ink focus:outline-none focus:ring focus:ring-brand"
           >
             {model ? null : <option value="">No layer model</option>}
+            {/* A composed overlay (Exploratory) is not one of the models; show it as what it is. Composing by hand is 9F. */}
+            {model?.id === COMPOSED_MODEL ? (
+              <option value={COMPOSED_MODEL} disabled>
+                {model.name} · {model.shades.join(' + ')}
+              </option>
+            ) : null}
             {layers.levels.map((level) => (
               <optgroup key={level.level} label={`Nível ${level.level} · ${level.name}`}>
                 {layers.models
