@@ -1,0 +1,1556 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Faithful interpretation (golden) > a request that breaks patterns is repaired exactly as before 1`] = `
+{
+  "issues": [
+    "warn · root · Ignored padding="md" on <Stack> (not an allowed value) — kept the default.",
+    "warn · root · Removed unsupported prop "bogus" from <Stack>.",
+    "warn · root › Stack[5] · Dropped unknown component <Carousel>.",
+    "warn · root › Stack[6] · Dropped a second <ContentCardHeader> — <ContentCard> takes at most one.",
+    "warn · root › Stack[6] · Put <ContentCard>'s children back in the order ContentCardHeader, ContentCardBody, ContentCardFooter.",
+    "warn · root · Dropped a child — <ContentCardHeader> only goes directly inside <ContentCard>, not <Stack>.",
+    "info · root · Set align to "stretch" on the root (was "start") — the stack that holds the components always stretches.",
+    "info · root · Set justify to "start" on the root — master layouts don't use static center alignment; the anchored group follows the focus instead.",
+    "warn · root · Un-anchored an extra <Button> — a frame anchors at most one element group (kept the last).",
+    "info · root · Made the root a column, keeping its children stacked in order — on level 1 the outermost container must be a column.",
+    "warn · root · Set interactionState to "default" on <InteractivityButton> — a TV screen focuses one element, and <InteractivityButton> already has it.",
+    "warn · root · Still breaks a layout rule — Level 1 (Home): focus is on root › Stack[0] <InteractivityButton> — Focus starts on the main menu — on the program button by default; when the Home rail sits on the left, on the left button that owns it (miscellaneous, schedule or login). A focus on an interactivity button would already be the second level.",
+    "info · screen "deep" › root · Set justify to "end" on the root (was "start") — the stack on level 3 sits at the end of the frame.",
+    "warn · screen "deep" › root · Still breaks a layout rule — A level 3 screen (Interatividade única) shows a single content module: the outermost container has 2 un-anchored children — group them into one container, or pick a level 1 model. The third level: one interactivity needs more room (statistics, a line-up, a VOD page). Every other element is cleared; only that interactivity remains, with its close button as the anchored cluster.",
+    "warn · screen "deep" › root · Still breaks a layout rule — Level 3 (Interatividade única): the screen has no <CloseButton> or <RoundedButton> — add one and focus it. Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself. The content card is focusable — the viewer moves the focus onto it from the rounded button.",
+    "warn · screen "home" › root › InteractivityButton[0] · Dropped the link on <InteractivityButton> — it jumps from level 1 to level 3 — a link opens the next level (2) or goes back up, never skips one.",
+  ],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "home",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [],
+            "props": {
+              "advertisingLabel": "",
+              "check": false,
+              "interactionState": "focus",
+              "live": false,
+              "overline": "",
+              "subtitle": "",
+              "title": "Um",
+            },
+            "type": "InteractivityButton",
+          },
+          {
+            "children": [],
+            "props": {
+              "advertisingLabel": "",
+              "check": false,
+              "interactionState": "default",
+              "live": false,
+              "overline": "",
+              "subtitle": "",
+              "title": "Dois",
+            },
+            "type": "InteractivityButton",
+          },
+          {
+            "children": [],
+            "props": {
+              "disabled": false,
+              "fullWidth": false,
+              "label": "A",
+              "size": "md",
+              "variant": "primary",
+            },
+            "type": "Button",
+          },
+          {
+            "anchor": true,
+            "children": [],
+            "props": {
+              "disabled": false,
+              "fullWidth": false,
+              "label": "B",
+              "size": "md",
+              "variant": "primary",
+            },
+            "type": "Button",
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "props": {
+                  "adLabel": "",
+                  "awayTeam": "",
+                  "homeTeam": "",
+                  "overline": "",
+                  "partnerName": "",
+                  "partnerVerified": false,
+                  "stat1": "",
+                  "stat2": "",
+                  "stat3": "",
+                  "subtitle": "",
+                  "title": "",
+                },
+                "type": "ContentCardHeader",
+              },
+              {
+                "children": [],
+                "props": {
+                  "caption": "",
+                },
+                "type": "ContentCardFooter",
+              },
+            ],
+            "props": {
+              "interactionState": "default",
+            },
+            "type": "ContentCard",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": false,
+          "justify": "start",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home",
+        },
+        "type": "Stack",
+      },
+    },
+    {
+      "id": "deep",
+      "name": "Screen 2",
+      "tree": {
+        "children": [
+          {
+            "children": [],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "sm",
+              "grow": false,
+              "justify": "start",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "children": [],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "sm",
+              "grow": false,
+              "justify": "start",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": false,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 3,
+          "model": "interactivity-cards-right",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > alert 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "props": {
+                  "bugStyle": "interface",
+                  "interactionState": "default",
+                  "label": "Conteúdo interativo",
+                },
+                "type": "AlertBug",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 0,
+          "model": "alert",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > home 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Opções de áudio",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Lances da partida",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Vote no Craque do Jogo",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Estatísticas",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                ],
+                "props": {
+                  "align": "end",
+                  "heading": "",
+                },
+                "type": "InteractivityMenu",
+              },
+              {
+                "children": [],
+                "props": {
+                  "focusedItem": "program",
+                  "miscellaneousItems": [],
+                  "miscellaneousSubtitle": "São Paulo, SP",
+                  "miscellaneousTitle": "Previsão do tempo",
+                  "programSubtitle": "A seguir Central da Copa",
+                  "programTitle": "Copa do Mundo: Equador x Argentina",
+                },
+                "type": "MainMenu",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "2xl",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > home-notification 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "props": {
+                  "interactionState": "default",
+                  "kind": "message",
+                  "title": "Paredão formado!
+Vote agora para eliminar",
+                },
+                "type": "Notification",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Opções de áudio",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Lances da partida",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Vote no Craque do Jogo",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Estatísticas",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                ],
+                "props": {
+                  "align": "end",
+                  "heading": "",
+                },
+                "type": "InteractivityMenu",
+              },
+              {
+                "children": [],
+                "props": {
+                  "focusedItem": "program",
+                  "miscellaneousItems": [],
+                  "miscellaneousSubtitle": "São Paulo, SP",
+                  "miscellaneousTitle": "Previsão do tempo",
+                  "programSubtitle": "A seguir Central da Copa",
+                  "programTitle": "Copa do Mundo: Equador x Argentina",
+                },
+                "type": "MainMenu",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "2xl",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "between",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home-notification",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > home-schedule 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": true,
+                      "overline": "13:00",
+                      "subtitle": "",
+                      "title": "Jornal da Tarde",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "14:30",
+                      "subtitle": "",
+                      "title": "Cinema em Casa",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "16:00",
+                      "subtitle": "",
+                      "title": "Novela das Seis",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                ],
+                "props": {
+                  "align": "start",
+                  "heading": "",
+                },
+                "type": "InteractivityMenu",
+              },
+              {
+                "children": [],
+                "props": {
+                  "focusedItem": "schedule",
+                  "miscellaneousItems": [],
+                  "miscellaneousSubtitle": "São Paulo, SP",
+                  "miscellaneousTitle": "Previsão do tempo",
+                  "programSubtitle": "A seguir Central da Copa",
+                  "programTitle": "Copa do Mundo: Equador x Argentina",
+                },
+                "type": "MainMenu",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "2xl",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home-buttons-left",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > home-schedule-notification 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "props": {
+                  "interactionState": "default",
+                  "kind": "message",
+                  "title": "Paredão formado!
+Vote agora para eliminar",
+                },
+                "type": "Notification",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": true,
+                      "overline": "13:00",
+                      "subtitle": "",
+                      "title": "Jornal da Tarde",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "14:30",
+                      "subtitle": "",
+                      "title": "Cinema em Casa",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "16:00",
+                      "subtitle": "",
+                      "title": "Novela das Seis",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                ],
+                "props": {
+                  "align": "start",
+                  "heading": "",
+                },
+                "type": "InteractivityMenu",
+              },
+              {
+                "children": [],
+                "props": {
+                  "focusedItem": "schedule",
+                  "miscellaneousItems": [],
+                  "miscellaneousSubtitle": "São Paulo, SP",
+                  "miscellaneousTitle": "Previsão do tempo",
+                  "programSubtitle": "A seguir Central da Copa",
+                  "programTitle": "Copa do Mundo: Equador x Argentina",
+                },
+                "type": "MainMenu",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "2xl",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "between",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home-buttons-left-notification",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > interactivity-buttons-right 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Opções de áudio",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Lances da partida",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "focus",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Vote no Craque do Jogo",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Estatísticas",
+                },
+                "type": "InteractivityButton",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "heading": "",
+            },
+            "type": "InteractivityMenu",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 2,
+          "model": "interactivity-buttons-right",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > interactivity-cards-left 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "adLabel": "",
+                      "awayTeam": "",
+                      "homeTeam": "",
+                      "overline": "",
+                      "partnerName": "",
+                      "partnerVerified": false,
+                      "stat1": "",
+                      "stat2": "",
+                      "stat3": "",
+                      "subtitle": "1º tempo",
+                      "title": "Estatísticas",
+                    },
+                    "type": "ContentCardHeader",
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "scout",
+                          "divider": true,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "Posse de bola",
+                          "lead": "",
+                          "leftValue": "62%",
+                          "redCard": false,
+                          "rightValue": "38%",
+                          "stat1": "",
+                          "stat2": "",
+                          "stat3": "",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "EQU",
+                          "lead": "1",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "11",
+                          "stat2": "5",
+                          "stat3": "2",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "ARG",
+                          "lead": "2",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "7",
+                          "stat2": "3",
+                          "stat3": "1",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                    ],
+                    "props": {
+                      "quote": "",
+                    },
+                    "type": "ContentCardBody",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "caption": "Atualizado há 1 min",
+                    },
+                    "type": "ContentCardFooter",
+                  },
+                ],
+                "props": {
+                  "height": 272,
+                  "interactionState": "default",
+                },
+                "type": "ContentCard",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "start",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "anchor": true,
+            "children": [],
+            "props": {
+              "interactionState": "focus",
+              "label": "Voltar",
+            },
+            "type": "RoundedButton",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 3,
+          "model": "interactivity-cards-left",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > interactivity-cards-right 1`] = `
+{
+  "issues": [],
+  "linkCount": 0,
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Screen 1",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "adLabel": "",
+                      "awayTeam": "",
+                      "homeTeam": "",
+                      "overline": "",
+                      "partnerName": "",
+                      "partnerVerified": false,
+                      "stat1": "",
+                      "stat2": "",
+                      "stat3": "",
+                      "subtitle": "1º tempo",
+                      "title": "Estatísticas",
+                    },
+                    "type": "ContentCardHeader",
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "scout",
+                          "divider": true,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "Posse de bola",
+                          "lead": "",
+                          "leftValue": "62%",
+                          "redCard": false,
+                          "rightValue": "38%",
+                          "stat1": "",
+                          "stat2": "",
+                          "stat3": "",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "EQU",
+                          "lead": "1",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "11",
+                          "stat2": "5",
+                          "stat3": "2",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "ARG",
+                          "lead": "2",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "7",
+                          "stat2": "3",
+                          "stat3": "1",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                    ],
+                    "props": {
+                      "quote": "",
+                    },
+                    "type": "ContentCardBody",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "caption": "Atualizado há 1 min",
+                    },
+                    "type": "ContentCardFooter",
+                  },
+                ],
+                "props": {
+                  "height": 272,
+                  "interactionState": "default",
+                },
+                "type": "ContentCard",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "anchor": true,
+            "children": [],
+            "props": {
+              "interactionState": "focus",
+              "label": "Voltar",
+            },
+            "type": "RoundedButton",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 3,
+          "model": "interactivity-cards-right",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;
+
+exports[`Faithful interpretation (golden) > every reference screen interprets to the same tree > prototype-flow 1`] = `
+{
+  "issues": [],
+  "linkCount": 3,
+  "screens": [
+    {
+      "id": "home",
+      "name": "Home",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "goTo": "rail",
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Opções de áudio",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Lances da partida",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Vote no Craque do Jogo",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "advertisingLabel": "",
+                      "check": false,
+                      "interactionState": "default",
+                      "live": false,
+                      "overline": "",
+                      "subtitle": "",
+                      "title": "Estatísticas",
+                    },
+                    "type": "InteractivityButton",
+                  },
+                ],
+                "props": {
+                  "align": "end",
+                  "heading": "",
+                },
+                "type": "InteractivityMenu",
+              },
+              {
+                "children": [],
+                "props": {
+                  "focusedItem": "program",
+                  "miscellaneousItems": [],
+                  "miscellaneousSubtitle": "São Paulo, SP",
+                  "miscellaneousTitle": "Previsão do tempo",
+                  "programSubtitle": "A seguir Central da Copa",
+                  "programTitle": "Copa do Mundo: Equador x Argentina",
+                },
+                "type": "MainMenu",
+              },
+            ],
+            "props": {
+              "align": "stretch",
+              "bordered": false,
+              "direction": "vertical",
+              "gap": "2xl",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 1,
+          "model": "home",
+        },
+        "type": "Stack",
+      },
+    },
+    {
+      "id": "rail",
+      "name": "Trilho",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "goTo": "stats",
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Opções de áudio",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Lances da partida",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "focus",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Vote no Craque do Jogo",
+                },
+                "type": "InteractivityButton",
+              },
+              {
+                "children": [],
+                "props": {
+                  "advertisingLabel": "",
+                  "check": false,
+                  "interactionState": "selected",
+                  "live": false,
+                  "overline": "",
+                  "subtitle": "",
+                  "title": "Estatísticas",
+                },
+                "type": "InteractivityButton",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "heading": "",
+            },
+            "type": "InteractivityMenu",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 2,
+          "model": "interactivity-buttons-right",
+        },
+        "type": "Stack",
+      },
+    },
+    {
+      "id": "stats",
+      "name": "Estatísticas",
+      "tree": {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "props": {
+                      "adLabel": "",
+                      "awayTeam": "",
+                      "homeTeam": "",
+                      "overline": "",
+                      "partnerName": "",
+                      "partnerVerified": false,
+                      "stat1": "",
+                      "stat2": "",
+                      "stat3": "",
+                      "subtitle": "1º tempo",
+                      "title": "Estatísticas",
+                    },
+                    "type": "ContentCardHeader",
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "scout",
+                          "divider": true,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "Posse de bola",
+                          "lead": "",
+                          "leftValue": "62%",
+                          "redCard": false,
+                          "rightValue": "38%",
+                          "stat1": "",
+                          "stat2": "",
+                          "stat3": "",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "EQU",
+                          "lead": "1",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "11",
+                          "stat2": "5",
+                          "stat3": "2",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                      {
+                        "children": [],
+                        "props": {
+                          "cellType": "team",
+                          "divider": false,
+                          "favorite": false,
+                          "goals": 0,
+                          "label": "ARG",
+                          "lead": "2",
+                          "leftValue": "",
+                          "redCard": false,
+                          "rightValue": "",
+                          "stat1": "7",
+                          "stat2": "3",
+                          "stat3": "1",
+                          "substitute": "",
+                          "yellowCard": false,
+                        },
+                        "type": "TableCell",
+                      },
+                    ],
+                    "props": {
+                      "quote": "",
+                    },
+                    "type": "ContentCardBody",
+                  },
+                  {
+                    "children": [],
+                    "props": {
+                      "caption": "Atualizado há 1 min",
+                    },
+                    "type": "ContentCardFooter",
+                  },
+                ],
+                "props": {
+                  "height": 272,
+                  "interactionState": "default",
+                },
+                "type": "ContentCard",
+              },
+            ],
+            "props": {
+              "align": "end",
+              "bordered": false,
+              "direction": "horizontal",
+              "gap": "sm",
+              "grow": false,
+              "justify": "end",
+              "padding": "none",
+              "radius": "none",
+              "shadow": "none",
+              "surface": "none",
+            },
+            "type": "Stack",
+          },
+          {
+            "anchor": true,
+            "children": [],
+            "goTo": "rail",
+            "props": {
+              "interactionState": "focus",
+              "label": "Voltar",
+            },
+            "type": "RoundedButton",
+          },
+        ],
+        "props": {
+          "align": "stretch",
+          "bordered": false,
+          "direction": "vertical",
+          "gap": "sm",
+          "grow": true,
+          "justify": "end",
+          "padding": "none",
+          "radius": "none",
+          "shadow": "none",
+          "surface": "none",
+        },
+        "screen": {
+          "level": 3,
+          "model": "interactivity-cards-right",
+        },
+        "type": "Stack",
+      },
+    },
+  ],
+}
+`;

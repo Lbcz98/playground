@@ -1,0 +1,140 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`render_ui tool (snapshot) > is unchanged for a request with no mode 1`] = `
+[
+  {
+    "description": "Render a UI onto the ScreenFlow Studio canvas. Call this exactly once with the complete Blueprint tree. The root node must be a Stack.",
+    "input_schema": {
+      "properties": {
+        "blueprint": {
+          "properties": {
+            "id": {
+              "description": "The first screen's id — only when another screen links back to it.",
+              "type": "string",
+            },
+            "name": {
+              "description": "Short label of the first screen.",
+              "type": "string",
+            },
+            "notes": {
+              "description": "Up to 4 short notes for the user, in their language: what you approximated because the registry lacks it, or which law overrode part of their request (e.g. focus placement). Omit when there is nothing to say.",
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "root": {
+              "description": "A component node: { type, props?, children?, anchor?, goTo? }. \`goTo\` is a screen id — the screen a click on this node opens. \`children\` is only valid on a Stack. \`anchor: true\` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.",
+              "properties": {
+                "children": {
+                  "items": {
+                    "type": "object",
+                  },
+                  "type": "array",
+                },
+                "goTo": {
+                  "type": "string",
+                },
+                "props": {
+                  "type": "object",
+                },
+                "type": {
+                  "enum": [
+                    "Stack",
+                    "Text",
+                    "Button",
+                    "MainMenu",
+                    "InteractivityMenu",
+                    "InteractivityButton",
+                    "LabelVideo",
+                    "WideButton",
+                    "Notification",
+                    "AlertBug",
+                    "RoundedButton",
+                    "CloseButton",
+                    "ContentCard",
+                    "ContentCardHeader",
+                    "ContentCardBody",
+                    "ContentCardFooter",
+                    "TableCell",
+                  ],
+                  "type": "string",
+                },
+              },
+              "required": [
+                "type",
+              ],
+              "type": "object",
+            },
+            "screen": {
+              "description": "The layer rule (Camadas): the layer model whose shades the engine paints between the video and this content, and its navigation level. Both come from the system prompt.",
+              "properties": {
+                "level": {
+                  "enum": [
+                    0,
+                    1,
+                    2,
+                    3,
+                  ],
+                  "type": "integer",
+                },
+                "model": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "model",
+                "level",
+              ],
+              "type": "object",
+            },
+            "screens": {
+              "description": "Every further screen: the other options when the user asks for several versions, or the next steps of a clickable flow (link them with \`goTo\`). Each: { id, name?, screen, root } — \`root\` shaped like the top-level root.",
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string",
+                  },
+                  "name": {
+                    "type": "string",
+                  },
+                  "root": {
+                    "type": "object",
+                  },
+                  "screen": {
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "id",
+                  "screen",
+                  "root",
+                ],
+                "type": "object",
+              },
+              "type": "array",
+            },
+            "version": {
+              "enum": [
+                1,
+              ],
+              "type": "integer",
+            },
+          },
+          "required": [
+            "version",
+            "screen",
+            "root",
+          ],
+          "type": "object",
+        },
+      },
+      "required": [
+        "blueprint",
+      ],
+      "type": "object",
+    },
+    "name": "render_ui",
+  },
+]
+`;
