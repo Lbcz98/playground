@@ -24,6 +24,7 @@ import { ruleById } from '@/shared/design-system/rules'
 import { auditFrameLayout, summarizeChecks } from '@/shared/layout/frame'
 import { screenMode, type BlueprintDocument, type ScreenMode } from '@/shared/blueprint'
 import { SCREENFLOW_MANIFEST as M } from '@/shared/design-system/screenflow-manifest'
+import { PROPOSAL_TYPE, consideredComponents, isPrimitive } from '@/shared/design-system/primitives'
 
 interface Request {
   id: string
@@ -63,6 +64,30 @@ function declaredOf(doc: BlueprintDocument): Deviation[] {
   return out
 }
 
+/** What the Exploratory vocabulary did on one interpreted screen (9E): primitives, their chain, their reuse, Proposals. */
+interface Vocabulary {
+  primitives: { type: string; considered?: string; consideredReal: string[]; consideredUnknown: string[]; why?: string }[]
+  maxChain: number
+  proposals: { description: unknown; proposedApi: unknown; declared: boolean }[]
+}
+function vocabularyOf(tree: { type: string; props: Record<string, unknown>; children: any[]; reuse?: { considered: string; why: string }; deviation?: { ruleId: string } }): Vocabulary {
+  const out: Vocabulary = { primitives: [], maxChain: 0, proposals: [] }
+  const walk = (node: typeof tree, chain: number): void => {
+    const here = isPrimitive(node.type) ? chain + 1 : 0
+    out.maxChain = Math.max(out.maxChain, here)
+    if (isPrimitive(node.type)) {
+      const read = node.reuse ? consideredComponents(M, node.reuse.considered) : { found: [], unknown: [] }
+      out.primitives.push({ type: node.type, considered: node.reuse?.considered, consideredReal: read.found, consideredUnknown: read.unknown, why: node.reuse?.why })
+    }
+    if (node.type === PROPOSAL_TYPE) {
+      out.proposals.push({ description: node.props.description, proposedApi: node.props.proposedApi, declared: node.deviation?.ruleId === 'registry.new-component' })
+    }
+    node.children.forEach((c) => walk(c, here))
+  }
+  walk(tree, 0)
+  return out
+}
+
 async function one(req: Request, mode: ScreenMode, n: number): Promise<void> {
   const file = join(OUT, `${req.id}.${mode}.${n}.json`)
   if (existsSync(file)) return
@@ -84,6 +109,8 @@ async function one(req: Request, mode: ScreenMode, n: number): Promise<void> {
         ? { kept: interpreted.issues.filter((i) => i.message.startsWith('Kept ')).map((i) => i.message), warns: interpreted.issues.filter((i) => i.level === 'warn').map((i) => `${i.ruleId ?? '-'}: ${i.message}`), screens: interpreted.screens.length, links: interpreted.linkCount }
         : { error: interpreted.error },
       // The canvas adds a measured Render check (overflow, overlap) this script cannot see: judge r03 there.
+      vocabulary: interpreted.ok ? interpreted.screens.map((s) => ({ id: s.id, ...vocabularyOf(s.tree as never) })) : [],
+      firstAttempt: res.meta.trace?.[0]?.issues.map((i) => `${i.ruleId}${i.kind ? `/${i.kind}` : ''} @ ${i.path.join('.')}`) ?? [],
       qa: interpreted.ok
         ? interpreted.screens.map((s) => {
             const checks = auditFrameLayout({ root: s.tree }, M, undefined, screenMode(s) === 'exploratory' ? treeDeclarations(s.tree, s.tree.screen) : [])
@@ -113,7 +140,7 @@ await Promise.all(
 
 // ── Summary: declared vs expected, per request and mode ────────────────────────────────────────
 const ids = (r: Request): string[] => r.expected.declare.map((d) => (typeof d === 'string' ? d : d.ruleId)).sort()
-console.log('\nrequest · mode · runs · declared (scope) vs expected · attempts failed · replans · laws broken · $')
+console.log('\nrequest · mode · runs · declared (scope) vs expected · attempts failed · replans · laws broken · primitives (max chain) · proposals · $')
 for (const req of requests) {
   for (const mode of MODES) {
     const runs = Array.from({ length: RUNS }, (_, n) => join(OUT, `${req.id}.${mode}.${n + 1}.json`))
@@ -128,6 +155,9 @@ for (const req of requests) {
     const replans = runs.reduce((s, r) => s + (r.meta.steps as string[]).filter((x) => /replan/.test(x)).length, 0)
     const laws = runs.flatMap((r) => r.lawsBroken as string[])
     const cost = runs.reduce((s, r) => s + (r.meta.usage?.costUsd ?? 0), 0)
-    console.log(`${req.id} · ${mode} · ${runs.length} · [${got.join(' | ')}] vs [${want.join('+') || '—'}] ${match}/${runs.length} match · ${failed} · ${replans} · ${laws.join(',') || '—'} · $${cost.toFixed(2)}`)
+    const vocab = runs.map((r) => (r.vocabulary as Vocabulary[]) ?? [])
+    const prims = vocab.map((v) => `${v.reduce((s, x) => s + x.primitives.length, 0)}(${Math.max(0, ...v.map((x) => x.maxChain))})`).join(' ')
+    const props = vocab.map((v) => v.reduce((s, x) => s + x.proposals.length, 0)).join(' ')
+    console.log(`${req.id} · ${mode} · ${runs.length} · [${got.join(' | ')}] vs [${want.join('+') || '—'}] ${match}/${runs.length} match · ${failed} · ${replans} · ${laws.join(',') || '—'} · ${prims} · ${props} · $${cost.toFixed(2)}`)
   }
 }
