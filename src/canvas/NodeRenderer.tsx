@@ -5,6 +5,7 @@ import { DecorationHost } from '@/design-system/registry'
 import { useFlowStore } from '@/store/flowStore'
 import { usePlayStore } from '@/store/playStore'
 import { cx } from '@/lib/cx'
+import { PROPOSAL_TYPE, isPrimitive } from '@/shared/design-system/primitives'
 import { focusPropsFor, unfocusedValue } from '@/shared/layout/frame'
 import { PlayRestContext, linksFrom, pressFeedback, useNodeMode } from './nodeMode'
 import { useContext } from 'react'
@@ -23,6 +24,15 @@ const focusedClicks = new WeakSet<Event>()
  * edit-only: Play, thumbnails and anything exported never draw it.
  */
 export const DEVIATION_OUTLINE = 'outline outline-2 outline-dashed outline-brand outline-offset-2'
+
+/**
+ * Whether the edit canvas marks a node as off-pattern: it declares a deviation, or it
+ * is a primitive (off-registry by definition). A Proposal keeps its own placeholder
+ * look — its dotted box already says it is not a real component.
+ */
+export function marksOffPattern(node: CanvasNode): boolean {
+  return node.type !== PROPOSAL_TYPE && (!!node.deviation || isPrimitive(node.type))
+}
 
 /**
  * Recursively turns a `CanvasNode` into React elements using only the
@@ -112,7 +122,7 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
     className: cx(
       rendered.props.className,
       // A node that declares a deviation swaps the invisible outline for the dashed one.
-      node.deviation ? DEVIATION_OUTLINE : 'outline-none',
+      marksOffPattern(node) ? DEVIATION_OUTLINE : 'outline-none',
       isSelected ? 'ring ring-brand' : 'hover:ring hover:ring-brand-subtle',
     ),
     ...(node.deviation ? { 'data-deviation': node.deviation.ruleId } : {}),

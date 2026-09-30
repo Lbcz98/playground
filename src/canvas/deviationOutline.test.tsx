@@ -1,7 +1,7 @@
 /** Phase 9D: a declared deviation is drawn as a dashed brand outline while editing, and nowhere else. */
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { NodeRenderer, DEVIATION_OUTLINE } from './NodeRenderer'
+import { NodeRenderer, DEVIATION_OUTLINE, marksOffPattern } from './NodeRenderer'
 import { NodeModeContext, type NodeMode } from './nodeMode'
 import { makeNode } from '@/model/nodeTree'
 
@@ -41,3 +41,41 @@ describe('the deviation outline', () => {
     expect(DEVIATION_OUTLINE).not.toMatch(/#|\dpx|\[/)
   })
 })
+
+describe('the Exploratory vocabulary on the canvas (9E)', () => {
+  const render = (type: string, props: Record<string, unknown>, deviation?: { ruleId: string; why: string }) => {
+    const node = makeNode(type, props)
+    if (deviation) node.deviation = deviation
+    return renderToStaticMarkup(
+      <NodeModeContext.Provider value="edit">
+        <NodeRenderer node={node} />
+      </NodeModeContext.Provider>,
+    )
+  }
+
+  it('a primitive carries the dashed outline while editing, with no deviation of its own', () => {
+    const out = render('primitive:Text', { text: 'GOL!' })
+    for (const cls of DEVIATION_OUTLINE.split(' ')) expect(out).toContain(cls)
+    expect(out).not.toContain('data-deviation')
+    expect(out).toContain('GOL!')
+  })
+
+  it('a Proposal keeps its own dotted placeholder, never the dashed outline, even though it declares a deviation', () => {
+    const out = render('Proposal', { description: 'Placar', proposedApi: { homeScore: 'number' } }, { ruleId: 'registry.new-component', why: 'x' })
+    expect(out).toContain('border-dotted')
+    expect(out).not.toContain('outline-dashed')
+    expect(out).toContain('data-deviation="registry.new-component"')
+  })
+
+  it('marksOffPattern: deviation or primitive, never a Proposal', () => {
+    expect(marksOffPattern(makeNode('Stack'))).toBe(false)
+    expect(marksOffPattern(makeNode('primitive:Box'))).toBe(true)
+    const declared = makeNode('Stack')
+    declared.deviation = { ruleId: 'layout.root-align', why: 'x' }
+    expect(marksOffPattern(declared)).toBe(true)
+    const proposal = makeNode('Proposal')
+    proposal.deviation = { ruleId: 'registry.new-component', why: 'x' }
+    expect(marksOffPattern(proposal)).toBe(false)
+  })
+})
+

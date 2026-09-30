@@ -2,6 +2,7 @@ import type { CanvasNode } from '@/model/nodeTree'
 import { useHydratedRegistry } from '@/design-system/DesignSystemProvider'
 import { useFlowStore, ROOT_ID } from '@/store/flowStore'
 import { cx } from '@/lib/cx'
+import { isPrimitive } from '@/shared/design-system/primitives'
 
 function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Element {
   const selectedId = useFlowStore((s) => s.selectedId)
@@ -25,6 +26,14 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
           <span className="font-medium">{entry?.label ?? node.type}</span>
           {node.anchor ? (
             <span className="rounded-full bg-brand-subtle px-3xs text-xs text-brand-strong">anchored</span>
+          ) : null}
+          {isPrimitive(node.type) ? (
+            <span
+              title={node.reuse ? `considered: ${node.reuse.considered} — ${node.reuse.why}` : 'a primitive, off the registry'}
+              className="rounded-full border border-dashed border-brand px-3xs text-xs text-brand-strong"
+            >
+              primitive
+            </span>
           ) : null}
           {node.deviation ? (
             <span
