@@ -6,6 +6,7 @@
 
 import type { DesignSystemManifest } from './manifest'
 import { ruleById, rulesOf, type IssuePath, type RuleProblem } from './rules'
+import type { PatternRule } from './manifest'
 
 export const MAX_WHY_LENGTH = 300
 
@@ -26,6 +27,11 @@ const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
     'composing a new overlay arrives in 9E — for now keep to one of the layer models',
 }
 
+/** The pattern rules a screen may declare: every pattern of the book, but the one 9E has not built yet. */
+export function declarableRules(manifest: DesignSystemManifest): PatternRule[] {
+  return rulesOf(manifest).filter((r) => r.flexibility === 'pattern' && !(r.id in NOT_DECLARABLE_YET))
+}
+
 /** Why `raw` is not a usable deviation, as a sentence the Generator can act on — or null. */
 export function declarationProblem(manifest: DesignSystemManifest, raw: unknown): string | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -41,8 +47,7 @@ export function declarationProblem(manifest: DesignSystemManifest, raw: unknown)
   }
   const rule = ruleById(manifest, ruleId)
   if (!rule) {
-    const patterns = rulesOf(manifest).filter((r) => r.flexibility === 'pattern' && !(r.id in NOT_DECLARABLE_YET))
-    return `"${ruleId}" is not a rule of ${manifest.name}. Declare one of: ${patterns.map((r) => r.id).join(', ')}.`
+    return `"${ruleId}" is not a rule of ${manifest.name}. Declare one of: ${declarableRules(manifest).map((r) => r.id).join(', ')}.`
   }
   if (rule.flexibility === 'law') {
     return `"${ruleId}" (${rule.title}) is a law — it holds in every mode and cannot be declared as a deviation.`

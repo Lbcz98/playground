@@ -1,4 +1,4 @@
-import type { ChatTurn, GenerateUsage } from '@/shared/blueprint'
+import type { ChatTurn, GenerateUsage, ScreenMode } from '@/shared/blueprint'
 
 export type ProviderId = 'api-key' | 'claude-cli'
 
@@ -8,6 +8,8 @@ export interface CompleteArgs {
   messages: ChatTurn[]
   model?: string
   effort?: string
+  /** The mode the screen is generated in. Only `renderUi` reads it, to describe the deviation field to the model. */
+  mode?: ScreenMode
 }
 
 export interface CompleteResult {

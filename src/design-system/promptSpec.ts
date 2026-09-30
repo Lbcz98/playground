@@ -40,6 +40,8 @@ import {
 } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { readRequest } from '@/shared/design-system/request-signals'
+import type { ScreenMode } from '@/shared/blueprint'
+import { generatorDeviationContract, plannerDeviationContract } from './deviationContract'
 import { scopedRules } from '@/shared/design-system/rules'
 import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
@@ -689,11 +691,12 @@ Choosing one does not end your job: still write the plan, saying what changes.
  *
  * With the request, the rules scoped to the components it names are added
  * (`appliesTo`, phase 9C); a request that names none gets the same bytes as
- * without it.
+ * without it. In Exploratory mode (9D) the deviation contract is added too; a
+ * Faithful request carries none of it.
  */
 export function buildPlannerPrompt(
   manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
-  request?: { prompt: string },
+  request?: { prompt: string; mode?: ScreenMode },
 ): string {
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
@@ -741,7 +744,7 @@ Accessibility rules:
 - Name every color by its role (primary text, elevated surface, default border),
   never by its look — the token tier rule allows semantic tokens only.
 
-${request ? componentRulesSection(manifest, request.prompt) : ''}${templateSection(templates)}# Output format
+${request ? componentRulesSection(manifest, request.prompt) : ''}${request?.mode === 'exploratory' ? plannerDeviationContract(manifest) : ''}${templateSection(templates)}# Output format
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
@@ -773,6 +776,7 @@ export type PromptOutputMode = 'tool' | 'json'
 export function buildSystemPrompt(
   mode: PromptOutputMode = 'tool',
   manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
+  screenMode: ScreenMode = 'faithful',
 ): string {
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
@@ -810,5 +814,5 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.`
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) : ''}`
 }

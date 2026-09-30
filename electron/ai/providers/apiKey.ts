@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { RENDER_TOOL_NAME } from '@/shared/blueprint'
+import { RENDER_TOOL_NAME, type ScreenMode } from '@/shared/blueprint'
 import { CATALOG_TYPES } from '@/design-system/catalog'
 import { DEFAULT_EFFORT, DEFAULT_MODEL_ID, estimateCostUsd } from '@/shared/models'
 import type { AiProvider, CompleteArgs, CompleteResult, RenderResult } from './types'
@@ -87,6 +87,36 @@ const renderTool: Anthropic.Tool = {
   },
 }
 
+const DEVIATION_SHAPE = {
+  type: 'object',
+  properties: {
+    ruleId: { type: 'string', description: 'The id of the pattern rule that is broken.' },
+    why: { type: 'string', description: 'One short sentence: why this pattern is broken here.' },
+  },
+  required: ['ruleId', 'why'],
+} as const
+
+/**
+ * The tool for a mode. Faithful is the tool above, unchanged; Exploratory adds the
+ * `deviation` field to the node and to the `screen` object.
+ */
+export function renderToolFor(mode: ScreenMode = 'faithful'): Anthropic.Tool {
+  if (mode === 'faithful') return renderTool
+  const tool = structuredClone(renderTool) as unknown as {
+    input_schema: { properties: { blueprint: { properties: Record<string, any> } } }
+  } & Anthropic.Tool
+  const blueprint = tool.input_schema.properties.blueprint.properties
+  blueprint.screen.properties.deviation = {
+    type: 'array',
+    description: 'Patterns the screen as a whole breaks, when no single node carries the break. Exploratory mode only.',
+    items: DEVIATION_SHAPE,
+  }
+  blueprint.root.description +=
+    ' In Exploratory mode a node may also carry `deviation: { ruleId, why }` — a pattern rule it breaks, declared at the node where it happens.'
+  blueprint.root.properties.deviation = DEVIATION_SHAPE
+  return tool
+}
+
 function resolve(args: CompleteArgs): { model: string; effort: Effort } {
   return {
     model: args.model || ENV_MODEL || DEFAULT_MODEL_ID,
@@ -143,7 +173,7 @@ export const apiKeyProvider: AiProvider = {
       max_tokens: 16000,
       system: args.system,
       output_config: { effort },
-      tools: [renderTool],
+      tools: [renderToolFor(args.mode)],
       tool_choice: { type: 'tool', name: RENDER_TOOL_NAME },
       messages: toMessages(args.messages),
     })
