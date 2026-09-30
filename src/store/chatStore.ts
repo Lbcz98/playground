@@ -19,9 +19,9 @@ import type { GenerateUIResponse } from '@/shared/blueprint'
 import { useFlowStore, type AgentRun } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
 import { usePlayStore } from '@/store/playStore'
-import { useSettingsStore } from '@/store/settingsStore'
+import { EXPLORATORY_PREVIEW, useSettingsStore } from '@/store/settingsStore'
 import { useDesignSystemStore } from '@/store/designSystemStore'
-import type { ChatTurn, GenerateUISource, GenerateUsage } from '@/shared/blueprint'
+import type { ChatTurn, GenerateUISource, GenerateUsage, RequestedMode, RouterQuestion, ScreenMode } from '@/shared/blueprint'
 import { createNodeId } from '@/model/nodeTree'
 
 export interface ChatMessage {
@@ -39,6 +39,28 @@ export interface ChatMessage {
   usage?: GenerateUsage
   /** Orchestrator trace (planner / generator / validation). */
   steps?: string[]
+  /** The mode the screen was generated in (meta.mode). */
+  mode?: ScreenMode
+  /** What the pipeline tells the user (router notes, a mode fallback). */
+  notices?: string[]
+  /** The router asked instead of generating; `asked` is the request to re-send. */
+  question?: RouterQuestion
+  asked?: string
+  answered?: boolean
+}
+
+export type QuestionChoice = RouterQuestion['choices'][number]
+
+/** The plan's button labels. */
+export const CHOICE_LABELS: Record<QuestionChoice, string> = {
+  faithful: 'Seguir padrões',
+  exploratory: 'Explore além do padrão',
+  both: 'Gere duas opções para comparação',
+}
+
+/** The buttons a question shows: Exploratório and "Os dois" only behind the preview flag, until 9D. */
+export function offeredChoices(question: RouterQuestion): QuestionChoice[] {
+  return question.choices.filter((choice) => choice === 'faithful' || EXPLORATORY_PREVIEW)
 }
 
 export interface SessionUsage {
@@ -64,7 +86,10 @@ interface ChatState {
   messages: ChatMessage[]
   busy: boolean
   sessionUsage: SessionUsage
-  send: (prompt: string) => Promise<void>
+  /** `mode` overrides the selector; `label` is what the user bubble shows instead of the prompt. */
+  send: (prompt: string, options?: { mode?: RequestedMode; label?: string }) => Promise<void>
+  /** Answer a router question: re-send its request in the chosen mode. */
+  answer: (messageId: string, choice: QuestionChoice) => void
   clear: () => void
 }
 
@@ -112,6 +137,20 @@ async function waitForRenderSettled(sinceVersion: number): Promise<string[] | nu
 
 /** Applies a generated Blueprint to the canvas and returns the message fields `patch` needs — shared by the first attempt and the one render-repair retry. */
 function applyGenerated(response: GenerateUIResponse, promptText: string): Partial<ChatMessage> {
+  if (!response.ok && response.question) {
+    const { question } = response
+    const alternative = question.faithfulAlternative ? `Dentro dos padrões: ${question.faithfulAlternative}` : null
+    return {
+      status: 'done',
+      text: [question.text, question.why, alternative].filter(Boolean).join('\n\n'),
+      question,
+      asked: promptText,
+      source: response.meta.source,
+      provider: response.meta.provider,
+      usage: response.meta.usage,
+      steps: response.meta.steps,
+    }
+  }
   if (!response.ok) {
     return {
       status: 'error',
@@ -137,6 +176,8 @@ function applyGenerated(response: GenerateUIResponse, promptText: string): Parti
     model: response.meta.model,
     usage: response.meta.usage,
     steps: response.meta.steps,
+    mode: response.meta.mode,
+    notices: response.meta.notices,
   }
 }
 
@@ -145,16 +186,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   busy: false,
   sessionUsage: EMPTY_USAGE,
 
-  send: async (prompt) => {
+  send: async (prompt, options = {}) => {
     const trimmed = prompt.trim()
     if (!trimmed || get().busy) return
 
-    const { model, effort } = useSettingsStore.getState()
+    const settings = useSettingsStore.getState()
+    const { model, effort } = settings
+    const mode: RequestedMode = options.mode ?? settings.mode
 
     const userMsg: ChatMessage = {
       id: createNodeId(),
       role: 'user',
-      text: trimmed,
+      text: options.label ?? trimmed,
       at: Date.now(),
       status: 'done',
     }
@@ -181,7 +224,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       const manifest = useDesignSystemStore.getState().active
-      const response = await generateUI(trimmed, history, { model, effort }, manifest)
+      const response = await generateUI(trimmed, history, { model, effort, mode }, manifest)
 
       set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage) }))
 
@@ -205,7 +248,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
               { role: 'user', content: trimmed },
               { role: 'assistant', content: JSON.stringify(response.blueprint) },
             ]
-            const repairResponse = await generateUI(repairPrompt, repairHistory, { model, effort }, manifest)
+            // The repair keeps the mode this screen ran in: it never re-routes, never asks again.
+            const repairMode: RequestedMode = mode === 'auto' ? (response.meta.mode ?? 'faithful') : mode
+            const repairResponse = await generateUI(repairPrompt, repairHistory, { model, effort, mode: repairMode }, manifest)
             set((s) => ({ sessionUsage: accumulate(s.sessionUsage, repairResponse.meta.usage) }))
             repairPatch(applyGenerated(repairResponse, repairPrompt))
           } catch (err) {
@@ -218,6 +263,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } finally {
       set({ busy: false })
     }
+  },
+
+  answer: (messageId, choice) => {
+    const asked = get().messages.find((m) => m.id === messageId)
+    if (!asked?.question || !asked.asked || asked.answered || get().busy) return
+    if (!offeredChoices(asked.question).includes(choice)) return
+    set((s) => ({ messages: s.messages.map((m) => (m.id === messageId ? { ...m, answered: true } : m)) }))
+    void get().send(asked.asked, { mode: choice, label: CHOICE_LABELS[choice] })
   },
 
   clear: () => set({ messages: [], sessionUsage: EMPTY_USAGE }),

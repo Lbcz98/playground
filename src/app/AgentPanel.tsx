@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { isBridgeAvailable } from '@/services/aiClient'
-import { useChatStore, type ChatMessage, type SessionUsage } from '@/store/chatStore'
+import { CHOICE_LABELS, offeredChoices, useChatStore, type ChatMessage, type SessionUsage } from '@/store/chatStore'
 import { useFlowStore } from '@/store/flowStore'
-import { useSettingsStore } from '@/store/settingsStore'
+import { selectableModes, useSettingsStore, type ChosenMode } from '@/store/settingsStore'
 import { EFFORT_LEVELS, MODEL_OPTIONS, modelLabel, type EffortLevel } from '@/shared/models'
 import { cx } from '@/lib/cx'
 
@@ -114,6 +114,12 @@ export function AgentPanel(): JSX.Element {
   )
 }
 
+const MODE_LABELS: Record<ChosenMode, string> = {
+  auto: 'Auto',
+  faithful: 'Fidedigno',
+  exploratory: 'Exploratório',
+}
+
 const SELECT_CLASS =
   'rounded-sm border border-line bg-surface px-3xs py-3xs text-xs text-ink focus:outline-none focus:ring focus:ring-brand'
 
@@ -122,10 +128,26 @@ function GenerationControls(): JSX.Element {
   const effort = useSettingsStore((s) => s.effort)
   const setModel = useSettingsStore((s) => s.setModel)
   const setEffort = useSettingsStore((s) => s.setEffort)
+  const mode = useSettingsStore((s) => s.mode)
+  const setMode = useSettingsStore((s) => s.setMode)
   const usage = useChatStore((s) => s.sessionUsage)
 
   return (
     <div className="flex flex-wrap items-center gap-3xs">
+      <select
+        value={mode}
+        onChange={(e) => setMode(e.target.value as ChosenMode)}
+        aria-label="Mode"
+        title="Auto asks the router which mode fits the request; Fidedigno keeps to the design system's patterns"
+        className={SELECT_CLASS}
+      >
+        {selectableModes().map((m) => (
+          <option key={m} value={m}>
+            {MODE_LABELS[m]}
+          </option>
+        ))}
+      </select>
+
       <select
         value={model}
         onChange={(e) => setModel(e.target.value)}
@@ -183,7 +205,11 @@ function providerNote(m: ChatMessage): string {
   if (m.source === 'dummy' || m.source === 'web-fallback') return '(demo — no AI provider)'
   const via =
     m.provider === 'claude-cli' ? 'Claude Code' : m.provider === 'api-key' ? 'API' : null
-  const parts = [m.model ? modelLabel(m.model) : null, via ? `via ${via}` : null].filter(Boolean)
+  const parts = [
+    m.mode ? MODE_LABELS[m.mode] : null,
+    m.model ? modelLabel(m.model) : null,
+    via ? `via ${via}` : null,
+  ].filter(Boolean)
   const tail = m.usage?.costUsd
     ? ` · ${m.usage.costEstimated ? '~' : ''}$${m.usage.costUsd.toFixed(4)}`
     : ''
@@ -192,6 +218,8 @@ function providerNote(m: ChatMessage): string {
 
 function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
   const undo = useFlowStore((s) => s.undo)
+  const answer = useChatStore((s) => s.answer)
+  const busy = useChatStore((s) => s.busy)
 
   if (message.role === 'user') {
     return (
@@ -221,6 +249,30 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
         {message.text}
         <span className="ml-3xs text-xs text-ink-muted">{providerNote(message)}</span>
       </div>
+
+      {message.notices && message.notices.length > 0 ? (
+        <ul className="flex flex-col gap-3xs pl-sm text-xs text-ink-muted">
+          {message.notices.map((notice, i) => (
+            <li key={i}>ℹ {notice}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {message.question && !message.answered ? (
+        <div className="flex flex-wrap gap-3xs pl-sm">
+          {offeredChoices(message.question).map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              disabled={busy}
+              onClick={() => answer(message.id, choice)}
+              className="rounded-md border border-line bg-surface px-sm py-3xs text-xs font-medium text-ink hover:bg-subtle disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {CHOICE_LABELS[choice]}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {run?.ok ? (
         <div className="flex flex-wrap items-center gap-2xs pl-sm">
