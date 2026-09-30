@@ -8,7 +8,7 @@
  */
 
 import { FRAME, FRAME_SIZES, FRAME_SIZE_IDS, anchorZone } from '@/shared/layout/frame'
-import { screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { modelOfScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
 import { useFlowStore } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
@@ -21,7 +21,7 @@ export function FramePanel(): JSX.Element {
   const screen = useFlowStore((s) => s.tree.screen)
   const setScreen = useFlowStore((s) => s.setScreen)
   const layers = screenLayersOf(useActiveDesignSystem())
-  const model = screenModel(layers, screen?.model)
+  const model = modelOfScreen(layers, screen)
 
   return (
     <section className="flex shrink-0 flex-col gap-2xs border-b border-line p-lg">

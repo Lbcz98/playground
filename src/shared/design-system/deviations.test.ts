@@ -110,14 +110,13 @@ describe('Exploratory: a pattern may break, declared', () => {
 })
 
 describe('Exploratory: laws are never declarable, never waived', () => {
-  it('rejects declaring a law, a convention, an unknown rule, a bad shape and the 9E overlay', () => {
+  it('rejects declaring a law, a convention, an unknown rule and a bad shape', () => {
     const cases: [unknown, RegExp][] = [
       [dev('tokens.only'), /"tokens\.only" \(Tokens only\) is a law — it holds in every mode/],
       [dev('focus.single'), /is a law/],
       [dev('component.api'), /is a law/],
       [dev('copy.button-label'), /is a convention — breaking it only produces a note/],
       [dev('layout.invented'), /"layout\.invented" is not a rule of ScreenFlow\. Declare one of: .*layout\.root-align/],
-      [dev('layers.overlay-model'), /cannot be declared yet: composing a new overlay arrives in 9E/],
       [{ ruleId: 'layout.root-align' }, /must be exactly \{ "ruleId"/],
       [{ ruleId: 'layout.root-align', why: '  ' }, /must say in one short sentence/],
       [{ ruleId: 'layout.root-align', why: 'x', reuse: 1 }, /remove "reuse"/],
@@ -152,12 +151,11 @@ describe('Exploratory: laws are never declarable, never waived', () => {
     expect(found.some((i) => i.ruleId === 'tokens.only' && /raw value/.test(i.message))).toBe(true)
   })
 
-  it('the layer model is not declarable either: a broken one stays an error', () => {
+  it('an unknown layer model stays an error even with the overlay rule declared (9E: compose with "composed")', () => {
     const doc = home()
     doc.screen = { model: 'nope', level: 1, deviation: [dev('layers.overlay-model')] }
     const found = issuesOf(doc)
-    expect(found.some((i) => i.ruleId === 'layers.overlay-model' && i.kind === undefined)).toBe(true)
-    expect(found.some((i) => /arrives in 9E/.test(i.message))).toBe(true)
+    expect(found.some((i) => i.ruleId === 'blueprint.dsl' && /"model": "composed" with its "shades"/.test(i.message))).toBe(true)
   })
 })
 
@@ -351,7 +349,7 @@ const SCOPE_CASES: Record<string, ScopeCase> = {
     screen: (d) => d.screen,
   },
   'layers.overlay-model': {
-    doc: () => { const d = home(); d.screen = { model: 'nope', level: 1 }; return d },
+    doc: () => { const d = home(); d.screen = { model: 'composed', level: 1, shades: ['scrim', 'bottom'] }; return d },
     node: (d) => d.root,
     screen: (d) => d.screen,
   },
@@ -371,15 +369,23 @@ describe('rule scope: the table agrees with where the validator reports each rul
   })
 })
 
-describe.each(Object.keys(RULE_SCOPE).filter((r) => r !== 'layers.overlay-model'))('declaring %s', (rule) => {
+describe.each(Object.keys(RULE_SCOPE))('declaring %s', (rule) => {
   const c = SCOPE_CASES[rule]
   const covered = (doc: Doc) => issuesOf(doc).filter((i) => i.ruleId === rule || i.kind === 'unused-deviation')
 
-  it('on its node covers the break', () => {
-    const doc = c.doc()
-    c.node(doc).deviation = dev(rule)
-    expect(covered(doc)).toEqual([])
-  })
+  if (rule === 'layers.overlay-model') {
+    it('on the root does not cover it: the overlay is reported on the screen, and only the screen declares it', () => {
+      const doc = c.doc()
+      c.node(doc).deviation = dev(rule)
+      expect(issuesOf(doc).some((i) => i.ruleId === rule && i.kind === 'undeclared-deviation')).toBe(true)
+    })
+  } else {
+    it('on its node covers the break', () => {
+      const doc = c.doc()
+      c.node(doc).deviation = dev(rule)
+      expect(covered(doc)).toEqual([])
+    })
+  }
 
   if (ruleScope(rule) === 'node') {
     it('on the screen is refused: an error naming the node, and the break stays undeclared', () => {

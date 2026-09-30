@@ -1,6 +1,6 @@
 import { useFlowStore } from '@/store/flowStore'
 import { useActiveDesignSystem } from '@/design-system/DesignSystemProvider'
-import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { describeScreen, modelOfScreen, screenLayersOf } from '@/shared/design-system/screen-layers'
 import { FRAME } from '@/shared/layout/frame'
 import { cx } from '@/lib/cx'
 import { NodeRenderer } from './NodeRenderer'
@@ -29,7 +29,7 @@ export function ScreenStrip(): JSX.Element {
     >
       {screens.map((entry) => {
         const open = entry.id === activeId
-        const side = screenModel(layers, entry.tree.screen?.model)?.side ?? 'neutral'
+        const side = modelOfScreen(layers, entry.tree.screen)?.side ?? 'neutral'
         return (
           <div key={entry.id} className="flex shrink-0 flex-col gap-3xs">
             <button

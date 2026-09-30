@@ -6,7 +6,7 @@ import type {
   ManifestScreenModel,
   ManifestTokens,
 } from '@/shared/design-system/manifest'
-import { screenModel } from '@/shared/design-system/screen-layers'
+import { modelOfScreen } from '@/shared/design-system/screen-layers'
 import { type FocusSide, type FrameSizeId, anchorZone } from '@/shared/layout/frame'
 import { cx } from '@/lib/cx'
 
@@ -75,7 +75,7 @@ export function ScreenFrame({
     [tree],
   )
   const zone = anchorZone(focusSide)
-  const model = screenModel(layers, tree.screen?.model)
+  const model = modelOfScreen(layers, tree.screen)
 
   return (
     <div

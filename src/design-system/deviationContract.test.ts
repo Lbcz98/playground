@@ -14,7 +14,8 @@ describe('Exploratory prompts', () => {
     expect(p).toContain('- layout.slots — Slots, order and parents: ')
     expect(p).toMatch(/- layout\.slots — .* \(on its node only\)/)
     expect(p).not.toMatch(/- layout\.root-align — .* \(on its node only\)/)
-    expect(p).toContain('composing a new overlay is not available yet')
+    expect(p).toContain('A new overlay is composed, not invented: "screen": { "model": "composed"')
+    expect(p).toContain('"scrim", "bottom"')
   })
 
   it('the generator gets the deviation field, its scope and both ways to fail the audit', () => {
@@ -29,12 +30,12 @@ describe('Exploratory prompts', () => {
     }
   })
 
-  it('lists every declarable pattern, and no law and not the overlay rule', () => {
+  it('lists every declarable pattern (the overlay rule included since 9E), and no law', () => {
     const p = buildSystemPrompt('tool', M, 'exploratory')
     const listed = p.slice(p.indexOf('Patterns that may be declared'))
     for (const rule of declarableRules(M)) expect(listed).toContain(`- ${rule.id} — `)
     for (const rule of RULES.filter((r) => r.flexibility !== 'pattern')) expect(listed).not.toContain(`- ${rule.id} — `)
-    expect(listed).not.toContain('layers.overlay-model —')
+    expect(listed).toContain('- layers.overlay-model — ')
     expect(p).toMatch(/A LAW is never broken and never\s+declared: .*Tokens only \(tokens\.only\)/)
   })
 

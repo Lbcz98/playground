@@ -36,7 +36,7 @@ import type {
   ManifestProp,
 } from '@/shared/design-system/manifest'
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
-import { auditScreenLayerIssues, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { auditScreenLayerIssues, modelOfScreen, navigationLevel, screenLayersOf } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
 import { coveredBy, declaresRule, type Declaration } from '@/shared/design-system/deviations'
 import type { ScreenMode } from '@/shared/blueprint'
@@ -653,7 +653,7 @@ function levelRootIssues(
   root: FrameNode | undefined,
 ): RuleProblem[] {
   const layers = screenLayersOf(manifest)
-  const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+  const model = modelOfScreen(layers, screen)
   const level = model ? navigationLevel(layers, model.level) : undefined
   if (!(level?.rootEnd || level?.rootColumn) || !root || typeof root.type !== 'string') return []
   const component = manifest.components[root.type]
@@ -716,7 +716,7 @@ function levelFocusIssues(
   seen: ReadonlySet<string>,
 ): RuleProblem[] {
   const layers = screenLayersOf(manifest)
-  const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+  const model = modelOfScreen(layers, screen)
   const level = model ? navigationLevel(layers, model.level) : undefined
   const rule = level?.initialFocus
   if (!level || !rule) return []
@@ -761,7 +761,7 @@ export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest, mod
   ]
   const changed: string[] = []
   for (const { root, screen, where } of pages) {
-    const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
+    const model = modelOfScreen(layers, screen)
     const level = model ? navigationLevel(layers, model.level) : undefined
     const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
     if (!level || on.length === 0 || !isObject(root)) continue

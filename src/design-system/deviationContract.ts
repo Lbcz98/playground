@@ -7,6 +7,7 @@
 import { declarableRules, MAX_WHY_LENGTH, ruleScope } from '@/shared/design-system/deviations'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { rulesOf } from '@/shared/design-system/rules'
+import { SHADE_IDS } from '@/shared/design-system/manifest'
 
 const laws = (manifest: DesignSystemManifest): string =>
   rulesOf(manifest)
@@ -31,7 +32,7 @@ This request may leave the design system's patterns. Plan what it needs, and say
   "on its node only" always goes under its component.
 - Break only what the request needs; everything else keeps the patterns. A plan that breaks nothing has no
   "Deviation:" line, and never lists a pattern it does not really break.
-- Keep to one of the layer models: composing a new overlay is not available yet.
+- A new overlay is composed, not invented: "screen": { "model": "composed", "level": <its level>, "shades": [ <from ${SHADE_IDS.map((s) => `"${s}"`).join(', ')}, each once> ], "deviation": [ { "ruleId": "layers.overlay-model", "why": … } ] }. Any other model name must be one of the layer models.
 
 Patterns that may be broken (id — what it is):
 ${patterns(manifest)}
@@ -56,7 +57,7 @@ sentence in the language of the request, up to ${MAX_WHY_LENGTH} characters>" }.
 - Declare exactly the patterns the screen really breaks. A break that is not declared is an error, and so is a declaration
   that nothing breaks. Declaring a different rule does not cover the break.
 - Never declare a law, and never declare a rule that is not in the list below.
-- Keep to one of the layer models: composing a new overlay is not available yet.
+- A new overlay is composed, not invented: "screen": { "model": "composed", "level": <its level>, "shades": [ <from ${SHADE_IDS.map((s) => `"${s}"`).join(', ')}, each once> ], "deviation": [ { "ruleId": "layers.overlay-model", "why": … } ] }. Any other model name must be one of the layer models.
 
 Patterns that may be declared (id — what it is):
 ${patterns(manifest)}`

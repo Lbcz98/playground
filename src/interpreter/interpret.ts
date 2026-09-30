@@ -51,6 +51,9 @@ import {
   screenLayersOf,
   screenModel,
   menuFocusCheck,
+  modelOfScreen,
+  COMPOSED_MODEL,
+  composedProblem,
   sidePropFor,
   unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
@@ -251,7 +254,7 @@ export function interpretBlueprint(
   }
 
   const screen = repairScreen(doc.screen, ctx.manifest, issues, mode)
-  const side = screen ? screenModel(screenLayersOf(ctx.manifest), screen.model)?.side : undefined
+  const side = screen ? modelOfScreen(screenLayersOf(ctx.manifest), screen)?.side : undefined
   // What the root and the screen declare — the rules a root-level repair may leave alone.
   const declared = declaring(screenDeclared, root.deviation)
   repairFrameLayout(root, ctx.manifest, issues, side, declared)
@@ -447,7 +450,7 @@ function repairLevelRoot(
   issues: InterpretIssue[],
 ): void {
   const layers = screenLayersOf(manifest)
-  const model = screen ? screenModel(layers, screen.model) : undefined
+  const model = screen ? modelOfScreen(layers, screen) : undefined
   const level = model ? layers.levels.find((l) => l.level === model.level) : undefined
   const component = manifest.components[root.type]
   if (!(level?.rootEnd || level?.rootColumn) || !component) return
@@ -503,7 +506,7 @@ function repairLevelFocus(
   issues: InterpretIssue[],
 ): void {
   const layers = screenLayersOf(manifest)
-  const model = screen ? screenModel(layers, screen.model) : undefined
+  const model = screen ? modelOfScreen(layers, screen) : undefined
   const rule = model ? layers.levels.find((l) => l.level === model.level)?.initialFocus : undefined
   if (!rule) return
 
@@ -559,7 +562,7 @@ function repairMenuFocus(
   issues: InterpretIssue[],
 ): void {
   const layers = screenLayersOf(manifest)
-  if (!screen || screenModel(layers, screen.model)?.level !== 1 || !layers.menu) return
+  if (!screen || modelOfScreen(layers, screen)?.level !== 1 || !layers.menu) return
   const check = menuFocusCheck(manifest, root)
   if (!check || check.allowed.includes(String(check.found)) || check.allowed.length !== 1) return
   const menu = check.menu as CanvasNode
@@ -612,6 +615,26 @@ function repairScreen(
   const deviation = readScreenDeviations(raw, manifest, mode, issues)
   const withDeviation = (spec: ScreenSpec): ScreenSpec => (deviation.length > 0 ? { ...spec, deviation } : spec)
   const fallback = fallbackScreen
+  if (isObject(raw) && raw.shades !== undefined && mode !== 'exploratory') {
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: 'Removed "shades" from the screen — a Faithful screen uses one of the layer models.' })
+  }
+  // A composed overlay: kept on an Exploratory screen that declares the overlay rule on the screen itself, and is well-formed.
+  if (mode === 'exploratory' && isObject(raw) && raw.model === COMPOSED_MODEL) {
+    const declared = deviation.some((d) => d.ruleId === 'layers.overlay-model')
+    const problem = composedProblem(layers, raw)
+    if (declared && !problem) {
+      issues.push({ ruleId: 'layers.overlay-model', level: 'info', path: 'screen', message: `Kept the composed overlay (${(raw.shades as string[]).join(' + ')}) — the screen declares a deviation from "layers.overlay-model".` })
+      return withDeviation({ model: COMPOSED_MODEL, level: raw.level as ScreenSpec['level'], shades: [...(raw.shades as ScreenSpec['shades'] & object)] })
+    }
+    const fallbackName = screenModel(layers, fallback.model)?.name ?? fallback.model
+    issues.push({
+      ruleId: 'layers.overlay-model',
+      level: 'warn',
+      path: 'screen',
+      message: `Replaced the composed overlay with ${fallbackName} (level ${fallback.level}) — ${problem ?? 'the screen does not declare a deviation from "layers.overlay-model"'}`,
+    })
+    return withDeviation(fallback)
+  }
   const model = isObject(raw) ? screenModel(layers, raw.model) : undefined
   if (!model) {
     const fallbackName = screenModel(layers, fallback.model)?.name ?? fallback.model

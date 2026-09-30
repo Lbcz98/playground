@@ -23,7 +23,10 @@ import {
   type ManifestScreenModel,
   type ScreenSide,
   type ScreenSpec,
+  type NavigationLevel,
+  type ShadeId,
   SCREEN_LAYER_STACK,
+  SHADE_IDS,
   defaultForProp,
 } from './manifest'
 import type { RuleProblem } from './rules'
@@ -215,6 +218,46 @@ export function screenModel(layers: ManifestScreenLayers, id: unknown): Manifest
   return typeof id === 'string' ? layers.models.find((model) => model.id === id) : undefined
 }
 
+/** The model id of a composed overlay: its shades are on the screen, not in the rule. */
+export const COMPOSED_MODEL = 'composed'
+
+/**
+ * Why a screen's composed overlay is not usable, as a sentence the Generator can act
+ * on — or null when it is a well-formed one: `model: "composed"`, a level the rule
+ * defines, and shades from the fixed pieces, each once.
+ */
+export function composedProblem(layers: ManifestScreenLayers, screen: Record<string, unknown>): string | null {
+  const pieces = `one or more of ${SHADE_IDS.map((s) => `"${s}"`).join(', ')}, each at most once`
+  if (screen.model !== COMPOSED_MODEL) return `"shades" only goes with "model": "${COMPOSED_MODEL}" — a layer model already has its own shades.`
+  if (!navigationLevel(layers, screen.level)) return `a composed overlay names its level: one of ${layers.levels.map((l) => l.level).join(', ')}.`
+  const shades = screen.shades
+  if (!Array.isArray(shades) || shades.length === 0) return `a composed overlay lists its "shades": ${pieces}.`
+  const unknown = shades.filter((s) => !SHADE_IDS.includes(s as ShadeId))
+  if (unknown.length > 0) return `${unknown.map((s) => JSON.stringify(s)).join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not a shade piece — use ${pieces}.`
+  if (new Set(shades).size !== shades.length) return `a shade piece is listed twice — use ${pieces}.`
+  return null
+}
+
+/**
+ * The model a screen runs on: one of the rule's models, or — for a well-formed
+ * composed overlay — one built from the screen's own shades, on the level it names.
+ * Every level rule (module limit, where focus starts, links) reads the level from
+ * here, so a composed screen is held to its level like any other.
+ */
+export function modelOfScreen(layers: ManifestScreenLayers, screen: unknown): ManifestScreenModel | undefined {
+  if (!isObject(screen)) return undefined
+  if (screen.model === COMPOSED_MODEL && composedProblem(layers, screen) === null) {
+    return {
+      id: COMPOSED_MODEL,
+      name: 'Composed overlay',
+      level: screen.level as NavigationLevel,
+      shades: [...(screen.shades as ShadeId[])],
+      use: 'A screen that composes its own overlay from the shade pieces (Exploratory, declared).',
+    }
+  }
+  return screenModel(layers, screen.model)
+}
+
 export function navigationLevel(
   layers: ManifestScreenLayers,
   level: unknown,
@@ -380,7 +423,7 @@ export function auditScreenLayerIssues(doc: unknown, manifest: DesignSystemManif
     return [{ ruleId: 'blueprint.dsl', path: ['screen'], message: '"screen" must be an object: { "model": …, "level": … }.' }]
   }
 
-  const model = screenModel(layers, screen.model)
+  const model = modelOfScreen(layers, screen)
   if (!model) {
     return [
       {
@@ -389,6 +432,14 @@ export function auditScreenLayerIssues(doc: unknown, manifest: DesignSystemManif
         message: `screen.model ${JSON.stringify(screen.model)} is not a layer model. Use one of ${modelList(layers)}.`,
       },
     ]
+  }
+  if (model.id === COMPOSED_MODEL) {
+    // Composing is breaking the overlay pattern: it passes only where the screen declares it.
+    add(
+      'layers.overlay-model',
+      ['screen', 'model'],
+      `The screen composes its own overlay (${model.shades.join(' + ')}) instead of using one of ${modelList(layers)}.`,
+    )
   }
   const level = navigationLevel(layers, model.level)
   if (screen.level !== model.level) {
@@ -533,7 +584,7 @@ export function menuFocusCheck(
 export function describeScreen(manifest: DesignSystemManifest, screen: ScreenSpec | undefined): string | null {
   if (!screen) return null
   const layers = screenLayersOf(manifest)
-  const model = screenModel(layers, screen.model)
+  const model = modelOfScreen(layers, screen)
   const level = navigationLevel(layers, screen.level)
   return `${model?.name ?? screen.model} · nível ${screen.level}${level ? ` (${level.name})` : ''}`
 }

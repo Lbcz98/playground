@@ -21,12 +21,6 @@ export interface Declaration {
   at: IssuePath
 }
 
-/** The rules 9D cannot honour, though they are patterns: composing an overlay needs 9E. */
-const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
-  'layers.overlay-model':
-    'composing a new overlay arrives in 9E — for now keep to one of the layer models',
-}
-
 /**
  * Where a pattern's violations are reported, which decides where it may be declared:
  *   - `node`: reported at a node below the root (a misplaced slot, one link). Only a
@@ -50,6 +44,7 @@ export const RULE_SCOPE: Readonly<Record<string, DeclarationScope>> = {
   'layout.root-align': 'screen',
   'layout.no-static-center': 'screen',
   'layout.anchor': 'screen',
+  // Reported on the screen itself (["screen", …]), not under the root: only the screen's own list covers it.
   'layers.overlay-model': 'screen',
   // A Proposal is the break, at its own node.
   'registry.new-component': 'node',
@@ -61,9 +56,9 @@ export const ruleScope = (ruleId: string): DeclarationScope => RULE_SCOPE[ruleId
 /** Where a declaration is written: on a node, or in the screen's own list. */
 export type DeclarationScope = 'node' | 'screen'
 
-/** The pattern rules a screen may declare: every pattern of the book, but the one 9E has not built yet. */
+/** The pattern rules a screen may declare: every pattern of the book. */
 export function declarableRules(manifest: DesignSystemManifest): PatternRule[] {
-  return rulesOf(manifest).filter((r) => r.flexibility === 'pattern' && !(r.id in NOT_DECLARABLE_YET))
+  return rulesOf(manifest).filter((r) => r.flexibility === 'pattern')
 }
 
 /** Why `raw` is not a usable deviation, as a sentence the Generator can act on — or null. */
@@ -93,7 +88,6 @@ export function declarationProblem(
   if (rule.flexibility === 'convention') {
     return `"${ruleId}" (${rule.title}) is a convention — breaking it only produces a note, so it needs no declaration.`
   }
-  if (ruleId in NOT_DECLARABLE_YET) return `"${ruleId}" cannot be declared yet: ${NOT_DECLARABLE_YET[ruleId]}.`
   if (scope === 'screen' && ruleScope(ruleId) === 'node') {
     return `"${ruleId}" (${rule.title}) breaks at one node, so it is declared on that node — put "deviation" on the node where it happens, not on the screen.`
   }
@@ -126,7 +120,7 @@ function coveringDeclaration(declarations: Declaration[], ruleId: string, path: 
 /** Whether one of the declarations covers `issue`: a pattern the screen declared, at or above where it happens. */
 export function coveredBy(issue: RuleProblem, declarations: readonly Declaration[], manifest: DesignSystemManifest): boolean {
   const rule = ruleById(manifest, issue.ruleId)
-  if (!rule || rule.flexibility !== 'pattern' || issue.ruleId in NOT_DECLARABLE_YET) return false
+  if (!rule || rule.flexibility !== 'pattern') return false
   return coveringDeclaration(declarations as Declaration[], issue.ruleId, issue.path) !== undefined
 }
 
@@ -181,7 +175,7 @@ export function auditDeclared(
   for (const issue of issues) {
     const rule = ruleById(manifest, issue.ruleId)
     // A rule the book doesn't know is treated like a law: nothing can waive it.
-    if (!rule || rule.flexibility === 'law' || issue.ruleId in NOT_DECLARABLE_YET) {
+    if (!rule || rule.flexibility === 'law') {
       out.push(issue)
     } else if (rule.flexibility === 'pattern') {
       const covering = coveringDeclaration(declarations, issue.ruleId, issue.path)

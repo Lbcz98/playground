@@ -273,6 +273,12 @@ export interface ScreenSpec {
   level: NavigationLevel
   /** Pattern rules the screen breaks as a whole, with no single node to carry the declaration. */
   deviation?: RuleDeviation[]
+  /**
+   * A composed overlay (phase 9E, Exploratory only): with `model: "composed"`, the
+   * shade pieces the engine paints, from the fixed list, each at most once. Only a
+   * declared `layers.overlay-model` lets it through; the layer stack stays a law.
+   */
+  shades?: ShadeId[]
 }
 
 /**

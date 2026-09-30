@@ -27,7 +27,7 @@ import {
 } from '@/shared/layout/frame'
 import { auditRender, type ClipBox } from '@/shared/layout/renderAudit'
 import { defaultForProp, type DesignSystemManifest, type ManifestScreenModel } from '@/shared/design-system/manifest'
-import { describeScreen, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { describeScreen, modelOfScreen, screenLayersOf } from '@/shared/design-system/screen-layers'
 import { focusLeavesLevel } from '@/shared/design-system/flow'
 import { cx } from '@/lib/cx'
 import { focusableInNode, isMarkedFocus } from './focusReading'
@@ -91,7 +91,7 @@ export function Canvas(): JSX.Element {
 
   const zone = anchorZone(focus.side)
   const layers = screenLayersOf(active)
-  const model = screenModel(layers, tree.screen?.model)
+  const model = modelOfScreen(layers, tree.screen)
   // The breaks an Exploratory screen declares are shown apart in the QA line, not counted as failures.
   const exploratory = screenMode(screens.find((entry) => entry.tree === tree)) === 'exploratory'
   const declarations = useMemo(() => (exploratory ? treeDeclarations(tree, tree.screen) : []), [tree, exploratory])
@@ -278,7 +278,7 @@ function useTvFocus(
     // The node's element may be a box-less host around the real control.
     const anchoredEl = anchoredHost ? (anchoredHost.matches(FOCUSABLE) ? anchoredHost : anchoredHost.querySelector(FOCUSABLE)) : null
     if (anchoredEl) {
-      const model = screenModel(screenLayersOf(manifest), tree.screen?.model)
+      const model = modelOfScreen(screenLayersOf(manifest), tree.screen)
       lastFocusedId.current = null
       focusElRef.current = anchoredEl
       setFocusReading({ side: model?.side ?? DEFAULT_FOCUS, label: focusLabel(anchoredEl) })
@@ -537,7 +537,7 @@ function findType(tree: CanvasNode, id: string): string | null {
 /** The anchored node the screen's level puts the initial focus on, when it is in a focus state. */
 function anchoredFocusId(tree: CanvasNode, manifest: DesignSystemManifest): string | null {
   const layers = screenLayersOf(manifest)
-  const model = screenModel(layers, tree.screen?.model)
+  const model = modelOfScreen(layers, tree.screen)
   const on = model ? layers.levels.find((l) => l.level === model.level)?.initialFocus?.on : undefined
   if (!on) return null
   for (const child of tree.children) {

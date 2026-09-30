@@ -271,7 +271,6 @@ describe('a declaration the interpreter cannot honour', () => {
   it.each([
     ['a convention', dev('copy.button-label'), /is a convention/],
     ['an unknown rule', dev('layout.invented'), /is not a rule of ScreenFlow/],
-    ['the 9E overlay rule', dev('layers.overlay-model'), /arrives in 9E/],
     ['a bad shape', { ruleId: 'layout.root-align' }, /must be exactly/],
   ])('%s is ignored with a warning, and the repair happens', (_, deviation, message) => {
     const o = on(deviation)

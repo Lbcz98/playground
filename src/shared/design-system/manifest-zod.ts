@@ -43,6 +43,7 @@ import {
 import { flowIssues, type FlowScreen } from './flow'
 import type { IssueKind, IssuePath, RuleId, RuleProblem } from './rules'
 import { auditDeviations, declarationProblem, type Declaration } from './deviations'
+import { COMPOSED_MODEL, composedProblem, screenLayersOf, screenModel } from './screen-layers'
 import { EXPLORATORY_TYPES, PROPOSAL_TYPE, isPrimitive, reuseProblem, withVocabulary } from './primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
@@ -408,6 +409,23 @@ function validateScreen(
     return {
       issues: [{ ruleId: 'blueprint.dsl', path: ['root'], message: 'Blueprint must have a "root" node object.' }],
       declarations,
+    }
+  }
+  // A composed overlay (9E): Exploratory only, well-formed, and model "composed" — any other unknown model stays an
+  // error even where the overlay rule is declared, because the canvas would have nothing to paint.
+  if (isObject(input.screen)) {
+    const layers = screenLayersOf(manifest)
+    if (input.screen.shades !== undefined && policy !== 'exploratory') {
+      issues.push({ ruleId: 'blueprint.dsl', path: ['screen', 'shades'], message: 'A Faithful screen uses one of the layer models, so its "screen" composes no "shades". Remove it.' })
+    } else if (input.screen.shades !== undefined || input.screen.model === COMPOSED_MODEL) {
+      const problem = policy === 'exploratory' ? composedProblem(layers, input.screen) : null
+      if (problem) issues.push({ ruleId: 'blueprint.dsl', path: ['screen', 'shades'], message: `"screen": ${problem}` })
+    } else if (policy === 'exploratory' && typeof input.screen.model === 'string' && !screenModel(layers, input.screen.model)) {
+      issues.push({
+        ruleId: 'blueprint.dsl',
+        path: ['screen', 'model'],
+        message: `"screen".model ${JSON.stringify(input.screen.model)} is not a layer model. To compose a new overlay, use "model": "${COMPOSED_MODEL}" with its "shades", and declare layers.overlay-model on the screen.`,
+      })
     }
   }
   if (isObject(input.screen) && input.screen[DEVIATION_KEY] !== undefined) {

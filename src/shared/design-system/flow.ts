@@ -8,7 +8,7 @@
  * so the strict validator (main process), the interpreter and the player agree.
  */
 
-import { screenLayersOf, screenModel } from './screen-layers'
+import { modelOfScreen, screenLayersOf } from './screen-layers'
 import type { DesignSystemManifest } from './manifest'
 import type { IssuePath, RuleProblem } from './rules'
 
@@ -87,7 +87,7 @@ export function linkRoleProblem(
 /** The navigation level of a screen spec, or undefined when its model is unknown. */
 export function levelOfScreen(manifest: DesignSystemManifest, screen: unknown): number | undefined {
   if (typeof screen !== 'object' || screen === null) return undefined
-  return screenModel(screenLayersOf(manifest), (screen as { model?: unknown }).model)?.level
+  return modelOfScreen(screenLayersOf(manifest), screen)?.level
 }
 
 export interface FlowScreen {
