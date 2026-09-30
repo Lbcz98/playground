@@ -66,7 +66,7 @@ const SUPPORTED_VERSION = 1
 // ---------------------------------------------------------------------------
 
 /** A component's props, or a list item's fields, as one strict object. */
-function propsToZod(props: Record<string, ManifestProp>, manifest: DesignSystemManifest): z.ZodObject<z.ZodRawShape> {
+export function propsToZod(props: Record<string, ManifestProp>, manifest: DesignSystemManifest): z.ZodObject<z.ZodRawShape> {
   const shape: z.ZodRawShape = {}
   for (const prop of Object.values(props)) shape[prop.name] = propToZod(prop, manifest)
   return z.object(shape).strict()

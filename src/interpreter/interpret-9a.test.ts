@@ -59,23 +59,56 @@ describe('InterpretIssue.ruleId', () => {
   })
 })
 
-describe('sanitizeProps (characterization, until 9D)', () => {
-  it('resets a whole list prop to its default when one item is bad', () => {
+describe('sanitizeProps — a list prop is repaired item by item (9D; was pinned in 9A as a whole-prop reset)', () => {
+  /** Home with MainMenu's `miscellaneousItems` set to `items`; the menu's props after interpretation, and the issues. */
+  function menuWith(items: unknown) {
     const doc = structuredClone(homeTemplate.blueprint) as unknown as { root: CanvasNode }
-    const menuOf = (tree: CanvasNode) => find(tree, 'MainMenu')!
-    const reference = interpretBlueprint(structuredClone(doc))
-    if (!reference.ok) throw new Error(reference.error)
-    const fallback = menuOf(reference.tree).props.miscellaneousItems
-
     const menu = find(doc.root, 'MainMenu')!
-    menu.props = { ...menu.props, miscellaneousItems: [{ title: 'Kept?' }, { title: 5 }] }
+    menu.props = { ...menu.props, miscellaneousItems: items }
     const result = interpretBlueprint(doc)
     if (!result.ok) throw new Error(result.error)
+    return {
+      items: find(result.tree, 'MainMenu')!.props.miscellaneousItems,
+      warns: result.issues.filter((i) => i.level === 'warn' && i.ruleId === 'component.api').map((i) => i.message),
+    }
+  }
 
-    // Today the good item is lost with the bad one; 9D repairs only `[1].title`.
-    expect(menuOf(result.tree).props.miscellaneousItems).toEqual(fallback)
-    const issue = result.issues.find((i) => i.message.startsWith('Ignored miscellaneousItems='))
-    expect(issue).toMatchObject({ level: 'warn', ruleId: 'component.api' })
-    expect(issue?.message).toMatch(/\(not an allowed value\) — kept the default\.$/)
+  it('keeps the good items and drops only the item whose required field is bad, naming the node and the field', () => {
+    const { items, warns } = menuWith([{ title: 'Kept' }, { title: 5 }, { title: 'Also kept', subtitle: 'ok' }])
+    expect(items).toEqual([{ title: 'Kept' }, { title: 'Also kept', subtitle: 'ok' }])
+    expect(warns).toEqual([
+      'Dropped miscellaneousItems[1] on <MainMenu> — "title" is required and 5 is not an allowed value, so there is no default to keep the item by.',
+    ])
+  })
+
+  it('drops an item that lacks a required field, and one that is not an object', () => {
+    const { items, warns } = menuWith([{ subtitle: 'no title' }, 'text', { title: 'ok' }])
+    expect(items).toEqual([{ title: 'ok' }])
+    expect(warns).toHaveLength(2)
+    expect(warns[1]).toMatch(/Dropped miscellaneousItems\[1\] on <MainMenu> — an item is an object with title, subtitle, iconSrc/)
+  })
+
+  it('repairs only the bad field when it is optional, keeping the rest of the item', () => {
+    const { items, warns } = menuWith([{ title: 'Kept', subtitle: 7, iconSrc: 'a.svg' }])
+    expect(items).toEqual([{ title: 'Kept', iconSrc: 'a.svg' }])
+    expect(warns).toEqual(['Ignored miscellaneousItems[0].subtitle=7 on <MainMenu> (not an allowed value) — kept the default.'])
+  })
+
+  it('removes an unsupported field and keeps the item', () => {
+    const { items, warns } = menuWith([{ title: 'Kept', bogus: 1 }])
+    expect(items).toEqual([{ title: 'Kept' }])
+    expect(warns).toEqual(['Removed unsupported field "bogus" from miscellaneousItems[0] on <MainMenu>.'])
+  })
+
+  it('a list over its limit still falls back whole (the limit is the list’s, not an item’s)', () => {
+    const { items, warns } = menuWith(Array.from({ length: 9 }, (_, i) => ({ title: `T${i}` })))
+    expect(items).toEqual([])
+    expect(warns.some((w) => /Ignored miscellaneousItems=/.test(w))).toBe(true)
+  })
+
+  it('a valid list is untouched, with no issue', () => {
+    const { items, warns } = menuWith([{ title: 'A', subtitle: 'B' }])
+    expect(items).toEqual([{ title: 'A', subtitle: 'B' }])
+    expect(warns).toEqual([])
   })
 })

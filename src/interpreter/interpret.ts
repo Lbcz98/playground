@@ -38,7 +38,7 @@ import {
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, type Declaration } from '@/shared/design-system/deviations'
-import type { DesignSystemManifest, ManifestComponent, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
+import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
   clearBackgroundFor,
@@ -50,7 +50,7 @@ import {
   sidePropFor,
   unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
-import { compileManifestSchemas, compiledDefaultProps, propRuleId } from '@/shared/design-system/manifest-zod'
+import { compileManifestSchemas, compiledDefaultProps, propRuleId, propsToZod } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import {
   FRAME,
@@ -739,7 +739,19 @@ function sanitizeProps(
 
   for (const [key, fieldSchema] of Object.entries(shape)) {
     if (!(key in provided)) continue
-    const result = fieldSchema.safeParse(provided[key])
+    let result = fieldSchema.safeParse(provided[key])
+    // A list of items with fields (a menu's items): repair item by item, so one bad
+    // item costs that item — or just its bad field — and not the whole list.
+    const spec = component.props[key]
+    if (!result.success && spec?.fields && Array.isArray(provided[key])) {
+      const repaired = repairList(manifest, component, key, spec, provided[key] as unknown[], path, issues)
+      const again = fieldSchema.safeParse(repaired)
+      if (again.success) {
+        clean[key] = again.data
+        continue
+      }
+      result = again // what is left is the list's own limit (too many items): the whole prop falls back
+    }
     if (result.success) {
       clean[key] = result.data
     } else {
@@ -766,6 +778,64 @@ function sanitizeProps(
   // parses; `clean` only holds valid provided values, so this always succeeds.
   const seeded = { ...compiledDefaultProps(component, schema), ...clean }
   return schema.parse(seeded) as Record<string, unknown>
+}
+
+/**
+ * The repair of a list prop whose items have fields. An item that is not an object,
+ * or whose bad field is required and has no default to fall back to, is dropped
+ * (there is no honest value to keep it by); an item whose bad field is optional or
+ * has a default keeps everything else, and only that field falls back. Every
+ * change is a warning naming the node and the field.
+ */
+function repairList(
+  manifest: DesignSystemManifest,
+  component: ManifestComponent,
+  key: string,
+  spec: ManifestProp,
+  list: unknown[],
+  path: string,
+  issues: InterpretIssue[],
+): unknown[] {
+  const fields = spec.fields ?? {}
+  const item = propsToZod(fields, manifest)
+  const warn = (message: string): void => {
+    issues.push({ ruleId: 'component.api', level: 'warn', path, message })
+  }
+  const kept: unknown[] = []
+  list.forEach((raw, i) => {
+    const where = `${key}[${i}]`
+    if (!isObject(raw)) {
+      warn(`Dropped ${where} on <${component.id}> — an item is an object with ${Object.keys(fields).join(', ')}.`)
+      return
+    }
+    const current: Record<string, unknown> = { ...raw }
+    for (const name of Object.keys(current)) {
+      if (name in fields) continue
+      delete current[name]
+      warn(`Removed unsupported field "${name}" from ${where} on <${component.id}>.`)
+    }
+    let parsed = item.safeParse(current)
+    if (!parsed.success) {
+      for (const name of new Set(parsed.error.issues.map((issue) => String(issue.path[0])))) {
+        const field = fields[name]
+        if (!field || (field.required && field.defaultValue === undefined)) {
+          warn(
+            `Dropped ${where} on <${component.id}> — "${name}" is required and ${brief(current[name])} is not an allowed value, so there is no default to keep the item by.`,
+          )
+          return
+        }
+        warn(`Ignored ${where}.${name}=${brief(current[name])} on <${component.id}> (not an allowed value) — kept the default.`)
+        delete current[name]
+      }
+      parsed = item.safeParse(current)
+      if (!parsed.success) {
+        warn(`Dropped ${where} on <${component.id}> — it is not an allowed item.`)
+        return
+      }
+    }
+    kept.push(parsed.data)
+  })
+  return kept
 }
 
 /**
