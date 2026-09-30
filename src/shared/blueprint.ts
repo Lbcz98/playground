@@ -11,7 +11,7 @@
  * generate → validate → retry loop that produces it.
  */
 
-import type { DesignSystemManifest, ScreenSpec } from './design-system/manifest'
+import type { DesignSystemManifest, RuleFlexibility, ScreenSpec } from './design-system/manifest'
 
 export interface BlueprintNode {
   type: string
@@ -113,12 +113,39 @@ export interface ChatTurn {
   content: string
 }
 
+/**
+ * The mode a request asks for (phase 9C). `auto` lets the router decide; `both`
+ * only ever comes from a button. Omitted: Faithful, with no router call.
+ */
+export type RequestedMode = 'auto' | 'faithful' | 'exploratory' | 'both'
+export const REQUESTED_MODES: readonly RequestedMode[] = ['auto', 'faithful', 'exploratory', 'both']
+
+/** The mode a screen was actually generated in. */
+export type ScreenMode = 'faithful' | 'exploratory'
+
 /** Per-request overrides chosen in the AI Agent panel. */
 export interface GenerateOptions {
   /** Full model id (see `@/shared/models`). Falls back to env / default. */
   model?: string
   /** 'low' | 'medium' | 'high' | 'xhigh' | 'max'. */
   effort?: string
+  mode?: RequestedMode
+}
+
+/**
+ * What the router asks instead of generating: a request that leaves the patterns
+ * without saying so, or one a law rules out in every mode. Each choice re-sends
+ * the same request with that mode.
+ */
+export interface RouterQuestion {
+  kind: 'conflict' | 'law'
+  text: string
+  /** The classifier's reason for the first conflict, when it gave one. */
+  why?: string
+  rules: { id: string; title: string; flexibility: RuleFlexibility }[]
+  choices: Exclude<RequestedMode, 'auto'>[]
+  /** The request rephrased to stay inside the rules. */
+  faithfulAlternative?: string
 }
 
 export interface GenerateUIRequest {
@@ -157,11 +184,20 @@ export interface GenerateUIMeta {
   durationMs: number
   /** Free-form trace of the orchestrator steps (planner, generator, retries…). */
   steps: string[]
+  /** The mode the screens were generated in — never one the pipeline didn't run. */
+  mode?: ScreenMode
+  /** What the pipeline itself tells the user (the router, a mode fallback), shown under the reply. */
+  notices?: string[]
 }
 
 export type GenerateUIResponse =
   | { ok: true; blueprint: BlueprintDocument; meta: GenerateUIMeta }
-  | { ok: false; error: string; stage: string; meta: GenerateUIMeta }
+  | { ok: false; error: string; stage: string; meta: GenerateUIMeta; question?: undefined }
+  /**
+   * The router asks before generating (Auto mode). Not a failure, but nothing was
+   * generated; `error` repeats the question's text for a client that can't ask.
+   */
+  | { ok: false; error: string; stage: 'router'; meta: GenerateUIMeta; question: RouterQuestion }
 
 export function isBlueprintDocument(value: unknown): value is BlueprintDocument {
   if (typeof value !== 'object' || value === null) return false
