@@ -31,6 +31,7 @@ import {
   BLUEPRINT_SCREEN_KEYS,
   DEVIATION_KEY,
   FIRST_SCREEN_ID,
+  REUSE_KEY,
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   MAX_SCREENS,
@@ -42,7 +43,7 @@ import {
 import { flowIssues, type FlowScreen } from './flow'
 import type { IssueKind, IssuePath, RuleId, RuleProblem } from './rules'
 import { auditDeviations, declarationProblem, type Declaration } from './deviations'
-import { EXPLORATORY_TYPES, PROPOSAL_TYPE, withVocabulary } from './primitives'
+import { EXPLORATORY_TYPES, PROPOSAL_TYPE, isPrimitive, reuseProblem, withVocabulary } from './primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -495,14 +496,21 @@ function validateNode(
     descend(type)
     return
   }
-  const keys = nodeKeysFor(ctx.policy)
+  const keys = nodeKeysFor(ctx.policy, type)
   for (const key of Object.keys(raw)) {
     if (keys.includes(key)) continue
     const why =
       key === DEVIATION_KEY
         ? 'a Faithful screen keeps every pattern, so it declares no deviation'
-        : unknownBlueprintKeyReason(key)
+        : key === REUSE_KEY && ctx.policy === 'exploratory'
+          ? 'only a primitive says why no component would do'
+          : unknownBlueprintKeyReason(key)
     add('blueprint.dsl', [...at, key], `${path} <${type}>: unknown node key "${key}" — ${why}. Remove it.`)
+  }
+  // A primitive says which components it considered and why none would do; without it, it is a composition choice nobody made.
+  if (ctx.policy === 'exploratory' && isPrimitive(type)) {
+    const problem = reuseProblem(ctx.manifest, raw[REUSE_KEY])
+    if (problem) issues.push({ ruleId: 'primitives.reuse', kind: 'invalid-reuse', path: [...at, REUSE_KEY], message: `${path} <${type}>: ${problem}` })
   }
   if (ctx.policy === 'exploratory' && raw[DEVIATION_KEY] !== undefined) {
     const problem = declarationProblem(ctx.manifest, raw[DEVIATION_KEY])

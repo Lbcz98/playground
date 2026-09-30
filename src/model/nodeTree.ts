@@ -5,7 +5,7 @@
  */
 
 import type { RuleDeviation, ScreenSpec } from '@/shared/design-system/manifest'
-import type { ScreenMode } from '@/shared/blueprint'
+import type { PrimitiveReuse, ScreenMode } from '@/shared/blueprint'
 
 export interface CanvasNode {
   id: string
@@ -26,6 +26,8 @@ export interface CanvasNode {
   screen?: ScreenSpec
   /** A declared break of a pattern rule at this node (Exploratory screens only; see `BlueprintNode`). */
   deviation?: RuleDeviation
+  /** A primitive's reason for not being a component (Exploratory only; see `BlueprintNode.reuse`). */
+  reuse?: PrimitiveReuse
 }
 
 export type NodeId = string

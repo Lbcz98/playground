@@ -284,7 +284,7 @@ export type IssuePath = (string | number)[]
  * pattern broken without saying so, or a deviation declared for nothing. These go
  * back to the planner (phase 9D); every other issue goes back to the generator.
  */
-export type IssueKind = 'undeclared-deviation' | 'unused-deviation'
+export type IssueKind = 'undeclared-deviation' | 'unused-deviation' | 'invalid-reuse' | 'budget-exceeded'
 
 /** One broken rule: which one, the sentence the Generator acts on, and where (relative to the screen). */
 export interface RuleProblem {

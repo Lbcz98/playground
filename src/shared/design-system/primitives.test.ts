@@ -12,7 +12,7 @@ const home = (): Doc => structuredClone(homeTemplate.blueprint) as unknown as Do
 /** Home with a primitive:Text next to the rail. */
 const withText = (props: Record<string, unknown> = { text: 'Placar' }): Doc => {
   const doc = home()
-  doc.root.children[0].children.push({ type: 'primitive:Text', props })
+  doc.root.children[0].children.push({ type: 'primitive:Text', props, reuse: { considered: 'Text', why: 'o Text do catálogo não tem cor de destaque' } })
   return doc
 }
 const issuesOf = (doc: unknown, policy: 'faithful' | 'exploratory'): ValidationIssue[] => {

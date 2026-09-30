@@ -131,3 +131,40 @@ export function withVocabulary(manifest: DesignSystemManifest): DesignSystemMani
   }
   return view
 }
+
+// ── reuse ───────────────────────────────────────────────────────────────────────────────────────
+
+/** The registry components a `reuse.considered` names: the ids (or names) it lists, split on commas. */
+export function consideredComponents(manifest: DesignSystemManifest, considered: string): { found: string[]; unknown: string[] } {
+  const own = Object.values(manifest.components).filter((c) => !EXPLORATORY_TYPES.includes(c.id))
+  const found: string[] = []
+  const unknown: string[] = []
+  for (const part of considered.split(/[,;/]|\s+(?:e|and|ou|or)\s+/i).map((p) => p.trim().replace(/^<|>$/g, '')).filter(Boolean)) {
+    const match = own.find((c) => c.id.toLowerCase() === part.toLowerCase() || c.name.toLowerCase() === part.toLowerCase())
+    if (match) found.push(match.id)
+    else unknown.push(part)
+  }
+  return { found: [...new Set(found)], unknown }
+}
+
+/**
+ * Why a primitive's `reuse` is not usable, as a sentence the Generator can act on —
+ * or null. It must name, by id, the registry components considered (at least one,
+ * and nothing that is not a component), and say why none of them would do.
+ */
+export function reuseProblem(manifest: DesignSystemManifest, raw: unknown): string | null {
+  const shape = 'every primitive carries "reuse": { "considered": "<registry components you looked at, by id, comma-separated>", "why": "<why none of them expresses the need>" }'
+  if (raw === undefined) return `a primitive has no "reuse" — ${shape}.`
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return `"reuse" is not an object — ${shape}.`
+  const { considered, why, ...rest } = raw as Record<string, unknown>
+  if (Object.keys(rest).length > 0 || typeof considered !== 'string' || typeof why !== 'string') {
+    return `"reuse" must be exactly { "considered", "why" }${Object.keys(rest).length ? ` (remove "${Object.keys(rest).join('", "')}")` : ''} — ${shape}.`
+  }
+  if (why.trim().length === 0 || why.length > 300) return 'the "why" of "reuse" must say in one short sentence (up to 300 characters) why no registry component expresses the need.'
+  const { found, unknown } = consideredComponents(manifest, considered)
+  const real = Object.values(manifest.components).filter((c) => !EXPLORATORY_TYPES.includes(c.id)).map((c) => c.id)
+  if (unknown.length > 0) return `"reuse".considered names ${unknown.map((u) => `"${u}"`).join(', ')}, which ${unknown.length === 1 ? 'is' : 'are'} not a component of ${manifest.name}. Name the components you looked at, by id: ${real.join(', ')}.`
+  if (found.length === 0) return `"reuse".considered names no component. Name the components you looked at, by id: ${real.join(', ')}.`
+  return null
+}
+

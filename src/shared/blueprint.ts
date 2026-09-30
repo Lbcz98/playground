@@ -37,6 +37,17 @@ export interface BlueprintNode {
    * only (`nodeKeysFor`); a Faithful screen carries none.
    */
   deviation?: RuleDeviation
+  /**
+   * Why a primitive and not a component: the registry components considered, by
+   * name, and why none of them expresses the need. Required on every primitive,
+   * Exploratory screens only (`nodeKeysFor`); never on anything else.
+   */
+  reuse?: PrimitiveReuse
+}
+
+export interface PrimitiveReuse {
+  considered: string
+  why: string
 }
 
 /** One further screen of a document — an option, or the next step of a flow. */
@@ -94,10 +105,18 @@ export const BLUEPRINT_SCREEN_KEYS: readonly string[] = ['id', 'name', 'screen',
 export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'children', 'anchor', 'goTo'] satisfies (keyof BlueprintNode)[]
 /** The key only an Exploratory node may add. */
 export const DEVIATION_KEY = 'deviation' satisfies keyof BlueprintNode
+/** The key only an Exploratory primitive may add (and must). */
+export const REUSE_KEY = 'reuse' satisfies keyof BlueprintNode
 
-/** The node keys a screen of this mode accepts: `deviation` is Exploratory's alone. */
-export function nodeKeysFor(mode: ScreenMode): readonly string[] {
-  return mode === 'exploratory' ? [...BLUEPRINT_NODE_KEYS, DEVIATION_KEY] : BLUEPRINT_NODE_KEYS
+/**
+ * The node keys a screen of this mode accepts for a node of this type: `deviation`
+ * is Exploratory's alone, and `reuse` belongs only to an Exploratory primitive.
+ */
+export function nodeKeysFor(mode: ScreenMode, type?: string): readonly string[] {
+  if (mode !== 'exploratory') return BLUEPRINT_NODE_KEYS
+  return typeof type === 'string' && type.startsWith('primitive:')
+    ? [...BLUEPRINT_NODE_KEYS, DEVIATION_KEY, REUSE_KEY]
+    : [...BLUEPRINT_NODE_KEYS, DEVIATION_KEY]
 }
 
 /** The id of a document's first screen when it names none. */

@@ -26,20 +26,22 @@
 import type { z } from 'zod'
 import {
   BLUEPRINT_DOCUMENT_KEYS,
-  BLUEPRINT_NODE_KEYS,
   BLUEPRINT_SCREEN_KEYS,
   DEVIATION_KEY,
+  REUSE_KEY,
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   MAX_SCREENS,
   type BlueprintDocument,
   type BlueprintNode,
+  type PrimitiveReuse,
   type ScreenMode,
+  nodeKeysFor,
   screenMode,
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, treeDeclarations } from '@/shared/design-system/deviations'
-import { withVocabulary } from '@/shared/design-system/primitives'
+import { isPrimitive, reuseProblem, withVocabulary } from '@/shared/design-system/primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
@@ -423,6 +425,7 @@ export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
     ...(node.anchor ? { anchor: true } : {}),
     ...(node.goTo ? { goTo: node.goTo } : {}),
     ...(node.deviation ? { deviation: node.deviation } : {}),
+    ...(node.reuse ? { reuse: node.reuse } : {}),
   })
   return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
 }
@@ -652,9 +655,21 @@ function interpretNode(
     issues.push({ ruleId: 'component.api', level: 'warn', path, message: `Dropped unknown component <${type}>.` })
     return null
   }
+  const keys = nodeKeysFor(ctx.mode, type)
   for (const key of Object.keys(raw)) {
-    if (!BLUEPRINT_NODE_KEYS.includes(key) && key !== DEVIATION_KEY) {
+    if (!keys.includes(key) && key !== DEVIATION_KEY) {
       issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
+    }
+  }
+  // A primitive's "reuse" is kept when it holds; when it doesn't, the node stays — reported, not repaired.
+  let reuse: PrimitiveReuse | undefined
+  if (ctx.mode === 'exploratory' && isPrimitive(type)) {
+    const problem = reuseProblem(ctx.manifest, raw[REUSE_KEY])
+    if (problem) {
+      issues.push({ ruleId: 'primitives.reuse', level: 'warn', path, message: `Kept <${type}>, reported, not repaired — ${problem}` })
+    } else {
+      const { considered, why } = raw[REUSE_KEY] as PrimitiveReuse
+      reuse = { considered, why }
     }
   }
   const deviation = readNodeDeviation(raw[DEVIATION_KEY], type, path, ctx, issues)
@@ -691,6 +706,7 @@ function interpretNode(
 
   const node: CanvasNode = { id: createNodeId(), type, props, children }
   if (deviation) node.deviation = deviation
+  if (reuse) node.reuse = reuse
   if (typeof raw.goTo === 'string' && raw.goTo.trim()) {
     node.goTo = raw.goTo.trim() // resolved against the document's screens by `interpretPrototype`
   } else if (raw.goTo !== undefined) {
