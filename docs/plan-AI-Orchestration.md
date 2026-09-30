@@ -75,6 +75,16 @@ The router is step 0 of `ai-orchestrator.ts` and decides the mode before the pla
 
 The `faithfulAlternative` is filled in when there is a conflict. In Exploratory mode the planner starts from that text and edits it instead of generating from scratch, which curbs excessive use of primitives. The few-shot examples stay separate from the phase 9G evaluation set; otherwise the accuracy metric measures memorization.
 
+**As built in 9C (Sep 30).**
+
+- *Signals.* `readRequest` (`request-signals.ts`) reads the request with no model: which components it names (whole-word aliases on normalized text, longest first, Portuguese aliases for the built-in components only), which UI parts it names that the system lacks, and exploration words ("e se" only where a sentence starts). A fixture of 22 real Portuguese requests pins it, traps included. The level-dependent signals (a count above `maxModules`, a position with no overlay model) were dropped: the level is only known after the planner. They are a 9G candidate.
+- *Modes.* No mode means Faithful with no router call, so the existing flow is unchanged. An explicit mode makes no model call and only lists the UI parts the system lacks (under the `component.api` law). Auto calls the classifier. The selector defaults to Fidedigno, because Auto costs a call per request.
+- *Classifier failure.* An unreadable answer is retried once; after that, the request is asked about if its words already flagged a conflict, and otherwise it goes Faithful with a visible note.
+- *Law in conflict.* The reply is a question that names the law, shows the faithful alternative and offers only "Seguir padrões"; nothing is generated until the user picks it.
+- *Wire.* The question travels as `{ ok: false, stage: 'router', question }`, so a client that can't ask shows it as a message. Every generated result carries `meta.mode` (the mode it actually ran in) and `meta.notices`.
+- *Until 9D.* Exploratório and "Os dois" run one Faithful generation (never two), say "Exploratório arrives in 9D" and are stamped `faithful`. The selector option and the two question buttons only appear with `VITE_EXPLORATORY_PREVIEW=1`.
+- *Planner prompt.* The `appliesTo` rules of the components the request names are added under their own heading; a request that names none gets the exact bytes of the pre-9C prompt (a snapshot test).
+
 &#91;embedded content: pipeline with router · two paths · shared rules book\]
 
 The router chooses the path; both paths use the same rules book, and an error that originates in the plan goes back to the planner before the generator rebuilds the JSON.
@@ -152,11 +162,11 @@ The MVP closes at 9D: both modes working only with components that already exist
 | --- | --- | --- |
 | 9A · Validator and book (done Sep 30) | `rules.ts` and `manifest.rules?`; `{ ruleId, message, path }` errors; cache by manifest and policy; full descent; `InterpretIssue.ruleId?`. Does not change what the validator accepts | — |
 | 9B · JSDoc rules (optional) | Spike of the `@law`, `@pattern`, `@part` tags in `jsDocTags`; compiler into `manifest.rules`, merged into `rules.ts` | 9A; does not block the MVP |
-| 9C · Router | `router.ts` as step 0; `appliesTo` filter in `promptSpec.ts`; Auto, Faithful, Exploratory selector and the three buttons in the AgentPanel | 9A |
+| 9C · Router (done Sep 30) | `router.ts` as step 0; `appliesTo` filter in `promptSpec.ts`; Auto, Faithful, Exploratory selector and the three buttons in the AgentPanel | 9A |
 | 9D · Deviations, policy and retry | Per-screen `mode`, `deviation` on the node, policy in `manifest-zod.ts`, audit, plan retry, deviation-aware interpreter (and the orchestrator's `stretchRoots` and `restStrayFocus`), outline and badge; `sanitizeProps` repairs only the bad field; the orchestrator reads `issues` and `errors` is removed. Closes the MVP | 9A, 9C |
 | 9E · Exploratory vocabulary | `primitive:` primitives, `reuse`, budget, `Proposal` and the `registry.new-component` rule (scoped to them), overlay composition declared in `ScreenSpec.deviation` | 9D |
 | 9F · Canvas and Deviations panel | "Declared" vs "undeclared" panel, "Both" output, template lock, manual-edit stamp | 9D |
-| 9G · Evaluation | `tests/eval/modes.golden.json` with about 30 requests, separate from the few-shot; the deterministic part goes into `npm test`, the live part is optional | Starts together with 9C |
+| 9G · Evaluation | `tests/eval/modes.golden.json` with about 30 requests, separate from the few-shot (`router.fewshot.ts`; a test fails if a golden request appears there); the deterministic part goes into `npm test`, the live part is optional. Candidates: the level-dependent router signals dropped from 9C; classifying with the chat history for follow-up requests | Starts together with 9C |
 
 ## Measuring and cost
 
