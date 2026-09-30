@@ -24,6 +24,7 @@ import type {
   BlueprintDocument,
   ChatTurn,
   GenerateOptions,
+  AttemptLog,
   GenerateUIMeta,
   GenerateUIResponse,
   GenerateUsage,
@@ -168,6 +169,7 @@ export async function generateUI(
     let plannerMessages: ChatTurn[] = [...history, { role: 'user', content: plannerRequest }]
     let lastBlueprint: unknown
     let lastErrors: string[] = []
+    const trace: AttemptLog[] = []
 
     for (let replan = 0; ; replan++) {
       // ── Step 1: Planner ──────────────────────────────────────────────────
@@ -238,7 +240,7 @@ export async function generateUI(
           const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest, mode)
           if (validation.ok) {
             steps.push(`step 2 · generator: valid on attempt ${attempt}`)
-            return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices))
+            return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices, trace))
           }
           lastIssues = validation.issues
           errors = feedback(validation.issues, mode)
@@ -255,12 +257,23 @@ export async function generateUI(
 
         lastErrors = errors
         steps.push(`step 3 · validate: attempt ${attempt} had ${errors.length} issue(s)`)
+        const logged: AttemptLog = {
+          plan: replan,
+          attempt,
+          issues: lastIssues.length > 0
+            ? lastIssues.map((i) => ({ ruleId: i.ruleId, ...(i.kind ? { kind: i.kind } : {}), path: i.path, message: i.message }))
+            : errors.map((message) => ({ ruleId: 'blueprint.dsl', path: [], message })), // a reply that was not JSON
+        }
+        trace.push(logged)
 
         // A composition choice that survived every generator retry is the plan's:
         // back to the planner, if it may go.
         if (replan < replans) {
           trigger = planTrigger(lastIssues, attempt <= MAX_RETRIES)
-          if (trigger) break
+          if (trigger) {
+            logged.trigger = trigger
+            break
+          }
         }
 
         if (attempt <= MAX_RETRIES) {
@@ -297,7 +310,7 @@ export async function generateUI(
       `step 3 · validate: still invalid after ${MAX_RETRIES} retr${MAX_RETRIES === 1 ? 'y' : 'ies'} ` +
         `(${lastErrors.length} issue(s)) — repairing on render`,
     )
-    return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices))
+    return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices, trace))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     steps.push(`error: ${message}`)
@@ -318,8 +331,8 @@ export async function generateUI(
 }
 
 /** What every generated result carries: the mode it ran in, and what the pipeline tells the user. */
-function stamp(mode: ScreenMode, notices: string[]): Pick<GenerateUIMeta, 'mode' | 'notices'> {
-  return { mode, ...(notices.length > 0 ? { notices } : {}) }
+function stamp(mode: ScreenMode, notices: string[], trace: AttemptLog[]): Pick<GenerateUIMeta, 'mode' | 'notices' | 'trace'> {
+  return { mode, ...(notices.length > 0 ? { notices } : {}), ...(trace.length > 0 ? { trace } : {}) }
 }
 
 function success(
@@ -329,7 +342,7 @@ function success(
   usage: GenerateUsage | undefined,
   steps: string[],
   startedAt: number,
-  stamp: Pick<GenerateUIMeta, 'mode' | 'notices'>,
+  stamp: Pick<GenerateUIMeta, 'mode' | 'notices' | 'trace'>,
 ): GenerateUIResponse {
   return {
     ok: true,

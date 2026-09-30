@@ -204,6 +204,16 @@ export interface GenerateUsage {
 /** Where the response came from. */
 export type GenerateUISource = 'dummy' | 'llm' | 'web-fallback'
 
+/** One failed generation attempt, structured: what the validator said, and — when it sent the run back to the planner — why. */
+export interface AttemptLog {
+  /** 0 for the first plan, 1 for the first replan… */
+  plan: number
+  attempt: number
+  issues: { ruleId: string; kind?: string; path: (string | number)[]; message: string }[]
+  /** Set on the attempt whose failure sent the run back to the planner. */
+  trigger?: string
+}
+
 export interface GenerateUIMeta {
   source: GenerateUISource
   /** Which backend produced it: 'api-key' | 'claude-cli' (undefined for the fixture). */
@@ -219,6 +229,8 @@ export interface GenerateUIMeta {
   mode?: ScreenMode
   /** What the pipeline itself tells the user (the router, a mode fallback), shown under the reply. */
   notices?: string[]
+  /** Every failed attempt of the run with its structured issues — for evaluation; absent when the first attempt was valid. */
+  trace?: AttemptLog[]
 }
 
 export type GenerateUIResponse =

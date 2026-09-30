@@ -273,3 +273,50 @@ describe('the prompts of the mode', () => {
     expect(planner).toContain('A tela dentro dos padrões.')
   })
 })
+
+describe('the trace of failed attempts', () => {
+  it('logs the structured issues of every failed attempt, and the trigger on the one that caused a replan', async () => {
+    const p = fake([undeclared(), undeclared(), undeclared(), declared()], ['plan one', 'plan two'])
+    const res = await run(p)
+    expect(res.meta.trace?.map((t) => [t.plan, t.attempt, !!t.trigger])).toEqual([
+      [0, 1, false],
+      [0, 2, false],
+      [0, 3, true],
+    ])
+    const last = res.meta.trace![2]
+    expect(last.trigger).toMatch(/^undeclared-deviation \(layout\.no-static-center\) — persisted after the generator's retries$/)
+    expect(last.issues).toEqual([
+      expect.objectContaining({ ruleId: 'layout.no-static-center', kind: 'undeclared-deviation', path: ['root', 'props', 'justify'] }),
+    ])
+    expect(last.issues[0].message).toMatch(/statically centers the master layout/)
+    // …and it sits next to the trigger line already logged in the steps.
+    expect(res.meta.steps.some((s) => /replan 1\/1 — trigger: undeclared-deviation/.test(s))).toBe(true)
+  })
+
+  it('is absent when the first attempt is valid', async () => {
+    expect((await run(fake([declared()]))).meta.trace).toBeUndefined()
+  })
+
+  it('logs a Faithful run’s failed attempt too, with no kind', async () => {
+    const res = await run(fake([undeclared(), home()]), 'faithful')
+    expect(res.meta.trace).toEqual([
+      { plan: 0, attempt: 1, issues: [expect.objectContaining({ ruleId: 'layout.no-static-center', path: ['root', 'props', 'justify'] })] },
+    ])
+    expect(res.meta.trace![0].issues[0]).not.toHaveProperty('kind')
+  })
+
+  it('logs a reply that was not JSON as a DSL issue', async () => {
+    const { MalformedOutputError } = await import('./providers/types')
+    const p = fake([home()])
+    vi.mocked(p.renderUi).mockReset()
+    vi.mocked(p.renderUi)
+      .mockRejectedValueOnce(new MalformedOutputError('no json', 'oops'))
+      .mockResolvedValue({ blueprint: home(), model: 'm' } as never)
+    const res = await run(p)
+    expect(res.ok).toBe(true)
+    expect(res.meta.trace).toEqual([
+      { plan: 0, attempt: 1, issues: [{ ruleId: 'blueprint.dsl', path: [], message: expect.stringMatching(/not valid JSON/) }] },
+    ])
+  })
+})
+
