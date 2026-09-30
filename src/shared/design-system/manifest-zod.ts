@@ -42,7 +42,7 @@ import {
 import { flowIssues, type FlowScreen } from './flow'
 import type { IssueKind, IssuePath, RuleId, RuleProblem } from './rules'
 import { auditDeviations, declarationProblem, type Declaration } from './deviations'
-import { PROPOSAL_TYPE, withVocabulary } from './primitives'
+import { EXPLORATORY_TYPES, PROPOSAL_TYPE, withVocabulary } from './primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -523,6 +523,17 @@ function validateNode(
 
   const props = isObject(raw.props) ? raw.props : {}
   const schema = ctx.schemas[type]
+
+  // The vocabulary's required props must be there: a text with no words, a Proposal
+  // with no description or API, says nothing. (Catalog components keep today's check,
+  // which only judges the props given.)
+  if (EXPLORATORY_TYPES.includes(type)) {
+    for (const spec of Object.values(component.props)) {
+      if (spec.required && spec.defaultValue === undefined && props[spec.name] === undefined) {
+        add('component.api', [...at, 'props', spec.name], `${path} <${type}>: prop "${spec.name}" is required — ${spec.description ?? 'set it'}.`)
+      }
+    }
+  }
 
   for (const key of Object.keys(props)) {
     const where: IssuePath = [...at, 'props', key]
