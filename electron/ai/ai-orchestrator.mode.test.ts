@@ -8,7 +8,7 @@ vi.mock('./providers', async (importActual) => {
 })
 
 const { resolveProvider } = await import('./providers')
-const { generateUI, EXPLORATORY_FALLBACK_NOTICE } = await import('./ai-orchestrator')
+const { generateUI, BOTH_FALLBACK_NOTICE } = await import('./ai-orchestrator')
 const { handleGenerateUI } = await import('./handler')
 
 const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
@@ -56,14 +56,24 @@ describe('generateUI — step 0', () => {
     expect(res.meta.notices?.[0]).toMatch(/has no carousel/)
   })
 
-  it.each(['exploratory', 'both'] as const)('an explicit %s runs ONE Faithful generation and says so', async (mode) => {
+  it('an explicit "Os dois" still runs ONE Faithful generation, says so, and is stamped faithful (until 9F)', async () => {
     const p = fakeProvider(PLAN)
-    const res = await run('Explore um layout com o menu no topo', mode, p)
+    const res = await run('Explore um layout com o menu no topo', 'both', p)
     expect(res.ok).toBe(true)
     expect(p.complete).toHaveBeenCalledTimes(1)
     expect(p.renderUi).toHaveBeenCalledTimes(1)
     expect(res.meta.mode).toBe('faithful')
-    expect(res.meta.notices).toContain(EXPLORATORY_FALLBACK_NOTICE)
+    expect(res.meta.notices).toContain(BOTH_FALLBACK_NOTICE)
+  })
+
+  it('an explicit Exploratório runs the exploratory pipeline: no fallback notice, stamped exploratory', async () => {
+    const p = fakeProvider(PLAN)
+    const res = await run('Explore um layout com o menu no topo', 'exploratory', p)
+    expect(res.ok).toBe(true)
+    expect(p.renderUi).toHaveBeenCalledTimes(1)
+    expect(res.meta.mode).toBe('exploratory')
+    expect(res.meta.notices ?? []).not.toContain(BOTH_FALLBACK_NOTICE)
+    expect(res.ok && res.blueprint.mode).toBe('exploratory')
   })
 
   it('Auto with no conflict: the classifier, then the pipeline as before', async () => {
@@ -75,12 +85,12 @@ describe('generateUI — step 0', () => {
     expect(res.meta.mode).toBe('faithful')
   })
 
-  it('Auto routed to Exploratory falls back to one Faithful generation', async () => {
+  it('Auto routed to Exploratory runs the exploratory pipeline', async () => {
     const p = fakeProvider(route([{ ruleId: 'layers.overlay-model' }]), PLAN)
     const res = await run('E se a notificação aparecesse à esquerda?', 'auto', p)
-    expect(res.meta.mode).toBe('faithful')
-    expect(res.meta.notices).toContain(EXPLORATORY_FALLBACK_NOTICE)
+    expect(res.meta.mode).toBe('exploratory')
     expect(p.renderUi).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(p.renderUi).mock.calls[0][0].mode).toBe('exploratory')
   })
 
   it('Auto that has to ask returns the question and generates nothing', async () => {

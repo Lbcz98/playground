@@ -35,7 +35,7 @@ import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-sy
 import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
-import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
+import { validateBlueprintAgainstManifest, type ValidationIssue } from '@/shared/design-system/manifest-zod'
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
@@ -44,8 +44,60 @@ import { explicitNotices } from './router'
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
 
-/** Until 9D, a request routed or sent to Exploratory runs one Faithful generation and says so. */
-export const EXPLORATORY_FALLBACK_NOTICE = 'Exploratório arrives in 9D — this screen was generated in Faithful mode.'
+/** "Os dois" arrives in 9F: until then it runs one Faithful generation (never two) and says so. */
+export const BOTH_FALLBACK_NOTICE = 'Os dois arrives in 9F — this screen was generated in Faithful mode.'
+
+/**
+ * How many times an Exploratory generation may go back to the planner (default 1,
+ * at most 2). Read per call; Faithful never replans.
+ */
+function maxReplans(): number {
+  const n = Number.parseInt(process.env.AI_MAX_REPLANS ?? '', 10)
+  return clamp(Number.isNaN(n) ? 1 : n, 0, 2)
+}
+
+/** Structure the generator can often fix by regrouping or declaring: only if it persists is it the plan's. */
+const STRUCTURE_RULES: readonly string[] = ['level.module-limit', 'layout.slots']
+
+/** Why a failed generation goes back to the planner, or null: it stays with the generator. */
+function planTrigger(issues: ValidationIssue[], generatorRetriesLeft: boolean): string | null {
+  const composition = issues.filter((i) => i.kind !== undefined)
+  const now = composition.filter((i) => !STRUCTURE_RULES.includes(i.ruleId))
+  const structural = composition.filter((i) => STRUCTURE_RULES.includes(i.ruleId))
+  const describe = (list: ValidationIssue[]): string =>
+    `${list[0].kind} (${[...new Set(list.map((i) => i.ruleId))].join(', ')})`
+  if (now.length > 0) return describe(now)
+  if (structural.length > 0 && !generatorRetriesLeft) return `${describe(structural)} — persisted after the generator's retries`
+  return null
+}
+
+/** What the generator (and the planner, on a replan) is told: Faithful keeps its plain list; Exploratory names the rule and the place. */
+function feedback(issues: ValidationIssue[], mode: ScreenMode): string[] {
+  return mode === 'exploratory'
+    ? issues.map((i) => `[${i.ruleId}] at ${i.path.join('.') || 'the document'}: ${i.message}`)
+    : issues.map((i) => i.message)
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/**
+ * The pipeline sets the mode; the model never does. Whatever `mode` the model wrote
+ * on the document or on a screen is replaced by the one the request runs in — an
+ * Exploratory request is stamped; a Faithful one carries no `mode` at all, as
+ * before — and the values that differed are returned so the user can be told.
+ */
+function stampMode(doc: unknown, mode: ScreenMode): string[] {
+  if (!isRecord(doc)) return []
+  const differed: string[] = []
+  const set = (target: Record<string, unknown>): void => {
+    if (target.mode !== undefined && target.mode !== mode) differed.push(JSON.stringify(target.mode))
+    if (mode === 'exploratory') target.mode = mode
+    else delete target.mode
+  }
+  set(doc)
+  if (Array.isArray(doc.screens)) doc.screens.filter(isRecord).forEach(set)
+  return differed
+}
 
 export async function generateUI(
   userPrompt: string,
@@ -77,6 +129,7 @@ export async function generateUI(
     // ── Step 0: Router ─────────────────────────────────────────────────────
     // No mode: Faithful, no router call. An explicit mode: no model call.
     let mode: ScreenMode = 'faithful'
+    let faithfulAlternative: string | undefined
     if (options.mode === 'auto') {
       const route = await routeAuto(provider, userPrompt, manifest, options.model)
       usage = addUsage(usage, route.usage)
@@ -93,108 +146,151 @@ export async function generateUI(
       }
       notices.push(...route.decision.notices)
       mode = route.decision.mode
+      faithfulAlternative = route.decision.faithfulAlternative
     } else if (options.mode) {
       steps.push(`step 0 · router: explicit ${options.mode}`)
       notices.push(...explicitNotices(readRequest(userPrompt, manifest), manifest))
-      if (options.mode !== 'faithful') mode = 'exploratory'
+      if (options.mode === 'exploratory') mode = 'exploratory'
+      if (options.mode === 'both') {
+        // Never two generations: one Faithful, and the screen says so.
+        notices.push(BOTH_FALLBACK_NOTICE)
+        steps.push('step 0 · Os dois arrives in 9F — running one Faithful generation')
+      }
     }
-    if (mode === 'exploratory') {
-      // "Os dois" too: one generation, never two, until 9D.
-      notices.push(EXPLORATORY_FALLBACK_NOTICE)
-      steps.push('step 0 · Exploratory arrives in 9D — running one Faithful generation')
-    }
-    const stamp: Pick<GenerateUIMeta, 'mode' | 'notices'> = {
-      mode: 'faithful',
-      ...(notices.length > 0 ? { notices } : {}),
-    }
+    const generatorMode = provider.id === 'api-key' ? 'tool' : 'json'
+    const genSystem = buildSystemPrompt(generatorMode, manifest, mode)
+    const plannerSystem = buildPlannerPrompt(manifest, { prompt: userPrompt, mode })
+    // In Exploratory the planner starts from the router's faithful alternative and edits it.
+    const plannerRequest =
+      mode === 'exploratory' && faithfulAlternative
+        ? `${userPrompt}\n\nThe same request kept inside the patterns — start from this plan and change only what the request needs to break:\n${faithfulAlternative}`
+        : userPrompt
+    const replans = mode === 'exploratory' ? maxReplans() : 0
 
-    // ── Step 1: Planner ────────────────────────────────────────────────────
-    const planner = await provider.complete({
-      system: buildPlannerPrompt(manifest, { prompt: userPrompt }),
-      messages: [...history, { role: 'user', content: userPrompt }],
-      model: options.model,
-      effort: 'low', // planning is structural — keep it cheap
-    })
-    usage = addUsage(usage, planner.usage)
-    model = planner.model
-    const planLines = planner.text.split('\n').filter((l) => l.trim().length > 0).length
-
-    // The screen this generation starts from: the planner names one, or the model
-    // it planned picks one. Either way the generator gets a screen that is already
-    // valid, instead of composing the same structure again from the laws alone.
-    const choice = chooseTemplate(planner.text, templatesFor(manifest))
-    steps.push(
-      `step 1 · planner: ${planLines}-line plan` +
-        (choice.template ? ` · template: ${choice.template.id} (${choice.reason})` : ` · template: ${choice.reason}`),
-    )
-
-    // ── Steps 2 + 3: Generator + validation-retry loop ─────────────────────
-    const genSystem = buildSystemPrompt(provider.id === 'api-key' ? 'tool' : 'json', manifest)
-    const reference = choice.template
-      ? `Start from this screen — it is valid, and it is the shape the plan describes.\n` +
-        `Keep its structure and change only what the plan asks for; drop what the plan\n` +
-        `does not mention.\n\nTEMPLATE "${choice.template.id}" (${choice.template.name}):\n` +
-        `${JSON.stringify(choice.template.blueprint, null, 2)}\n\n`
-      : ''
-    const genMessages: ChatTurn[] = [
-      {
-        role: 'user',
-        content: `${reference}Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planner.text}`,
-      },
-    ]
-
+    let plannerMessages: ChatTurn[] = [...history, { role: 'user', content: plannerRequest }]
     let lastBlueprint: unknown
     let lastErrors: string[] = []
 
-    for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
-      let errors: string[]
-      let reply = ''
-      try {
-        const gen = await provider.renderUi({
-          system: genSystem,
-          messages: genMessages,
-          model: options.model,
-          effort: options.effort,
-        })
-        usage = addUsage(usage, gen.usage)
-        model = gen.model ?? model
-        lastBlueprint = unwrapBlueprint(gen.blueprint)
-        // A focus the level rules out, or a root that doesn't stretch, has one fix;
-        // make it here rather than spend a retry on it.
-        const rested = restStrayFocus(lastBlueprint, manifest)
-        if (rested.length > 0) steps.push(`step 2 · rested ${rested.length} stray focus: ${rested.join('; ')}`)
-        const stretched = stretchRoots(lastBlueprint, manifest)
-        if (stretched.length > 0) steps.push(`step 2 · stretched ${stretched.length} root(s): ${stretched.join('; ')}`)
-        reply = JSON.stringify(lastBlueprint)
+    for (let replan = 0; ; replan++) {
+      // ── Step 1: Planner ──────────────────────────────────────────────────
+      const planner = await provider.complete({
+        system: plannerSystem,
+        messages: plannerMessages,
+        model: options.model,
+        effort: 'low', // planning is structural — keep it cheap
+      })
+      usage = addUsage(usage, planner.usage)
+      model = planner.model
+      const planLines = planner.text.split('\n').filter((l) => l.trim().length > 0).length
 
-        const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest)
-        if (validation.ok) {
-          steps.push(`step 2 · generator: valid on attempt ${attempt}`)
-          return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp)
-        }
-        errors = validation.issues.map((i) => i.message)
-      } catch (err) {
-        // A reply that isn't JSON is the model's mistake, not the provider's: say so and retry.
-        if (!(err instanceof MalformedOutputError)) throw err
-        reply = err.raw.slice(0, 6000)
-        errors = [
-          `Your reply was not valid JSON (${err.message}). Reply with ONLY the JSON object — no prose, no comments, no trailing commas, every key and string double-quoted.`,
-        ]
-        if (attempt > MAX_RETRIES) throw err
-      }
+      // The screen this generation starts from: the planner names one, or the model
+      // it planned picks one. Either way the generator gets a screen that is already
+      // valid, instead of composing the same structure again from the laws alone.
+      const choice = chooseTemplate(planner.text, templatesFor(manifest))
+      steps.push(
+        `step 1 · planner: ${planLines}-line plan` +
+          (choice.template ? ` · template: ${choice.template.id} (${choice.reason})` : ` · template: ${choice.reason}`),
+      )
 
-      lastErrors = errors
-      steps.push(`step 3 · validate: attempt ${attempt} had ${errors.length} issue(s)`)
-
-      if (attempt <= MAX_RETRIES) {
-        genMessages.push({ role: 'assistant', content: reply })
-        genMessages.push({
+      // ── Steps 2 + 3: Generator + validation-retry loop ───────────────────
+      const reference = choice.template
+        ? `Start from this screen — it is valid, and it is the shape the plan describes.\n` +
+          `Keep its structure and change only what the plan asks for; drop what the plan\n` +
+          `does not mention.\n\nTEMPLATE "${choice.template.id}" (${choice.template.name}):\n` +
+          `${JSON.stringify(choice.template.blueprint, null, 2)}\n\n`
+        : ''
+      const genMessages: ChatTurn[] = [
+        {
           role: 'user',
-          content:
-            `That Blueprint is invalid:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
-            `Return the corrected JSON — same structure, only fixing these problems. Do not mention the fixes in "notes".`,
-        })
+          content: `${reference}Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planner.text}`,
+        },
+      ]
+
+      let trigger: string | null = null
+      let lastIssues: ValidationIssue[] = []
+      lastErrors = []
+
+      for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+        let errors: string[]
+        let reply = ''
+        try {
+          const gen = await provider.renderUi({
+            system: genSystem,
+            messages: genMessages,
+            model: options.model,
+            effort: options.effort,
+            mode,
+          })
+          usage = addUsage(usage, gen.usage)
+          model = gen.model ?? model
+          lastBlueprint = unwrapBlueprint(gen.blueprint)
+          // The pipeline sets the mode, never the model.
+          for (const wrote of stampMode(lastBlueprint, mode)) {
+            const notice = `The model labelled a screen ${wrote}; the pipeline sets the mode, so it is "${mode}".`
+            if (!notices.includes(notice)) notices.push(notice)
+          }
+          // A focus the level rules out, or a root that doesn't stretch, has one fix;
+          // make it here rather than spend a retry on it — unless the screen declares it.
+          const rested = restStrayFocus(lastBlueprint, manifest, mode)
+          if (rested.length > 0) steps.push(`step 2 · rested ${rested.length} stray focus: ${rested.join('; ')}`)
+          const stretched = stretchRoots(lastBlueprint, manifest, mode)
+          if (stretched.length > 0) steps.push(`step 2 · stretched ${stretched.length} root(s): ${stretched.join('; ')}`)
+          reply = JSON.stringify(lastBlueprint)
+
+          const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest, mode)
+          if (validation.ok) {
+            steps.push(`step 2 · generator: valid on attempt ${attempt}`)
+            return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices))
+          }
+          lastIssues = validation.issues
+          errors = feedback(validation.issues, mode)
+        } catch (err) {
+          // A reply that isn't JSON is the model's mistake, not the provider's: say so and retry.
+          if (!(err instanceof MalformedOutputError)) throw err
+          reply = err.raw.slice(0, 6000)
+          errors = [
+            `Your reply was not valid JSON (${err.message}). Reply with ONLY the JSON object — no prose, no comments, no trailing commas, every key and string double-quoted.`,
+          ]
+          lastIssues = []
+          if (attempt > MAX_RETRIES) throw err
+        }
+
+        lastErrors = errors
+        steps.push(`step 3 · validate: attempt ${attempt} had ${errors.length} issue(s)`)
+
+        // A choice about the composition (a break nobody declared, a declaration for nothing)
+        // is the plan's, not the generator's: back to the planner, if it may go.
+        if (replan < replans) {
+          trigger = planTrigger(lastIssues, attempt <= MAX_RETRIES)
+          if (trigger) break
+        }
+
+        if (attempt <= MAX_RETRIES) {
+          genMessages.push({ role: 'assistant', content: reply })
+          genMessages.push({
+            role: 'user',
+            content:
+              `That Blueprint is invalid:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
+              `Return the corrected JSON — same structure, only fixing these problems. Do not mention the fixes in "notes".`,
+          })
+        }
       }
+
+      if (trigger) {
+        steps.push(`step 3 · replan ${replan + 1}/${replans} — trigger: ${trigger}`)
+        plannerMessages = [
+          ...plannerMessages,
+          { role: 'assistant', content: planner.text },
+          {
+            role: 'user',
+            content:
+              `The screen built from that plan failed the audit:\n${feedback(lastIssues, mode).map((e) => `- ${e}`).join('\n')}\n\n` +
+              `Write the corrected plan for the same request. Where the request needs a break, plan it with a "Deviation:" line; where it does not, keep the patterns.`,
+          },
+        ]
+        continue
+      }
+      break
     }
 
     // Retries exhausted — hand back the best attempt; the renderer's interpreter
@@ -203,7 +299,7 @@ export async function generateUI(
       `step 3 · validate: still invalid after ${MAX_RETRIES} retr${MAX_RETRIES === 1 ? 'y' : 'ies'} ` +
         `(${lastErrors.length} issue(s)) — repairing on render`,
     )
-    return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp)
+    return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     steps.push(`error: ${message}`)
@@ -221,6 +317,11 @@ export async function generateUI(
       },
     }
   }
+}
+
+/** What every generated result carries: the mode it ran in, and what the pipeline tells the user. */
+function stamp(mode: ScreenMode, notices: string[]): Pick<GenerateUIMeta, 'mode' | 'notices'> {
+  return { mode, ...(notices.length > 0 ? { notices } : {}) }
 }
 
 function success(

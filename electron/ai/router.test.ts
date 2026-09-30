@@ -32,7 +32,7 @@ describe('decide — the mode comes from code', () => {
     expect(d.kind).toBe('ask')
     if (d.kind !== 'ask') return
     expect(d.question).toMatchObject({ kind: 'conflict', text: CONFLICT_QUESTION, why: 'quatro módulos no nível 3' })
-    expect(d.question.choices).toEqual(['faithful', 'exploratory', 'both'])
+    expect(d.question.choices).toEqual(['faithful', 'exploratory'])
     expect(d.question.rules.map((r) => r.id)).toEqual(['level.module-limit'])
   })
 

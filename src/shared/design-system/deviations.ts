@@ -59,6 +59,19 @@ export function declarationProblem(manifest: DesignSystemManifest, raw: unknown)
   return null
 }
 
+/**
+ * Whether a raw screen declares `ruleId` on its root node or in its `screen`
+ * list, validly — for the pre-validation repairs, which must leave a declared
+ * break alone (the pipeline's `stretchRoots` and `restStrayFocus`).
+ */
+export function declaresRule(manifest: DesignSystemManifest, root: unknown, screen: unknown, ruleId: string): boolean {
+  const valid = (raw: unknown): boolean =>
+    declarationProblem(manifest, raw) === null && (raw as { ruleId: string }).ruleId === ruleId
+  const onRoot = typeof root === 'object' && root !== null && valid((root as { deviation?: unknown }).deviation)
+  const list = typeof screen === 'object' && screen !== null ? (screen as { deviation?: unknown }).deviation : undefined
+  return onRoot || (Array.isArray(list) && list.some(valid))
+}
+
 const startsWith = (path: IssuePath, prefix: IssuePath): boolean =>
   prefix.length <= path.length && prefix.every((key, i) => key === path[i])
 

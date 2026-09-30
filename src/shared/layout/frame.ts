@@ -38,6 +38,8 @@ import type {
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { auditScreenLayerIssues, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
+import { declaresRule } from '@/shared/design-system/deviations'
+import type { ScreenMode } from '@/shared/blueprint'
 
 export const FRAME = {
   /** The layout canvas — what the agent targets and the frame is laid out at. */
@@ -725,7 +727,7 @@ function levelFocusIssues(
  * the wrong value on the right component, is a design choice left to the validator.
  * Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
  */
-export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest): string[] {
+export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest, mode: ScreenMode = 'faithful'): string[] {
   if (!isObject(doc)) return []
   const layers = screenLayersOf(manifest)
   const pages = [
@@ -742,6 +744,8 @@ export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest): st
     const level = model ? navigationLevel(layers, model.level) : undefined
     const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
     if (!level || on.length === 0 || !isObject(root)) continue
+    // An Exploratory screen that declares where focus starts keeps the focus where it put it.
+    if (mode === 'exploratory' && declaresRule(manifest, root, screen, 'level.initial-focus')) continue
     const visit = (node: Record<string, unknown>): void => {
       const component = typeof node.type === 'string' ? manifest.components[node.type] : undefined
       const prop = component && !on.includes(component.id) ? focusedBy(node, component) : undefined
@@ -763,17 +767,19 @@ export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest): st
  * anything else has one right answer — fixed here instead of costing a model
  * retry. Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
  */
-export function stretchRoots(doc: unknown, manifest: DesignSystemManifest): string[] {
+export function stretchRoots(doc: unknown, manifest: DesignSystemManifest, mode: ScreenMode = 'faithful'): string[] {
   if (!isObject(doc)) return []
   const roots = [
-    { root: doc.root, where: 'root' },
+    { root: doc.root, screen: doc.screen, where: 'root' },
     ...(Array.isArray(doc.screens) ? doc.screens : [])
       .filter(isObject)
-      .map((s, i) => ({ root: s.root, where: `screens[${i}]` })),
+      .map((s, i) => ({ root: s.root, screen: s.screen, where: `screens[${i}]` })),
   ]
   const changed: string[] = []
-  for (const { root, where } of roots) {
+  for (const { root, screen, where } of roots) {
     if (!isObject(root) || typeof root.type !== 'string') continue
+    // An Exploratory screen that declares its root's alignment keeps it.
+    if (mode === 'exploratory' && declaresRule(manifest, root, screen, 'layout.root-align')) continue
     const component = manifest.components[root.type]
     const prop = component ? stretchPropFor(component) : undefined
     const value = prop ? propValue(root, prop) : 'stretch'

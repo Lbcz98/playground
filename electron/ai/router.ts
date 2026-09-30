@@ -31,7 +31,7 @@ export interface ClassifierReply {
 }
 
 export type RouteDecision =
-  | { kind: 'go'; mode: ScreenMode; notices: string[] }
+  | { kind: 'go'; mode: ScreenMode; notices: string[]; faithfulAlternative?: string }
   | { kind: 'ask'; question: RouterQuestion }
 
 /** The plan's wording for the Auto-mode question. */
@@ -78,7 +78,10 @@ export function decide(signals: RequestSignals, reply: ClassifierReply, manifest
     }
   }
   const signal = flagged(signals)
-  if (!unknownRule && patterns.length > 0 && signal) return { kind: 'go', mode: 'exploratory', notices }
+  if (!unknownRule && patterns.length > 0 && signal) {
+    // Exploratory starts from the faithful alternative and edits it.
+    return { kind: 'go', mode: 'exploratory', notices, ...(reply.faithfulAlternative ? { faithfulAlternative: reply.faithfulAlternative } : {}) }
+  }
   if (unknownRule || patterns.length > 0 || signal) return { kind: 'ask', question: conflictQuestion(patterns, reply.faithfulAlternative) }
   return { kind: 'go', mode: 'faithful', notices }
 }
@@ -93,7 +96,8 @@ export function conflictQuestion(
     text: CONFLICT_QUESTION,
     why: patterns.find((p) => p.why)?.why,
     rules: patterns.map(({ rule }) => brief(rule)),
-    choices: ['faithful', 'exploratory', 'both'],
+    // Two buttons: follow the patterns, or explore beyond them. "Os dois" arrives in 9F.
+    choices: ['faithful', 'exploratory'],
     faithfulAlternative,
   }
 }
