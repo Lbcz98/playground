@@ -4,6 +4,9 @@
  * Not a single zero-shot call. Three steps (a router pattern rather than
  * LangChain, to keep the dual-provider support):
  *
+ *   0. ROUTER    — only when a mode is requested (`router.ts`): Auto asks the
+ *                  classifier and may return a question instead of a screen; an
+ *                  explicit mode only lists what the request's words show.
  *   1. PLANNER   — provider.complete() with the "Product Blueprint" system prompt.
  *                  Produces a short prose build plan (no JSON).
  *   2. GENERATOR — provider.renderUi() constrained to the render_ui tool schema.
@@ -21,9 +24,12 @@ import type {
   BlueprintDocument,
   ChatTurn,
   GenerateOptions,
+  GenerateUIMeta,
   GenerateUIResponse,
   GenerateUsage,
+  ScreenMode,
 } from '@/shared/blueprint'
+import { readRequest } from '@/shared/design-system/request-signals'
 import { homeTemplate } from '@/shared/templates/home'
 import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-system/promptSpec'
 import { chooseTemplate } from '@/shared/templates'
@@ -33,8 +39,13 @@ import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifes
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
+import { routeAuto } from './classify'
+import { explicitNotices } from './router'
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
+
+/** Until 9D, a request routed or sent to Exploratory runs one Faithful generation and says so. */
+export const EXPLORATORY_FALLBACK_NOTICE = 'Exploratório arrives in 9D — this screen was generated in Faithful mode.'
 
 export async function generateUI(
   userPrompt: string,
@@ -60,8 +71,43 @@ export async function generateUI(
 
   let usage: GenerateUsage | undefined
   let model: string | undefined
+  const notices: string[] = []
 
   try {
+    // ── Step 0: Router ─────────────────────────────────────────────────────
+    // No mode: Faithful, no router call. An explicit mode: no model call.
+    let mode: ScreenMode = 'faithful'
+    if (options.mode === 'auto') {
+      const route = await routeAuto(provider, userPrompt, manifest, options.model)
+      usage = addUsage(usage, route.usage)
+      steps.push(...route.steps)
+      if (route.decision.kind === 'ask') {
+        const { question } = route.decision
+        return {
+          ok: false,
+          error: question.text,
+          stage: 'router',
+          question,
+          meta: { source: 'llm', provider: provider.id, usage, durationMs: Date.now() - startedAt, steps },
+        }
+      }
+      notices.push(...route.decision.notices)
+      mode = route.decision.mode
+    } else if (options.mode) {
+      steps.push(`step 0 · router: explicit ${options.mode}`)
+      notices.push(...explicitNotices(readRequest(userPrompt, manifest), manifest))
+      if (options.mode !== 'faithful') mode = 'exploratory'
+    }
+    if (mode === 'exploratory') {
+      // "Os dois" too: one generation, never two, until 9D.
+      notices.push(EXPLORATORY_FALLBACK_NOTICE)
+      steps.push('step 0 · Exploratory arrives in 9D — running one Faithful generation')
+    }
+    const stamp: Pick<GenerateUIMeta, 'mode' | 'notices'> = {
+      mode: 'faithful',
+      ...(notices.length > 0 ? { notices } : {}),
+    }
+
     // ── Step 1: Planner ────────────────────────────────────────────────────
     const planner = await provider.complete({
       system: buildPlannerPrompt(manifest, { prompt: userPrompt }),
@@ -124,7 +170,7 @@ export async function generateUI(
         const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest)
         if (validation.ok) {
           steps.push(`step 2 · generator: valid on attempt ${attempt}`)
-          return success(lastBlueprint, provider, model, usage, steps, startedAt)
+          return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp)
         }
         errors = validation.errors
       } catch (err) {
@@ -157,7 +203,7 @@ export async function generateUI(
       `step 3 · validate: still invalid after ${MAX_RETRIES} retr${MAX_RETRIES === 1 ? 'y' : 'ies'} ` +
         `(${lastErrors.length} issue(s)) — repairing on render`,
     )
-    return success(lastBlueprint, provider, model, usage, steps, startedAt)
+    return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     steps.push(`error: ${message}`)
@@ -184,6 +230,7 @@ function success(
   usage: GenerateUsage | undefined,
   steps: string[],
   startedAt: number,
+  stamp: Pick<GenerateUIMeta, 'mode' | 'notices'>,
 ): GenerateUIResponse {
   return {
     ok: true,
@@ -195,6 +242,7 @@ function success(
       usage,
       durationMs: Date.now() - startedAt,
       steps,
+      ...stamp,
     },
   }
 }

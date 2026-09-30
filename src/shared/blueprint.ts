@@ -117,8 +117,8 @@ export interface ChatTurn {
  * The mode a request asks for (phase 9C). `auto` lets the router decide; `both`
  * only ever comes from a button. Omitted: Faithful, with no router call.
  */
-export type RequestedMode = 'auto' | 'faithful' | 'exploratory' | 'both'
-export const REQUESTED_MODES: readonly RequestedMode[] = ['auto', 'faithful', 'exploratory', 'both']
+export const REQUESTED_MODES = ['auto', 'faithful', 'exploratory', 'both'] as const
+export type RequestedMode = (typeof REQUESTED_MODES)[number]
 
 /** The mode a screen was actually generated in. */
 export type ScreenMode = 'faithful' | 'exploratory'

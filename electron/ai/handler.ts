@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { IPC, type GenerateUIResponse } from '@/shared/blueprint'
+import { IPC, REQUESTED_MODES, type GenerateUIResponse } from '@/shared/blueprint'
 import { EFFORT_LEVELS, MODEL_IDS } from '@/shared/models'
 import { manifestZodSchema } from '@/shared/design-system/manifest'
 import { generateUI } from './ai-orchestrator'
@@ -24,6 +24,7 @@ const optionsSchema = z
   .object({
     model: z.enum(MODEL_IDS as [string, ...string[]]).optional(),
     effort: z.enum(EFFORT_LEVELS).optional(),
+    mode: z.enum(REQUESTED_MODES).optional(),
   })
   .strict()
 
