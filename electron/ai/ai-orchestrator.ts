@@ -37,6 +37,8 @@ import { chooseTemplate } from '@/shared/templates'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { validateBlueprintAgainstManifest, type ValidationIssue } from '@/shared/design-system/manifest-zod'
+import { budgetProblems } from '@/shared/design-system/primitives'
+import { interpretPrototype } from '@/interpreter/interpret'
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
@@ -237,7 +239,11 @@ export async function generateUI(
           if (stretched.length > 0) steps.push(`step 2 · stretched ${stretched.length} root(s): ${stretched.join('; ')}`)
           reply = JSON.stringify(lastBlueprint)
 
-          const validation = validateBlueprintAgainstManifest(lastBlueprint, manifest, mode)
+          const checked = validateBlueprintAgainstManifest(lastBlueprint, manifest, mode)
+          // The primitive budget is counted on the interpreted tree: what the repairs drop or keep is what counts.
+          const budget = mode === 'exploratory' ? budgetIssues(lastBlueprint, manifest) : []
+          const all = [...(checked.ok ? [] : checked.issues), ...budget]
+          const validation = all.length === 0 ? ({ ok: true } as const) : ({ ok: false, issues: all } as const)
           if (validation.ok) {
             steps.push(`step 2 · generator: valid on attempt ${attempt}`)
             return success(lastBlueprint, provider, model, usage, steps, startedAt, stamp(mode, notices, trace))
@@ -328,6 +334,26 @@ export async function generateUI(
       },
     }
   }
+}
+
+/**
+ * The primitive budget of a document, on the tree the interpreter makes of it, with
+ * each screen's issues placed under that screen in the document (`['screens', i, …]`).
+ */
+function budgetIssues(doc: unknown, manifest: DesignSystemManifest): ValidationIssue[] {
+  const interpreted = interpretPrototype(doc, manifest)
+  if (!interpreted.ok) return []
+  const raw = isRecord(doc) && Array.isArray(doc.screens) ? doc.screens : []
+  const many = interpreted.screens.length > 1
+  return interpreted.screens.flatMap((screen, index) => {
+    const at = raw.findIndex((s) => isRecord(s) && s.id === screen.id)
+    const base = index === 0 || at < 0 ? [] : ['screens', at]
+    return budgetProblems(screen.tree).map((p) => ({
+      ...p,
+      path: [...base, ...p.path],
+      message: many ? `Screen "${screen.id}": ${p.message}` : p.message,
+    }))
+  })
 }
 
 /** What every generated result carries: the mode it ran in, and what the pipeline tells the user. */

@@ -320,3 +320,39 @@ describe('the trace of failed attempts', () => {
   })
 })
 
+describe('the primitive budget in the pipeline', () => {
+  const reuse = { considered: 'Text, Notification', why: 'nenhum tem cor de destaque' }
+  /** Home with `k` primitive:Texts next to the rail. */
+  const texts = (k: number): Doc => {
+    const d = home()
+    for (let i = 0; i < k; i++) d.root.children[0].children.push({ type: 'primitive:Text', props: { text: `t${i}` }, reuse })
+    return d
+  }
+
+  it('an excess is the generator’s to fix first, with the instruction to group into a Proposal', async () => {
+    const p = fake([texts(7), texts(3)])
+    const res = await run(p)
+    expect(res.ok).toBe(true)
+    expect(p.complete).toHaveBeenCalledTimes(1)
+    const retry = vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content
+    expect(retry).toMatch(/\[primitives\.budget\] at root: The screen uses 7 primitives — at most 6, text included\. .*group the rest into a Proposal/)
+    expect(res.meta.trace?.[0].issues).toEqual([expect.objectContaining({ ruleId: 'primitives.budget', kind: 'budget-exceeded' })])
+  })
+
+  it('and goes back to the planner only if it persists, with the trigger logged', async () => {
+    const p = fake([texts(7), texts(7), texts(7), texts(2)], ['plan one', 'plan two'])
+    const res = await run(p)
+    expect(res.ok).toBe(true)
+    expect(p.complete).toHaveBeenCalledTimes(2)
+    expect(res.meta.steps).toContain("step 3 · replan 1/1 — trigger: budget-exceeded (primitives.budget) — persisted after the generator's retries")
+    expect(res.meta.trace?.[2].trigger).toMatch(/^budget-exceeded/)
+  })
+
+  it('a Faithful request never counts a budget: primitives are simply not components there', async () => {
+    const p = fake([texts(7), home()])
+    const res = await run(p, 'faithful')
+    expect(vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content).not.toMatch(/budget/)
+    expect(res.ok && res.meta.trace?.[0].issues.some((i) => /<primitive:Text> is not a real component/.test(i.message))).toBe(true)
+  })
+})
+

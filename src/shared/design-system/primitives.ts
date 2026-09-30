@@ -9,6 +9,7 @@
 
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import { assignableTokenNames } from './manifest'
+import type { IssuePath, RuleProblem } from './rules'
 
 /** The primitive node types: layout and text built only from the active system's tokens. */
 export const PRIMITIVE_TYPES = ['primitive:Box', 'primitive:Stack', 'primitive:Text'] as const
@@ -168,3 +169,48 @@ export function reuseProblem(manifest: DesignSystemManifest, raw: unknown): stri
   return null
 }
 
+
+// ── the budget ──────────────────────────────────────────────────────────────────────────────────
+
+/** A tree in either shape — an interpreted canvas node, or anything with a type and children. */
+interface BudgetNode {
+  type: string
+  children: readonly BudgetNode[]
+}
+
+const PROPOSAL_SHAPE =
+  '{ "type": "Proposal", "props": { "description": "<what the component is>", "proposedApi": { "<prop>": "<type>" } }, "deviation": { "ruleId": "registry.new-component", "why": "<why the registry lacks it>" } }'
+
+/**
+ * The budget, on one interpreted screen: at most `PRIMITIVE_MAX_CHAIN` primitives
+ * nested in primitives, and at most `PRIMITIVE_MAX_PER_SCREEN` in all, text
+ * included. Paths are relative to the screen (`['root', 'children', 0, …]`). An
+ * excess is a composition choice: the need is a new component.
+ */
+export function budgetProblems(root: BudgetNode): RuleProblem[] {
+  const problems: RuleProblem[] = []
+  let count = 0
+  const walk = (node: BudgetNode, at: IssuePath, chain: number): void => {
+    const here = isPrimitive(node.type) ? chain + 1 : 0
+    if (isPrimitive(node.type)) count += 1
+    if (here === PRIMITIVE_MAX_CHAIN + 1) {
+      problems.push({
+        ruleId: 'primitives.budget',
+        kind: 'budget-exceeded',
+        path: at,
+        message: `<${node.type}> is primitive number ${here} in a chain of primitives inside primitives — at most ${PRIMITIVE_MAX_CHAIN}. A structure this deep is a component the registry lacks: replace the chain with one Proposal, ${PROPOSAL_SHAPE}.`,
+      })
+    }
+    node.children.forEach((child, i) => walk(child, [...at, 'children', i], here))
+  }
+  walk(root, ['root'], 0)
+  if (count > PRIMITIVE_MAX_PER_SCREEN) {
+    problems.unshift({
+      ruleId: 'primitives.budget',
+      kind: 'budget-exceeded',
+      path: ['root'],
+      message: `The screen uses ${count} primitives — at most ${PRIMITIVE_MAX_PER_SCREEN}, text included. Use registry components where one fits, and group the rest into a Proposal, ${PROPOSAL_SHAPE}.`,
+    })
+  }
+  return problems
+}

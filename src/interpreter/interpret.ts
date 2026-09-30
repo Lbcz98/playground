@@ -41,7 +41,7 @@ import {
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, treeDeclarations } from '@/shared/design-system/deviations'
-import { isPrimitive, reuseProblem, withVocabulary } from '@/shared/design-system/primitives'
+import { budgetProblems, isPrimitive, reuseProblem, withVocabulary } from '@/shared/design-system/primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
@@ -300,6 +300,10 @@ export function interpretBlueprint(
     }
     for (const unused of audit.errors.filter((e) => e.kind === 'unused-deviation')) {
       issues.push({ ruleId: unused.ruleId, level: 'info', path: 'root', message: unused.message })
+    }
+    // The primitive budget, on this interpreted screen: reported, not repaired.
+    for (const over of budgetProblems(root)) {
+      issues.push({ ruleId: over.ruleId, level: 'warn', path: 'root', message: `Over the primitive budget, reported, not repaired — ${over.message}` })
     }
   }
 
