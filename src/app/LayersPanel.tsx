@@ -26,6 +26,22 @@ function LayerRow({ node, depth }: { node: CanvasNode; depth: number }): JSX.Ele
           {node.anchor ? (
             <span className="rounded-full bg-brand-subtle px-3xs text-xs text-brand-strong">anchored</span>
           ) : null}
+          {node.deviation ? (
+            <span
+              title={`${node.deviation.ruleId} — ${node.deviation.why}`}
+              className="rounded-full border border-dashed border-brand px-3xs text-xs text-brand-strong"
+            >
+              deviation
+            </span>
+          ) : null}
+          {node.screen?.deviation?.length ? (
+            <span
+              title={node.screen.deviation.map((d) => `${d.ruleId} — ${d.why}`).join('\n')}
+              className="rounded-full border border-dashed border-brand px-3xs text-xs text-brand-strong"
+            >
+              screen deviation
+            </span>
+          ) : null}
         </span>
         {node.id !== ROOT_ID ? (
           <button

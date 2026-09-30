@@ -17,6 +17,14 @@ import { useContext } from 'react'
 const focusedClicks = new WeakSet<Event>()
 
 /**
+ * A declared deviation (phase 9D) shows on the canvas while editing as a dashed
+ * outline in the theme's `brand` color — no new token. The dashed shape sets it
+ * apart from the selection ring (solid) without relying on color alone. It is
+ * edit-only: Play, thumbnails and anything exported never draw it.
+ */
+export const DEVIATION_OUTLINE = 'outline outline-2 outline-dashed outline-brand outline-offset-2'
+
+/**
  * Recursively turns a `CanvasNode` into React elements using only the
  * ComponentRegistry. Unknown types and prop-validation failures render a visible
  * placeholder instead of throwing, so a bad AI payload can never blank the canvas.
@@ -103,9 +111,11 @@ export function NodeRenderer({ node }: { node: CanvasNode }): ReactElement {
     ...(rendered.type === DecorationHost ? { 'data-selected': isSelected, 'data-editable': true } : {}),
     className: cx(
       rendered.props.className,
-      'outline-none',
+      // A node that declares a deviation swaps the invisible outline for the dashed one.
+      node.deviation ? DEVIATION_OUTLINE : 'outline-none',
       isSelected ? 'ring ring-brand' : 'hover:ring hover:ring-brand-subtle',
     ),
+    ...(node.deviation ? { 'data-deviation': node.deviation.ruleId } : {}),
     // Editing, a click on this node's own surface only selects it: caught before
     // the component sees it, so a component's own click (a card turning its
     // page) runs in Play, never here. A click on a child node is the child's.
