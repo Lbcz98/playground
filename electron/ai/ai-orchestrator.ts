@@ -64,7 +64,7 @@ export async function generateUI(
   try {
     // ── Step 1: Planner ────────────────────────────────────────────────────
     const planner = await provider.complete({
-      system: buildPlannerPrompt(manifest),
+      system: buildPlannerPrompt(manifest, { prompt: userPrompt }),
       messages: [...history, { role: 'user', content: userPrompt }],
       model: options.model,
       effort: 'low', // planning is structural — keep it cheap

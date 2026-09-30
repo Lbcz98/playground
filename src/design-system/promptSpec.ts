@@ -39,6 +39,8 @@ import {
   tokenTier,
 } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
+import { readRequest } from '@/shared/design-system/request-signals'
+import { scopedRules } from '@/shared/design-system/rules'
 import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
 import {
@@ -684,9 +686,14 @@ Choosing one does not end your job: still write the plan, saying what changes.
  * Blueprint" (guidelines + a11y + layout patterns), it writes a short structural
  * plan in prose that already obeys the kernel's spatial and macro-layout laws. It
  * does NOT emit JSON.
+ *
+ * With the request, the rules scoped to the components it names are added
+ * (`appliesTo`, phase 9C); a request that names none gets the same bytes as
+ * without it.
  */
 export function buildPlannerPrompt(
   manifest: DesignSystemManifest = SCREENFLOW_MANIFEST,
+  request?: { prompt: string },
 ): string {
   const spec = getRegistrySpec(manifest)
   const container = rootContainerId(manifest) ?? spec.find((c) => c.acceptsChildren)?.type ?? 'Stack'
@@ -734,7 +741,7 @@ Accessibility rules:
 - Name every color by its role (primary text, elevated surface, default border),
   never by its look — the token tier rule allows semantic tokens only.
 
-${templateSection(templates)}# Output format
+${request ? componentRulesSection(manifest, request.prompt) : ''}${templateSection(templates)}# Output format
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
@@ -746,6 +753,14 @@ When you had to approximate something the registry lacks, or a law overrides par
 Example:
 
 ${examplePlan(templates, container, gutter, zero)}`
+}
+
+/** The book's rules for the components the request names, or nothing. */
+function componentRulesSection(manifest: DesignSystemManifest, prompt: string): string {
+  const rules = scopedRules(manifest, readRequest(prompt, manifest).components)
+  if (rules.length === 0) return ''
+  const lines = rules.map((rule) => `- ${rule.title} — ${rule.flexibility} (${rule.id}): ${rule.statement}`)
+  return `# Rules for the components this request names\n\n${lines.join('\n')}\n\n`
 }
 
 export type PromptOutputMode = 'tool' | 'json'

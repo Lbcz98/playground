@@ -260,6 +260,14 @@ export function rulesOf(manifest: DesignSystemManifest): readonly PatternRule[] 
   return manifest.rules ?? RULES
 }
 
+/**
+ * The component rules for the components a request names — what the planner
+ * prompt adds on demand. Global rules are left out: the prompt's prose carries them.
+ */
+export function scopedRules(manifest: DesignSystemManifest, components: readonly string[]): PatternRule[] {
+  return rulesOf(manifest).filter((rule) => rule.appliesTo?.some((id) => components.includes(id)))
+}
+
 export function ruleById(manifest: DesignSystemManifest, id: string): PatternRule | undefined {
   return rulesOf(manifest).find((rule) => rule.id === id)
 }
