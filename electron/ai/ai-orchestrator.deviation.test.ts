@@ -137,27 +137,61 @@ describe('the policy', () => {
 })
 
 describe('the replan', () => {
-  it('an undeclared break goes back to the planner, not the generator, and the trigger is logged', async () => {
-    const p = fake([undeclared(), declared()], ['plan one', 'plan two'])
+  it('a composition choice gets every generator retry first, and goes back to the planner only if it persists', async () => {
+    const p = fake([undeclared(), undeclared(), undeclared(), declared()], ['plan one', 'plan two'])
     const res = await run(p)
     expect(res.ok).toBe(true)
+    expect(p.renderUi).toHaveBeenCalledTimes(4) // 3 attempts on plan one, then plan two
     expect(p.complete).toHaveBeenCalledTimes(2)
-    expect(p.renderUi).toHaveBeenCalledTimes(2) // one per plan: the generator was not retried in between
-    expect(res.meta.steps).toContain('step 3 · replan 1/1 — trigger: undeclared-deviation (layout.no-static-center)')
+    expect(res.meta.steps).toContain(
+      "step 3 · replan 1/1 — trigger: undeclared-deviation (layout.no-static-center) — persisted after the generator's retries",
+    )
+    // The generator's own retries carried the structured feedback…
+    expect(vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content).toMatch(/- \[layout\.no-static-center\] at root\.props\.justify: /)
 
+    // …and the planner got the failure, then its new plan reached a fresh generator conversation.
     const replan = vi.mocked(p.complete).mock.calls[1][0].messages
     expect(replan.map((m) => m.role)).toEqual(['user', 'assistant', 'user'])
     expect(replan[1].content).toBe('plan one')
     expect(replan[2].content).toMatch(/failed the audit:\n- \[layout\.no-static-center\] at root\.props\.justify: /)
     expect(replan[2].content).toMatch(/plan it with a "Deviation:" line/)
-    // …and the new plan reaches the generator on a fresh conversation.
-    expect(vi.mocked(p.renderUi).mock.calls[1][0].messages[0].content).toMatch(/PLAN:\nplan two/)
+    expect(vi.mocked(p.renderUi).mock.calls[3][0].messages[0].content).toMatch(/PLAN:\nplan two/)
   })
 
-  it('a declaration nothing breaks goes back to the planner too', async () => {
-    const res = await run(fake([unused(), home()], ['plan one', 'plan two']))
+  it('a generator retry that fixes it means no replan at all', async () => {
+    const p = fake([undeclared(), declared()])
+    const res = await run(p)
     expect(res.ok).toBe(true)
-    expect(res.meta.steps).toContain('step 3 · replan 1/1 — trigger: unused-deviation (blueprint.dsl)')
+    expect(p.complete).toHaveBeenCalledTimes(1)
+    expect(p.renderUi).toHaveBeenCalledTimes(2)
+    expect(res.meta.steps.some((s) => /replan/.test(s))).toBe(false)
+  })
+
+  it('a declaration nothing breaks is held to the same order', async () => {
+    const p = fake([unused(), unused(), unused(), home()], ['plan one', 'plan two'])
+    const res = await run(p)
+    expect(res.ok).toBe(true)
+    expect(p.complete).toHaveBeenCalledTimes(2)
+    expect(res.meta.steps.find((s) => /replan/.test(s))).toMatch(/trigger: unused-deviation \(blueprint\.dsl\) — persisted/)
+  })
+
+  it('AI_MAX_REPLANS=0 keeps everything with the generator, even a persisting one', async () => {
+    process.env.AI_MAX_REPLANS = '0'
+    const p = fake([undeclared()])
+    const res = await run(p)
+    expect(p.complete).toHaveBeenCalledTimes(1)
+    expect(p.renderUi).toHaveBeenCalledTimes(3)
+    expect(res.meta.steps.some((s) => /replan/.test(s))).toBe(false)
+  })
+
+  it('replans at most AI_MAX_REPLANS times, then returns the best attempt', async () => {
+    const p = fake([undeclared()], ['plan one'])
+    const res = await run(p)
+    expect(p.complete).toHaveBeenCalledTimes(2) // 1 replan
+    expect(p.renderUi).toHaveBeenCalledTimes(3 + 3) // every plan gets the generator's 3 attempts
+    expect(res.ok).toBe(true) // the best attempt: the renderer's interpreter repairs the rest
+    expect(res.meta.steps.filter((s) => /replan/.test(s))).toHaveLength(1)
+    expect(res.meta.steps.at(-1)).toMatch(/still invalid after 2 retries/)
   })
 
   it('a slot break is the generator’s first, and the plan’s only if it persists after the generator’s retries', async () => {
@@ -170,26 +204,6 @@ describe('the replan', () => {
     expect(trigger).toMatch(/trigger: undeclared-deviation \(layout\.slots\) — persisted after the generator's retries/)
     // …and the generator's own retries carried the structured feedback.
     expect(vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content).toMatch(/- \[layout\.slots\] at root\.children\.1/)
-  })
-
-  it('AI_MAX_REPLANS=0 keeps everything with the generator', async () => {
-    process.env.AI_MAX_REPLANS = '0'
-    const p = fake([undeclared(), declared()])
-    const res = await run(p)
-    expect(res.ok).toBe(true)
-    expect(p.complete).toHaveBeenCalledTimes(1)
-    expect(p.renderUi).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(p.renderUi).mock.calls[1][0].messages.at(-1)!.content).toMatch(/^That Blueprint is invalid:\n- \[layout\.no-static-center\] at root\.props\.justify: /)
-  })
-
-  it('replans at most AI_MAX_REPLANS times, then the generator retries and the best attempt is returned', async () => {
-    const p = fake([undeclared()], ['plan one'])
-    const res = await run(p)
-    expect(p.complete).toHaveBeenCalledTimes(2) // 1 replan
-    expect(p.renderUi).toHaveBeenCalledTimes(1 + 3) // the first plan's single attempt, then the second plan's 3 attempts
-    expect(res.ok).toBe(true) // the best attempt: the renderer's interpreter repairs the rest
-    expect(res.meta.steps.filter((s) => /replan/.test(s))).toHaveLength(1)
-    expect(res.meta.steps.at(-1)).toMatch(/still invalid after 2 retries/)
   })
 
   it('an expression error (a bad prop) never replans', async () => {

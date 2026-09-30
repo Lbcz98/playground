@@ -56,19 +56,17 @@ function maxReplans(): number {
   return clamp(Number.isNaN(n) ? 1 : n, 0, 2)
 }
 
-/** Structure the generator can often fix by regrouping or declaring: only if it persists is it the plan's. */
-const STRUCTURE_RULES: readonly string[] = ['level.module-limit', 'layout.slots']
-
-/** Why a failed generation goes back to the planner, or null: it stays with the generator. */
+/**
+ * Why a failed generation goes back to the planner, or null: it stays with the
+ * generator. A composition choice (an undeclared break, a declaration nothing
+ * breaks) is the generator's to fix first — it can regroup, or declare — and the
+ * plan's only if it persists after the generator's retries.
+ */
 function planTrigger(issues: ValidationIssue[], generatorRetriesLeft: boolean): string | null {
   const composition = issues.filter((i) => i.kind !== undefined)
-  const now = composition.filter((i) => !STRUCTURE_RULES.includes(i.ruleId))
-  const structural = composition.filter((i) => STRUCTURE_RULES.includes(i.ruleId))
-  const describe = (list: ValidationIssue[]): string =>
-    `${list[0].kind} (${[...new Set(list.map((i) => i.ruleId))].join(', ')})`
-  if (now.length > 0) return describe(now)
-  if (structural.length > 0 && !generatorRetriesLeft) return `${describe(structural)} — persisted after the generator's retries`
-  return null
+  if (composition.length === 0 || generatorRetriesLeft) return null
+  const kinds = [...new Set(composition.map((i) => i.kind))].join(', ')
+  return `${kinds} (${[...new Set(composition.map((i) => i.ruleId))].join(', ')}) — persisted after the generator's retries`
 }
 
 /** What the generator (and the planner, on a replan) is told: Faithful keeps its plain list; Exploratory names the rule and the place. */
@@ -258,8 +256,8 @@ export async function generateUI(
         lastErrors = errors
         steps.push(`step 3 · validate: attempt ${attempt} had ${errors.length} issue(s)`)
 
-        // A choice about the composition (a break nobody declared, a declaration for nothing)
-        // is the plan's, not the generator's: back to the planner, if it may go.
+        // A composition choice that survived every generator retry is the plan's:
+        // back to the planner, if it may go.
         if (replan < replans) {
           trigger = planTrigger(lastIssues, attempt <= MAX_RETRIES)
           if (trigger) break
