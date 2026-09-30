@@ -150,12 +150,32 @@ export function compiledDefaultProps(
   return out
 }
 
+/** Which rules a screen is held to: Faithful (every pattern) or Exploratory (declared patterns may bend). */
+export type Policy = 'faithful' | 'exploratory'
+
+type ComponentSchemas = Record<string, z.ZodObject<z.ZodRawShape>>
+
+/**
+ * Compiled once per manifest object and policy. The key is the manifest's
+ * identity (the IPC handler parses a fresh one per request, so the gain is within
+ * a request: screens × attempts); the policy is a string so the `Map` hits.
+ * Schemas are never mutated after compilation, so sharing them is safe.
+ */
+const schemaCache = new WeakMap<DesignSystemManifest, Map<Policy, ComponentSchemas>>()
+
 /** One `.strict()` object schema per component, keyed by component id. */
 export function compileManifestSchemas(
   manifest: DesignSystemManifest,
-): Record<string, z.ZodObject<z.ZodRawShape>> {
-  const out: Record<string, z.ZodObject<z.ZodRawShape>> = {}
+  policy: Policy = 'faithful',
+): ComponentSchemas {
+  let byPolicy = schemaCache.get(manifest)
+  if (!byPolicy) schemaCache.set(manifest, (byPolicy = new Map()))
+  const cached = byPolicy.get(policy)
+  if (cached) return cached
+  // ponytail: both policies compile the same props today; Exploratory's vocabulary arrives in 9E.
+  const out: ComponentSchemas = {}
   for (const component of Object.values(manifest.components)) out[component.id] = propsToZod(component.props, manifest)
+  byPolicy.set(policy, out)
   return out
 }
 
