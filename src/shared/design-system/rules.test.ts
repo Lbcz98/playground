@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { manifestZodSchema } from './manifest'
 import { GLOBAL_RULE_IDS, RULES, ruleById, rulesOf } from './rules'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
+import { EXPLORATORY_TYPES, PRIMITIVE_TYPES } from './primitives'
 
 describe('the rules book', () => {
   it('gives every rule a unique id', () => {
@@ -12,7 +13,8 @@ describe('the rules book', () => {
   it('names only real components in appliesTo', () => {
     for (const rule of RULES) {
       for (const id of ('appliesTo' in rule ? rule.appliesTo : [])) {
-        expect(SCREENFLOW_MANIFEST.components[id], `${rule.id} → ${id}`).toBeDefined()
+        // The Exploratory vocabulary is code, not manifest data (primitives.ts).
+        expect(SCREENFLOW_MANIFEST.components[id] ?? EXPLORATORY_TYPES.includes(id) ?? undefined, `${rule.id} → ${id}`).toBeTruthy()
       }
     }
   })
@@ -24,6 +26,19 @@ describe('the rules book', () => {
       expect(scoped, `${rule.id}: ${scoped ? 'declared global but scoped' : 'unscoped but not declared global'}`).toBe(!global.has(rule.id))
     }
     for (const id of global) expect(RULES.some((r) => r.id === id), `${id} is not in the book`).toBe(true)
+  })
+
+  it('scopes the 9E rules to the Exploratory vocabulary, never globally, and never declarable as laws', () => {
+    for (const id of ['primitives.reuse', 'primitives.budget']) {
+      const rule = ruleById(SCREENFLOW_MANIFEST, id)!
+      expect(rule.flexibility, id).toBe('law')
+      expect(rule.appliesTo, id).toEqual([...PRIMITIVE_TYPES])
+      expect(GLOBAL_RULE_IDS, id).not.toContain(id)
+    }
+    const proposal = ruleById(SCREENFLOW_MANIFEST, 'registry.new-component')!
+    expect(proposal.flexibility).toBe('pattern')
+    expect(proposal.appliesTo).toEqual([...EXPLORATORY_TYPES])
+    expect(GLOBAL_RULE_IDS).not.toContain('registry.new-component')
   })
 
   it('keeps the plan’s laws as laws', () => {

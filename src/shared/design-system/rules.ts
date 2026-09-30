@@ -12,6 +12,7 @@
  */
 
 import { frameSpec } from '@/design-system/primitives'
+import { PRIMITIVE_MAX_CHAIN, PRIMITIVE_MAX_PER_SCREEN } from './primitives'
 import type { DesignSystemManifest, PatternRule } from './manifest'
 
 const { baseWidth, baseHeight, grid, margin, gutter } = frameSpec
@@ -96,6 +97,26 @@ export const RULES = [
     flexibility: 'law',
     category: 'layout',
     source: 'frame.ts',
+  },
+  {
+    id: 'primitives.reuse',
+    title: 'A primitive says why no component would do',
+    statement:
+      'Every primitive carries "reuse": the registry components it considered, by name, and why none of them expresses the need.',
+    flexibility: 'law',
+    category: 'registry',
+    source: 'primitives.ts',
+    appliesTo: ['primitive:Box', 'primitive:Stack', 'primitive:Text'],
+  },
+  {
+    id: 'primitives.budget',
+    title: 'Primitive budget',
+    statement:
+      `At most ${PRIMITIVE_MAX_CHAIN} primitives in a chain (a primitive inside a primitive) and ${PRIMITIVE_MAX_PER_SCREEN} per screen, text included; beyond that the need is a new component — a Proposal.`,
+    flexibility: 'law',
+    category: 'registry',
+    source: 'primitives.ts',
+    appliesTo: ['primitive:Box', 'primitive:Stack', 'primitive:Text'],
   },
 
   // ── Patterns ──────────────────────────────────────────────────────────────
@@ -195,6 +216,16 @@ export const RULES = [
     flexibility: 'pattern',
     category: 'layout',
     source: 'frame.ts',
+  },
+  {
+    id: 'registry.new-component',
+    title: 'Catalog components only',
+    statement:
+      'A screen is built from the catalog; a component the registry lacks is a declared Proposal (a description and its proposed props), never an invented one.',
+    flexibility: 'pattern',
+    category: 'registry',
+    source: 'primitives.ts',
+    appliesTo: ['primitive:Box', 'primitive:Stack', 'primitive:Text', 'Proposal'],
   },
 
   // ── Conventions ───────────────────────────────────────────────────────────

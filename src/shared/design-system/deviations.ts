@@ -25,6 +25,8 @@ export interface Declaration {
 const NOT_DECLARABLE_YET: Readonly<Record<string, string>> = {
   'layers.overlay-model':
     'composing a new overlay arrives in 9E — for now keep to one of the layer models',
+  // ponytail: until the Proposal node exists (a later 9E commit), nothing can carry this declaration.
+  'registry.new-component': 'a Proposal carries it, and Proposals arrive later in 9E',
 }
 
 /**
