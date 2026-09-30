@@ -47,7 +47,7 @@ import {
   sidePropFor,
   unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
-import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
+import { compileManifestSchemas, compiledDefaultProps, propRuleId } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import {
   FRAME,
@@ -57,7 +57,7 @@ import {
   focusPropsFor,
   columnDirectionFor,
   justifyPropFor,
-  frameLayoutErrors,
+  frameLayoutIssues,
   isModuleGroup,
   unfocusedValue,
   uncenteredValue,
@@ -68,9 +68,12 @@ import {
 } from '@/shared/layout/frame'
 import { levelJumpProblem, linkRoleProblem } from '@/shared/design-system/flow'
 import { type CanvasNode, type ScreenEntry, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
+import type { RuleId } from '@/shared/design-system/rules'
 
 export interface InterpretIssue {
   level: 'info' | 'warn'
+  /** The rule from the book this repair or warning is about, when it is about one. */
+  ruleId?: RuleId
   /** Human-readable location, e.g. `root › Stack[1] › Button[0]`. */
   path: string
   message: string
@@ -113,7 +116,7 @@ export function interpretBlueprint(
 
   for (const key of Object.keys(input)) {
     if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
-      issues.push({ level: 'info', path: 'document', message: `Ignored "${key}" — ${unknownBlueprintKeyReason(key)}.` })
+      issues.push({ ruleId: 'blueprint.dsl', level: 'info', path: 'document', message: `Ignored "${key}" — ${unknownBlueprintKeyReason(key)}.` })
     }
   }
 
@@ -136,7 +139,7 @@ export function interpretBlueprint(
   // container they can insert into. Wrap anything else.
   const rootComponent = ctx.manifest.components[root.type]
   if (!rootComponent?.acceptsChildren) {
-    issues.push({
+    issues.push({ ruleId: 'frame.layout',
       level: 'info',
       path: 'root',
       message: `Wrapped <${root.type}> in a ${ctx.rootType} — the top level must be a layout container.`,
@@ -158,7 +161,7 @@ export function interpretBlueprint(
     const clear = clearBackgroundFor(ctx.manifest, root)
     if (painted !== null && clear) {
       root.props = { ...root.props, [clear.prop]: clear.clear }
-      issues.push({
+      issues.push({ ruleId: 'layers.stack',
         level: 'info',
         path: 'root',
         message: `Set ${clear.prop} to "${clear.clear}" on the root (was ${brief(painted)}) — the content layer is transparent over the video and the overlay.`,
@@ -168,8 +171,8 @@ export function interpretBlueprint(
 
   // What is left is not guessable (a second content module, a side the model
   // doesn't shade) — say so, so the agent report matches the canvas QA badge.
-  for (const problem of frameLayoutErrors(treeToBlueprint(root), ctx.manifest)) {
-    issues.push({ level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem}` })
+  for (const problem of frameLayoutIssues(treeToBlueprint(root), ctx.manifest)) {
+    issues.push({ ruleId: problem.ruleId, level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem.message}` })
   }
 
   return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
@@ -203,7 +206,7 @@ export function interpretPrototype(
     if (used.has(id)) {
       const taken = id
       id = `screen-${index + 1}`
-      issues.push({ level: 'warn', path: `screens[${index}]`, message: `Renamed the screen "${taken}" to "${id}" — ids are unique.` })
+      issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path: `screens[${index}]`, message: `Renamed the screen "${taken}" to "${id}" — ids are unique.` })
     }
     used.add(id)
     return id
@@ -218,21 +221,21 @@ export function interpretPrototype(
 
   const rest = Array.isArray(input.screens) ? input.screens : []
   if (input.screens !== undefined && !Array.isArray(input.screens)) {
-    issues.push({ level: 'warn', path: 'screens', message: 'Ignored "screens" — it is a list of screens.' })
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screens', message: 'Ignored "screens" — it is a list of screens.' })
   }
   rest.forEach((raw: unknown, i: number) => {
     const path = `screens[${i}]`
     if (screens.length >= MAX_SCREENS) {
-      issues.push({ level: 'warn', path, message: `Dropped a screen — a document carries at most ${MAX_SCREENS}.` })
+      issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: `Dropped a screen — a document carries at most ${MAX_SCREENS}.` })
       return
     }
     if (!isObject(raw)) {
-      issues.push({ level: 'warn', path, message: 'Dropped a screen that was not an object.' })
+      issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: 'Dropped a screen that was not an object.' })
       return
     }
     for (const key of Object.keys(raw)) {
       if (!BLUEPRINT_SCREEN_KEYS.includes(key)) {
-        issues.push({ level: 'info', path, message: `Ignored "${key}" on a screen — the Blueprint DSL has no such key.` })
+        issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on a screen — the Blueprint DSL has no such key.` })
       }
     }
     const result = interpretBlueprint({ version: 1, screen: raw.screen, root: raw.root }, manifest)
@@ -249,20 +252,20 @@ export function interpretPrototype(
 
   let linkCount = 0
   for (const from of screens) {
-    const drop = (node: CanvasNode, path: string, why: string): void => {
+    const drop = (node: CanvasNode, path: string, why: string, ruleId: RuleId): void => {
       delete node.goTo
-      issues.push({ level: 'warn', path: `screen "${from.id}" › ${path}`, message: `Dropped the link on <${node.type}> — ${why}.` })
+      issues.push({ ruleId, level: 'warn', path: `screen "${from.id}" › ${path}`, message: `Dropped the link on <${node.type}> — ${why}.` })
     }
     const visit = (node: CanvasNode, path: string): void => {
       if (node.goTo !== undefined) {
         const target = screens.find((s) => s.id === node.goTo)
-        if (!target) drop(node, path, `"${node.goTo}" is not a screen of this document`)
-        else if (target.id === from.id) drop(node, path, 'it links the screen to itself')
+        if (!target) drop(node, path, `"${node.goTo}" is not a screen of this document`, 'blueprint.dsl')
+        else if (target.id === from.id) drop(node, path, 'it links the screen to itself', 'blueprint.dsl')
         else {
-          const jump =
-            levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level) ??
-            linkRoleProblem(manifest, node.type, from.tree.screen?.level, target.tree.screen?.level)
-          if (jump) drop(node, path, jump)
+          const jump = levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level)
+          const role = jump ? null : linkRoleProblem(manifest, node.type, from.tree.screen?.level, target.tree.screen?.level)
+          if (jump) drop(node, path, jump, 'flow.next-level')
+          else if (role) drop(node, path, role, 'flow.link-roles')
           else linkCount += 1
         }
       }
@@ -322,14 +325,14 @@ function repairLevelRoot(
       const wrapper = makeNode(root.type, { ...root.props, ...(stretch ? { [stretch.name]: 'end' } : {}) }, un)
       root.children = [wrapper, ...anchored]
       root.props = { ...root.props, [column.prop.name]: column.column, ...(stretch ? { [stretch.name]: 'stretch' } : {}) }
-      issues.push({
+      issues.push({ ruleId: 'level.root-direction',
         level: 'info',
         path: 'root',
         message: `Made the root a column and moved its content into a row inside it — on level ${level.level} the stack is a column at the end of the frame.`,
       })
     } else {
       root.props = { ...root.props, [column.prop.name]: column.column }
-      issues.push({
+      issues.push({ ruleId: 'level.root-direction',
         level: 'info',
         path: 'root',
         message: `Made the root a column, keeping its children stacked in order — on level ${level.level} the outermost container must be a column.`,
@@ -339,7 +342,7 @@ function repairLevelRoot(
   if (!level.rootEnd) return
   const prop = justifyPropFor(component)
   if (!prop || root.props[prop.name] === 'end') return
-  issues.push({
+  issues.push({ ruleId: 'level.root-direction',
     level: 'info',
     path: 'root',
     message: `Set ${prop.name} to "end" on the root (was ${brief(root.props[prop.name])}) — the stack on level ${level.level} sits at the end of the frame.`,
@@ -387,7 +390,7 @@ function repairLevelFocus(
     if (!prop || node === target) continue
     const rest = unfocusedValue(prop)
     node.props = { ...node.props, [prop.name]: rest }
-    issues.push({
+    issues.push({ ruleId: 'level.initial-focus',
       level: 'warn',
       path: 'root',
       message: `Set ${prop.name} to "${rest}" on <${node.type}> — ${rule.hint}`,
@@ -400,7 +403,7 @@ function repairLevelFocus(
     if (!prop) return
     const value = rule.value ?? 'focus'
     target.props = { ...target.props, [prop.name]: value }
-    issues.push({
+    issues.push({ ruleId: 'level.initial-focus',
       level: 'warn',
       path: 'root',
       message: `Set ${prop.name} to "${value}" on <${target.type}> — ${rule.hint}`,
@@ -422,7 +425,7 @@ function repairMenuFocus(
   const menu = check.menu as CanvasNode
   const value = check.allowed[0]
   menu.props = { ...menu.props, [layers.menu.prop]: value }
-  issues.push({
+  issues.push({ ruleId: 'level.initial-focus',
     level: 'warn',
     path: 'root',
     message: `Set ${layers.menu.prop} to "${value}" on <${menu.type}> — when Home opens, the focus is on the program button.`,
@@ -441,7 +444,7 @@ function repairFocus(root: CanvasNode, manifest: DesignSystemManifest, issues: I
       } else {
         const rest = unfocusedValue(prop)
         node.props = { ...node.props, [prop.name]: rest }
-        issues.push({
+        issues.push({ ruleId: 'focus.single',
           level: 'warn',
           path: 'root',
           message: `Set ${prop.name} to "${rest}" on <${node.type}> — a TV screen focuses one element, and <${kept.type}> already has it.`,
@@ -468,7 +471,7 @@ function repairScreen(
   const model = isObject(raw) ? screenModel(layers, raw.model) : undefined
   if (!model) {
     const fallbackName = screenModel(layers, fallback.model)?.name ?? fallback.model
-    issues.push({
+    issues.push({ ruleId: 'layers.overlay-model',
       level: 'warn',
       path: 'screen',
       message:
@@ -479,7 +482,7 @@ function repairScreen(
     return fallback
   }
   if (isObject(raw) && raw.level !== model.level) {
-    issues.push({
+    issues.push({ ruleId: 'layers.overlay-model',
       level: 'info',
       path: 'screen',
       message: `Set the level to ${model.level} — ${model.name} is a level ${model.level} screen (was ${brief(raw.level)}).`,
@@ -496,24 +499,24 @@ function interpretNode(
   issues: InterpretIssue[],
 ): CanvasNode | null {
   if (!isObject(raw)) {
-    issues.push({ level: 'warn', path, message: 'Dropped a node that was not an object.' })
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: 'Dropped a node that was not an object.' })
     return null
   }
 
   const type = raw.type
   if (typeof type !== 'string') {
-    issues.push({ level: 'warn', path, message: 'Dropped a node with no "type".' })
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: 'Dropped a node with no "type".' })
     return null
   }
 
   const component = ctx.manifest.components[type]
   if (!component) {
-    issues.push({ level: 'warn', path, message: `Dropped unknown component <${type}>.` })
+    issues.push({ ruleId: 'component.api', level: 'warn', path, message: `Dropped unknown component <${type}>.` })
     return null
   }
   for (const key of Object.keys(raw)) {
     if (!BLUEPRINT_NODE_KEYS.includes(key)) {
-      issues.push({ level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
+      issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
     }
   }
 
@@ -524,17 +527,17 @@ function interpretNode(
     const props = isObject(raw.props) ? raw.props : {}
     if (typeof raw.children === 'string' && 'children' in component.props && props.children === undefined) {
       rawProps = { ...props, children: raw.children }
-      issues.push({ level: 'info', path, message: `Moved the text in "children" into <${type}>'s children prop.` })
+      issues.push({ ruleId: 'component.api', level: 'info', path, message: `Moved the text in "children" into <${type}>'s children prop.` })
     } else {
-      issues.push({ level: 'warn', path, message: `Dropped "children" on <${type}> — it is a list of nodes.` })
+      issues.push({ ruleId: 'component.api', level: 'warn', path, message: `Dropped "children" on <${type}> — it is a list of nodes.` })
     }
   }
-  const props = sanitizeProps(component, ctx.schemas[type], rawProps, path, issues)
+  const props = sanitizeProps(ctx.manifest, component, ctx.schemas[type], rawProps, path, issues)
 
   const rawChildren = Array.isArray(raw.children) ? (raw.children as unknown[]) : []
   let children: CanvasNode[] = []
   if (rawChildren.length > 0 && !component.acceptsChildren) {
-    issues.push({
+    issues.push({ ruleId: 'component.api',
       level: 'warn',
       path,
       message: `<${type}> can't contain children — dropped ${rawChildren.length}.`,
@@ -550,20 +553,20 @@ function interpretNode(
   if (typeof raw.goTo === 'string' && raw.goTo.trim()) {
     node.goTo = raw.goTo.trim() // resolved against the document's screens by `interpretPrototype`
   } else if (raw.goTo !== undefined) {
-    issues.push({ level: 'warn', path, message: `Ignored goTo=${brief(raw.goTo)} on <${type}> (must be a screen id).` })
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: `Ignored goTo=${brief(raw.goTo)} on <${type}> (must be a screen id).` })
   }
   if (raw.anchor === true) {
     if (depth === 1) {
       node.anchor = true
     } else {
-      issues.push({
+      issues.push({ ruleId: 'layout.anchor-structure',
         level: 'warn',
         path,
         message: `Removed "anchor" from <${type}> — only a direct child of the root can be anchored.`,
       })
     }
   } else if (raw.anchor !== undefined && raw.anchor !== false) {
-    issues.push({
+    issues.push({ ruleId: 'layout.anchor-structure',
       level: 'warn',
       path,
       message: `Ignored anchor=${brief(raw.anchor)} on <${type}> (must be true or omitted).`,
@@ -573,6 +576,7 @@ function interpretNode(
 }
 
 function sanitizeProps(
+  manifest: DesignSystemManifest,
   component: ManifestComponent,
   schema: ObjectSchema,
   rawProps: unknown,
@@ -590,6 +594,7 @@ function sanitizeProps(
       clean[key] = result.data
     } else {
       issues.push({
+        ruleId: propRuleId(manifest, component.props[key], provided[key]),
         level: 'warn',
         path,
         message: `Ignored ${key}=${brief(provided[key])} on <${component.id}> (not an allowed value) — kept the default.`,
@@ -599,7 +604,7 @@ function sanitizeProps(
 
   for (const key of Object.keys(provided)) {
     if (!(key in shape)) {
-      issues.push({
+      issues.push({ ruleId: 'component.api',
         level: 'warn',
         path,
         message: `Removed unsupported prop "${key}" from <${component.id}>.`,
@@ -631,7 +636,7 @@ function repairFrameLayout(
     const px = spacingPx(manifest, root.props[padding.name])
     const zero = spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0)
     if (px !== null && px !== 0 && zero) {
-      issues.push({
+      issues.push({ ruleId: 'frame.layout',
         level: 'info',
         path: 'root',
         message: `Set ${padding.name} to "${zero}" on the root — the frame already applies the ${FRAME.margin}px safe-area margin.`,
@@ -644,7 +649,7 @@ function repairFrameLayout(
   // the frame, and a module that belongs on one side positions itself inside it.
   const stretch = component ? stretchPropFor(component) : undefined
   if (stretch && root.props[stretch.name] !== undefined && root.props[stretch.name] !== 'stretch') {
-    issues.push({
+    issues.push({ ruleId: 'layout.root-align',
       level: 'info',
       path: 'root',
       message: `Set ${stretch.name} to "stretch" on the root (was ${brief(root.props[stretch.name])}) — the stack that holds the components always stretches.`,
@@ -658,7 +663,7 @@ function repairFrameLayout(
   for (const prop of component ? centeringPropsFor(component) : []) {
     if (prop === stretch || root.props[prop.name] !== 'center') continue
     const value = side && sideProp?.prop === prop.name ? sideProp.values[side] : uncenteredValue(prop)
-    issues.push({
+    issues.push({ ruleId: 'layout.no-static-center',
       level: 'info',
       path: 'root',
       message: `Set ${prop.name} to "${value}" on the root — master layouts don't use static center alignment; the anchored group follows the focus instead.`,
@@ -672,7 +677,7 @@ function repairFrameLayout(
   for (const child of root.children) {
     if (child.anchor && never.has(child.type)) {
       delete child.anchor
-      issues.push({
+      issues.push({ ruleId: 'layout.anchor-structure',
         level: 'warn',
         path: 'root',
         message: `Un-anchored <${child.type}> — it holds the screen's focus in the content; only a secondary cluster is anchored.`,
@@ -683,7 +688,7 @@ function repairFrameLayout(
   const anchored = root.children.filter((child) => child.anchor)
   for (const extra of anchored.slice(0, -1)) {
     delete extra.anchor
-    issues.push({
+    issues.push({ ruleId: 'layout.anchor',
       level: 'warn',
       path: 'root',
       message: `Un-anchored an extra <${extra.type}> — a frame anchors at most one element group (kept the last).`,
@@ -704,7 +709,7 @@ function repairGutters(
     const px = spacingPx(manifest, node.props[gap.name])
     const gutter = spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter)
     if (px !== null && px !== FRAME.gutter && gutter) {
-      issues.push({
+      issues.push({ ruleId: 'frame.layout',
         level: 'info',
         path,
         message: `Set ${gap.name} to "${gutter}" on <${node.type}> — stacked modules and columns sit exactly ${FRAME.gutter}px apart.`,
@@ -742,7 +747,7 @@ function placeChildren(
 ): CanvasNode[] {
   const placed = children.filter((child) => {
     const problem = placementError(manifest, parentType, child.type)
-    if (problem) issues.push({ level: 'warn', path, message: `Dropped a child — ${problem}` })
+    if (problem) issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Dropped a child — ${problem}` })
     return !problem
   })
 
@@ -755,12 +760,12 @@ function placeChildren(
       seen.add(child.type)
       return true
     }
-    issues.push({ level: 'warn', path, message: `Dropped a second <${child.type}> — <${parentType}> takes at most one.` })
+    issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Dropped a second <${child.type}> — <${parentType}> takes at most one.` })
     return false
   })
   const ordered = [...unique].sort((a, b) => slots.indexOf(a.type) - slots.indexOf(b.type))
   if (ordered.some((child, i) => child !== unique[i])) {
-    issues.push({ level: 'warn', path, message: `Put <${parentType}>'s children back in the order ${slots.join(', ')}.` })
+    issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Put <${parentType}>'s children back in the order ${slots.join(', ')}.` })
   }
   return ordered
 }

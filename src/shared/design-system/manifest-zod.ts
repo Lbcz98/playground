@@ -216,6 +216,21 @@ export function tokenTierViolation(
   return null
 }
 
+/**
+ * The rule a prop value its schema rejects breaks: the grid for an off-grid step,
+ * the token tier rule for a core token or a raw value, else the component's API.
+ * The validator and the interpreter both name rejected values with it.
+ */
+export function propRuleId(manifest: DesignSystemManifest, prop: ManifestProp, value: unknown): RuleId {
+  const group = prop.tokenGroup
+  if (group === 'spacing' && isOffGridSpacingToken(manifest, value)) return 'grid.8pt'
+  if (group && tokenTierViolation(manifest, group, value)) {
+    return isCoreToken(manifest, group, value) ? 'tokens.semantic-tier' : 'tokens.only'
+  }
+  if (prop.grid && typeof value === 'number' && !isOnGrid(value)) return 'grid.8pt'
+  return 'component.api'
+}
+
 // ---------------------------------------------------------------------------
 // Strict blueprint validation (pipeline step 3)
 // ---------------------------------------------------------------------------
@@ -425,8 +440,7 @@ function validateNode(
       }
       const violation = group ? tokenTierViolation(ctx.manifest, group, props[key]) : null
       if (violation) {
-        const tier = isCoreToken(ctx.manifest, group!, props[key]) ? 'tokens.semantic-tier' : 'tokens.only'
-        add(tier, where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
+        add(propRuleId(ctx.manifest, component.props[key], props[key]), where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
         continue
       }
       const spec = component.props[key]
@@ -438,8 +452,7 @@ function validateNode(
           spec.max !== undefined && spec.min === undefined ? `of at most ${spec.max}` : '',
           spec.grid ? `on the 8pt scale (${describeGrid()})` : '',
         ].filter(Boolean).join(' ')
-        const offGrid = spec.grid && typeof props[key] === 'number' && !isOnGrid(props[key] as number)
-        add(offGrid ? 'grid.8pt' : 'component.api', where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
+        add(propRuleId(ctx.manifest, spec, props[key]), where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
         continue
       }
       // A list item's bad field is pinned by Zod's own path (`[2].label`).
