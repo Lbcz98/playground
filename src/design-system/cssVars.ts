@@ -63,3 +63,9 @@ export function applyTokens(el: HTMLElement, vars: Record<string, string>): void
     el.style.setProperty(name, value)
   }
 }
+
+/** The CSS value that reads a token of the active system: `var(--sfs-<group>-<name>)`. */
+export function tokenVar(group: keyof ManifestTokens, name: string): string {
+  const alias = GROUPS.find(([g]) => g === group)?.[1] ?? group
+  return `var(${PREFIX}${alias}-${name})`
+}

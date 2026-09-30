@@ -42,6 +42,7 @@ import {
 import { flowIssues, type FlowScreen } from './flow'
 import type { IssueKind, IssuePath, RuleId, RuleProblem } from './rules'
 import { auditDeviations, declarationProblem, type Declaration } from './deviations'
+import { PROPOSAL_TYPE, withVocabulary } from './primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -177,11 +178,31 @@ export function compileManifestSchemas(
   if (!byPolicy) schemaCache.set(manifest, (byPolicy = new Map()))
   const cached = byPolicy.get(policy)
   if (cached) return cached
-  // ponytail: both policies compile the same props today; Exploratory's vocabulary arrives in 9E.
+  // Exploratory compiles the manifest's view with the vocabulary (primitives, Proposal); Faithful never sees it.
+  const components = policy === 'exploratory' ? withVocabulary(manifest).components : manifest.components
   const out: ComponentSchemas = {}
-  for (const component of Object.values(manifest.components)) out[component.id] = propsToZod(component.props, manifest)
+  for (const component of Object.values(components)) out[component.id] = propsToZod(component.props, manifest)
+  if (policy === 'exploratory') out[PROPOSAL_TYPE] = proposalSchema()
   byPolicy.set(policy, out)
   return out
+}
+
+/** Proposal's props: what the component is, and its proposed API as a short map (prop name → type or description). */
+export const MAX_PROPOSED_PROPS = 12
+function proposalSchema(): z.ZodObject<z.ZodRawShape> {
+  return z
+    .object({
+      description: z.string().trim().min(1).max(300),
+      proposedApi: z
+        .record(
+          z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,39}$/, 'a prop name is an identifier (letters and digits, starting with a letter)'),
+          z.string().trim().min(1).max(80),
+        )
+        .refine((api) => Object.keys(api).length >= 1 && Object.keys(api).length <= MAX_PROPOSED_PROPS, {
+          message: `between 1 and ${MAX_PROPOSED_PROPS} props`,
+        }),
+    })
+    .strict()
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +397,9 @@ function validateScreen(
   const issues: RuleProblem[] = []
   const declarations: Declaration[] = []
   const schemas = compileManifestSchemas(manifest, policy)
+  // An Exploratory screen is checked against the manifest's view with the vocabulary,
+  // so every law that holds for a component (tokens, the grid, the frame) holds for a primitive.
+  if (policy === 'exploratory') manifest = withVocabulary(manifest)
   const allowed = Object.keys(manifest.components)
   const rootType = rootContainerId(manifest)
 

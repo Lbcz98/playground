@@ -31,6 +31,8 @@ import type {
   ManifestTokens,
 } from '@/shared/design-system/manifest'
 import { compileManifestSchemas, compiledDefaultProps } from '@/shared/design-system/manifest-zod'
+import { EXPLORATORY_TYPES, withVocabulary } from '@/shared/design-system/primitives'
+import { PRIMITIVE_RENDERERS } from './primitiveRenderers'
 import { SCREENFLOW_MANIFEST_ID } from '@/shared/design-system/screenflow-manifest'
 import type { LiveComponentMap } from './liveBundle'
 import { CanvasButton, CanvasStack, CanvasText } from './canvasKit'
@@ -553,13 +555,37 @@ export function hydrateRegistry(
 
   const types = Object.keys(entries)
   const genericCount = Object.values(entries).filter((e) => e.generic).length
+
+  // The Exploratory vocabulary: rendered and inspectable (`get`), never in the palette
+  // (`types`, `entries`) — only the AI inserts it, until 9F.
+  const exploratorySchemas = compileManifestSchemas(manifest, 'exploratory')
+  const vocabulary: Record<string, HydratedEntry> = {}
+  for (const type of EXPLORATORY_TYPES) {
+    const component = withVocabulary(manifest).components[type]
+    const schema = exploratorySchemas[type]
+    vocabulary[type] = {
+      id: type,
+      label: component.name,
+      category: component.category ?? 'primitive',
+      summary: component.description,
+      acceptsChildren: component.acceptsChildren,
+      component,
+      schema,
+      fieldSchemas: schema.shape as Record<string, z.ZodTypeAny>,
+      defaultProps: compiledDefaultProps(component, schema),
+      render: PRIMITIVE_RENDERERS[type as keyof typeof PRIMITIVE_RENDERERS],
+      generic: false,
+      live: false,
+    }
+  }
+
   return {
     manifestId: manifest.id,
     entries,
     types,
     liveCount,
     genericCount,
-    get: (type) => entries[type] ?? null,
+    get: (type) => entries[type] ?? vocabulary[type] ?? null,
     has: (type) => type in entries,
   }
 }

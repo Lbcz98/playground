@@ -39,6 +39,7 @@ import {
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
 import { auditDeclared, declarationProblem, treeDeclarations } from '@/shared/design-system/deviations'
+import { withVocabulary } from '@/shared/design-system/primitives'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
@@ -220,7 +221,8 @@ export function interpretBlueprint(
   // The pipeline stamps the mode; an absent one is a screen built by the Faithful rules.
   const mode = screenMode(doc)
   const ctx: InterpretCtx = {
-    manifest,
+    // An Exploratory screen knows the vocabulary (primitives, Proposal); a Faithful one drops them as unknown.
+    manifest: mode === 'exploratory' ? withVocabulary(manifest) : manifest,
     schemas: compileManifestSchemas(manifest, mode),
     rootType,
     mode,
@@ -764,9 +766,12 @@ function sanitizeProps(
   }
 
   // Seed every declared prop so a manifest with required, default-less props still
-  // parses; `clean` only holds valid provided values, so this always succeeds.
+  // parses; `clean` only holds valid provided values. A prop with no default a schema
+  // accepts (a Proposal's required map) has nothing honest to seed: the node keeps what
+  // it has, and the validator has already reported it.
   const seeded = { ...compiledDefaultProps(component, schema), ...clean }
-  return schema.parse(seeded) as Record<string, unknown>
+  const parsed = schema.safeParse(seeded)
+  return (parsed.success ? parsed.data : seeded) as Record<string, unknown>
 }
 
 /**

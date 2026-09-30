@@ -2,6 +2,7 @@ import { type MutableRefObject, type RefObject, useEffect, useLayoutEffect, useM
 import type { CanvasNode } from '@/model/nodeTree'
 import { screenMode } from '@/shared/blueprint'
 import { treeDeclarations } from '@/shared/design-system/deviations'
+import { withVocabulary } from '@/shared/design-system/primitives'
 import { useFlowStore } from '@/store/flowStore'
 import { currentPlayScreenId, usePlayStore } from '@/store/playStore'
 import { type FocusReading, useFrameStore } from '@/store/frameStore'
@@ -96,7 +97,10 @@ export function Canvas(): JSX.Element {
   const declarations = useMemo(() => (exploratory ? treeDeclarations(tree, tree.screen) : []), [tree, exploratory])
   const checks = useMemo(
     () =>
-      withRenderCheck(withFocusSide(auditFrameLayout({ root: tree }, active, size, declarations), model, focus), renderProblems),
+      withRenderCheck(
+        withFocusSide(auditFrameLayout({ root: tree }, exploratory ? withVocabulary(active) : active, size, declarations), model, focus),
+        renderProblems,
+      ),
     [tree, active, size, model, focus, renderProblems, declarations],
   )
 
