@@ -228,6 +228,16 @@ export const RULES = [
 /** Every id in the built-in book — the validator can only name one of these. */
 export type RuleId = (typeof RULES)[number]['id']
 
+/** Where an issue sits, as keys and indexes: `['root', 'children', 1, 'props', 'items', 2, 'label']`. */
+export type IssuePath = (string | number)[]
+
+/** One broken rule: which one, the sentence the Generator acts on, and where (relative to the screen). */
+export interface RuleProblem {
+  ruleId: RuleId
+  message: string
+  path: IssuePath
+}
+
 /** The book the active design system follows: its own, or the built-in one. */
 export function rulesOf(manifest: DesignSystemManifest): readonly PatternRule[] {
   return manifest.rules ?? RULES

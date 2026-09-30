@@ -36,7 +36,8 @@ import {
   MAX_SCREENS,
   unknownBlueprintKeyReason,
 } from '../blueprint'
-import { flowProblems, type FlowScreen } from './flow'
+import { flowIssues, type FlowScreen } from './flow'
+import type { IssuePath, RuleId, RuleProblem } from './rules'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -50,7 +51,7 @@ import {
 import {
   describeGrid,
   isOnGrid,
-  frameLayoutErrors,
+  frameLayoutIssues,
   isOffGridSpacingToken,
   onGridSpacingNames,
   snapSpacingName,
@@ -219,26 +220,48 @@ export function tokenTierViolation(
 // Strict blueprint validation (pipeline step 3)
 // ---------------------------------------------------------------------------
 
-export type BlueprintValidation = { ok: true } | { ok: false; errors: string[] }
+/** One problem the validator found: the rule it breaks, the retry sentence, and where in the document. */
+export interface ValidationIssue {
+  ruleId: RuleId
+  message: string
+  /** From the document: `['screens', 0, 'root', 'children', 1, 'props', 'items', 2, 'label']`. */
+  path: IssuePath
+}
+
+export type BlueprintValidation =
+  | { ok: true }
+  | {
+      ok: false
+      /** @deprecated `issues.map((i) => i.message)`, kept for the current callers. Removed in 9D — read `issues`. */
+      errors: string[]
+      issues: ValidationIssue[]
+    }
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function invalid(issues: ValidationIssue[]): BlueprintValidation {
+  return issues.length === 0 ? { ok: true } : { ok: false, errors: issues.map((i) => i.message), issues }
 }
 
 export function validateBlueprintAgainstManifest(
   input: unknown,
   manifest: DesignSystemManifest,
 ): BlueprintValidation {
-  if (!isObject(input)) return { ok: false, errors: ['Blueprint must be a JSON object.'] }
+  if (!isObject(input)) return invalid([{ ruleId: 'blueprint.dsl', path: [], message: 'Blueprint must be a JSON object.' }])
 
-  const errors: string[] = []
+  const issues: ValidationIssue[] = []
+  const add = (ruleId: RuleId, path: IssuePath, message: string): void => {
+    issues.push({ ruleId, message, path })
+  }
   for (const key of Object.keys(input)) {
     if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
-      errors.push(`Unknown key "${key}" next to "root" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
+      add('blueprint.dsl', [key], `Unknown key "${key}" next to "root" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
     }
   }
   if (input.version !== SUPPORTED_VERSION) {
-    errors.push(`"version" must be ${SUPPORTED_VERSION} (got ${JSON.stringify(input.version)}).`)
+    add('blueprint.dsl', ['version'], `"version" must be ${SUPPORTED_VERSION} (got ${JSON.stringify(input.version)}).`)
   }
 
   if (input.notes !== undefined) {
@@ -248,7 +271,9 @@ export function validateBlueprintAgainstManifest(
       notes.length > MAX_NOTES ||
       notes.some((n) => typeof n !== 'string' || n.length === 0 || n.length > MAX_NOTE_LENGTH)
     ) {
-      errors.push(
+      add(
+        'blueprint.dsl',
+        ['notes'],
         `"notes" must be a list of at most ${MAX_NOTES} short strings (each up to ${MAX_NOTE_LENGTH} characters) — what the user should know about the result.`,
       )
     }
@@ -259,61 +284,69 @@ export function validateBlueprintAgainstManifest(
   const screens: FlowScreen[] = [
     { id: typeof input.id === 'string' && input.id ? input.id : FIRST_SCREEN_ID, screen: input.screen, root: input.root },
   ]
+  /** Where each of `screens` sits in the document: the first screen is the document itself. */
+  const bases: IssuePath[] = [[]]
   if (input.screens !== undefined) {
     if (!Array.isArray(input.screens)) {
-      errors.push('"screens" must be a list of screens: [{ "id", "name", "screen", "root" }].')
+      add('blueprint.dsl', ['screens'], '"screens" must be a list of screens: [{ "id", "name", "screen", "root" }].')
     } else {
       if (input.screens.length + 1 > MAX_SCREENS) {
-        errors.push(`A document carries at most ${MAX_SCREENS} screens (got ${input.screens.length + 1}).`)
+        add('blueprint.dsl', ['screens'], `A document carries at most ${MAX_SCREENS} screens (got ${input.screens.length + 1}).`)
       }
       input.screens.slice(0, MAX_SCREENS - 1).forEach((raw: unknown, i: number) => {
         if (!isObject(raw)) {
-          errors.push(`screens[${i}]: a screen must be an object { "id", "name", "screen", "root" }.`)
+          add('blueprint.dsl', ['screens', i], `screens[${i}]: a screen must be an object { "id", "name", "screen", "root" }.`)
           return
         }
         for (const key of Object.keys(raw)) {
           if (!BLUEPRINT_SCREEN_KEYS.includes(key)) {
-            errors.push(`screens[${i}]: unknown key "${key}" — the Blueprint DSL has no such key. Remove it.`)
+            add('blueprint.dsl', ['screens', i, key], `screens[${i}]: unknown key "${key}" — the Blueprint DSL has no such key. Remove it.`)
           }
         }
         if (typeof raw.id !== 'string' || !raw.id) {
-          errors.push(`screens[${i}]: every further screen needs a string "id" — that is what "goTo" names.`)
+          add('blueprint.dsl', ['screens', i, 'id'], `screens[${i}]: every further screen needs a string "id" — that is what "goTo" names.`)
           return
         }
         screens.push({ id: raw.id, screen: raw.screen, root: raw.root })
+        bases.push(['screens', i])
       })
     }
   }
 
   const many = screens.length > 1
-  for (const s of screens) {
-    const found = validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest)
-    errors.push(...(many ? found.map((message) => `Screen "${s.id}": ${message}`) : found))
-  }
-  errors.push(...flowProblems(screens, manifest))
+  screens.forEach((s, i) => {
+    for (const found of validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest)) {
+      add(found.ruleId, [...bases[i], ...found.path], many ? `Screen "${s.id}": ${found.message}` : found.message)
+    }
+  })
+  for (const found of flowIssues(screens, manifest)) add(found.ruleId, [...bases[found.screen], ...found.path], found.message)
 
-  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+  return invalid(issues)
 }
 
-/** One screen — `{ version, screen?, root }` — against the manifest. */
-function validateScreen(input: Record<string, unknown>, manifest: DesignSystemManifest): string[] {
-  const errors: string[] = []
+/** One screen — `{ version, screen?, root }` — against the manifest. Paths are relative to that screen. */
+function validateScreen(input: Record<string, unknown>, manifest: DesignSystemManifest): RuleProblem[] {
+  const issues: RuleProblem[] = []
   const schemas = compileManifestSchemas(manifest)
   const allowed = Object.keys(manifest.components)
   const rootType = rootContainerId(manifest)
 
   if (!isObject(input.root)) {
-    return [...errors, 'Blueprint must have a "root" node object.']
+    return [{ ruleId: 'blueprint.dsl', path: ['root'], message: 'Blueprint must have a "root" node object.' }]
   }
   if (rootType && input.root.type !== rootType) {
-    errors.push(`The root node must be a <${rootType}> (got ${JSON.stringify(input.root.type)}).`)
+    issues.push({
+      ruleId: 'frame.layout',
+      path: ['root', 'type'],
+      message: `The root node must be a <${rootType}> (got ${JSON.stringify(input.root.type)}).`,
+    })
   }
 
-  validateNode(input.root, 'root', { schemas, manifest, allowed }, errors, null)
+  validateNode(input.root, 'root', ['root'], { schemas, manifest, allowed }, issues, null)
   // Layout QA: frame margins, the 8pt grid + gutters, focus anchoring.
-  errors.push(...frameLayoutErrors(input, manifest))
+  issues.push(...frameLayoutIssues(input, manifest))
 
-  return errors
+  return issues
 }
 
 interface Ctx {
@@ -325,52 +358,56 @@ interface Ctx {
 function validateNode(
   raw: unknown,
   path: string,
+  at: IssuePath,
   ctx: Ctx,
-  errors: string[],
+  issues: RuleProblem[],
   parentType: string | null,
 ): void {
+  const add = (ruleId: RuleId, where: IssuePath, message: string): void => {
+    issues.push({ ruleId, message, path: where })
+  }
   if (!isObject(raw)) {
-    errors.push(`${path}: node must be an object.`)
+    add('blueprint.dsl', at, `${path}: node must be an object.`)
     return
   }
 
   const type = raw.type
   if (typeof type !== 'string') {
-    errors.push(`${path}: node is missing a string "type".`)
+    add('blueprint.dsl', [...at, 'type'], `${path}: node is missing a string "type".`)
     return
   }
 
   const component: ManifestComponent | undefined = ctx.manifest.components[type]
   if (!component) {
-    errors.push(
-      `${path}: <${type}> is not a real component. Allowed: ${ctx.allowed.join(', ')}.`,
-    )
+    add('component.api', [...at, 'type'], `${path}: <${type}> is not a real component. Allowed: ${ctx.allowed.join(', ')}.`)
     return
   }
   for (const key of Object.keys(raw)) {
     if (!BLUEPRINT_NODE_KEYS.includes(key)) {
-      errors.push(`${path} <${type}>: unknown node key "${key}" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
+      add('blueprint.dsl', [...at, key], `${path} <${type}>: unknown node key "${key}" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
     }
   }
 
   // A component that only lives inside another (a card's zones) can't stand alone.
   if (parentType === null && component.parents) {
-    errors.push(`${path}: <${type}> only goes directly inside ${component.parents.map((t) => `<${t}>`).join(' or ')}.`)
+    add('layout.slots', at, `${path}: <${type}> only goes directly inside ${component.parents.map((t) => `<${t}>`).join(' or ')}.`)
   } else if (parentType !== null) {
     const misplaced = placementError(ctx.manifest, parentType, type)
-    if (misplaced) errors.push(`${path}: ${misplaced}`)
+    if (misplaced) add('layout.slots', at, `${path}: ${misplaced}`)
   }
 
   const props = isObject(raw.props) ? raw.props : {}
   const schema = ctx.schemas[type]
 
   for (const key of Object.keys(props)) {
+    const where: IssuePath = [...at, 'props', key]
     if (!(key in component.props)) {
-      errors.push(`${path} <${type}>: unknown prop "${key}".`)
+      add('component.api', where, `${path} <${type}>: unknown prop "${key}".`)
       continue
     }
     const field = (schema.shape as Record<string, z.ZodTypeAny>)[key]
-    if (field && !field.safeParse(props[key]).success) {
+    const parsed = field?.safeParse(props[key])
+    if (parsed && !parsed.success) {
       // A real spacing token rejected only for sitting off the grid is reported
       // by the frame audit, whose message explains the grid rule.
       const group = component.props[key].tokenGroup
@@ -379,7 +416,8 @@ function validateNode(
       }
       const violation = group ? tokenTierViolation(ctx.manifest, group, props[key]) : null
       if (violation) {
-        errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
+        const tier = isCoreToken(ctx.manifest, group!, props[key]) ? 'tokens.semantic-tier' : 'tokens.only'
+        add(tier, where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} ${violation}`)
         continue
       }
       const spec = component.props[key]
@@ -391,10 +429,14 @@ function validateNode(
           spec.max !== undefined && spec.min === undefined ? `of at most ${spec.max}` : '',
           spec.grid ? `on the 8pt scale (${describeGrid()})` : '',
         ].filter(Boolean).join(' ')
-        errors.push(`${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
+        const offGrid = spec.grid && typeof props[key] === 'number' && !isOnGrid(props[key] as number)
+        add(offGrid ? 'grid.8pt' : 'component.api', where, `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} must be ${range}.`)
         continue
       }
-      errors.push(
+      // A list item's bad field is pinned by Zod's own path (`[2].label`).
+      add(
+        'component.api',
+        [...where, ...(parsed.error.issues[0]?.path ?? [])],
         `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} is not an allowed value.`,
       )
     }
@@ -404,15 +446,15 @@ function validateNode(
     const text = 'children' in component.props
       ? ` To give <${type}> its words, set "props": { "children": ${JSON.stringify(raw.children)} }.`
       : ''
-    errors.push(`${path} <${type}>: "children" is a list of nodes, not ${JSON.stringify(raw.children)}.${text}`)
+    add('component.api', [...at, 'children'], `${path} <${type}>: "children" is a list of nodes, not ${JSON.stringify(raw.children)}.${text}`)
   }
   const children = Array.isArray(raw.children) ? raw.children : []
   if (children.length > 0 && !component.acceptsChildren) {
-    errors.push(`${path} <${type}>: cannot have children.`)
+    add('component.api', [...at, 'children'], `${path} <${type}>: cannot have children.`)
   }
   if (component.acceptsChildren) {
-    children.forEach((child, i) => validateNode(child, `${path} › ${type}[${i}]`, ctx, errors, type))
+    children.forEach((child, i) => validateNode(child, `${path} › ${type}[${i}]`, [...at, 'children', i], ctx, issues, type))
     const childTypes = children.map((c) => (isObject(c) && typeof c.type === 'string' ? c.type : ''))
-    for (const problem of slotOrderErrors(component, childTypes)) errors.push(`${path}: ${problem}`)
+    for (const problem of slotOrderErrors(component, childTypes)) add('layout.slots', [...at, 'children'], `${path}: ${problem}`)
   }
 }

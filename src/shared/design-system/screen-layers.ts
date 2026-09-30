@@ -26,6 +26,7 @@ import {
   SCREEN_LAYER_STACK,
   defaultForProp,
 } from './manifest'
+import type { RuleProblem } from './rules'
 
 export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
   rule: 'Every screen is three layers, bottom to top: the video (the live broadcast or a VOD still), the overlay that keeps the content legible, and the content. The overlay is never free-form: each screen type uses one fixed combination of shade pieces, set by where its components occupy the screen, and each screen sits on a navigation level that limits what it shows.',
@@ -351,27 +352,49 @@ function modelList(layers: ManifestScreenLayers): string {
  * root carries `screen`.
  */
 export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest): string[] {
+  return auditScreenLayerIssues(doc, manifest).map((issue) => issue.message)
+}
+
+/** The same, each naming its rule and where it sits (relative to `{ screen, root }`). */
+export function auditScreenLayerIssues(doc: unknown, manifest: DesignSystemManifest): RuleProblem[] {
   const layers = screenLayersOf(manifest)
   if (layers.models.length === 0) return []
   const d = isObject(doc) ? doc : {}
   const root = isObject(d.root) ? (d.root as LayerNode & { screen?: unknown }) : undefined
   const screen = d.screen ?? root?.screen
-  const problems: string[] = []
+  const problems: RuleProblem[] = []
+  const add = (ruleId: RuleProblem['ruleId'], path: RuleProblem['path'], message: string): void => {
+    problems.push({ ruleId, path, message })
+  }
 
   if (screen === undefined) {
     return [
-      `The screen names no layer model. Add "screen": { "model": …, "level": … } next to "root" — one of ${modelList(layers)}.`,
+      {
+        ruleId: 'layers.overlay-model',
+        path: ['screen'],
+        message: `The screen names no layer model. Add "screen": { "model": …, "level": … } next to "root" — one of ${modelList(layers)}.`,
+      },
     ]
   }
-  if (!isObject(screen)) return ['"screen" must be an object: { "model": …, "level": … }.']
+  if (!isObject(screen)) {
+    return [{ ruleId: 'blueprint.dsl', path: ['screen'], message: '"screen" must be an object: { "model": …, "level": … }.' }]
+  }
 
   const model = screenModel(layers, screen.model)
   if (!model) {
-    return [`screen.model ${JSON.stringify(screen.model)} is not a layer model. Use one of ${modelList(layers)}.`]
+    return [
+      {
+        ruleId: 'layers.overlay-model',
+        path: ['screen', 'model'],
+        message: `screen.model ${JSON.stringify(screen.model)} is not a layer model. Use one of ${modelList(layers)}.`,
+      },
+    ]
   }
   const level = navigationLevel(layers, model.level)
   if (screen.level !== model.level) {
-    problems.push(
+    add(
+      'layers.overlay-model',
+      ['screen', 'level'],
       `screen.level ${JSON.stringify(screen.level)} doesn't match "${model.id}" (${model.name}), a level ${model.level} screen${level ? ` (${level.name})` : ''} — set "level": ${model.level}, or pick a model on level ${JSON.stringify(screen.level)}.`,
     )
   }
@@ -380,16 +403,21 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
   const painted = paintsBackground(manifest, root)
   const clear = clearBackgroundFor(manifest, root)
   if (painted !== null && clear) {
-    problems.push(
+    add(
+      'layers.stack',
+      ['root', 'props', clear.prop],
       `The content layer is transparent — the engine paints the video and the overlay under it, so the outermost container sets ${clear.prop} "${clear.clear}" (got ${JSON.stringify(painted)}). Give surfaces to the cards inside it instead.`,
     )
   }
 
-  const children = Array.isArray(root.children) ? root.children.filter(isObject) : []
+  const all: unknown[] = Array.isArray(root.children) ? root.children : []
+  const children = all.filter(isObject)
   const modules = children.filter((child) => child.anchor !== true)
   const anchored = children.length - modules.length
   if (level && level.maxModules !== null && modules.length > level.maxModules) {
-    problems.push(
+    add(
+      'level.module-limit',
+      ['root'],
       `A level ${level.level} screen (${level.name}) shows ${level.maxModules === 1 ? 'a single content module' : `at most ${level.maxModules} content modules`}: the outermost container has ${modules.length} un-anchored children — group them into one container, or pick a level 1 model. ${level.rule}`,
     )
   }
@@ -398,35 +426,43 @@ export function auditScreenLayers(doc: unknown, manifest: DesignSystemManifest):
     const roles = layers.menu
     if (check && roles && !check.allowed.includes(String(check.found))) {
       const where = check.railSide === 'left' ? 'the Home rail is on the left, so the focus is on the left button that owns it' : 'the focus starts on the program button (its rail, the programme\'s context, is on the right)'
-      problems.push(
+      add(
+        'level.initial-focus',
+        ['root'],
         `<${roles.component}> ${roles.prop} ${JSON.stringify(check.found)} — ${where}: use ${check.allowed.map((a) => JSON.stringify(a)).join(' or ')}.`,
       )
     }
   }
   const never = unanchorableTypes(manifest)
-  for (const child of children) {
-    if (child.anchor === true && typeof child.type === 'string' && never.has(child.type)) {
-      problems.push(
+  all.forEach((child, i) => {
+    if (isObject(child) && child.anchor === true && typeof child.type === 'string' && never.has(child.type)) {
+      add(
+        'layout.anchor-structure',
+        ['root', 'children', i, 'anchor'],
         `<${child.type}> is anchored — it holds the screen's focus in the content, so it never floats in the anchored corner. Remove "anchor" from it; anchor only a secondary cluster.`,
       )
     }
-  }
+  })
   if (level && !level.allowsAnchor && anchored > 0) {
-    problems.push(`A level ${level.level} screen (${level.name}) anchors nothing — remove "anchor". ${level.rule}`)
+    add('layout.anchor', ['root'], `A level ${level.level} screen (${level.name}) anchors nothing — remove "anchor". ${level.rule}`)
   }
 
   if (model.side) {
     const side = staticContentSide(manifest, root)
     const prop = sidePropFor(manifest, root)
     if (side && prop && side !== model.side) {
-      problems.push(
+      add(
+        'layers.overlay-model',
+        ['root', 'props', prop.prop],
         `"${model.id}" (${model.name}) shades the ${model.side} side, but the outermost container puts its content on the ${side} — set ${prop.prop} "${prop.values[model.side]}", or pick a ${side} model.`,
       )
     }
     // The root stretches, so the module is what places the content.
     const placed = side ? null : moduleContentSide(manifest, root)
     if (placed && placed.side !== model.side) {
-      problems.push(
+      add(
+        'layers.overlay-model',
+        ['root'],
         `"${model.id}" (${model.name}) shades the ${model.side} side, but the <${placed.type}> puts its content on the ${placed.side} — set its ${placed.prop} "${placed.values[model.side]}", or pick a ${placed.side} model.`,
       )
     }

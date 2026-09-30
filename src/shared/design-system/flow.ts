@@ -10,6 +10,7 @@
 
 import { screenLayersOf, screenModel } from './screen-layers'
 import type { DesignSystemManifest } from './manifest'
+import type { IssuePath, RuleProblem } from './rules'
 
 /** A tree in either shape — a raw Blueprint node or a canvas node. */
 interface LinkNode {
@@ -28,19 +29,24 @@ export interface FlowLink {
 
 /** Every `goTo` in a tree, with where it sits. */
 export function collectLinks(root: unknown, rootPath = 'root'): FlowLink[] {
-  const links: FlowLink[] = []
-  const walk = (raw: unknown, path: string): void => {
+  return linksWithPaths(root, rootPath).map(({ at: _, ...link }) => link)
+}
+
+/** `collectLinks`, plus each link's structured path from the screen (`['root', 'children', 0, …]`). */
+function linksWithPaths(root: unknown, rootPath = 'root'): (FlowLink & { at: IssuePath })[] {
+  const links: (FlowLink & { at: IssuePath })[] = []
+  const walk = (raw: unknown, path: string, at: IssuePath): void => {
     if (typeof raw !== 'object' || raw === null) return
     const node = raw as LinkNode
-    if (node.goTo !== undefined) links.push({ path, type: String(node.type), target: node.goTo })
+    if (node.goTo !== undefined) links.push({ path, type: String(node.type), target: node.goTo, at })
     if (Array.isArray(node.children)) {
       node.children.forEach((child, i) => {
         const type = typeof child === 'object' && child !== null ? String((child as LinkNode).type) : '?'
-        walk(child, `${path} › ${type}[${i}]`)
+        walk(child, `${path} › ${type}[${i}]`, [...at, 'children', i])
       })
     }
   }
-  walk(root, rootPath)
+  walk(root, rootPath, ['root'])
   return links
 }
 
@@ -97,31 +103,46 @@ export interface FlowScreen {
  * itself, a jump past the next level.
  */
 export function flowProblems(screens: FlowScreen[], manifest: DesignSystemManifest): string[] {
-  const problems: string[] = []
+  return flowIssues(screens, manifest).map((issue) => issue.message)
+}
+
+/** The same, each naming its rule, the index of the screen it is on, and where on that screen. */
+export function flowIssues(screens: FlowScreen[], manifest: DesignSystemManifest): (RuleProblem & { screen: number })[] {
+  const problems: (RuleProblem & { screen: number })[] = []
   const ids = new Set<string>()
-  for (const s of screens) {
-    if (ids.has(s.id)) problems.push(`Two screens share the id "${s.id}" — every screen id is unique.`)
+  screens.forEach((s, i) => {
+    if (ids.has(s.id)) {
+      problems.push({ ruleId: 'blueprint.dsl', screen: i, path: ['id'], message: `Two screens share the id "${s.id}" — every screen id is unique.` })
+    }
     ids.add(s.id)
-  }
+  })
   const list = [...ids].map((id) => `"${id}"`).join(', ')
-  for (const from of screens) {
+  screens.forEach((from, screen) => {
     const fromLevel = levelOfScreen(manifest, from.screen)
-    for (const link of collectLinks(from.root)) {
+    for (const link of linksWithPaths(from.root)) {
       const where = `screen "${from.id}" ${link.path}`
+      const path = [...link.at, 'goTo']
       if (typeof link.target !== 'string' || !ids.has(link.target)) {
-        problems.push(`${where}: goTo ${JSON.stringify(link.target)} is not a screen of this document. Screens: ${list}.`)
+        problems.push({
+          ruleId: 'blueprint.dsl',
+          screen,
+          path,
+          message: `${where}: goTo ${JSON.stringify(link.target)} is not a screen of this document. Screens: ${list}.`,
+        })
         continue
       }
       if (link.target === from.id) {
-        problems.push(`${where}: goTo "${link.target}" links the screen to itself.`)
+        problems.push({ ruleId: 'blueprint.dsl', screen, path, message: `${where}: goTo "${link.target}" links the screen to itself.` })
         continue
       }
       const target = screens.find((s) => s.id === link.target)
       const toLevel = levelOfScreen(manifest, target?.screen)
-      const jump = levelJumpProblem(fromLevel, toLevel) ?? linkRoleProblem(manifest, link.type, fromLevel, toLevel)
-      if (jump) problems.push(`${where}: goTo "${link.target}" — ${jump}.`)
+      const jump = levelJumpProblem(fromLevel, toLevel)
+      const role = jump ? null : linkRoleProblem(manifest, link.type, fromLevel, toLevel)
+      if (jump) problems.push({ ruleId: 'flow.next-level', screen, path, message: `${where}: goTo "${link.target}" — ${jump}.` })
+      else if (role) problems.push({ ruleId: 'flow.link-roles', screen, path, message: `${where}: goTo "${link.target}" — ${role}.` })
     }
-  }
+  })
   problems.push(...railProblems(screens, manifest))
   return problems
 }
@@ -130,7 +151,7 @@ export function flowProblems(screens: FlowScreen[], manifest: DesignSystemManife
  * Entering the rail doesn't change what's in it: every second-level page shows
  * as many interactivity buttons as the Home rail it is entered from.
  */
-function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): string[] {
+function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): (RuleProblem & { screen: number })[] {
   const on = screenLayersOf(manifest).levels.find((l) => l.level === 2)?.initialFocus?.on ?? []
   if (on.length === 0) return []
   const count = (root: unknown): number => {
@@ -147,13 +168,18 @@ function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): st
   const home = screens.find((s) => levelOfScreen(manifest, s.screen) === 1 && count(s.root) > 0)
   if (!home) return []
   const expected = count(home.root)
-  return screens
-    .filter((s) => levelOfScreen(manifest, s.screen) === 2)
-    .filter((s) => count(s.root) !== expected)
-    .map(
-      (s) =>
-        `Screen "${s.id}": the rail shows ${count(s.root)} interactivity button(s), but the Home rail it is entered from ("${home.id}") shows ${expected} — the second level is the same rail, entered; keep the same cards.`,
-    )
+  return screens.flatMap((s, screen) =>
+    levelOfScreen(manifest, s.screen) === 2 && count(s.root) !== expected
+      ? [
+          {
+            ruleId: 'flow.rail-consistency' as const,
+            screen,
+            path: ['root'],
+            message: `Screen "${s.id}": the rail shows ${count(s.root)} interactivity button(s), but the Home rail it is entered from ("${home.id}") shows ${expected} — the second level is the same rail, entered; keep the same cards.`,
+          },
+        ]
+      : [],
+  )
 }
 
 // ---------------------------------------------------------------------------

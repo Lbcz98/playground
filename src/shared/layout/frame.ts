@@ -36,7 +36,8 @@ import type {
   ManifestProp,
 } from '@/shared/design-system/manifest'
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
-import { auditScreenLayers, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import { auditScreenLayerIssues, navigationLevel, screenLayersOf, screenModel } from '@/shared/design-system/screen-layers'
+import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
 
 export const FRAME = {
   /** The layout canvas — what the agent targets and the frame is laid out at. */
@@ -394,12 +395,27 @@ export function auditFrameLayout(
   manifest: DesignSystemManifest,
   size: FrameSizeId = DEFAULT_FRAME_SIZE,
 ): FrameCheck[] {
+  return auditFrameIssues(doc, manifest, size).map(({ id, label, issues }) => ({
+    id,
+    label,
+    ok: issues.length === 0,
+    problems: issues.map((issue) => issue.message),
+  }))
+}
+
+/** The same checklist, each problem naming the rule it breaks and where (relative to `{ screen, root }`). */
+function auditFrameIssues(
+  doc: unknown,
+  manifest: DesignSystemManifest,
+  size: FrameSizeId,
+): { id: FrameCheckId; label: string; issues: RuleProblem[] }[] {
   const d = isObject(doc) ? doc : {}
   const shown = FRAME_SIZES[size]
-  const frame: string[] = []
-  const margins: string[] = []
-  const grid: string[] = []
-  const focus: string[] = []
+  const frame: RuleProblem[] = []
+  const margins: RuleProblem[] = []
+  const grid: RuleProblem[] = []
+  const focus: RuleProblem[] = []
+  const problem = (ruleId: RuleProblem['ruleId'], path: IssuePath, message: string): RuleProblem => ({ ruleId, message, path })
   /** Every node whose props put it in a focus state — a TV screen allows one. */
   const focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[] = []
   const seen = new Set<string>()
@@ -410,21 +426,25 @@ export function auditFrameLayout(
     ['shown width', shown.width],
     ['shown height', shown.height],
   ] as const) {
-    if (!isOnGrid(px)) frame.push(`The frame ${name} (${px}px) is off the ${FRAME.grid}pt grid.`)
+    if (!isOnGrid(px)) frame.push(problem('frame.layout', [], `The frame ${name} (${px}px) is off the ${FRAME.grid}pt grid.`))
   }
 
   const layoutId = rootContainerId(manifest)
   /** `inModule`: below a component that isn't the layout's stack, where gutters don't apply. */
-  const walk = (node: FrameNode, path: string, depth: number, inModule: boolean): void => {
+  const walk = (node: FrameNode, path: string, at: IssuePath, depth: number, inModule: boolean): void => {
     const component =
       typeof node.type === 'string' ? manifest.components[node.type] : undefined
 
     if (node.anchor !== undefined && node.anchor !== false) {
       if (node.anchor !== true) {
-        focus.push(`${path}: "anchor" must be true or omitted.`)
+        focus.push(problem('layout.anchor-structure', [...at, 'anchor'], `${path}: "anchor" must be true or omitted.`))
       } else if (depth !== 1) {
         focus.push(
-          `${path}${component ? ` <${component.id}>` : ''}: only a direct child of the root can be anchored — the frame places it on the focused side.`,
+          problem(
+            'layout.anchor-structure',
+            [...at, 'anchor'],
+            `${path}${component ? ` <${component.id}>` : ''}: only a direct child of the root can be anchored — the frame places it on the focused side.`,
+          ),
         )
       }
     }
@@ -442,7 +462,11 @@ export function auditFrameLayout(
       const px = spacingPx(manifest, value)
       if (px !== null && !isOnGrid(px)) {
         grid.push(
-          `${path} <${component.id}>: ${prop.name} ${JSON.stringify(value)} is ${px}px — off the ${FRAME.grid}pt grid; use ${describeGrid()}.`,
+          problem(
+            'grid.8pt',
+            [...at, 'props', prop.name],
+            `${path} <${component.id}>: ${prop.name} ${JSON.stringify(value)} is ${px}px — off the ${FRAME.grid}pt grid; use ${describeGrid()}.`,
+          ),
         )
       }
     }
@@ -454,16 +478,22 @@ export function auditFrameLayout(
       if (px !== null && isOnGrid(px) && px !== FRAME.gutter) {
         const gutter = spacingNameForPx(manifest, allowedSpacingNames(manifest, gap), FRAME.gutter)
         grid.push(
-          `${path} <${component.id}>: ${gap.name} ${JSON.stringify(value)} is ${px}px — ${
-            depth === 0 ? "the root's top-level modules" : 'stacked modules and columns'
-          } sit exactly ${FRAME.gutter}px apart${gutter ? `; use ${JSON.stringify(gutter)}` : ''}.`,
+          problem(
+            'frame.layout',
+            [...at, 'props', gap.name],
+            `${path} <${component.id}>: ${gap.name} ${JSON.stringify(value)} is ${px}px — ${
+              depth === 0 ? "the root's top-level modules" : 'stacked modules and columns'
+            } sit exactly ${FRAME.gutter}px apart${gutter ? `; use ${JSON.stringify(gutter)}` : ''}.`,
+          ),
         )
       }
     }
 
     if (component.acceptsChildren) {
       childList(node).forEach((child, i) => {
-        if (isObject(child)) walk(child, `${path} › ${component.id}[${i}]`, depth + 1, inModule || component.id !== layoutId)
+        if (isObject(child)) {
+          walk(child, `${path} › ${component.id}[${i}]`, [...at, 'children', i], depth + 1, inModule || component.id !== layoutId)
+        }
       })
     }
   }
@@ -480,9 +510,13 @@ export function auditFrameLayout(
         if (px !== null && px !== 0) {
           const zero = spacingNameForPx(manifest, allowedSpacingNames(manifest, padding), 0)
           margins.push(
-            `root <${rootComponent.id}>: ${padding.name} ${JSON.stringify(value)} adds ${px}px inside the frame's ${FRAME.margin}px safe-area margin — the margin must be exactly ${FRAME.margin}px, so ${
-              zero ? `set ${padding.name} to ${JSON.stringify(zero)}` : `remove the root's ${padding.name}`
-            }.`,
+            problem(
+              'frame.layout',
+              ['root', 'props', padding.name],
+              `root <${rootComponent.id}>: ${padding.name} ${JSON.stringify(value)} adds ${px}px inside the frame's ${FRAME.margin}px safe-area margin — the margin must be exactly ${FRAME.margin}px, so ${
+                zero ? `set ${padding.name} to ${JSON.stringify(zero)}` : `remove the root's ${padding.name}`
+              }.`,
+            ),
           )
         }
       }
@@ -492,24 +526,32 @@ export function auditFrameLayout(
         const value = propValue(root, stretch)
         if (value !== 'stretch') {
           focus.push(
-            `root <${rootComponent.id}>: ${stretch.name} ${JSON.stringify(value)} — the stack that holds the components always stretches (${stretch.name} "stretch"); a module that belongs on one side positions itself inside it (its own ${stretch.name}/justify, or a row set to justify "end").`,
+            problem(
+              'layout.root-align',
+              ['root', 'props', stretch.name],
+              `root <${rootComponent.id}>: ${stretch.name} ${JSON.stringify(value)} — the stack that holds the components always stretches (${stretch.name} "stretch"); a module that belongs on one side positions itself inside it (its own ${stretch.name}/justify, or a row set to justify "end").`,
+            ),
           )
         }
       }
       for (const prop of centeringPropsFor(rootComponent)) {
         if (prop === stretch || propValue(root, prop) !== 'center') continue
         focus.push(
-          `root <${rootComponent.id}>: ${prop.name} "center" statically centers the master layout — TV layouts follow the focus instead; use ${JSON.stringify(uncenteredValue(prop))}.`,
+          problem(
+            'layout.no-static-center',
+            ['root', 'props', prop.name],
+            `root <${rootComponent.id}>: ${prop.name} "center" statically centers the master layout — TV layouts follow the focus instead; use ${JSON.stringify(uncenteredValue(prop))}.`,
+          ),
         )
       }
     }
 
-    walk(root, 'root', 0, false)
+    walk(root, 'root', ['root'], 0, false)
 
     const anchored = childList(root).filter((child) => isObject(child) && child.anchor === true)
     if (anchored.length > 1) {
       focus.push(
-        `root: ${anchored.length} children are anchored — anchor at most one element group per frame.`,
+        problem('layout.anchor', ['root'], `root: ${anchored.length} children are anchored — anchor at most one element group per frame.`),
       )
     }
 
@@ -522,18 +564,17 @@ export function auditFrameLayout(
         .map((f) => `${f.prop.name} ${JSON.stringify(unfocusedValue(f.prop))}`)
         .join(' / ')
       focus.push(
-        `${focused.length} elements are focused (${list}) — a TV screen has exactly one: the one the viewer is on. ` +
-          `Keep the one the screen is about and rest the others (${resting}).`,
+        problem(
+          'focus.single',
+          ['root'],
+          `${focused.length} elements are focused (${list}) — a TV screen has exactly one: the one the viewer is on. ` +
+            `Keep the one the screen is about and rest the others (${resting}).`,
+        ),
       )
     }
   }
 
-  const check = (id: FrameCheckId, label: string, problems: string[]): FrameCheck => ({
-    id,
-    label,
-    ok: problems.length === 0,
-    problems,
-  })
+  const check = (id: FrameCheckId, label: string, issues: RuleProblem[]) => ({ id, label, issues })
 
   const layout = `${FRAME.base.width}×${FRAME.base.height}`
   return [
@@ -546,9 +587,9 @@ export function auditFrameLayout(
     check('grid', `${FRAME.grid}pt grid · ${FRAME.gutter}px gutters`, grid),
     check('focus', 'Focus — no static centering, one focused element, one anchored group', focus),
     check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side, where focus starts', [
-      ...auditScreenLayers(d, manifest),
-      ...levelFocusProblems(manifest, screenOf(d), focused, seen),
-      ...levelRootProblems(manifest, screenOf(d), isObject(d.root) ? d.root : undefined),
+      ...auditScreenLayerIssues(d, manifest),
+      ...levelFocusIssues(manifest, screenOf(d), focused, seen),
+      ...levelRootIssues(manifest, screenOf(d), isObject(d.root) ? d.root : undefined),
     ]),
   ]
 }
@@ -580,6 +621,14 @@ export function levelRootProblems(
   screen: unknown,
   root: FrameNode | undefined,
 ): string[] {
+  return levelRootIssues(manifest, screen, root).map((issue) => issue.message)
+}
+
+function levelRootIssues(
+  manifest: DesignSystemManifest,
+  screen: unknown,
+  root: FrameNode | undefined,
+): RuleProblem[] {
   const layers = screenLayersOf(manifest)
   const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
   const level = model ? navigationLevel(layers, model.level) : undefined
@@ -588,25 +637,30 @@ export function levelRootProblems(
   if (!component) return []
   const column = columnDirectionFor(component)
   if (!column) return []
-  const problems: string[] = []
+  const problems: RuleProblem[] = []
   const direction = propValue(root, column.prop)
   // A level that shows at most one module wraps it in a row to keep its side; a
   // level with no module limit (Home) just stacks its children as they are —
   // each one already places itself with its own align/justify.
   const oneModule = level.maxModules === 1
   if (direction !== column.column) {
-    problems.push(
-      `Level ${level.level} (${level.name}): the outermost <${component.id}> is a column — direction ${JSON.stringify(direction)}, use ${JSON.stringify(column.column)}` +
+    problems.push({
+      ruleId: 'level.root-direction',
+      path: ['root', 'props', column.prop.name],
+      message:
+        `Level ${level.level} (${level.name}): the outermost <${component.id}> is a column — direction ${JSON.stringify(direction)}, use ${JSON.stringify(column.column)}` +
         (oneModule ? '; put the module on its side with a row inside it (justify "start" or "end").' : '.'),
-    )
+    })
   }
   if (level.rootEnd) {
     const prop = justifyPropFor(component)
     const value = prop ? propValue(root, prop) : undefined
     if (prop && value !== 'end') {
-      problems.push(
-        `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
-      )
+      problems.push({
+        ruleId: 'level.root-direction',
+        path: ['root', 'props', prop.name],
+        message: `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
+      })
     }
   }
   return problems
@@ -629,6 +683,15 @@ export function levelFocusProblems(
   focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[],
   seen: ReadonlySet<string>,
 ): string[] {
+  return levelFocusIssues(manifest, screen, focused, seen).map((issue) => issue.message)
+}
+
+function levelFocusIssues(
+  manifest: DesignSystemManifest,
+  screen: unknown,
+  focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[],
+  seen: ReadonlySet<string>,
+): RuleProblem[] {
   const layers = screenLayersOf(manifest)
   const model = isObject(screen) ? screenModel(layers, screen.model) : undefined
   const level = model ? navigationLevel(layers, model.level) : undefined
@@ -638,19 +701,18 @@ export function levelFocusProblems(
   if (on.length === 0) return []
 
   const where = `Level ${level.level} (${level.name})`
+  const issue = (message: string): RuleProblem[] => [{ ruleId: 'level.initial-focus', path: ['root'], message }]
   const right = (f: (typeof focused)[number]): boolean =>
     on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value)
   const wrong = focused.filter((f) => !right(f))
   if (wrong.length > 0) {
-    return [
-      `${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`,
-    ]
+    return issue(`${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`)
   }
   if (focused.length === 0 && on.some((id) => seen.has(id))) {
-    return [`${where}: nothing is focused — ${rule.hint}`]
+    return issue(`${where}: nothing is focused — ${rule.hint}`)
   }
   if (rule.required && !on.some((id) => seen.has(id))) {
-    return [`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`]
+    return issue(`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`)
   }
   return []
 }
@@ -725,5 +787,10 @@ export function stretchRoots(doc: unknown, manifest: DesignSystemManifest): stri
 
 /** Every failed checklist item as one error string each — the validator's retry signal. */
 export function frameLayoutErrors(doc: unknown, manifest: DesignSystemManifest): string[] {
-  return auditFrameLayout(doc, manifest).flatMap((check) => check.problems)
+  return frameLayoutIssues(doc, manifest).map((issue) => issue.message)
+}
+
+/** The same, each naming its rule and where it sits (relative to `{ screen, root }`). */
+export function frameLayoutIssues(doc: unknown, manifest: DesignSystemManifest): RuleProblem[] {
+  return auditFrameIssues(doc, manifest, DEFAULT_FRAME_SIZE).flatMap((check) => check.issues)
 }
