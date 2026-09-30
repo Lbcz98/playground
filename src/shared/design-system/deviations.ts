@@ -76,8 +76,18 @@ export function auditDeviations(
   declarations: Declaration[],
   manifest: DesignSystemManifest,
 ): RuleProblem[] {
+  return auditDeclared(issues, declarations, manifest).errors
+}
+
+/** `auditDeviations`, and which of `issues` a declaration covered (the interpreter says so in a notice). */
+export function auditDeclared(
+  issues: RuleProblem[],
+  declarations: Declaration[],
+  manifest: DesignSystemManifest,
+): { errors: RuleProblem[]; covered: RuleProblem[] } {
   const used = new Set<Declaration>()
   const out: RuleProblem[] = []
+  const covered: RuleProblem[] = []
   for (const issue of issues) {
     const rule = ruleById(manifest, issue.ruleId)
     // A rule the book doesn't know is treated like a law: nothing can waive it.
@@ -85,8 +95,10 @@ export function auditDeviations(
       out.push(issue)
     } else if (rule.flexibility === 'pattern') {
       const covering = coveringDeclaration(declarations, issue.ruleId, issue.path)
-      if (covering) used.add(covering)
-      else {
+      if (covering) {
+        used.add(covering)
+        covered.push(issue)
+      } else {
         out.push({
           ...issue,
           kind: 'undeclared-deviation',
@@ -107,5 +119,5 @@ export function auditDeviations(
       message: `A deviation from "${d.ruleId}"${rule ? ` (${rule.title})` : ''} is declared ${d.scope === 'screen' ? 'on the screen' : 'here'}, but nothing ${d.scope === 'screen' ? 'on it' : 'under it'} breaks that rule — remove the declaration, or make the break it describes.`,
     })
   }
-  return out
+  return { errors: out, covered }
 }

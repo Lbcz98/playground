@@ -28,14 +28,17 @@ import {
   BLUEPRINT_DOCUMENT_KEYS,
   BLUEPRINT_NODE_KEYS,
   BLUEPRINT_SCREEN_KEYS,
+  DEVIATION_KEY,
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   MAX_SCREENS,
   type BlueprintDocument,
   type BlueprintNode,
+  type ScreenMode,
   unknownBlueprintKeyReason,
 } from '@/shared/blueprint'
-import type { DesignSystemManifest, ManifestComponent, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
+import { auditDeclared, declarationProblem, type Declaration } from '@/shared/design-system/deviations'
+import type { DesignSystemManifest, ManifestComponent, RuleDeviation, ScreenSide, ScreenSpec } from '@/shared/design-system/manifest'
 import { placementError, rootContainerId } from '@/shared/design-system/manifest'
 import {
   clearBackgroundFor,
@@ -67,7 +70,7 @@ import {
   spacingPx,
 } from '@/shared/layout/frame'
 import { levelJumpProblem, linkRoleProblem } from '@/shared/design-system/flow'
-import { type CanvasNode, type ScreenEntry, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
+import { type CanvasNode, type ScreenEntry, cloneTree, countNodes, createNodeId, makeNode } from '@/model/nodeTree'
 import type { RuleId } from '@/shared/design-system/rules'
 
 export interface InterpretIssue {
@@ -80,7 +83,7 @@ export interface InterpretIssue {
 }
 
 export type InterpretResult =
-  | { ok: true; tree: CanvasNode; issues: InterpretIssue[]; nodeCount: number }
+  | { ok: true; tree: CanvasNode; issues: InterpretIssue[]; nodeCount: number; mode: ScreenMode }
   | { ok: false; error: string; issues: InterpretIssue[] }
 
 const SUPPORTED_VERSION = 1
@@ -91,6 +94,107 @@ interface InterpretCtx {
   manifest: DesignSystemManifest
   schemas: Record<string, ObjectSchema>
   rootType: string
+  /** The rules this screen is held to: only an Exploratory screen may declare a deviation. */
+  mode: ScreenMode
+}
+
+/** The pattern rules a node, its ancestors or the screen declare: rule id → the reason given. */
+type Declared = ReadonlyMap<string, string>
+
+const NONE: Declared = new Map()
+
+const declaring = (inherited: Declared, deviation: RuleDeviation | undefined): Declared =>
+  deviation ? new Map([...inherited, [deviation.ruleId, deviation.why]]) : inherited
+
+/** A repair skipped because the rule is declared: say so, and what was left as written. */
+function kept(issues: InterpretIssue[], declared: Declared, ruleId: RuleId, path: string, what: string): void {
+  issues.push({
+    ruleId,
+    level: 'info',
+    path,
+    message: `Kept ${what} — the screen declares a deviation from "${ruleId}" (${declared.get(ruleId)}).`,
+  })
+}
+
+/**
+ * Runs `repair` on the root unless the screen declares `ruleId`. When it does, the
+ * repair runs on a copy only to learn whether it would have changed anything: the
+ * notice is for a break that really was left, not for every declaration.
+ */
+function repairUnlessDeclared(
+  ruleId: RuleId,
+  declared: Declared,
+  root: CanvasNode,
+  issues: InterpretIssue[],
+  what: string,
+  repair: (root: CanvasNode, issues: InterpretIssue[]) => void,
+): void {
+  if (!declared.has(ruleId)) return repair(root, issues)
+  const probe: InterpretIssue[] = []
+  repair(cloneTree(root), probe)
+  if (probe.length > 0) kept(issues, declared, ruleId, 'root', what)
+}
+
+/** What an Exploratory screen's `deviation` list makes of each entry; `issues` (when given) says what was refused. */
+function readScreenDeviations(
+  raw: unknown,
+  manifest: DesignSystemManifest,
+  mode: ScreenMode,
+  issues?: InterpretIssue[],
+): RuleDeviation[] {
+  if (!isObject(raw) || raw[DEVIATION_KEY] === undefined) return []
+  const list = raw[DEVIATION_KEY]
+  if (mode === 'faithful') {
+    issues?.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: 'Removed "deviation" from the screen — a Faithful screen keeps every pattern.' })
+    return []
+  }
+  if (!Array.isArray(list)) {
+    issues?.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: 'Ignored the screen\'s "deviation" — it is a list.' })
+    return []
+  }
+  return list.flatMap((entry, j): RuleDeviation[] => {
+    const problem = declarationProblem(manifest, entry)
+    if (problem) {
+      issues?.push({ ruleId: 'blueprint.dsl', level: 'warn', path: 'screen', message: `Ignored the screen's deviation[${j}] — ${problem}` })
+      return []
+    }
+    const { ruleId, why } = entry as RuleDeviation
+    return [{ ruleId, why }]
+  })
+}
+
+/** What a node's `deviation` is worth on a screen of this mode: kept if valid on an Exploratory screen, else removed with a warning. */
+function readNodeDeviation(
+  raw: unknown,
+  type: string,
+  path: string,
+  ctx: InterpretCtx,
+  issues: InterpretIssue[],
+): RuleDeviation | undefined {
+  if (raw === undefined) return undefined
+  if (ctx.mode === 'faithful') {
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: `Removed "deviation" from <${type}> — a Faithful screen keeps every pattern.` })
+    return undefined
+  }
+  const problem = declarationProblem(ctx.manifest, raw)
+  if (problem) {
+    issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: `Ignored the deviation on <${type}> — ${problem}` })
+    return undefined
+  }
+  const { ruleId, why } = raw as RuleDeviation
+  return { ruleId, why }
+}
+
+/** Every deviation a tree declares, with the path frame audit issues use (`['root', 'children', 0, …]`). */
+function treeDeclarations(root: CanvasNode, screen: ScreenSpec | undefined): Declaration[] {
+  const out: Declaration[] = []
+  const walk = (node: CanvasNode, at: (string | number)[]): void => {
+    if (node.deviation) out.push({ ...node.deviation, path: at, scope: 'node', at: [...at, DEVIATION_KEY] })
+    node.children.forEach((child, i) => walk(child, [...at, 'children', i]))
+  }
+  walk(root, ['root'])
+  ;(screen?.deviation ?? []).forEach((d, j) => out.push({ ...d, path: [], scope: 'screen', at: ['screen', DEVIATION_KEY, j] }))
+  return out
 }
 
 export function interpretBlueprint(
@@ -124,13 +228,18 @@ export function interpretBlueprint(
   if (!rootType) {
     return { ok: false, error: 'The active design system has no container component.', issues }
   }
+  // The pipeline stamps the mode; anything else is a screen built by the Faithful rules.
+  const mode: ScreenMode = doc.mode === 'exploratory' ? 'exploratory' : 'faithful'
   const ctx: InterpretCtx = {
     manifest,
-    schemas: compileManifestSchemas(manifest),
+    schemas: compileManifestSchemas(manifest, mode),
     rootType,
+    mode,
   }
+  // What the screen itself declares reaches every node (its issues are reported by `repairScreen`, in its place below).
+  const screenDeclared: Declared = new Map(readScreenDeviations(doc.screen, manifest, mode).map((d) => [d.ruleId, d.why]))
 
-  let root = interpretNode(doc.root, 'root', 0, ctx, issues)
+  let root = interpretNode(doc.root, 'root', 0, ctx, issues, screenDeclared)
   if (!root) {
     return { ok: false, error: 'The root node could not be interpreted.', issues }
   }
@@ -148,12 +257,18 @@ export function interpretBlueprint(
     root = makeNode(ctx.rootType, compiledDefaultProps(container, ctx.schemas[ctx.rootType]), [root])
   }
 
-  const screen = repairScreen(doc.screen, ctx.manifest, issues)
+  const screen = repairScreen(doc.screen, ctx.manifest, issues, mode)
   const side = screen ? screenModel(screenLayersOf(ctx.manifest), screen.model)?.side : undefined
-  repairFrameLayout(root, ctx.manifest, issues, side)
-  repairLevelRoot(root, ctx.manifest, screen, issues)
-  repairLevelFocus(root, ctx.manifest, screen, issues)
-  repairMenuFocus(root, ctx.manifest, screen, issues)
+  // What the root and the screen declare — the rules a root-level repair may leave alone.
+  const declared = declaring(screenDeclared, root.deviation)
+  repairFrameLayout(root, ctx.manifest, issues, side, declared)
+  repairUnlessDeclared('level.root-direction', declared, root, issues, 'the root layout', (r, sink) =>
+    repairLevelRoot(r, ctx.manifest, screen, sink),
+  )
+  repairUnlessDeclared('level.initial-focus', declared, root, issues, 'where focus starts', (r, sink) => {
+    repairLevelFocus(r, ctx.manifest, screen, sink)
+    repairMenuFocus(r, ctx.manifest, screen, sink)
+  })
   repairFocus(root, ctx.manifest, issues)
   if (screen) {
     root.screen = screen
@@ -170,12 +285,32 @@ export function interpretBlueprint(
   }
 
   // What is left is not guessable (a second content module, a side the model
-  // doesn't shade) — say so, so the agent report matches the canvas QA badge.
-  for (const problem of frameLayoutIssues(treeToBlueprint(root), ctx.manifest)) {
-    issues.push({ ruleId: problem.ruleId, level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem.message}` })
+  // doesn't shade) — say so, so the agent report matches the canvas QA badge. On
+  // the interpreted tree, because the repairs above may have resolved violations;
+  // an Exploratory screen's declared patterns are held to its declarations.
+  const remaining = frameLayoutIssues(treeToBlueprint(root), ctx.manifest)
+  if (mode === 'faithful') {
+    for (const problem of remaining) {
+      issues.push({ ruleId: problem.ruleId, level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem.message}` })
+    }
+  } else {
+    const audit = auditDeclared(remaining, treeDeclarations(root, screen), ctx.manifest)
+    const covered = new Set(audit.covered)
+    const noticed = new Set(issues.filter((i) => i.level === 'info' && i.message.startsWith('Kept ')).map((i) => i.ruleId))
+    for (const problem of remaining) {
+      if (!covered.has(problem)) {
+        issues.push({ ruleId: problem.ruleId, level: 'warn', path: 'root', message: `Still breaks a layout rule — ${problem.message}` })
+      } else if (!noticed.has(problem.ruleId)) {
+        noticed.add(problem.ruleId)
+        kept(issues, new Map(treeDeclarations(root, screen).map((d) => [d.ruleId, d.why])), problem.ruleId, 'root', `what breaks "${problem.ruleId}"`)
+      }
+    }
+    for (const unused of audit.errors.filter((e) => e.kind === 'unused-deviation')) {
+      issues.push({ ruleId: unused.ruleId, level: 'info', path: 'root', message: unused.message })
+    }
   }
 
-  return { ok: true, tree: root, issues, nodeCount: countNodes(root) }
+  return { ok: true, tree: root, issues, nodeCount: countNodes(root), mode }
 }
 
 export type PrototypeResult =
@@ -196,7 +331,7 @@ export function interpretPrototype(
   const issues: InterpretIssue[] = []
   if (!isObject(input)) return { ok: false, error: 'Blueprint payload is not an object.', issues }
 
-  const first = interpretBlueprint({ version: input.version, screen: input.screen, root: input.root }, manifest)
+  const first = interpretBlueprint({ version: input.version, screen: input.screen, mode: input.mode, root: input.root }, manifest)
   if (!first.ok) return first
   issues.push(...first.issues)
 
@@ -215,7 +350,7 @@ export function interpretPrototype(
     typeof name === 'string' && name.trim() ? name.trim() : `Screen ${index + 1}`
 
   const screens: ScreenEntry[] = [
-    { id: uniqueId(input.id, 0), name: label(input.name, 0), tree: first.tree },
+    { id: uniqueId(input.id, 0), name: label(input.name, 0), tree: first.tree, mode: first.mode },
   ]
   let nodeCount = first.nodeCount
 
@@ -238,7 +373,7 @@ export function interpretPrototype(
         issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on a screen — the Blueprint DSL has no such key.` })
       }
     }
-    const result = interpretBlueprint({ version: 1, screen: raw.screen, root: raw.root }, manifest)
+    const result = interpretBlueprint({ version: 1, screen: raw.screen, mode: raw.mode, root: raw.root }, manifest)
     if (!result.ok) {
       issues.push({ level: 'warn', path, message: `Dropped a screen — ${result.error}` })
       return
@@ -246,7 +381,7 @@ export function interpretPrototype(
     const index = screens.length
     const id = uniqueId(raw.id, index)
     issues.push(...result.issues.map((issue) => ({ ...issue, path: `screen "${id}" › ${issue.path}` })))
-    screens.push({ id, name: label(raw.name, index), tree: result.tree })
+    screens.push({ id, name: label(raw.name, index), tree: result.tree, mode: result.mode })
     nodeCount += result.nodeCount
   })
 
@@ -256,7 +391,9 @@ export function interpretPrototype(
       delete node.goTo
       issues.push({ ruleId, level: 'warn', path: `screen "${from.id}" › ${path}`, message: `Dropped the link on <${node.type}> — ${why}.` })
     }
-    const visit = (node: CanvasNode, path: string): void => {
+    // A link that breaks a flow pattern stays when the link, an element above it or its screen declares that rule.
+    const visit = (node: CanvasNode, path: string, inherited: Declared): void => {
+      const declared = declaring(inherited, node.deviation)
       if (node.goTo !== undefined) {
         const target = screens.find((s) => s.id === node.goTo)
         if (!target) drop(node, path, `"${node.goTo}" is not a screen of this document`, 'blueprint.dsl')
@@ -264,14 +401,18 @@ export function interpretPrototype(
         else {
           const jump = levelJumpProblem(from.tree.screen?.level, target.tree.screen?.level)
           const role = jump ? null : linkRoleProblem(manifest, node.type, from.tree.screen?.level, target.tree.screen?.level)
-          if (jump) drop(node, path, jump, 'flow.next-level')
+          const broken: RuleId | null = jump ? 'flow.next-level' : role ? 'flow.link-roles' : null
+          if (broken && declared.has(broken)) {
+            kept(issues, declared, broken, `screen "${from.id}" › ${path}`, `the link on <${node.type}>`)
+            linkCount += 1
+          } else if (jump) drop(node, path, jump, 'flow.next-level')
           else if (role) drop(node, path, role, 'flow.link-roles')
           else linkCount += 1
         }
       }
-      node.children.forEach((child, i) => visit(child, `${path} › ${child.type}[${i}]`))
+      node.children.forEach((child, i) => visit(child, `${path} › ${child.type}[${i}]`, declared))
     }
-    visit(from.tree, 'root')
+    visit(from.tree, 'root', new Map((from.tree.screen?.deviation ?? []).map((d) => [d.ruleId, d.why])))
   }
 
   const notes = (Array.isArray(input.notes) ? input.notes : [])
@@ -465,10 +606,14 @@ function repairScreen(
   raw: unknown,
   manifest: DesignSystemManifest,
   issues: InterpretIssue[],
+  mode: ScreenMode,
 ): ScreenSpec | undefined {
   const layers = screenLayersOf(manifest)
-  const fallback = defaultScreen(layers)
-  if (!fallback) return undefined
+  const fallbackScreen = defaultScreen(layers)
+  if (!fallbackScreen) return undefined
+  const deviation = readScreenDeviations(raw, manifest, mode, issues)
+  const withDeviation = (spec: ScreenSpec): ScreenSpec => (deviation.length > 0 ? { ...spec, deviation } : spec)
+  const fallback = fallbackScreen
   const model = isObject(raw) ? screenModel(layers, raw.model) : undefined
   if (!model) {
     const fallbackName = screenModel(layers, fallback.model)?.name ?? fallback.model
@@ -480,7 +625,7 @@ function repairScreen(
           ? `The screen named no layer model — used ${fallbackName} (level ${fallback.level}).`
           : `Unknown layer model ${brief(isObject(raw) ? raw.model : raw)} — used ${fallbackName} (level ${fallback.level}).`,
     })
-    return fallback
+    return withDeviation(fallback)
   }
   if (isObject(raw) && raw.level !== model.level) {
     issues.push({ ruleId: 'layers.overlay-model',
@@ -489,7 +634,7 @@ function repairScreen(
       message: `Set the level to ${model.level} — ${model.name} is a level ${model.level} screen (was ${brief(raw.level)}).`,
     })
   }
-  return { model: model.id, level: model.level }
+  return withDeviation({ model: model.id, level: model.level })
 }
 
 function interpretNode(
@@ -498,6 +643,7 @@ function interpretNode(
   depth: number,
   ctx: InterpretCtx,
   issues: InterpretIssue[],
+  inherited: Declared,
 ): CanvasNode | null {
   if (!isObject(raw)) {
     issues.push({ ruleId: 'blueprint.dsl', level: 'warn', path, message: 'Dropped a node that was not an object.' })
@@ -516,10 +662,12 @@ function interpretNode(
     return null
   }
   for (const key of Object.keys(raw)) {
-    if (!BLUEPRINT_NODE_KEYS.includes(key)) {
+    if (!BLUEPRINT_NODE_KEYS.includes(key) && key !== DEVIATION_KEY) {
       issues.push({ ruleId: 'blueprint.dsl', level: 'info', path, message: `Ignored "${key}" on <${type}> — ${unknownBlueprintKeyReason(key)}.` })
     }
   }
+  const deviation = readNodeDeviation(raw[DEVIATION_KEY], type, path, ctx, issues)
+  const declared = declaring(inherited, deviation)
 
   // Text written where the child nodes go belongs in the component's own
   // `children` prop, when it has one (a Storybook import's Text, Heading…).
@@ -545,12 +693,13 @@ function interpretNode(
     })
   } else if (component.acceptsChildren) {
     children = rawChildren
-      .map((child, i) => interpretNode(child, `${path} › ${type}[${i}]`, depth + 1, ctx, issues))
+      .map((child, i) => interpretNode(child, `${path} › ${type}[${i}]`, depth + 1, ctx, issues, declared))
       .filter((child): child is CanvasNode => child !== null)
-    children = placeChildren(type, children, path, ctx.manifest, issues)
+    children = placeChildren(type, children, path, ctx.manifest, issues, declared)
   }
 
   const node: CanvasNode = { id: createNodeId(), type, props, children }
+  if (deviation) node.deviation = deviation
   if (typeof raw.goTo === 'string' && raw.goTo.trim()) {
     node.goTo = raw.goTo.trim() // resolved against the document's screens by `interpretPrototype`
   } else if (raw.goTo !== undefined) {
@@ -630,6 +779,7 @@ function repairFrameLayout(
   manifest: DesignSystemManifest,
   issues: InterpretIssue[],
   side?: ScreenSide,
+  declared: Declared = NONE,
 ): void {
   const component = manifest.components[root.type]
   const padding = component ? spacingPropFor(component, 'margin') : undefined
@@ -649,7 +799,9 @@ function repairFrameLayout(
   // The stack that holds the components always stretches: the content layer spans
   // the frame, and a module that belongs on one side positions itself inside it.
   const stretch = component ? stretchPropFor(component) : undefined
-  if (stretch && root.props[stretch.name] !== undefined && root.props[stretch.name] !== 'stretch') {
+  if (stretch && root.props[stretch.name] !== undefined && root.props[stretch.name] !== 'stretch' && declared.has('layout.root-align')) {
+    kept(issues, declared, 'layout.root-align', 'root', `${stretch.name} ${brief(root.props[stretch.name])} on the root`)
+  } else if (stretch && root.props[stretch.name] !== undefined && root.props[stretch.name] !== 'stretch') {
     issues.push({ ruleId: 'layout.root-align',
       level: 'info',
       path: 'root',
@@ -663,6 +815,10 @@ function repairFrameLayout(
   const sideProp = side ? sidePropFor(manifest, root) : null
   for (const prop of component ? centeringPropsFor(component) : []) {
     if (prop === stretch || root.props[prop.name] !== 'center') continue
+    if (declared.has('layout.no-static-center')) {
+      kept(issues, declared, 'layout.no-static-center', 'root', `${prop.name} "center" on the root`)
+      continue
+    }
     const value = side && sideProp?.prop === prop.name ? sideProp.values[side] : uncenteredValue(prop)
     issues.push({ ruleId: 'layout.no-static-center',
       level: 'info',
@@ -687,6 +843,10 @@ function repairFrameLayout(
   }
 
   const anchored = root.children.filter((child) => child.anchor)
+  if (anchored.length > 1 && declared.has('layout.anchor')) {
+    kept(issues, declared, 'layout.anchor', 'root', `${anchored.length} anchored groups`)
+    return
+  }
   for (const extra of anchored.slice(0, -1)) {
     delete extra.anchor
     issues.push({ ruleId: 'layout.anchor',
@@ -745,9 +905,21 @@ function placeChildren(
   path: string,
   manifest: DesignSystemManifest,
   issues: InterpretIssue[],
+  declared: Declared = NONE,
 ): CanvasNode[] {
+  // A slot break is left as written when the parent, an ancestor, the screen or the child itself declares it.
+  const waived = (child?: CanvasNode): string | undefined =>
+    child?.deviation?.ruleId === 'layout.slots' ? child.deviation.why : declared.get('layout.slots')
+  const keep = (child: CanvasNode | undefined, what: string): boolean => {
+    const why = waived(child)
+    if (why === undefined) return false
+    kept(issues, new Map([['layout.slots', why]]), 'layout.slots', path, what)
+    return true
+  }
+
   const placed = children.filter((child) => {
     const problem = placementError(manifest, parentType, child.type)
+    if (problem && keep(child, `<${child.type}> inside <${parentType}>`)) return true
     if (problem) issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Dropped a child — ${problem}` })
     return !problem
   })
@@ -761,11 +933,13 @@ function placeChildren(
       seen.add(child.type)
       return true
     }
+    if (keep(child, `a second <${child.type}> in <${parentType}>`)) return true
     issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Dropped a second <${child.type}> — <${parentType}> takes at most one.` })
     return false
   })
   const ordered = [...unique].sort((a, b) => slots.indexOf(a.type) - slots.indexOf(b.type))
   if (ordered.some((child, i) => child !== unique[i])) {
+    if (keep(undefined, `<${parentType}>'s children in the order written`)) return unique
     issues.push({ ruleId: 'layout.slots', level: 'warn', path, message: `Put <${parentType}>'s children back in the order ${slots.join(', ')}.` })
   }
   return ordered
