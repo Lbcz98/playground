@@ -248,11 +248,19 @@ export type RuleId = (typeof RULES)[number]['id']
 /** Where an issue sits, as keys and indexes: `['root', 'children', 1, 'props', 'items', 2, 'label']`. */
 export type IssuePath = (string | number)[]
 
+/**
+ * What makes an issue a composition choice rather than a mistake of expression: a
+ * pattern broken without saying so, or a deviation declared for nothing. These go
+ * back to the planner (phase 9D); every other issue goes back to the generator.
+ */
+export type IssueKind = 'undeclared-deviation' | 'unused-deviation'
+
 /** One broken rule: which one, the sentence the Generator acts on, and where (relative to the screen). */
 export interface RuleProblem {
   ruleId: RuleId
   message: string
   path: IssuePath
+  kind?: IssueKind
 }
 
 /** The book the active design system follows: its own, or the built-in one. */

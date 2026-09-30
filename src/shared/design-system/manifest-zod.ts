@@ -28,16 +28,18 @@
 import { z } from 'zod'
 import {
   BLUEPRINT_DOCUMENT_KEYS,
-  BLUEPRINT_NODE_KEYS,
   BLUEPRINT_SCREEN_KEYS,
+  DEVIATION_KEY,
   FIRST_SCREEN_ID,
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   MAX_SCREENS,
+  nodeKeysFor,
   unknownBlueprintKeyReason,
 } from '../blueprint'
 import { flowIssues, type FlowScreen } from './flow'
-import type { IssuePath, RuleId, RuleProblem } from './rules'
+import type { IssueKind, IssuePath, RuleId, RuleProblem } from './rules'
+import { auditDeviations, declarationProblem, type Declaration } from './deviations'
 import type { DesignSystemManifest, ManifestComponent, ManifestProp, ManifestTokens } from './manifest'
 import {
   assignableTokenNames,
@@ -241,6 +243,8 @@ export interface ValidationIssue {
   message: string
   /** From the document: `['screens', 0, 'root', 'children', 1, 'props', 'items', 2, 'label']`. */
   path: IssuePath
+  /** Set on a composition choice (an undeclared or unused deviation), which the orchestrator sends back to the planner. */
+  kind?: IssueKind
 }
 
 export type BlueprintValidation =
@@ -260,15 +264,21 @@ function invalid(issues: ValidationIssue[]): BlueprintValidation {
   return issues.length === 0 ? { ok: true } : { ok: false, errors: issues.map((i) => i.message), issues }
 }
 
+/**
+ * `policy` is the mode the caller generated for; a screen's own stamped `mode`
+ * (the pipeline writes it, the model never does) takes precedence, so each screen
+ * of a document is held to the rules of the mode it ran in.
+ */
 export function validateBlueprintAgainstManifest(
   input: unknown,
   manifest: DesignSystemManifest,
+  policy: Policy = 'faithful',
 ): BlueprintValidation {
   if (!isObject(input)) return invalid([{ ruleId: 'blueprint.dsl', path: [], message: 'Blueprint must be a JSON object.' }])
 
   const issues: ValidationIssue[] = []
-  const add = (ruleId: RuleId, path: IssuePath, message: string): void => {
-    issues.push({ ruleId, message, path })
+  const add = (ruleId: RuleId, path: IssuePath, message: string, kind?: IssueKind): void => {
+    issues.push({ ruleId, message, path, ...(kind ? { kind } : {}) })
   }
   for (const key of Object.keys(input)) {
     if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
@@ -301,6 +311,15 @@ export function validateBlueprintAgainstManifest(
   ]
   /** Where each of `screens` sits in the document: the first screen is the document itself. */
   const bases: IssuePath[] = [[]]
+  /** The mode each screen is held to: its stamped `mode`, else `policy`. */
+  const modes: Policy[] = []
+  const modeOf = (raw: unknown, base: IssuePath): Policy => {
+    if (raw === undefined) return policy
+    if (raw === 'faithful' || raw === 'exploratory') return raw
+    add('blueprint.dsl', [...base, 'mode'], '"mode" must be "faithful" or "exploratory" — and the pipeline sets it, not you.')
+    return policy
+  }
+  modes.push(modeOf(input.mode, []))
   if (input.screens !== undefined) {
     if (!Array.isArray(input.screens)) {
       add('blueprint.dsl', ['screens'], '"screens" must be a list of screens: [{ "id", "name", "screen", "root" }].')
@@ -324,30 +343,78 @@ export function validateBlueprintAgainstManifest(
         }
         screens.push({ id: raw.id, screen: raw.screen, root: raw.root })
         bases.push(['screens', i])
+        modes.push(modeOf(raw.mode, ['screens', i]))
       })
     }
   }
 
   const many = screens.length > 1
+  const emit = (i: number, found: RuleProblem): void =>
+    add(found.ruleId, [...bases[i], ...found.path], many ? `Screen "${screens[i].id}": ${found.message}` : found.message, found.kind)
+  const flow = flowIssues(screens, manifest)
   screens.forEach((s, i) => {
-    for (const found of validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest)) {
-      add(found.ruleId, [...bases[i], ...found.path], many ? `Screen "${s.id}": ${found.message}` : found.message)
+    const found = validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest, modes[i])
+    if (modes[i] === 'faithful') {
+      found.issues.forEach((issue) => emit(i, issue))
+      return
     }
+    // Exploratory: the screen's issues, and the links leaving it, held to its declarations.
+    const own = flow.filter((f) => f.screen === i)
+    auditDeviations([...found.issues, ...own], found.declarations, manifest).forEach((issue) => emit(i, issue))
   })
-  for (const found of flowIssues(screens, manifest)) add(found.ruleId, [...bases[found.screen], ...found.path], found.message)
+  // Faithful screens: the cross-screen issues after the per-screen ones, as before.
+  for (const found of flow) if (modes[found.screen] === 'faithful') emit(found.screen, found)
 
   return invalid(issues)
 }
 
-/** One screen — `{ version, screen?, root }` — against the manifest. Paths are relative to that screen. */
-function validateScreen(input: Record<string, unknown>, manifest: DesignSystemManifest): RuleProblem[] {
+/**
+ * One screen — `{ version, screen?, root }` — against the manifest, in `policy`.
+ * Paths are relative to that screen. An Exploratory screen also returns the
+ * deviations it declares, for `auditDeviations`.
+ */
+function validateScreen(
+  input: Record<string, unknown>,
+  manifest: DesignSystemManifest,
+  policy: Policy,
+): { issues: RuleProblem[]; declarations: Declaration[] } {
   const issues: RuleProblem[] = []
-  const schemas = compileManifestSchemas(manifest)
+  const declarations: Declaration[] = []
+  const schemas = compileManifestSchemas(manifest, policy)
   const allowed = Object.keys(manifest.components)
   const rootType = rootContainerId(manifest)
 
   if (!isObject(input.root)) {
-    return [{ ruleId: 'blueprint.dsl', path: ['root'], message: 'Blueprint must have a "root" node object.' }]
+    return {
+      issues: [{ ruleId: 'blueprint.dsl', path: ['root'], message: 'Blueprint must have a "root" node object.' }],
+      declarations,
+    }
+  }
+  if (isObject(input.screen) && input.screen[DEVIATION_KEY] !== undefined) {
+    const list = input.screen[DEVIATION_KEY]
+    if (policy === 'faithful') {
+      issues.push({
+        ruleId: 'blueprint.dsl',
+        path: ['screen', DEVIATION_KEY],
+        message: 'A Faithful screen keeps every pattern, so its "screen" declares no "deviation". Remove it.',
+      })
+    } else if (!Array.isArray(list)) {
+      issues.push({
+        ruleId: 'blueprint.dsl',
+        path: ['screen', DEVIATION_KEY],
+        message: '"screen".deviation must be a list: [{ "ruleId": "<rule id>", "why": "<the reason>" }].',
+      })
+    } else {
+      list.forEach((raw, j) => {
+        const at = ['screen', DEVIATION_KEY, j]
+        const problem = declarationProblem(manifest, raw)
+        if (problem) issues.push({ ruleId: 'blueprint.dsl', path: at, message: `"screen".deviation[${j}]: ${problem}` })
+        else {
+          const { ruleId, why } = raw as { ruleId: string; why: string }
+          declarations.push({ ruleId, why, path: [], scope: 'screen', at })
+        }
+      })
+    }
   }
   if (rootType && input.root.type !== rootType) {
     issues.push({
@@ -357,17 +424,20 @@ function validateScreen(input: Record<string, unknown>, manifest: DesignSystemMa
     })
   }
 
-  validateNode(input.root, 'root', ['root'], { schemas, manifest, allowed }, issues, null)
+  validateNode(input.root, 'root', ['root'], { schemas, manifest, allowed, policy, declarations }, issues, null)
   // Layout QA: frame margins, the 8pt grid + gutters, focus anchoring.
   issues.push(...frameLayoutIssues(input, manifest))
 
-  return issues
+  return { issues, declarations }
 }
 
 interface Ctx {
   schemas: Record<string, z.ZodObject<z.ZodRawShape>>
   manifest: DesignSystemManifest
   allowed: string[]
+  policy: Policy
+  /** Filled by an Exploratory screen's valid `deviation`s while its nodes are walked. */
+  declarations: Declaration[]
 }
 
 function validateNode(
@@ -406,9 +476,21 @@ function validateNode(
     descend(type)
     return
   }
+  const keys = nodeKeysFor(ctx.policy)
   for (const key of Object.keys(raw)) {
-    if (!BLUEPRINT_NODE_KEYS.includes(key)) {
-      add('blueprint.dsl', [...at, key], `${path} <${type}>: unknown node key "${key}" — ${unknownBlueprintKeyReason(key)}. Remove it.`)
+    if (keys.includes(key)) continue
+    const why =
+      key === DEVIATION_KEY
+        ? 'a Faithful screen keeps every pattern, so it declares no deviation'
+        : unknownBlueprintKeyReason(key)
+    add('blueprint.dsl', [...at, key], `${path} <${type}>: unknown node key "${key}" — ${why}. Remove it.`)
+  }
+  if (ctx.policy === 'exploratory' && raw[DEVIATION_KEY] !== undefined) {
+    const problem = declarationProblem(ctx.manifest, raw[DEVIATION_KEY])
+    if (problem) add('blueprint.dsl', [...at, DEVIATION_KEY], `${path} <${type}>: ${problem}`)
+    else {
+      const { ruleId, why } = raw[DEVIATION_KEY] as { ruleId: string; why: string }
+      ctx.declarations.push({ ruleId, why, path: at, scope: 'node', at: [...at, DEVIATION_KEY] })
     }
   }
 

@@ -1,0 +1,248 @@
+/** Phase 9D: the per-screen policy — declared deviations, the audit, and the laws that never bend. */
+import { describe, expect, it } from 'vitest'
+import { compileManifestSchemas, validateBlueprintAgainstManifest, type ValidationIssue } from './manifest-zod'
+import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
+import { DTV_SCREEN_LAYERS } from './screen-layers'
+import { homeTemplate } from '@/shared/templates/home'
+
+type Doc = Record<string, any>
+const M = SCREENFLOW_MANIFEST
+const home = (): Doc => structuredClone(homeTemplate.blueprint) as unknown as Doc
+const dev = (ruleId: string, why = 'the request asks for it') => ({ ruleId, why })
+
+/** Home with its root pushed off `align: stretch` — one pattern broken (`layout.root-align`). */
+const breaksRootAlign = (): Doc => {
+  const doc = home()
+  doc.root.props = { ...doc.root.props, align: 'start' }
+  return doc
+}
+
+const issuesOf = (doc: unknown, policy: 'faithful' | 'exploratory' = 'exploratory'): ValidationIssue[] => {
+  const v = validateBlueprintAgainstManifest(doc, M, policy)
+  return v.ok ? [] : v.issues
+}
+const rules = (issues: ValidationIssue[]) => issues.map((i) => i.ruleId)
+
+describe('the fixtures behave', () => {
+  it('a valid Home is valid in both modes, and one pattern broken is exactly one issue', () => {
+    expect(validateBlueprintAgainstManifest(home(), M, 'faithful')).toEqual({ ok: true })
+    expect(validateBlueprintAgainstManifest(home(), M, 'exploratory')).toEqual({ ok: true })
+    expect(rules(issuesOf(breaksRootAlign(), 'faithful'))).toEqual(['layout.root-align'])
+  })
+})
+
+describe('Faithful: no deviation, ever', () => {
+  it('rejects a node deviation and a screen deviation, naming the reason', () => {
+    const doc = breaksRootAlign()
+    doc.root.deviation = dev('layout.root-align')
+    doc.screen.deviation = [dev('layout.root-align')]
+    const found = issuesOf(doc, 'faithful')
+    expect(found.some((i) => /unknown node key "deviation" — a Faithful screen keeps every pattern/.test(i.message))).toBe(true)
+    expect(found.some((i) => /"screen" declares no "deviation"/.test(i.message))).toBe(true)
+    expect(rules(found)).toContain('layout.root-align') // and the break itself still counts
+  })
+
+  it('a stamped Faithful mode holds even when the caller asked for Exploratory', () => {
+    const doc = breaksRootAlign()
+    doc.mode = 'faithful'
+    doc.root.deviation = dev('layout.root-align')
+    expect(issuesOf(doc, 'exploratory').some((i) => /unknown node key "deviation"/.test(i.message))).toBe(true)
+  })
+})
+
+describe('Exploratory: a pattern may break, declared', () => {
+  it('passes when the node declares the rule it breaks', () => {
+    const doc = breaksRootAlign()
+    doc.root.deviation = dev('layout.root-align')
+    expect(validateBlueprintAgainstManifest(doc, M, 'exploratory')).toEqual({ ok: true })
+  })
+
+  it('passes when the screen declares it', () => {
+    const doc = breaksRootAlign()
+    doc.screen.deviation = [dev('layout.root-align')]
+    expect(validateBlueprintAgainstManifest(doc, M, 'exploratory')).toEqual({ ok: true })
+  })
+
+  it('fails an undeclared break as a composition choice, telling the model how to declare it', () => {
+    const [issue, ...rest] = issuesOf(breaksRootAlign())
+    expect(rest).toEqual([])
+    expect(issue).toMatchObject({ ruleId: 'layout.root-align', kind: 'undeclared-deviation', path: ['root', 'props', 'align'] })
+    expect(issue.message).toMatch(/"deviation": \{ "ruleId": "layout\.root-align", "why": "…" \}/)
+  })
+
+  it('fails a declaration nothing breaks (the declared set must equal the broken set)', () => {
+    const doc = home()
+    doc.root.deviation = dev('layout.root-align')
+    const [issue, ...rest] = issuesOf(doc)
+    expect(rest).toEqual([])
+    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['root', 'deviation'] })
+    expect(issue.message).toMatch(/nothing under it breaks that rule/)
+  })
+
+  it('declaring a different pattern covers nothing: the break is undeclared and the declaration unused', () => {
+    const doc = breaksRootAlign()
+    doc.root.deviation = dev('layout.no-static-center')
+    expect(issuesOf(doc).map((i) => i.kind).sort()).toEqual(['undeclared-deviation', 'unused-deviation'])
+    const screenLevel = breaksRootAlign()
+    screenLevel.screen.deviation = [dev('level.module-limit')]
+    expect(issuesOf(screenLevel).map((i) => i.kind).sort()).toEqual(['undeclared-deviation', 'unused-deviation'])
+  })
+
+  it('a declaration on a child does not cover the root’s break, and an ancestor’s covers below it', () => {
+    const childOnly = breaksRootAlign()
+    childOnly.root.children[0].deviation = dev('layout.root-align')
+    expect(issuesOf(childOnly).map((i) => i.kind).sort()).toEqual(['undeclared-deviation', 'unused-deviation'])
+
+    const doc = home()
+    doc.root.deviation = dev('layout.slots')
+    doc.root.children[0].children.push({ type: 'ContentCardHeader' }) // a card zone outside a card, two levels down
+    expect(rules(issuesOf(doc))).not.toContain('layout.slots')
+    expect(issuesOf(doc)).toEqual([])
+  })
+
+  it('uses each declaration for every break it covers', () => {
+    const doc = home()
+    doc.root.deviation = dev('layout.slots')
+    doc.root.children[0].children.push({ type: 'ContentCardHeader' }, { type: 'ContentCardFooter' })
+    expect(issuesOf(doc)).toEqual([])
+  })
+})
+
+describe('Exploratory: laws are never declarable, never waived', () => {
+  it('rejects declaring a law, a convention, an unknown rule, a bad shape and the 9E overlay', () => {
+    const cases: [unknown, RegExp][] = [
+      [dev('tokens.only'), /"tokens\.only" \(Tokens only\) is a law — it holds in every mode/],
+      [dev('focus.single'), /is a law/],
+      [dev('component.api'), /is a law/],
+      [dev('copy.button-label'), /is a convention — breaking it only produces a note/],
+      [dev('layout.invented'), /"layout\.invented" is not a rule of ScreenFlow\. Declare one of: .*layout\.root-align/],
+      [dev('layers.overlay-model'), /cannot be declared yet: composing a new overlay arrives in 9E/],
+      [{ ruleId: 'layout.root-align' }, /must be exactly \{ "ruleId"/],
+      [{ ruleId: 'layout.root-align', why: '  ' }, /must say in one short sentence/],
+      [{ ruleId: 'layout.root-align', why: 'x', reuse: 1 }, /remove "reuse"/],
+      ['layout.root-align', /must be \{ "ruleId"/],
+    ]
+    for (const [declared, message] of cases) {
+      const doc = breaksRootAlign()
+      doc.root.deviation = declared
+      const found = issuesOf(doc)
+      expect(found.some((i) => message.test(i.message)), JSON.stringify(declared)).toBe(true)
+      // …and the invalid declaration doesn't waive the break it was aimed at.
+      expect(found.some((i) => i.kind === 'undeclared-deviation'), JSON.stringify(declared)).toBe(true)
+    }
+  })
+
+  it('a law still breaks with a pattern declared beside it, on the node or the screen', () => {
+    const doc = home()
+    doc.root.props = { ...doc.root.props, padding: '10px', align: 'start' }
+    doc.root.deviation = dev('layout.root-align')
+    doc.screen.deviation = [dev('layout.root-align')]
+    const found = issuesOf(doc)
+    expect(rules(found)).toContain('tokens.only')
+    expect(found.filter((i) => i.ruleId === 'tokens.only').every((i) => i.kind === undefined)).toBe(true)
+  })
+
+  it('declaring the very law that is broken waives nothing', () => {
+    const doc = home()
+    doc.root.props = { ...doc.root.props, padding: '10px' }
+    doc.root.deviation = dev('tokens.only')
+    const found = issuesOf(doc)
+    expect(found.some((i) => /"tokens\.only" \(Tokens only\) is a law/.test(i.message))).toBe(true)
+    expect(found.some((i) => i.ruleId === 'tokens.only' && /raw value/.test(i.message))).toBe(true)
+  })
+
+  it('the layer model is not declarable either: a broken one stays an error', () => {
+    const doc = home()
+    doc.screen = { model: 'nope', level: 1, deviation: [dev('layers.overlay-model')] }
+    const found = issuesOf(doc)
+    expect(found.some((i) => i.ruleId === 'layers.overlay-model' && i.kind === undefined)).toBe(true)
+    expect(found.some((i) => /arrives in 9E/.test(i.message))).toBe(true)
+  })
+})
+
+describe('the screen’s own deviation list', () => {
+  it('must be a list, and every entry a valid declaration', () => {
+    const doc = home()
+    doc.screen.deviation = dev('layout.root-align')
+    expect(issuesOf(doc).some((i) => /must be a list/.test(i.message))).toBe(true)
+  })
+
+  it('an unused screen-level declaration is reported at its own index', () => {
+    const doc = home()
+    doc.screen.deviation = [dev('layout.root-align')]
+    const [issue] = issuesOf(doc)
+    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['screen', 'deviation', 0] })
+  })
+})
+
+describe('per-screen policy', () => {
+  const second = (mode: 'faithful' | 'exploratory', declare: boolean): Doc => {
+    const other = breaksRootAlign()
+    if (declare) other.root.deviation = dev('layout.root-align')
+    return { version: 1, id: 'a', mode: 'faithful', screen: home().screen, root: home().root, screens: [{ id: 'b', mode, screen: other.screen, root: other.root }] }
+  }
+
+  it('holds each screen to its own mode: the same declaration is fine on one, an error on the other', () => {
+    expect(validateBlueprintAgainstManifest(second('exploratory', true), M)).toEqual({ ok: true })
+    const found = issuesOf(second('faithful', true), 'faithful')
+    expect(found.some((i) => /unknown node key "deviation"/.test(i.message))).toBe(true)
+    expect(found.every((i) => i.path[0] === 'screens' && i.path[1] === 0)).toBe(true)
+  })
+
+  it('reports the screen’s path for an undeclared break on the second screen', () => {
+    const [issue] = issuesOf(second('exploratory', false), 'faithful')
+    expect(issue).toMatchObject({ ruleId: 'layout.root-align', kind: 'undeclared-deviation', path: ['screens', 0, 'root', 'props', 'align'] })
+    expect(issue.message).toMatch(/^Screen "b": /)
+  })
+
+  it('rejects a mode that is neither', () => {
+    const doc = home()
+    doc.mode = 'wild'
+    expect(issuesOf(doc).some((i) => /"mode" must be "faithful" or "exploratory"/.test(i.message))).toBe(true)
+  })
+})
+
+describe('links leaving an Exploratory screen', () => {
+  const deep = DTV_SCREEN_LAYERS.models.find((m) => m.level === 3)!.id
+  const flow = (declared: boolean): Doc => {
+    const doc = home()
+    const menu = doc.root.children[0].children[0] // the rail: level 1 → level 3 skips a level
+    const button = menu.children[0]
+    button.goTo = 'deep'
+    if (declared) button.deviation = dev('flow.next-level')
+    return {
+      ...doc,
+      id: 'home',
+      screens: [{ id: 'deep', screen: { model: deep, level: 3 }, root: { type: 'Stack', props: { justify: 'end' }, children: [{ type: 'CloseButton', props: { interactionState: 'focus' } }] } }],
+    }
+  }
+
+  it('a skipped level is an error until the link declares flow.next-level', () => {
+    expect(issuesOf(flow(false)).find((i) => i.ruleId === 'flow.next-level')).toMatchObject({ kind: 'undeclared-deviation' })
+    expect(issuesOf(flow(true)).filter((i) => i.ruleId === 'flow.next-level' || i.kind === 'unused-deviation')).toEqual([])
+  })
+})
+
+describe('the schema cache stays immutable across policies', () => {
+  it('the faithful policy still rejects `deviation` after an exploratory compile and an exploratory validation', () => {
+    const m = structuredClone(M)
+    const doc = breaksRootAlign()
+    doc.root.deviation = dev('layout.root-align')
+
+    compileManifestSchemas(m, 'exploratory')
+    expect(validateBlueprintAgainstManifest(doc, m, 'exploratory')).toEqual({ ok: true })
+
+    const v = validateBlueprintAgainstManifest(doc, m, 'faithful')
+    expect(v.ok).toBe(false)
+    if (!v.ok) expect(v.issues.some((i) => /unknown node key "deviation"/.test(i.message))).toBe(true)
+    expect(compileManifestSchemas(m, 'faithful')).not.toBe(compileManifestSchemas(m, 'exploratory'))
+  })
+
+  it('and the other way round: a faithful run first does not stop Exploratory from accepting', () => {
+    const m = structuredClone(M)
+    const doc = breaksRootAlign()
+    doc.root.deviation = dev('layout.root-align')
+    expect(validateBlueprintAgainstManifest(doc, m, 'faithful').ok).toBe(false)
+    expect(validateBlueprintAgainstManifest(doc, m, 'exploratory')).toEqual({ ok: true })
+  })
+})
