@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { manifestZodSchema } from './manifest'
-import { RULES, ruleById, rulesOf } from './rules'
+import { GLOBAL_RULE_IDS, RULES, ruleById, rulesOf } from './rules'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 
 describe('the rules book', () => {
@@ -15,6 +15,15 @@ describe('the rules book', () => {
         expect(SCREENFLOW_MANIFEST.components[id], `${rule.id} → ${id}`).toBeDefined()
       }
     }
+  })
+
+  it('leaves out appliesTo only on the rules declared global', () => {
+    const global = new Set(GLOBAL_RULE_IDS)
+    for (const rule of RULES) {
+      const scoped = 'appliesTo' in rule && rule.appliesTo.length > 0
+      expect(scoped, `${rule.id}: ${scoped ? 'declared global but scoped' : 'unscoped but not declared global'}`).toBe(!global.has(rule.id))
+    }
+    for (const id of global) expect(RULES.some((r) => r.id === id), `${id} is not in the book`).toBe(true)
   })
 
   it('keeps the plan’s laws as laws', () => {

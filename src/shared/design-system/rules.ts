@@ -196,14 +196,6 @@ export const RULES = [
     category: 'layout',
     source: 'frame.ts',
   },
-  {
-    id: 'registry.new-component',
-    title: 'Catalog components only',
-    statement: 'A screen is built from the catalog; a new component is a declared Proposal, never an invented one.',
-    flexibility: 'pattern',
-    category: 'registry',
-    source: 'rules.ts',
-  },
 
   // ── Conventions ───────────────────────────────────────────────────────────
   {
@@ -224,6 +216,31 @@ export const RULES = [
     appliesTo: ['Button', 'WideButton', 'InteractivityButton'],
   },
 ] as const satisfies readonly PatternRule[]
+
+/**
+ * The rules meant to be global: always in the planner prompt, so they carry no
+ * `appliesTo`. Any other rule must name its components (`rules.test.ts` holds
+ * the two lists together), so a rule is never injected everywhere by omission.
+ */
+export const GLOBAL_RULE_IDS: readonly string[] = [
+  'tokens.only',
+  'tokens.semantic-tier',
+  'grid.8pt',
+  'frame.layout',
+  'layers.stack',
+  'focus.single',
+  'component.api',
+  'blueprint.dsl',
+  'layout.anchor-structure',
+  'layers.overlay-model',
+  'level.module-limit',
+  'level.root-direction',
+  'flow.next-level',
+  'layout.root-align',
+  'layout.no-static-center',
+  'layout.anchor',
+  'templates.reference',
+]
 
 /** Every id in the built-in book — the validator can only name one of these. */
 export type RuleId = (typeof RULES)[number]['id']
