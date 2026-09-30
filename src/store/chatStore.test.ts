@@ -58,12 +58,20 @@ describe('chatStore — modes and the router question', () => {
     expect(generateUI).toHaveBeenCalledTimes(2)
   })
 
-  it('offers only Seguir padrões without the preview flag, and refuses the hidden choices', async () => {
-    expect(offeredChoices(QUESTION)).toEqual(['faithful'])
+  it('offers the two buttons — follow the patterns, explore beyond them — and never "Os dois" (9F)', async () => {
+    expect(offeredChoices(QUESTION)).toEqual(['faithful', 'exploratory'])
     vi.mocked(generateUI).mockResolvedValueOnce(asked)
     await useChatStore.getState().send('Quatro cards numa tela de nível 3')
     const bubble = useChatStore.getState().messages.at(-1)!
     useChatStore.getState().answer(bubble.id, 'both')
-    expect(generateUI).toHaveBeenCalledTimes(1)
+    expect(generateUI).toHaveBeenCalledTimes(1) // refused: no generation
+  })
+
+  it('“Explore além do padrão” re-sends the request as exploratory', async () => {
+    vi.mocked(generateUI).mockResolvedValueOnce(asked).mockResolvedValueOnce(failed)
+    await useChatStore.getState().send('Quatro cards numa tela de nível 3')
+    useChatStore.getState().answer(useChatStore.getState().messages.at(-1)!.id, 'exploratory')
+    await vi.waitFor(() => expect(generateUI).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(generateUI).mock.calls[1][2]).toMatchObject({ mode: 'exploratory' })
   })
 })

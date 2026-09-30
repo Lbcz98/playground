@@ -19,7 +19,7 @@ import type { GenerateUIResponse } from '@/shared/blueprint'
 import { useFlowStore, type AgentRun } from '@/store/flowStore'
 import { useFrameStore } from '@/store/frameStore'
 import { usePlayStore } from '@/store/playStore'
-import { EXPLORATORY_PREVIEW, useSettingsStore } from '@/store/settingsStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import { useDesignSystemStore } from '@/store/designSystemStore'
 import type { ChatTurn, GenerateUISource, GenerateUsage, RequestedMode, RouterQuestion, ScreenMode } from '@/shared/blueprint'
 import { createNodeId } from '@/model/nodeTree'
@@ -58,9 +58,9 @@ export const CHOICE_LABELS: Record<QuestionChoice, string> = {
   both: 'Gere duas opções para comparação',
 }
 
-/** The buttons a question shows: Exploratório and "Os dois" only behind the preview flag, until 9D. */
+/** The buttons a question shows: follow the patterns, or explore beyond them. "Os dois" waits for 9F. */
 export function offeredChoices(question: RouterQuestion): QuestionChoice[] {
-  return question.choices.filter((choice) => choice === 'faithful' || EXPLORATORY_PREVIEW)
+  return question.choices.filter((choice) => choice !== 'both')
 }
 
 export interface SessionUsage {

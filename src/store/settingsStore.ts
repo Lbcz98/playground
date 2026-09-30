@@ -15,17 +15,13 @@ import {
 } from '@/shared/models'
 
 /**
- * Exploratório (and "Os dois") are offered only with `VITE_EXPLORATORY_PREVIEW=1`
- * until phase 9D gives them their own pipeline; before that they run one Faithful
- * generation. Auto and Fidedigno always ship.
+ * The modes the selector offers. "Os dois" (the faithful screen and the exploratory
+ * ones side by side) is not offered until phase 9F builds it.
  */
-export const EXPLORATORY_PREVIEW = import.meta.env?.VITE_EXPLORATORY_PREVIEW === '1'
-
-/** The modes the selector offers; "Os dois" is only ever a button. */
 export type ChosenMode = 'auto' | 'faithful' | 'exploratory'
 
 export function selectableModes(): ChosenMode[] {
-  return EXPLORATORY_PREVIEW ? ['auto', 'faithful', 'exploratory'] : ['auto', 'faithful']
+  return ['auto', 'faithful', 'exploratory']
 }
 
 interface SettingsState {
