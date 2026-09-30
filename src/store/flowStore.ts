@@ -342,6 +342,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       draft.children = tree.children
       if (tree.screen) draft.screen = tree.screen
       else delete draft.screen
+      if (tree.deviation) draft.deviation = tree.deviation
+      else delete draft.deviation
     }, label),
 
   replaceScreens: (screens, label, activeId) =>

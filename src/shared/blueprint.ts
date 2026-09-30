@@ -11,7 +11,9 @@
  * generate → validate → retry loop that produces it.
  */
 
-import type { DesignSystemManifest, RuleFlexibility, ScreenSpec } from './design-system/manifest'
+import type { DesignSystemManifest, RuleDeviation, RuleFlexibility, ScreenSpec } from './design-system/manifest'
+
+export type { RuleDeviation } from './design-system/manifest'
 
 export interface BlueprintNode {
   type: string
@@ -29,6 +31,12 @@ export interface BlueprintNode {
    * the same document, and follows the layer rule (one level deeper, or back up).
    */
   goTo?: string
+  /**
+   * A declared break of a pattern rule, on the node it happens at — outside `props`,
+   * so it travels with the node when the interpreter reorders. Exploratory screens
+   * only (`nodeKeysFor`); a Faithful screen carries none.
+   */
+  deviation?: RuleDeviation
 }
 
 /** One further screen of a document — an option, or the next step of a flow. */
@@ -38,6 +46,8 @@ export interface BlueprintScreen {
   /** Short label for the frame ("Option B", "Rail", "Stats"). */
   name?: string
   screen?: ScreenSpec
+  /** The mode this screen was generated in. Stamped by the pipeline, never written by the model. */
+  mode?: ScreenMode
   root: BlueprintNode
 }
 
@@ -52,6 +62,8 @@ export interface BlueprintDocument {
    * the video and this content, and the screen's navigation level.
    */
   screen?: ScreenSpec
+  /** The first screen's mode (each further screen carries its own). Stamped by the pipeline. */
+  mode?: ScreenMode
   root: BlueprintNode
   /**
    * Every further screen. Several options for one screen ("give me three
@@ -75,11 +87,18 @@ export const MAX_NOTE_LENGTH = 300
 export const MAX_SCREENS = 6
 
 /** Every key a Blueprint document may carry. Anything else is a key the engine would ignore. */
-export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'id', 'name', 'screen', 'root', 'screens', 'notes'] satisfies (keyof BlueprintDocument)[]
+export const BLUEPRINT_DOCUMENT_KEYS: readonly string[] = ['version', 'id', 'name', 'screen', 'mode', 'root', 'screens', 'notes'] satisfies (keyof BlueprintDocument)[]
 /** Every key a further screen may carry. */
-export const BLUEPRINT_SCREEN_KEYS: readonly string[] = ['id', 'name', 'screen', 'root'] satisfies (keyof BlueprintScreen)[]
-/** Every key a Blueprint node may carry. */
+export const BLUEPRINT_SCREEN_KEYS: readonly string[] = ['id', 'name', 'screen', 'mode', 'root'] satisfies (keyof BlueprintScreen)[]
+/** Every key a Faithful Blueprint node may carry. */
 export const BLUEPRINT_NODE_KEYS: readonly string[] = ['type', 'props', 'children', 'anchor', 'goTo'] satisfies (keyof BlueprintNode)[]
+/** The key only an Exploratory node may add. */
+export const DEVIATION_KEY = 'deviation' satisfies keyof BlueprintNode
+
+/** The node keys a screen of this mode accepts: `deviation` is Exploratory's alone. */
+export function nodeKeysFor(mode: ScreenMode): readonly string[] {
+  return mode === 'exploratory' ? [...BLUEPRINT_NODE_KEYS, DEVIATION_KEY] : BLUEPRINT_NODE_KEYS
+}
 
 /** The id of a document's first screen when it names none. */
 export const FIRST_SCREEN_ID = 'screen-1'

@@ -256,10 +256,23 @@ export interface ManifestLinkRules {
   close?: string[]
 }
 
+/**
+ * A declared break of a pattern rule (phase 9D): which rule, and why. Only an
+ * Exploratory screen may carry one, and only for a pattern-level rule; a law is
+ * never declarable. On a node it covers that node's subtree; on a screen
+ * (`ScreenSpec.deviation`) it covers the screen.
+ */
+export interface RuleDeviation {
+  ruleId: string
+  why: string
+}
+
 /** What a screen declares under the layer rule: its model and its navigation level. */
 export interface ScreenSpec {
   model: string
   level: NavigationLevel
+  /** Pattern rules the screen breaks as a whole, with no single node to carry the declaration. */
+  deviation?: RuleDeviation[]
 }
 
 /**

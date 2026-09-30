@@ -290,6 +290,7 @@ export function treeToBlueprint(tree: CanvasNode): BlueprintDocument {
     ...(node.children.length ? { children: node.children.map(strip) } : {}),
     ...(node.anchor ? { anchor: true } : {}),
     ...(node.goTo ? { goTo: node.goTo } : {}),
+    ...(node.deviation ? { deviation: node.deviation } : {}),
   })
   return { version: 1, ...(tree.screen ? { screen: tree.screen } : {}), root: strip(tree) }
 }

@@ -4,7 +4,8 @@
  * and validated per-node by the matching `ComponentRegistry` entry's Zod schema.
  */
 
-import type { ScreenSpec } from '@/shared/design-system/manifest'
+import type { RuleDeviation, ScreenSpec } from '@/shared/design-system/manifest'
+import type { ScreenMode } from '@/shared/blueprint'
 
 export interface CanvasNode {
   id: string
@@ -23,6 +24,8 @@ export interface CanvasNode {
    * root — the canvas paints the model's shades between the video and the content.
    */
   screen?: ScreenSpec
+  /** A declared break of a pattern rule at this node (Exploratory screens only; see `BlueprintNode`). */
+  deviation?: RuleDeviation
 }
 
 export type NodeId = string
@@ -32,6 +35,8 @@ export interface ScreenEntry {
   id: string
   name: string
   tree: CanvasNode
+  /** The mode the screen was generated in; absent for a screen built by hand (Faithful rules). */
+  mode?: ScreenMode
 }
 
 /** Stable id generator (crypto.randomUUID is available in Electron's renderer). */
