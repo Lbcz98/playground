@@ -11,3 +11,6 @@ release
 storybook-static
 dist-dtv
 tests/visual/.output
+
+# real-model evaluation results (eval/run.ts)
+eval/results/
