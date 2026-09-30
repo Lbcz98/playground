@@ -263,6 +263,30 @@ export interface ScreenSpec {
 }
 
 /**
+ * How far a rule bends: a law holds in every mode, a pattern may be broken only
+ * in Exploratory mode and only when declared, a convention only produces a note.
+ */
+export type RuleFlexibility = 'law' | 'pattern' | 'convention'
+
+export const RULE_FLEXIBILITIES: readonly RuleFlexibility[] = ['law', 'pattern', 'convention']
+
+/**
+ * One entry of the rules book (`rules.ts`). The validator names the `id` of every
+ * rule a screen breaks; the router and the deviation audit read `flexibility`.
+ */
+export interface PatternRule {
+  id: string
+  title: string
+  statement: string
+  flexibility: RuleFlexibility
+  category: string
+  /** Where the rule is enforced or written down. */
+  source: string
+  /** Component ids the rule is about. Absent or empty: a global rule, always in the prompt. */
+  appliesTo?: readonly string[]
+}
+
+/**
  * A reference screen the agent can start a prototype from — `SCREEN_TEMPLATES`
  * (`src/shared/templates`) for the built-in system, or whatever a Storybook
  * export carries under `templates`. `blueprint` is a `BlueprintDocument`, kept
@@ -305,6 +329,11 @@ export interface DesignSystemManifest {
    * Optional; an imported system with none composes every screen from scratch.
    */
   templates?: readonly ManifestScreenTemplate[]
+  /**
+   * The rules book: every rule with its id and level. Optional; without it, the
+   * built-in book applies (`rulesOf` in `rules.ts`).
+   */
+  rules?: readonly PatternRule[]
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +346,7 @@ const MAX_COMPONENTS = 200
 const MAX_PROPS_PER_COMPONENT = 60
 const MAX_OPTIONS = 100
 const MAX_STR = 4000
+const MAX_RULES = 200
 
 const idSchema = z.string().min(1).max(120)
 const shortStr = z.string().max(200)
@@ -503,6 +533,29 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
     }
   })
 
+const rulesSchema = z
+  .array(
+    z
+      .object({
+        id: idSchema,
+        title: shortStr,
+        statement: z.string().min(1).max(MAX_STR),
+        flexibility: z.enum(RULE_FLEXIBILITIES as [RuleFlexibility, ...RuleFlexibility[]]),
+        category: shortStr,
+        source: shortStr,
+        appliesTo: z.array(idSchema).max(MAX_COMPONENTS).optional(),
+      })
+      .strict(),
+  )
+  .max(MAX_RULES)
+  .superRefine((rules, ctx) => {
+    const ids = new Set<string>()
+    for (const rule of rules) {
+      if (ids.has(rule.id)) ctx.addIssue({ code: 'custom', message: `duplicate rule "${rule.id}"` })
+      ids.add(rule.id)
+    }
+  })
+
 export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
     .object({
       id: idSchema,
@@ -512,6 +565,7 @@ export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
       tokenTiers: tokenTiersSchema.optional(),
       screenLayers: screenLayersSchema.optional(),
       templates: z.array(manifestScreenTemplateSchema).max(MAX_TEMPLATES).optional(),
+      rules: rulesSchema.optional(),
       components: z
         .record(componentSchema)
         .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })
