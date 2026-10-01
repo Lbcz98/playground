@@ -63,6 +63,16 @@ describe('stampManualEdit — Exploratory', () => {
     expect(after.screen?.deviation).toBeUndefined()
   })
 
+  it('moving a node with a break the model left does not make that break the person’s', () => {
+    const before = homeTree()
+    before.children[0].children.push(makeNode('ContentCardHeader')) // model residue, undeclared
+    const after = edit(before, (t) => {
+      const h = t.children[0].children.pop()!
+      t.children[0].children.unshift(h) // moved: same node, new path
+    })
+    expect(userStamps(after)).toEqual([])
+  })
+
   it('a law broken by hand is never stamped', () => {
     const after = edit(homeTree(), (t) => (t.props = { ...t.props, gap: '13px' }))
     expect(after.screen?.deviation).toBeUndefined()

@@ -58,20 +58,20 @@ function clearStamp(tree: CanvasNode, entry: DeviationEntry): void {
   if (node.deviation?.origin === 'user' && node.deviation.ruleId === entry.ruleId) delete node.deviation
 }
 
-const key = (e: DeviationEntry): string => `${e.ruleId}@${e.path.join('.')}`
+/** A break, keyed by its rule and the node it sits on (by id, so a move does not make an old break look new). */
+const key = (tree: CanvasNode, e: DeviationEntry): string => `${e.ruleId}@${nodeAt(tree, e.path).id}`
 
 /**
  * Stamp `after` (mutated) for the edit that turned `before` into it. Exploratory only: first a stamp made by hand
  * whose break went away is cleared; then each pattern break the edit introduced — undeclared now, not before, so a
- * break the model left is never blamed on the person — is declared as theirs, unless its node already declares
+ * break the model left is never blamed on the person, even after a move — is declared as theirs, unless its node already declares
  * another rule.
  */
 export function stampManualEdit(before: CanvasNode, after: CanvasNode, mode: ScreenMode, manifest: DesignSystemManifest): void {
   if (mode !== 'exploratory') return
-  // ponytail: breaks are matched by rule and path, so a move that shifts an old undeclared break to a new path stamps it as the person's; key by node id if that shows up.
   for (const e of reportOf(after, manifest)) if (e.status === 'unused' && e.origin === 'user') clearStamp(after, e)
-  const old = new Set(reportOf(before, manifest).filter((e) => e.status === 'undeclared').map(key))
+  const old = new Set(reportOf(before, manifest).filter((e) => e.status === 'undeclared').map((e) => key(before, e)))
   for (const e of reportOf(after, manifest)) {
-    if (e.status === 'undeclared' && !old.has(key(e)) && !e.blockedBy) declareAsMine(after, e)
+    if (e.status === 'undeclared' && !old.has(key(after, e)) && !e.blockedBy) declareAsMine(after, e)
   }
 }
