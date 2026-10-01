@@ -50,15 +50,22 @@ const PRICING: Record<string, Price> = {
   'claude-haiku-4-5': { inputPerMTok: 1, outputPerMTok: 5 },
 }
 
+/**
+ * Prompt-cache prices as multiples of the base input price (Anthropic prompt-caching docs, checked 2026-10-01):
+ * a write at the default 5-minute TTL costs 1.25×, a read 0.1× for the models priced above. The API's
+ * `input_tokens` leaves both out, so they are billed on top.
+ */
+export const CACHE_WRITE_MULTIPLIER = 1.25
+export const CACHE_READ_MULTIPLIER = 0.1
+
 export function estimateCostUsd(
   model: string | undefined,
   inputTokens: number | undefined,
   outputTokens: number | undefined,
+  cache: { readTokens?: number; writeTokens?: number } = {},
 ): number | undefined {
   const price = model ? PRICING[model] : undefined
   if (!price || inputTokens == null || outputTokens == null) return undefined
-  return (
-    (inputTokens / 1_000_000) * price.inputPerMTok +
-    (outputTokens / 1_000_000) * price.outputPerMTok
-  )
+  const input = inputTokens + (cache.writeTokens ?? 0) * CACHE_WRITE_MULTIPLIER + (cache.readTokens ?? 0) * CACHE_READ_MULTIPLIER
+  return (input / 1_000_000) * price.inputPerMTok + (outputTokens / 1_000_000) * price.outputPerMTok
 }

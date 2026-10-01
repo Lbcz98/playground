@@ -109,4 +109,14 @@ describe('apiKeyProvider — cache tokens (before 9G)', () => {
     const res = await apiKeyProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }] })
     expect(res.usage).toMatchObject({ cacheReadTokens: 300, cacheWriteTokens: 700 })
   })
+
+  it('prices cache writes at 1.25× and reads at 0.1× the base input price', async () => {
+    createMock.mockResolvedValueOnce({
+      content: [{ type: 'text', text: 'plan' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1_000_000, output_tokens: 0, cache_read_input_tokens: 1_000_000, cache_creation_input_tokens: 1_000_000 },
+    })
+    const res = await apiKeyProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }], model: 'claude-opus-5' })
+    expect(res.usage?.costUsd).toBeCloseTo(5 * (1 + 1.25 + 0.1)) // $5/MTok input on Opus 5
+  })
 })

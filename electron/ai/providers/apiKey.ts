@@ -145,7 +145,10 @@ function usageOf(model: string, u: Anthropic.Usage): CompleteResult['usage'] {
   return {
     inputTokens: u.input_tokens,
     outputTokens: u.output_tokens,
-    costUsd: estimateCostUsd(model, u.input_tokens, u.output_tokens),
+    costUsd: estimateCostUsd(model, u.input_tokens, u.output_tokens, {
+      readTokens: u.cache_read_input_tokens ?? undefined,
+      writeTokens: u.cache_creation_input_tokens ?? undefined,
+    }),
     costEstimated: true,
     cacheReadTokens: u.cache_read_input_tokens ?? undefined,
     cacheWriteTokens: u.cache_creation_input_tokens ?? undefined,
