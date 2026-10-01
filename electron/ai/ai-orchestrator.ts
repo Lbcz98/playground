@@ -38,6 +38,7 @@ import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { validateBlueprintAgainstManifest, type ValidationIssue } from '@/shared/design-system/manifest-zod'
 import { budgetProblems } from '@/shared/design-system/primitives'
+import { nodeDeclarationConflicts } from '@/shared/design-system/deviations'
 import { interpretPrototype } from '@/interpreter/interpret'
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
@@ -270,6 +271,8 @@ export async function generateUI(
             ? lastIssues.map((i) => ({ ruleId: i.ruleId, ...(i.kind ? { kind: i.kind } : {}), path: i.path, message: i.message }))
             : errors.map((message) => ({ ruleId: 'blueprint.dsl', path: [], message })), // a reply that was not JSON
         }
+        const conflicts = nodeDeclarationConflicts(lastBlueprint, lastIssues)
+        if (conflicts.length > 0) logged.nodeDeclarationConflicts = conflicts
         trace.push(logged)
 
         // A composition choice that survived every generator retry is the plan's:

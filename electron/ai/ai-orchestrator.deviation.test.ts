@@ -356,3 +356,20 @@ describe('the primitive budget in the pipeline', () => {
   })
 })
 
+
+describe('one declaration per node (9F → a 9G signal)', () => {
+  it('logs an attempt that breaks a second node-level rule on a node that declares another', async () => {
+    const two = home()
+    two.root.children[0].children.push({ type: 'ContentCardHeader', deviation: dev('flow.link-roles') })
+    const at = two.root.children[0].children.length - 1
+    const res = await run(fake([two, declared()]))
+    expect(res.meta.trace?.[0].nodeDeclarationConflicts).toEqual([
+      { path: ['root', 'children', 0, 'children', at], declared: 'flow.link-roles', broken: 'layout.slots' },
+    ])
+  })
+
+  it('logs nothing of the kind for an ordinary failed attempt', async () => {
+    const res = await run(fake([undeclared(), declared()]))
+    expect(res.meta.trace?.[0]).not.toHaveProperty('nodeDeclarationConflicts')
+  })
+})

@@ -196,3 +196,37 @@ describe('agent notes', () => {
     expect(run.ok && run.notes).toEqual(['Aproximei o mapa.'])
   })
 })
+
+describe('manual edits are stamped (9F)', () => {
+  const homeIn = (mode: 'faithful' | 'exploratory') => ({ ...structuredClone(homeTemplate.blueprint), mode }) as BlueprintDocument
+  const active = () => store().screens.find((e) => e.id === store().activeId)!
+
+  it('an Exploratory edit that breaks a pattern is stamped in the same undo step', () => {
+    store().applyAgentBlueprint(homeIn('exploratory'), 'x')
+    store().updateProps(store().tree.id, { align: 'start' })
+    expect(store().past).toHaveLength(2)
+    expect(store().tree.screen?.deviation).toEqual([{ ruleId: 'layout.root-align', why: 'Edited by hand', origin: 'user' }])
+    store().undo()
+    expect(store().tree.props.align).toBe('stretch')
+    expect(store().tree.screen?.deviation).toBeUndefined()
+    store().redo()
+    expect(store().tree.screen?.deviation?.[0].origin).toBe('user')
+  })
+
+  it('a Faithful edit is never stamped; "Declare as my deviation" switches the screen and stamps, in one undo step', () => {
+    store().applyAgentBlueprint(homeIn('faithful'), 'x')
+    store().updateProps(store().tree.id, { align: 'start' })
+    expect(store().tree.screen?.deviation).toBeUndefined()
+    expect(active().mode ?? 'faithful').toBe('faithful')
+
+    store().declareDeviation({ ruleId: 'layout.root-align', scope: 'screen', path: ['root', 'props', 'align'] })
+    expect(active().mode).toBe('exploratory')
+    expect(store().tree.screen?.deviation).toEqual([{ ruleId: 'layout.root-align', why: 'Edited by hand', origin: 'user' }])
+    expect(store().past).toHaveLength(3)
+
+    store().undo()
+    expect(active().mode ?? 'faithful').toBe('faithful')
+    expect(store().tree.screen?.deviation).toBeUndefined()
+    expect(store().tree.props.align).toBe('start')
+  })
+})

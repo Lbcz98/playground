@@ -231,6 +231,8 @@ export interface AttemptLog {
   issues: { ruleId: string; kind?: string; path: (string | number)[]; message: string }[]
   /** Set on the attempt whose failure sent the run back to the planner. */
   trigger?: string
+  /** Node-level breaks on a node that already declares another node-level rule (one declaration per node) — a 9G signal. */
+  nodeDeclarationConflicts?: { path: (string | number)[]; declared: string; broken: string }[]
 }
 
 export interface GenerateUIMeta {

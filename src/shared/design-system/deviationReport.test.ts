@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { deviationReport } from './deviationReport'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
+import { validateBlueprintAgainstManifest } from './manifest-zod'
 import { homeTemplate } from '@/shared/templates/home'
 
 type Doc = Record<string, any>
@@ -41,7 +42,7 @@ describe('deviationReport', () => {
   it('a break nobody declared is undeclared, scoped where it would have to be declared', () => {
     const [entry, ...rest] = report(breaksRootAlign())
     expect(rest).toEqual([])
-    expect(entry).toMatchObject({ ruleId: 'layout.root-align', scope: 'screen', status: 'undeclared', origin: 'model', path: ['root', 'props', 'align'] })
+    expect(entry).toMatchObject({ ruleId: 'layout.root-align', scope: 'screen', status: 'undeclared', path: ['root', 'props', 'align'] })
     expect(entry.why).toBeUndefined()
     expect(entry.message).toMatch(/align/)
     expect(entry.message).not.toMatch(/declare it/)
@@ -65,6 +66,32 @@ describe('deviationReport', () => {
     const doc = home()
     doc.screen.deviation = [dev('tokens.only')]
     expect(report(doc)).toMatchObject([{ ruleId: 'tokens.only', scope: 'screen', status: 'unused' }])
+  })
+
+  it('a stamp made by hand is reported with origin user; it validates once the canvas-only origin is set aside', () => {
+    const doc = breaksRootAlign()
+    doc.screen.deviation = [{ ...dev('layout.root-align', 'Edited by hand'), origin: 'user' }]
+    expect(report(doc)).toEqual([
+      { ruleId: 'layout.root-align', scope: 'screen', why: 'Edited by hand', status: 'declared', origin: 'user', path: [] },
+    ])
+  })
+
+  it('an undeclared break carries no origin: nobody declared it', () => {
+    expect(report(breaksRootAlign())[0]).not.toHaveProperty('origin')
+  })
+
+  it('the model cannot claim origin user: on the wire a deviation is exactly { ruleId, why }', () => {
+    const doc = breaksRootAlign()
+    doc.root.deviation = { ...dev('layout.root-align'), origin: 'user' }
+    const v = validateBlueprintAgainstManifest(doc, M, 'exploratory')
+    expect(v.ok).toBe(false)
+    expect(v.ok ? [] : v.issues.map((i) => i.message).join(' ')).toMatch(/remove "origin"/)
+  })
+
+  it('reports a node-level break on a node that already declares another rule, with what that node declares', () => {
+    const doc = home()
+    doc.root.children[0].children.push({ type: 'ContentCardHeader', deviation: dev('flow.link-roles') })
+    expect(report(doc).find((e) => e.status === 'undeclared')).toMatchObject({ ruleId: 'layout.slots', blockedBy: 'flow.link-roles' })
   })
 
   it('a law broken on the screen is not a deviation, so it is not in the report', () => {

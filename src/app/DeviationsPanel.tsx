@@ -38,14 +38,22 @@ export function DeviationList({
   manifest,
   exploratory,
   onSelect,
+  onDeclare,
 }: {
   entries: DeviationEntry[]
   manifest: DesignSystemManifest
   exploratory: boolean
   onSelect: (entry: DeviationEntry) => void
+  /** "Declare as my deviation" on an undeclared break (on a Faithful screen it switches the screen to Exploratory). */
+  onDeclare: (entry: DeviationEntry) => void
 }): JSX.Element {
-  if (!exploratory) return <p className="m-none text-xs text-ink-muted">Faithful screen — it keeps every pattern, so there is nothing to list.</p>
-  if (entries.length === 0) return <p className="m-none text-xs text-ink-muted">No deviations — this screen keeps every pattern.</p>
+  if (entries.length === 0) {
+    return (
+      <p className="m-none text-xs text-ink-muted">
+        {exploratory ? 'No deviations — this screen keeps every pattern.' : 'Faithful screen — it keeps every pattern.'}
+      </p>
+    )
+  }
   return (
     <div className="flex flex-col gap-sm">
       {GROUPS.map((group) => {
@@ -58,7 +66,7 @@ export function DeviationList({
             </h3>
             <ul className="m-none flex list-none flex-col gap-3xs p-none">
               {items.map((entry, i) => (
-                <li key={`${entry.ruleId}-${entry.path.join('.')}-${i}`}>
+                <li key={`${entry.ruleId}-${entry.path.join('.')}-${i}`} className="flex flex-col gap-3xs">
                   <button
                     type="button"
                     data-status={entry.status}
@@ -68,10 +76,28 @@ export function DeviationList({
                     <span className="flex flex-wrap items-center gap-3xs">
                       <span className="font-medium text-ink">{ruleById(manifest, entry.ruleId)?.title ?? entry.ruleId}</span>
                       <span className={cx('rounded-full border px-3xs', group.chip)}>{entry.scope}</span>
+                      {entry.origin === 'user' ? <span className="rounded-full bg-subtle px-3xs text-ink-muted">by hand</span> : null}
                     </span>
                     <span className="text-ink-muted">{entry.ruleId}</span>
                     <span className="text-ink">{entry.why ?? entry.message}</span>
                   </button>
+                  {entry.status === 'undeclared' ? (
+                    <div className="flex flex-col gap-3xs px-2xs">
+                      <button
+                        type="button"
+                        disabled={entry.blockedBy !== undefined}
+                        onClick={() => onDeclare(entry)}
+                        className="self-start rounded-sm border border-line px-2xs py-3xs text-xs text-ink hover:bg-subtle disabled:cursor-not-allowed disabled:text-ink-muted"
+                      >
+                        Declare as my deviation
+                      </button>
+                      {entry.blockedBy ? (
+                        <span className="text-xs text-ink-muted">this node already declares {entry.blockedBy}; one declaration per node</span>
+                      ) : !exploratory ? (
+                        <span className="text-xs text-ink-muted">switches this screen to Exploratório</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -86,12 +112,19 @@ export function DeviationsPanel(): JSX.Element {
   const tree = useFlowStore((s) => s.tree)
   const exploratory = useFlowStore((s) => screenMode(s.screens.find((entry) => entry.id === s.activeId)) === 'exploratory')
   const select = useFlowStore((s) => s.select)
+  const declareDeviation = useFlowStore((s) => s.declareDeviation)
   const manifest = useActiveDesignSystem()
-  const entries = useDeviationReport(tree, exploratory)
+  // A Faithful screen lists its undeclared breaks too (a manual edit), so the person can declare one as theirs.
+  const entries = useDeviationReport(tree, true)
   return (
     <section className="flex flex-col gap-2xs">
       <h2 className="text-xs font-semibold text-ink-muted">Deviations</h2>
-      <DeviationList entries={entries} manifest={manifest} exploratory={exploratory} onSelect={(entry) => select(nodeIdAtPath(tree, entry.path))} />
+      <DeviationList
+        entries={entries}
+        manifest={manifest}
+        exploratory={exploratory} onSelect={(entry) => select(nodeIdAtPath(tree, entry.path))}
+        onDeclare={declareDeviation}
+      />
     </section>
   )
 }

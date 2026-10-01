@@ -208,3 +208,43 @@ export function auditDeclared(
   }
   return { errors: out, covered }
 }
+
+/** The declaration on the node a path points at (`['root', 'children', 0, …]`; a prop path stops at its node). */
+export function nodeDeclarationAt(root: DeviationNode, path: IssuePath): DeviationNode['deviation'] {
+  let node = root
+  for (let i = 1; i + 1 < path.length && path[i] === 'children'; i += 2) {
+    const next = node.children?.[Number(path[i + 1])]
+    if (!next) break
+    node = next
+  }
+  return node.deviation
+}
+
+/** A node-level break the node could not declare, because it already declares another node-level rule. */
+export interface NodeDeclarationConflict {
+  path: IssuePath
+  declared: string
+  broken: string
+}
+
+/**
+ * One declaration per node: the undeclared node-level breaks that sit on a node already declaring another
+ * node-level rule. The panel disables "Declare as my deviation" for them; the pipeline logs them per attempt
+ * (a 9G signal for whether a node ever needs two). `issues` are the validator's, paths from the document.
+ */
+export function nodeDeclarationConflicts(doc: unknown, issues: readonly RuleProblem[]): NodeDeclarationConflict[] {
+  const d = (typeof doc === 'object' && doc !== null ? doc : {}) as { root?: DeviationNode; screens?: { root?: DeviationNode }[] }
+  const out: NodeDeclarationConflict[] = []
+  for (const issue of issues) {
+    if (issue.kind !== 'undeclared-deviation' || ruleScope(issue.ruleId) !== 'node') continue
+    const [root, path] =
+      issue.path[0] === 'screens' ? [d.screens?.[Number(issue.path[1])]?.root, issue.path.slice(2)] : [d.root, issue.path]
+    const other = root && nodeDeclarationAt(root, path)
+    if (!other || other.ruleId === issue.ruleId || ruleScope(other.ruleId) !== 'node') continue
+    // The node the break sits on: its path without the trailing prop/slot keys.
+    let end = 1
+    while (end + 1 < path.length && path[end] === 'children') end += 2
+    out.push({ path: [...issue.path.slice(0, issue.path.length - path.length), ...path.slice(0, end)], declared: other.ruleId, broken: issue.ruleId })
+  }
+  return out
+}

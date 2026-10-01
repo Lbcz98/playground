@@ -23,6 +23,9 @@ import { interpretPrototype, type InterpretIssue } from '@/interpreter/interpret
 import type { BlueprintDocument } from '@/shared/blueprint'
 import type { ScreenSpec } from '@/shared/design-system/manifest'
 import { useDesignSystemStore } from '@/store/designSystemStore'
+import { screenMode } from '@/shared/blueprint'
+import type { DeviationEntry } from '@/shared/design-system/deviationReport'
+import { declareAsMine, stampManualEdit } from './manualStamp'
 
 /** The active hydrated registry — read lazily so a design-system switch is picked up. */
 const activeRegistry = () => useDesignSystemStore.getState().registry
@@ -99,6 +102,11 @@ interface FlowState {
    * ONE history step. Returns whether it applied.
    */
   applyAgentBlueprint: (blueprint: BlueprintDocument, prompt: string) => AgentRun
+  /**
+   * "Declare as my deviation": declare one undeclared break as the person's (origin 'user'), switching a Faithful
+   * screen to Exploratory — one history step, and only ever from that explicit action.
+   */
+  declareDeviation: (entry: Pick<DeviationEntry, 'ruleId' | 'scope' | 'path'>) => void
   reset: () => void
 }
 
@@ -183,6 +191,19 @@ function initialTree(): CanvasNode {
 
 function initialScreens(): ScreenEntry[] {
   return [{ id: FIRST_SCREEN, name: 'Screen 1', tree: initialTree() }]
+}
+
+/**
+ * A manual edit: one history step, the edit and its stamp together — the edited screen is held to the same
+ * validation as a generation, and on an Exploratory screen a pattern it breaks is declared as the person's.
+ */
+function editByHand(get: () => FlowState, recipe: (draft: CanvasNode) => void, label: string): void {
+  const { tree: before, screens, activeId } = get()
+  const mode = screenMode(screens.find((entry) => entry.id === activeId))
+  get().commit((draft) => {
+    recipe(draft)
+    stampManualEdit(before, draft, mode, activeManifest())
+  }, label)
 }
 
 /** `screens` with `tree` written into the screen `activeId` names. */
@@ -289,14 +310,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const entry = activeRegistry().get(type)
     if (!entry) return
     const node = makeNode(type, { ...entry.defaultProps })
-    get().commit((draft) => {
+    editByHand(get, (draft) => {
       insertChild(draft, parentId, node, index)
     }, `Add ${entry.label}`)
     set({ selectedId: node.id })
   },
 
   updateProps: (id, patch) =>
-    get().commit((draft) => {
+    editByHand(get, (draft) => {
       updateNode(draft, id, (node) => {
         node.props = { ...node.props, ...patch }
       })
@@ -307,7 +328,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     if (id === ROOT_ID) return
     const node = findNode(get().tree, id)
     const label = node ? `Delete ${activeRegistry().get(node.type)?.label ?? node.type}` : 'Delete node'
-    get().commit((draft) => {
+    editByHand(get, (draft) => {
       removeNode(draft, id)
     }, label)
     if (get().selectedId === id) set({ selectedId: null })
@@ -316,7 +337,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setAnchor: (id, anchored) => {
     const node = get().tree.children.find((child) => child.id === id)
     if (!node || Boolean(node.anchor) === anchored) return
-    get().commit(
+    editByHand(
+      get,
       (draft) => {
         for (const child of draft.children) {
           if (anchored && child.id === id) child.anchor = true
@@ -330,7 +352,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setScreen: (screen) => {
     const current = get().tree.screen
     if (current?.model === screen.model && current.level === screen.level) return
-    get().commit((draft) => {
+    editByHand(get, (draft) => {
       draft.screen = { ...screen }
     }, 'Change layer model')
   },
@@ -393,6 +415,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     set({ selectedId: null, lastAgentRun: run })
     return run
   },
+
+  declareDeviation: (entry) =>
+    set((s) => {
+      const snapshot: Snapshot = { screens: s.screens, activeId: s.activeId, label: s.lastActionLabel ?? 'Initial' }
+      const draft = cloneTree(s.tree)
+      declareAsMine(draft, entry)
+      const screens = s.screens.map((e) => (e.id === s.activeId ? { ...e, tree: draft, mode: 'exploratory' as const } : e))
+      return {
+        ...open(screens, s.activeId),
+        past: [...s.past, snapshot].slice(-HISTORY_LIMIT),
+        future: [],
+        lastActionLabel: `Declare ${entry.ruleId} as my deviation`,
+      }
+    }),
 
   reset: () =>
     set({

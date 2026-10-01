@@ -271,6 +271,11 @@ export interface ManifestLinkRules {
 export interface RuleDeviation {
   ruleId: string
   why: string
+  /**
+   * Canvas only (9F): 'user' when a manual edit made the declaration; absent means the model did. Never on the
+   * wire — a Blueprint deviation is exactly { ruleId, why }, so the model cannot claim a stamp made by hand.
+   */
+  origin?: 'user'
 }
 
 /** What a screen declares under the layer rule: its model and its navigation level. */

@@ -16,14 +16,14 @@ const entry = (over: Partial<DeviationEntry>): DeviationEntry => ({
   ...over,
 })
 const html = (entries: DeviationEntry[], exploratory = true) =>
-  renderToStaticMarkup(<DeviationList entries={entries} manifest={M} exploratory={exploratory} onSelect={() => {}} />)
+  renderToStaticMarkup(<DeviationList entries={entries} manifest={M} exploratory={exploratory} onSelect={() => {}} onDeclare={() => {}} />)
 
 describe('DeviationList', () => {
   it('says so when the screen keeps every pattern', () => {
     expect(html([])).toContain('No deviations')
   })
 
-  it('says a Faithful screen has none to list', () => {
+  it('says a Faithful screen with no breaks keeps every pattern', () => {
     expect(html([], false)).toContain('Faithful')
   })
 
@@ -40,6 +40,29 @@ describe('DeviationList', () => {
     expect(out).toContain('the root does not stretch')
     expect(out).toContain('screen')
     expect(out).toContain('data-status="undeclared"')
+  })
+
+  it('marks a stamp made by hand, and only that one', () => {
+    expect(html([entry({ origin: 'user' })])).toContain('by hand')
+    expect(html([entry({})])).not.toContain('by hand')
+  })
+
+  it('offers "Declare as my deviation" on an undeclared break, and nowhere else', () => {
+    const out = html([entry({}), entry({ status: 'undeclared', why: undefined, origin: undefined, message: 'x' })])
+    expect(out.match(/Declare as my deviation/g)).toHaveLength(1)
+    expect(out).not.toMatch(/<button[^>]* disabled=""[^>]*>Declare/)
+  })
+
+  it('disables it, with the visible reason, when the node already declares another rule', () => {
+    const out = html([entry({ status: 'undeclared', why: undefined, origin: undefined, message: 'x', blockedBy: 'flow.link-roles' })])
+    expect(out).toMatch(/<button[^>]* disabled=""[^>]*>Declare as my deviation/)
+    expect(out).toContain('this node already declares flow.link-roles; one declaration per node')
+  })
+
+  it('on a Faithful screen, lists its undeclared breaks with the action', () => {
+    const out = html([entry({ status: 'undeclared', why: undefined, origin: undefined, message: 'root does not stretch' })], false)
+    expect(out).toContain('root does not stretch')
+    expect(out).toContain('Declare as my deviation')
   })
 
   it('leaves out a status with nothing in it', () => {
