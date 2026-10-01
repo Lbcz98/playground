@@ -169,7 +169,7 @@
         "router": "ask (law)",
         "declare": [],
         "law": "tokens.only holds in both modes",
-        "note": "Law holds, nothing declared; primitives are not required for it. Known conflict (Oct 1): level 0 pins the root to the end (rootEnd) while the notification model sits top-right, so a correctly placed notification breaks level.root-direction — 6 of 6 Exploratory runs after 9E declared it. Fix the rule before judging this request."
+        "note": "Law holds, nothing declared; primitives are not required for it. The level-0 notification sits top-right (UI Kit Camadas, 6441:15738); since the allowsRootStart exemption (Oct 1) its stack starts at the top, so a correctly placed notification declares nothing: 3/3 runs declared []."
       },
       "observed": {
         "faithful": "law held, default color, note explains",

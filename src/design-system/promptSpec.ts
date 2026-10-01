@@ -415,7 +415,7 @@ function screenLayerSpecifics(manifest: DesignSystemManifest, container: string)
     `* **Navigation levels (screen.level):**`,
     ...layers.levels.map((l) => {
       const stack = l.rootEnd
-        ? ` **The stack:** the outermost container is a column (direction vertical) that sits at the end of the frame (justify "end"), still stretching across it; ${l.maxModules === 1 ? 'the one module that belongs on one side sits in a row inside it.' : 'each module stacks in order and places itself on its own side (its own align/justify, or a row set to justify "start"/"end").'}`
+        ? ` **The stack:** the outermost container is a column (direction vertical) that sits at the end of the frame (justify "end"${layers.models.some((m) => m.level === l.level && m.allowsRootStart) ? ', except where a model below says its stack starts at the top' : ''}), still stretching across it; ${l.maxModules === 1 ? 'the one module that belongs on one side sits in a row inside it.' : 'each module stacks in order and places itself on its own side (its own align/justify, or a row set to justify "start"/"end").'}`
         : l.rootColumn
           ? ' **The stack:** the outermost container is a column (direction vertical), still stretching across it — never a row. Its content can sit at both the top and the bottom of the frame (not only at the end), so each module places itself with its own align/justify, or a row set to justify "start"/"end".'
           : ''

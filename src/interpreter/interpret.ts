@@ -484,13 +484,14 @@ function repairLevelRoot(
   }
   if (!level.rootEnd) return
   const prop = justifyPropFor(component)
-  if (!prop || root.props[prop.name] === 'end') return
+  const side = model?.allowsRootStart ? 'start' : 'end'
+  if (!prop || root.props[prop.name] === side) return
   issues.push({ ruleId: 'level.root-direction',
     level: 'info',
     path: 'root',
-    message: `Set ${prop.name} to "end" on the root (was ${brief(root.props[prop.name])}) — the stack on level ${level.level} sits at the end of the frame.`,
+    message: `Set ${prop.name} to "${side}" on the root (was ${brief(root.props[prop.name])}) — the stack on ${side === 'end' ? `level ${level.level}` : 'this screen'} sits at the ${side} of the frame.`,
   })
-  root.props = { ...root.props, [prop.name]: 'end' }
+  root.props = { ...root.props, [prop.name]: side }
 }
 
 /**

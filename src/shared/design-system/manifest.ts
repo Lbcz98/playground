@@ -209,6 +209,12 @@ export interface ManifestScreenModel {
   side?: ScreenSide
   /** Its shade pieces, bottom to top. */
   shades: ShadeId[]
+  /**
+   * The model's content sits at the START of the frame (the top) although its level pins the stack to the end:
+   * the level-0 notification, which is always in the top-right corner. Read by the validator, the layout check
+   * and the interpreter repair, so the root's `justify` is "start" here instead of "end".
+   */
+  allowsRootStart?: boolean
   /** When to pick it, as the agents read it. */
   use: string
 }
@@ -510,6 +516,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
             level: levelSchema,
             side: z.enum(['left', 'right']).optional(),
             shades: z.array(shadeSchema).min(1).max(SHADE_IDS.length),
+            allowsRootStart: z.boolean().optional(),
             use: z.string().max(MAX_STR),
           })
           .strict(),

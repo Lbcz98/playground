@@ -123,7 +123,9 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       level: 0,
       side: 'right',
       shades: ['top-right'],
-      use: 'A notification in the top-right corner of the clean broadcast — the one overlay without the scrim.',
+      // The UI Kit's level 0 (Camadas e profundidade › Camadas, 6441:15738): the notification is always in the top-right corner.
+      allowsRootStart: true,
+      use: 'A notification in the top-right corner of the clean broadcast — the one overlay without the scrim. It is always in the top-right corner, so its stack starts at the top of the frame (justify "start").',
     },
     {
       id: 'home',

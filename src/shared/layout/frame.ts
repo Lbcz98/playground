@@ -678,11 +678,13 @@ function levelRootIssues(
   if (level.rootEnd) {
     const prop = justifyPropFor(component)
     const value = prop ? propValue(root, prop) : undefined
-    if (prop && value !== 'end') {
+    // The level-0 notification is always in the top-right corner: its stack starts at the top, not at the end.
+    const side = model?.allowsRootStart ? 'start' : 'end'
+    if (prop && value !== side) {
       problems.push({
         ruleId: 'level.root-direction',
         path: ['root', 'props', prop.name],
-        message: `Level ${level.level} (${level.name}): the stack sits at the end of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "end".`,
+        message: `Level ${level.level} (${level.name}): the stack sits at the ${side} of the frame — root <${component.id}> ${prop.name} ${JSON.stringify(value)}, use "${side}".`,
       })
     }
   }
