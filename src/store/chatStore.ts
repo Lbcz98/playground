@@ -40,7 +40,7 @@ export interface ChatMessage {
   /** Orchestrator trace (planner / generator / validation). */
   steps?: string[]
   /** The mode the screen was generated in (meta.mode). */
-  mode?: ScreenMode
+  mode?: ScreenMode | 'both'
   /** What the pipeline tells the user (router notes, a mode fallback). */
   notices?: string[]
   /** The router asked instead of generating; `asked` is the request to re-send. */
@@ -58,9 +58,27 @@ export const CHOICE_LABELS: Record<QuestionChoice, string> = {
   both: 'Gere duas opções para comparação',
 }
 
-/** The buttons a question shows: follow the patterns, or explore beyond them. "Os dois" waits for 9F. */
+/** The buttons a question shows — the ones it carries (a law question: only Seguir padrões). */
 export function offeredChoices(question: RouterQuestion): QuestionChoice[] {
-  return question.choices.filter((choice) => choice !== 'both')
+  return question.choices
+}
+
+/**
+ * The measured cost of one generation on the CLI (eval, Sep 30 – Oct 1): Faithful ≈ US$ 0.215, Exploratory
+ * US$ 0.246–0.42. "Os dois" runs both, each with its own planner — the shared Faithful plan saves none, it only keeps
+ * the two comparable — so its range is their sum.
+ */
+const FAITHFUL_COST_USD = 0.215
+const EXPLORATORY_COST_USD: [number, number] = [0.246, 0.42]
+const brl = (n: number): string => n.toFixed(2).replace('.', ',')
+
+/** The note "Os dois" shows before it runs: the session's own average × 2 once there is one, else the measured range. */
+export function bothCostNote(u: SessionUsage): string {
+  const cost =
+    u.generations > 0 && u.costUsd > 0
+      ? `~US$ ${brl((u.costUsd / u.generations) * 2)} (média da sessão × 2)`
+      : `~US$ ${brl(FAITHFUL_COST_USD + EXPLORATORY_COST_USD[0])}–${brl(FAITHFUL_COST_USD + EXPLORATORY_COST_USD[1])}`
+  return `≈ 2 gerações · ${cost} · ~1 min`
 }
 
 export interface SessionUsage {
@@ -68,6 +86,8 @@ export interface SessionUsage {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  /** Generations run (an "Os dois" with both branches counts 2) — for the session's average cost. */
+  generations: number
   /** True if any contributing call's cost was an estimate. */
   costEstimated: boolean
 }
@@ -77,6 +97,7 @@ const EMPTY_USAGE: SessionUsage = {
   inputTokens: 0,
   outputTokens: 0,
   costUsd: 0,
+  generations: 0,
   costEstimated: false,
 }
 
@@ -103,10 +124,11 @@ function summarize(run: AgentRun): string {
   return run.notes.length > 0 ? `${head}\n\n${run.notes.map((n) => `• ${n}`).join('\n')}` : head
 }
 
-function accumulate(prev: SessionUsage, u: GenerateUsage | undefined): SessionUsage {
+function accumulate(prev: SessionUsage, u: GenerateUsage | undefined, generations = 1): SessionUsage {
   if (!u) return prev
   return {
     calls: prev.calls + 1,
+    generations: prev.generations + generations,
     inputTokens: prev.inputTokens + (u.inputTokens ?? 0),
     outputTokens: prev.outputTokens + (u.outputTokens ?? 0),
     costUsd: prev.costUsd + (u.costUsd ?? 0),
@@ -226,13 +248,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const manifest = useDesignSystemStore.getState().active
       const response = await generateUI(trimmed, history, { model, effort, mode }, manifest)
 
-      set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage) }))
+      set((s) => ({ sessionUsage: accumulate(s.sessionUsage, response.meta.usage, response.meta.branches ?? 1) }))
 
       const measuredBefore = useFrameStore.getState().renderVersion
       const applied = applyGenerated(response, trimmed)
       patch(applied)
 
-      if (response.ok && applied.run?.ok) {
+      // Never on an Os dois result: the repair re-runs the request, which would rebuild both branches.
+      if (response.ok && applied.run?.ok && response.meta.mode !== 'both') {
         const problems = await waitForRenderSettled(measuredBefore)
         if (problems && problems.length > 0) {
           const repairPrompt = `The screen just built has problems only visible once it renders: ${problems.join('; ')}. Rebuild it, fixing these — keep everything else about the request the same.`

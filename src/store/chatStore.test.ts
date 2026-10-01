@@ -5,7 +5,7 @@ import type { GenerateUIResponse, RouterQuestion } from '@/shared/blueprint'
 vi.mock('@/services/aiClient', () => ({ generateUI: vi.fn(), isBridgeAvailable: () => true }))
 
 const { generateUI } = await import('@/services/aiClient')
-const { useChatStore, offeredChoices } = await import('./chatStore')
+const { useChatStore, offeredChoices, bothCostNote } = await import('./chatStore')
 const { useSettingsStore } = await import('./settingsStore')
 
 const QUESTION: RouterQuestion = {
@@ -58,13 +58,26 @@ describe('chatStore — modes and the router question', () => {
     expect(generateUI).toHaveBeenCalledTimes(2)
   })
 
-  it('offers the two buttons — follow the patterns, explore beyond them — and never "Os dois" (9F)', async () => {
-    expect(offeredChoices(QUESTION)).toEqual(['faithful', 'exploratory'])
-    vi.mocked(generateUI).mockResolvedValueOnce(asked)
+  it('offers the three buttons, and "Gere duas opções" re-sends the request as Os dois (9F)', async () => {
+    expect(offeredChoices(QUESTION)).toEqual(['faithful', 'exploratory', 'both'])
+    vi.mocked(generateUI).mockResolvedValueOnce(asked).mockResolvedValueOnce(failed)
     await useChatStore.getState().send('Quatro cards numa tela de nível 3')
-    const bubble = useChatStore.getState().messages.at(-1)!
-    useChatStore.getState().answer(bubble.id, 'both')
-    expect(generateUI).toHaveBeenCalledTimes(1) // refused: no generation
+    useChatStore.getState().answer(useChatStore.getState().messages.at(-1)!.id, 'both')
+    await vi.waitFor(() => expect(generateUI).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(generateUI).mock.calls[1][2]).toMatchObject({ mode: 'both' })
+  })
+
+  it('never offers a choice the question does not carry (a law question has only Seguir padrões)', () => {
+    expect(offeredChoices({ ...QUESTION, kind: 'law', choices: ['faithful'] })).toEqual(['faithful'])
+  })
+
+  it('the Os dois cost note: the measured range with no history, the session average × 2 once there is one', () => {
+    expect(bothCostNote({ calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, costEstimated: false, generations: 0 })).toBe(
+      '≈ 2 gerações · ~US$ 0,46–0,64 · ~1 min',
+    )
+    expect(bothCostNote({ calls: 6, inputTokens: 1, outputTokens: 1, costUsd: 0.9, costEstimated: false, generations: 3 })).toBe(
+      '≈ 2 gerações · ~US$ 0,60 (média da sessão × 2) · ~1 min',
+    )
   })
 
   it('“Explore além do padrão” re-sends the request as exploratory', async () => {
@@ -73,5 +86,25 @@ describe('chatStore — modes and the router question', () => {
     useChatStore.getState().answer(useChatStore.getState().messages.at(-1)!.id, 'exploratory')
     await vi.waitFor(() => expect(generateUI).toHaveBeenCalledTimes(2))
     expect(vi.mocked(generateUI).mock.calls[1][2]).toMatchObject({ mode: 'exploratory' })
+  })
+})
+
+describe('the mode selector (9F)', () => {
+  it('offers Os dois next to Auto, Fidedigno and Exploratório, and sends it as chosen', async () => {
+    const { selectableModes } = await import('./settingsStore')
+    expect(selectableModes()).toEqual(['auto', 'faithful', 'exploratory', 'both'])
+  })
+
+  it('never runs the render repair on an Os dois result (it would rebuild both branches)', async () => {
+    useSettingsStore.getState().setMode('both')
+    const both: GenerateUIResponse = {
+      ok: true,
+      blueprint: { version: 1, root: { type: 'Stack', props: {}, children: [] } },
+      meta: { source: 'llm', durationMs: 1, steps: [], mode: 'both', branches: 2 },
+    }
+    vi.mocked(generateUI).mockResolvedValueOnce(both)
+    await useChatStore.getState().send('Um menu no centro')
+    expect(generateUI).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(generateUI).mock.calls[0][2]).toMatchObject({ mode: 'both' })
   })
 })

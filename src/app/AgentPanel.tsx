@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isBridgeAvailable } from '@/services/aiClient'
-import { CHOICE_LABELS, offeredChoices, useChatStore, type ChatMessage, type SessionUsage } from '@/store/chatStore'
+import { CHOICE_LABELS, bothCostNote, offeredChoices, useChatStore, type ChatMessage, type SessionUsage } from '@/store/chatStore'
 import { useFlowStore } from '@/store/flowStore'
 import { selectableModes, useSettingsStore, type ChosenMode } from '@/store/settingsStore'
 import { EFFORT_LEVELS, MODEL_OPTIONS, modelLabel, type EffortLevel } from '@/shared/models'
@@ -118,6 +118,7 @@ const MODE_LABELS: Record<ChosenMode, string> = {
   auto: 'Auto',
   faithful: 'Fidedigno',
   exploratory: 'Exploratório',
+  both: 'Os dois',
 }
 
 const SELECT_CLASS =
@@ -147,6 +148,7 @@ function GenerationControls(): JSX.Element {
           </option>
         ))}
       </select>
+      {mode === 'both' ? <span className="text-xs text-ink-muted">Os dois: {bothCostNote(usage)}</span> : null}
 
       <select
         value={model}
@@ -220,6 +222,7 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
   const undo = useFlowStore((s) => s.undo)
   const answer = useChatStore((s) => s.answer)
   const busy = useChatStore((s) => s.busy)
+  const usage = useChatStore((s) => s.sessionUsage)
 
   if (message.role === 'user') {
     return (
@@ -266,11 +269,15 @@ function MessageBubble({ message }: { message: ChatMessage }): JSX.Element {
               type="button"
               disabled={busy}
               onClick={() => answer(message.id, choice)}
+              title={choice === 'both' ? bothCostNote(usage) : undefined}
               className="rounded-md border border-line bg-surface px-sm py-3xs text-xs font-medium text-ink hover:bg-subtle disabled:opacity-50 disabled:pointer-events-none"
             >
               {CHOICE_LABELS[choice]}
             </button>
           ))}
+          {offeredChoices(message.question).includes('both') ? (
+            <span className="w-full text-xs text-ink-muted">Duas opções: {bothCostNote(usage)}</span>
+          ) : null}
         </div>
       ) : null}
 

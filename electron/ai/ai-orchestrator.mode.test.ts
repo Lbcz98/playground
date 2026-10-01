@@ -8,7 +8,7 @@ vi.mock('./providers', async (importActual) => {
 })
 
 const { resolveProvider } = await import('./providers')
-const { generateUI, BOTH_FALLBACK_NOTICE } = await import('./ai-orchestrator')
+const { generateUI, BOTH_IDENTICAL_NOTICE } = await import('./ai-orchestrator')
 const { handleGenerateUI } = await import('./handler')
 
 const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
@@ -56,14 +56,15 @@ describe('generateUI — step 0', () => {
     expect(res.meta.notices?.[0]).toMatch(/has no carousel/)
   })
 
-  it('an explicit "Os dois" still runs ONE Faithful generation, says so, and is stamped faithful (until 9F)', async () => {
-    const p = fakeProvider(PLAN)
+  it('an explicit "Os dois" makes no classifier call and runs both branches (9F)', async () => {
+    const p = fakeProvider(PLAN, PLAN)
     const res = await run('Explore um layout com o menu no topo', 'both', p)
     expect(res.ok).toBe(true)
-    expect(p.complete).toHaveBeenCalledTimes(1)
-    expect(p.renderUi).toHaveBeenCalledTimes(1)
+    expect(p.complete).toHaveBeenCalledTimes(2) // the Faithful planner, then the Exploratory one
+    expect(p.renderUi).toHaveBeenCalledTimes(2)
+    // The fake returns the same screen to both branches: identical, so only the Faithful one is kept.
     expect(res.meta.mode).toBe('faithful')
-    expect(res.meta.notices).toContain(BOTH_FALLBACK_NOTICE)
+    expect(res.meta.notices).toContain(BOTH_IDENTICAL_NOTICE)
   })
 
   it('an explicit Exploratório runs the exploratory pipeline: no fallback notice, stamped exploratory', async () => {
@@ -72,7 +73,6 @@ describe('generateUI — step 0', () => {
     expect(res.ok).toBe(true)
     expect(p.renderUi).toHaveBeenCalledTimes(1)
     expect(res.meta.mode).toBe('exploratory')
-    expect(res.meta.notices ?? []).not.toContain(BOTH_FALLBACK_NOTICE)
     expect(res.ok && res.blueprint.mode).toBe('exploratory')
   })
 

@@ -231,6 +231,8 @@ export interface AttemptLog {
   issues: { ruleId: string; kind?: string; path: (string | number)[]; message: string }[]
   /** Set on the attempt whose failure sent the run back to the planner. */
   trigger?: string
+  /** "Os dois": the branch the attempt belongs to. */
+  branch?: 'F' | 'E'
   /** Node-level breaks on a node that already declares another node-level rule (one declaration per node) — a 9G signal. */
   nodeDeclarationConflicts?: { path: (string | number)[]; declared: string; broken: string }[]
 }
@@ -246,8 +248,10 @@ export interface GenerateUIMeta {
   durationMs: number
   /** Free-form trace of the orchestrator steps (planner, generator, retries…). */
   steps: string[]
-  /** The mode the screens were generated in — never one the pipeline didn't run. */
-  mode?: ScreenMode
+  /** The mode the screens were generated in — never one the pipeline didn't run; 'both' for "Os dois" (each screen carries its own). */
+  mode?: ScreenMode | 'both'
+  /** How many generations the result took: 2 for "Os dois" with both branches run, else absent (one). */
+  branches?: number
   /** What the pipeline itself tells the user (the router, a mode fallback), shown under the reply. */
   notices?: string[]
   /** Every failed attempt of the run with its structured issues — for evaluation; absent when the first attempt was valid. */

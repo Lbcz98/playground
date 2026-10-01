@@ -14,14 +14,11 @@ import {
   EFFORT_LEVELS,
 } from '@/shared/models'
 
-/**
- * The modes the selector offers. "Os dois" (the faithful screen and the exploratory
- * ones side by side) is not offered until phase 9F builds it.
- */
-export type ChosenMode = 'auto' | 'faithful' | 'exploratory'
+/** The modes the selector offers; "Os dois" puts the Faithful screen and the Exploratory one side by side (9F). */
+export type ChosenMode = 'auto' | 'faithful' | 'exploratory' | 'both'
 
 export function selectableModes(): ChosenMode[] {
-  return ['auto', 'faithful', 'exploratory']
+  return ['auto', 'faithful', 'exploratory', 'both']
 }
 
 interface SettingsState {

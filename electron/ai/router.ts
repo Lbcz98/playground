@@ -96,8 +96,9 @@ export function conflictQuestion(
     text: CONFLICT_QUESTION,
     why: patterns.find((p) => p.why)?.why,
     rules: patterns.map(({ rule }) => brief(rule)),
-    // Two buttons: follow the patterns, or explore beyond them. "Os dois" arrives in 9F.
-    choices: ['faithful', 'exploratory'],
+    // Three buttons: follow the patterns, explore beyond them, or both side by side (9F). A law question offers none of
+    // the last two: the law holds in both modes, so the two screens would be the same.
+    choices: ['faithful', 'exploratory', 'both'],
     faithfulAlternative,
   }
 }
