@@ -121,7 +121,7 @@ async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
     is_error?: boolean
     result?: string
     total_cost_usd?: number
-    usage?: { input_tokens?: number; output_tokens?: number }
+    usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }
   }
   try {
     envelope = JSON.parse(stdout)
@@ -141,6 +141,8 @@ async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
       outputTokens: envelope.usage?.output_tokens,
       costUsd: typeof envelope.total_cost_usd === 'number' ? envelope.total_cost_usd : undefined,
       costEstimated: false,
+      cacheReadTokens: envelope.usage?.cache_read_input_tokens,
+      cacheWriteTokens: envelope.usage?.cache_creation_input_tokens,
     },
   }
 }

@@ -218,6 +218,18 @@ export interface GenerateUsage {
   costUsd?: number
   /** True when costUsd is estimated from token counts rather than reported. */
   costEstimated?: boolean
+  /** Prompt tokens read from the cache (not in inputTokens) — what tells a warm call from a cold one. */
+  cacheReadTokens?: number
+  /** Prompt tokens written to the cache (not in inputTokens). */
+  cacheWriteTokens?: number
+}
+
+/** One provider call of a run, with its usage: which step made it, on which "Os dois" branch, on which attempt. */
+export interface CallUsage extends GenerateUsage {
+  step: 'router' | 'planner' | 'generator'
+  branch?: 'F' | 'E'
+  /** The generator attempt (1, 2…); the plan index (0, 1… for replans) for a planner call. */
+  attempt?: number
 }
 
 /** Where the response came from. */
@@ -250,6 +262,8 @@ export interface GenerateUIMeta {
   steps: string[]
   /** The mode the screens were generated in — never one the pipeline didn't run; 'both' for "Os dois" (each screen carries its own). */
   mode?: ScreenMode | 'both'
+  /** Every provider call of the run with its own usage, cache tokens included — where the cost went. */
+  calls?: CallUsage[]
   /** How many generations the result took: 2 for "Os dois" with both branches run, else absent (one). */
   branches?: number
   /** What the pipeline itself tells the user (the router, a mode fallback), shown under the reply. */

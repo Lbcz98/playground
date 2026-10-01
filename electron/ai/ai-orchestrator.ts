@@ -29,6 +29,7 @@ import type {
   GenerateUIResponse,
   GenerateUsage,
   ScreenMode,
+  CallUsage,
 } from '@/shared/blueprint'
 import { FIRST_SCREEN_ID, MAX_NOTES, MAX_SCREENS } from '@/shared/blueprint'
 import { readRequest } from '@/shared/design-system/request-signals'
@@ -123,6 +124,7 @@ export async function generateUI(
   }
 
   let usage: GenerateUsage | undefined
+  const calls: CallUsage[] = []
   let model: string | undefined
   const notices: string[] = []
 
@@ -134,6 +136,7 @@ export async function generateUI(
     if (options.mode === 'auto') {
       const route = await routeAuto(provider, userPrompt, manifest, options.model)
       usage = addUsage(usage, route.usage)
+      calls.push({ step: 'router', ...route.usage })
       steps.push(...route.steps)
       if (route.decision.kind === 'ask') {
         const { question } = route.decision
@@ -153,7 +156,7 @@ export async function generateUI(
       notices.push(...explicitNotices(readRequest(userPrompt, manifest), manifest))
       if (options.mode === 'exploratory') mode = 'exploratory'
     }
-    const acc: Tally = { usage, model }
+    const acc: Tally = { usage, model, calls }
     const base: Omit<BranchArgs, 'mode' | 'plannerMessages'> = { provider, manifest, options, steps, notices, trace: [], acc }
     try {
       if (options.mode === 'both') {
@@ -161,13 +164,14 @@ export async function generateUI(
         return success(res.blueprint, provider, acc.model, acc.usage, steps, startedAt, {
           ...stamp(res.mode, notices, base.trace),
           ...(res.branches > 1 ? { branches: res.branches } : {}),
+          calls,
         })
       }
       // In Exploratory the planner starts from the router's faithful alternative and edits it.
       const plannerRequest =
         mode === 'exploratory' && faithfulAlternative ? withFaithfulAlternative(userPrompt, faithfulAlternative) : userPrompt
       const out = await runBranch({ ...base, mode, plannerMessages: [...history, { role: 'user', content: plannerRequest }] })
-      return success(out.blueprint, provider, acc.model, acc.usage, steps, startedAt, stamp(mode, notices, base.trace))
+      return success(out.blueprint, provider, acc.model, acc.usage, steps, startedAt, { ...stamp(mode, notices, base.trace), calls })
     } finally {
       // What the calls cost, for the error reply too.
       usage = acc.usage
@@ -187,6 +191,7 @@ export async function generateUI(
         usage,
         durationMs: Date.now() - startedAt,
         steps,
+        ...(calls.length > 0 ? { calls } : {}),
       },
     }
   }
@@ -196,6 +201,13 @@ export async function generateUI(
 interface Tally {
   usage?: GenerateUsage
   model?: string
+  calls: CallUsage[]
+}
+
+/** Add one call's usage to the run's total and to its list of calls. */
+function tally(acc: Tally, usage: GenerateUsage | undefined, call: Omit<CallUsage, keyof GenerateUsage>): void {
+  acc.usage = addUsage(acc.usage, usage)
+  acc.calls.push({ ...call, ...usage })
 }
 
 interface BranchArgs {
@@ -248,7 +260,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
         model: options.model,
         effort: 'low', // planning is structural — keep it cheap
       })
-      acc.usage = addUsage(acc.usage, planner.usage)
+      tally(acc, planner.usage, { step: 'planner', ...(a.branch ? { branch: a.branch } : {}), attempt: replan })
       acc.model = planner.model
       planText = planner.text
     }
@@ -281,7 +293,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
       let reply = ''
       try {
         const gen = await provider.renderUi({ system: genSystem, messages: genMessages, model: options.model, effort: options.effort, mode })
-        acc.usage = addUsage(acc.usage, gen.usage)
+        tally(acc, gen.usage, { step: 'generator', ...(a.branch ? { branch: a.branch } : {}), attempt })
         acc.model = gen.model ?? acc.model
         lastBlueprint = unwrapBlueprint(gen.blueprint)
         // The pipeline sets the mode, never the model.
@@ -410,7 +422,7 @@ async function runBoth(
     model: options.model,
     effort: 'low',
   })
-  acc.usage = addUsage(acc.usage, planner.usage)
+  tally(acc, planner.usage, { step: 'planner', attempt: 0 })
   acc.model = planner.model
   const template = chooseTemplate(planner.text, templatesFor(manifest))
   const count = plannedScreens(planner.text)
@@ -552,7 +564,7 @@ function success(
   usage: GenerateUsage | undefined,
   steps: string[],
   startedAt: number,
-  stamp: Pick<GenerateUIMeta, 'mode' | 'notices' | 'trace' | 'branches'>,
+  stamp: Pick<GenerateUIMeta, 'mode' | 'notices' | 'trace' | 'branches' | 'calls'>,
 ): GenerateUIResponse {
   return {
     ok: true,

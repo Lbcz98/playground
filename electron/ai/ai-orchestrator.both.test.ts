@@ -209,3 +209,21 @@ describe('"Os dois" — one plan, two branches', () => {
     expect(mergeBranches(f, e).notes).toEqual(['Fidedigno: f1', 'Fidedigno: f2', 'Exploratório: e1', 'Exploratório: e2'])
   })
 })
+
+describe('usage per call (before 9G)', () => {
+  it('lists every call with its step, branch and usage, cache tokens included', async () => {
+    const f = fake()
+    vi.mocked(f.provider.renderUi).mockImplementation(async (a: any) => ({
+      blueprint: a.mode === 'exploratory' ? explored() : home(),
+      model: 'm',
+      usage: { inputTokens: 4, outputTokens: 10, costUsd: 0.2, cacheReadTokens: 900, cacheWriteTokens: 2000 },
+    }))
+    const res = await run(f)
+    expect(res.meta.calls?.map((c) => [c.step, c.branch ?? null])).toEqual(
+      expect.arrayContaining([['planner', null], ['generator', 'F'], ['planner', 'E'], ['generator', 'E']]),
+    )
+    expect(res.meta.calls).toHaveLength(4)
+    expect(res.meta.calls?.find((c) => c.step === 'generator')).toMatchObject({ attempt: 1, cacheReadTokens: 900, cacheWriteTokens: 2000 })
+    expect(res.meta.usage).toMatchObject({ cacheReadTokens: 1800, cacheWriteTokens: 4000 })
+  })
+})

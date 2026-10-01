@@ -99,3 +99,17 @@ describe('claudeCliProvider', () => {
     ).rejects.toThrow(/sign(ed)? in/i)
   })
 })
+
+describe('claudeCliProvider — cache tokens (before 9G)', () => {
+  it('reports the envelope’s cache reads and writes, which input_tokens leaves out', async () => {
+    __resetBinaryCache()
+    execFileImpl.mockReset()
+    execFileImpl
+      .mockResolvedValueOnce({ stdout: '1.2.3' })
+      .mockResolvedValueOnce(
+        envelope('plan', { total_cost_usd: 0.2, usage: { input_tokens: 4, output_tokens: 900, cache_read_input_tokens: 12000, cache_creation_input_tokens: 21000 } }),
+      )
+    const res = await claudeCliProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }] })
+    expect(res.usage).toMatchObject({ inputTokens: 4, outputTokens: 900, cacheReadTokens: 12000, cacheWriteTokens: 21000 })
+  })
+})

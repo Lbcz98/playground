@@ -49,3 +49,11 @@ describe('addUsage', () => {
     expect(addUsage(undefined, b)).toMatchObject({ inputTokens: 300, costEstimated: false })
   })
 })
+
+describe('addUsage — cache tokens (before 9G)', () => {
+  it('sums cache reads and writes, and leaves them out when no call reported any', () => {
+    const sum = addUsage({ inputTokens: 4, cacheReadTokens: 100, cacheWriteTokens: 50 }, { inputTokens: 1, cacheReadTokens: 10 })
+    expect(sum).toMatchObject({ inputTokens: 5, cacheReadTokens: 110, cacheWriteTokens: 50 })
+    expect(addUsage({ inputTokens: 1 }, { inputTokens: 2 })).not.toHaveProperty('cacheReadTokens')
+  })
+})

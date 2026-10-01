@@ -37,11 +37,15 @@ export interface AiProvider {
 }
 
 export function addUsage(a: GenerateUsage | undefined, b: GenerateUsage | undefined): GenerateUsage {
+  const cache = (key: 'cacheReadTokens' | 'cacheWriteTokens') =>
+    a?.[key] === undefined && b?.[key] === undefined ? {} : { [key]: (a?.[key] ?? 0) + (b?.[key] ?? 0) }
   return {
     inputTokens: (a?.inputTokens ?? 0) + (b?.inputTokens ?? 0),
     outputTokens: (a?.outputTokens ?? 0) + (b?.outputTokens ?? 0),
     costUsd: (a?.costUsd ?? 0) + (b?.costUsd ?? 0),
     costEstimated: !!a?.costEstimated || !!b?.costEstimated,
+    ...cache('cacheReadTokens'),
+    ...cache('cacheWriteTokens'),
   }
 }
 

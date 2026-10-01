@@ -98,3 +98,15 @@ describe('apiKeyProvider.renderUi', () => {
     ).rejects.toThrow(/render_ui/)
   })
 })
+
+describe('apiKeyProvider — cache tokens (before 9G)', () => {
+  it('reports the response’s cache reads and writes', async () => {
+    createMock.mockResolvedValueOnce({
+      content: [{ type: 'text', text: 'plan' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 300, cache_creation_input_tokens: 700 },
+    })
+    const res = await apiKeyProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }] })
+    expect(res.usage).toMatchObject({ cacheReadTokens: 300, cacheWriteTokens: 700 })
+  })
+})
