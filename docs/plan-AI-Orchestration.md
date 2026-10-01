@@ -200,6 +200,8 @@ Other interpreter rules:
 
 *Eval.* The runner records primitives used, chain, what `reuse` considered (real or not), Proposals and the first attempt's issues.
 
+*First real runs after 9E (Sep 30 – Oct 1).* r01, r02, r05, r09, r10 × 3 in Exploratory, then r01, r02, r10 × 3 again after a prompt change (24 generations, US$ 10.40). Laws held in all 24, every run valid, zero primitives and zero Proposals anywhere — the baselines (r01, r02) stayed clean. r09 declared `layout.slots` on the node 3/3 and put the score in the team names (no score prop): a scoreboard Proposal was never chosen. r05 declared `layout.no-static-center` 3/3 with the menu centred by the root's `justify` (no wrapper); one run also composed a scrim-only overlay. r10 declared `level.root-direction` in 6/6: level 0 pins the root to the end while the `notification` model sits top-right, a rule conflict, not invention — a prompt line ("never invent a position or layout the request doesn't ask for; if unsure, conform") changed nothing and was kept. Average cost per Exploratory generation went from US$ 0.246 (9D) to US$ 0.42; the prompt growth (about 1,290 tokens) explains only a few cents of that. The rest is unexplained: `meta.usage` does not record cache reads and writes, so cold-cache runs cannot be told apart — 9G should record them.
+
 ## Phases
 
 The MVP closes at 9D: both modes working only with components that already exist, recomposed and with declared deviations. 9B and 9G run in parallel. The numbering follows the README, which stops at Phase 8.

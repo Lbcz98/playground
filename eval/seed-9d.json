@@ -169,7 +169,7 @@
         "router": "ask (law)",
         "declare": [],
         "law": "tokens.only holds in both modes",
-        "note": "Notification has no color prop: a primitive:Text with a semantic token is a 9E candidate"
+        "note": "Law holds, nothing declared; primitives are not required for it. Known conflict (Oct 1): level 0 pins the root to the end (rootEnd) while the notification model sits top-right, so a correctly placed notification breaks level.root-direction — 6 of 6 Exploratory runs after 9E declared it. Fix the rule before judging this request."
       },
       "observed": {
         "faithful": "law held, default color, note explains",

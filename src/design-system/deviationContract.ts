@@ -32,7 +32,8 @@ This request may leave the design system's patterns. Plan what it needs, and say
   "Deviation: <rule id> — <why, in one short sentence, in the language of the request>" right under the
   component it happens at, or on the "Screen:" line when it concerns the whole screen. A rule marked
   "on its node only" always goes under its component.
-- Break only what the request needs; everything else keeps the patterns. A plan that breaks nothing has no
+- Break a pattern only when the request needs it; never invent a position or layout the request doesn't ask
+  for; if unsure, conform. Everything else keeps the patterns. A plan that breaks nothing has no
   "Deviation:" line, and never lists a pattern it does not really break.
 - A new overlay is composed, not invented: "screen": { "model": "composed", "level": <its level>, "shades": [ <from ${SHADE_IDS.map((s) => `"${s}"`).join(', ')}, each once> ], "deviation": [ { "ruleId": "layers.overlay-model", "why": … } ] }. Any other model name must be one of the layer models.
 
@@ -56,6 +57,7 @@ sentence in the language of the request, up to ${MAX_WHY_LENGTH} characters>" }.
 - Put it on the node where the break happens; it covers that node and everything inside it. The plan's "Deviation:" lines say which.
 - A break that belongs to the whole screen goes in "screen": { "model": …, "level": …, "deviation": [ { "ruleId": …, "why": … } ] }.
   A rule marked "on its node only" is never declared there: declare it on the node where it happens.
+- Break a pattern only when the request needs it; never invent a position or layout the request doesn't ask for; if unsure, conform.
 - Declare exactly the patterns the screen really breaks. A break that is not declared is an error, and so is a declaration
   that nothing breaks. Declaring a different rule does not cover the break.
 - Never declare a law, and never declare a rule that is not in the list below.
@@ -85,7 +87,7 @@ export function plannerVocabularyContract(): string {
   return `# Exploratory mode — beyond the registry
 
 Prefer the registry's components, recomposed. Only when none of them expresses the need:
-- a small piece the registry lacks (a coloured title, a wrapper that places something) is a PRIMITIVE —
+- a small piece the registry lacks (a coloured title, a wrapper that groups pieces) is a PRIMITIVE —
   ${PRIMITIVE_TYPES.join(', ')}. For each, add a line "Primitive: <type> — considered <the components you
   looked at, by name> — <why none of them does it>".
 - a real new component (a scoreboard, a widget with its own props) is a PROPOSAL — add a line "Proposal:
