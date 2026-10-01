@@ -9,7 +9,7 @@
 
 import type { DesignSystemManifest, ScreenSpec } from './manifest'
 import type { IssuePath } from './rules'
-import { declarationProblem, ruleScope, treeDeclarations, type DeviationNode } from './deviations'
+import { UNDECLARED_HINT, declarationProblem, ruleScope, treeDeclarations, type DeviationNode } from './deviations'
 import { validateBlueprintAgainstManifest } from './manifest-zod'
 
 export interface DeviationEntry {
@@ -23,7 +23,7 @@ export interface DeviationEntry {
   origin: 'model' | 'user'
   /** The declaring node (`['root', 'children', 0, …]`, `[]` for the screen), or where an undeclared break happens. */
   path: IssuePath
-  /** An undeclared break: the validator's message. */
+  /** An undeclared break: the validator's message, without its instruction to the Generator. */
   message?: string
 }
 
@@ -44,6 +44,6 @@ export function deviationReport(root: DeviationNode, screen: ScreenSpec | undefi
   }))
   const undeclared: DeviationEntry[] = issues
     .filter((i) => i.kind === 'undeclared-deviation')
-    .map((i) => ({ ruleId: i.ruleId, scope: ruleScope(i.ruleId), status: 'undeclared', origin: 'model', path: i.path, message: i.message }))
+    .map((i) => ({ ruleId: i.ruleId, scope: ruleScope(i.ruleId), status: 'undeclared', origin: 'model', path: i.path, message: i.message.split(UNDECLARED_HINT)[0] }))
   return [...declared, ...undeclared]
 }

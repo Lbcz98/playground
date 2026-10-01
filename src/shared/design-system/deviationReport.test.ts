@@ -44,6 +44,7 @@ describe('deviationReport', () => {
     expect(entry).toMatchObject({ ruleId: 'layout.root-align', scope: 'screen', status: 'undeclared', origin: 'model', path: ['root', 'props', 'align'] })
     expect(entry.why).toBeUndefined()
     expect(entry.message).toMatch(/align/)
+    expect(entry.message).not.toMatch(/declare it/)
   })
 
   it('a declaration nothing breaks is unused', () => {

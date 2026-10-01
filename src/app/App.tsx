@@ -2,6 +2,7 @@ import { Toolbar } from './Toolbar'
 import { DesignSystemSwitcher } from './DesignSystemSwitcher'
 import { ComponentPalette } from './ComponentPalette'
 import { LayersPanel } from './LayersPanel'
+import { DeviationsPanel } from './DeviationsPanel'
 import { PropertyInspector } from './PropertyInspector'
 import { FramePanel } from './FramePanel'
 import { AgentPanel } from './AgentPanel'
@@ -18,6 +19,7 @@ export function App(): JSX.Element {
             <DesignSystemSwitcher />
             <ComponentPalette />
             <LayersPanel />
+            <DeviationsPanel />
           </aside>
 
           <main className="flex min-w-none flex-1">

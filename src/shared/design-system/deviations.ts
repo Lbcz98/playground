@@ -10,6 +10,9 @@ import type { PatternRule } from './manifest'
 
 export const MAX_WHY_LENGTH = 300
 
+/** Where the audit's instruction to the Generator starts in an undeclared break's message — the report shows only what comes before. */
+export const UNDECLARED_HINT = ' In an Exploratory screen either fix this, or declare it:'
+
 /** A valid declaration, and where it sits: on a node (covers its subtree) or on the screen (covers it all). */
 export interface Declaration {
   ruleId: string
@@ -187,7 +190,7 @@ export function auditDeclared(
           ...issue,
           kind: 'undeclared-deviation',
           message:
-            `${issue.message} In an Exploratory screen either fix this, or declare it: "deviation": { "ruleId": "${issue.ruleId}", "why": "…" } ` +
+            `${issue.message}${UNDECLARED_HINT} "deviation": { "ruleId": "${issue.ruleId}", "why": "…" } ` +
             'on the node where it happens (or in "screen".deviation for the whole screen).',
         })
       }

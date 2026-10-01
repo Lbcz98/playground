@@ -2,8 +2,7 @@ import { type MutableRefObject, type RefObject, useEffect, useLayoutEffect, useM
 import type { CanvasNode } from '@/model/nodeTree'
 import { screenMode } from '@/shared/blueprint'
 import { treeDeclarations } from '@/shared/design-system/deviations'
-import { deviationReport } from '@/shared/design-system/deviationReport'
-import { treeToBlueprint } from '@/interpreter/interpret'
+import { useDeviationReport } from './useDeviationReport'
 import { withVocabulary } from '@/shared/design-system/primitives'
 import { useFlowStore } from '@/store/flowStore'
 import { currentPlayScreenId, usePlayStore } from '@/store/playStore'
@@ -98,11 +97,7 @@ export function Canvas(): JSX.Element {
   const exploratory = screenMode(screens.find((entry) => entry.tree === tree)) === 'exploratory'
   const declarations = useMemo(() => (exploratory ? treeDeclarations(tree, tree.screen) : []), [tree, exploratory])
   // The "N declared" badge counts the declarations the audit agrees with — the same report the Deviations panel reads.
-  const declaredCount = useMemo(() => {
-    if (!exploratory) return 0
-    const doc = treeToBlueprint(tree)
-    return deviationReport(doc.root, doc.screen, active).filter((entry) => entry.status === 'declared').length
-  }, [tree, exploratory, active])
+  const declaredCount = useDeviationReport(tree, exploratory).filter((entry) => entry.status === 'declared').length
   const checks = useMemo(
     () =>
       withRenderCheck(
