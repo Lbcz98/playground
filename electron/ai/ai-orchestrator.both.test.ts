@@ -147,7 +147,7 @@ describe('"Os dois" — one plan, two branches', () => {
   it('keeps only the Faithful screen when the Exploratory one is structurally identical, and says so', async () => {
     const res = await run(fake({ exploratory: home() }))
     if (!res.ok) throw new Error(res.error)
-    expect(screensOf(res.blueprint as Doc)).toHaveLength(1)
+    expect(screensOf(res.blueprint as Doc).map((s) => [s.id, s.name, s.mode])).toEqual([['faithful-1', 'Fidedigno', undefined]])
     expect(res.meta.notices).toContain('Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.')
   })
 
@@ -157,13 +157,15 @@ describe('"Os dois" — one plan, two branches', () => {
     const res = await run(f)
     expect(f.plannerCalls.filter(isExploratoryPlanner)).toHaveLength(0)
     expect(f.generatorCalls).toHaveLength(1)
+    if (!res.ok) throw new Error(res.error)
+    expect(screensOf(res.blueprint as Doc)[0]).toMatchObject({ id: 'faithful-1', name: 'Fidedigno' })
     expect(res.meta.notices?.join(' ')).toMatch(/Os dois cabe até 3 telas por modo \(máx\. 6\); este fluxo tem 4/)
   })
 
   it('a failed branch still delivers the other, and says which failed', async () => {
     const res = await run(fake({ exploratory: new Error('provider down') }))
     if (!res.ok) throw new Error(res.error)
-    expect(screensOf(res.blueprint as Doc)).toHaveLength(1)
+    expect(screensOf(res.blueprint as Doc).map((s) => [s.id, s.name])).toEqual([['faithful-1', 'Fidedigno']])
     expect(res.meta.notices?.join(' ')).toMatch(/Exploratório falhou/)
   })
 
@@ -189,6 +191,14 @@ describe('"Os dois" — one plan, two branches', () => {
       ['faithful-1', 'Fidedigno', 'faithful'],
       ['exploratory-1', 'Exploratório', 'exploratory'],
     ])
+  })
+
+  it('names a lone surviving flow per screen, and a lone Exploratory survivor as Exploratório', () => {
+    const flow = home()
+    flow.id = 'home'
+    flow.screens = [{ id: 'stats', name: 'Stats', screen: { model: 'interactivity-buttons-right', level: 2 }, root: { type: 'Stack', props: {}, children: [] } }]
+    expect(screensOf(mergeBranches(flow, null) as Doc).map((s) => s.name)).toEqual(['Fidedigno · home', 'Fidedigno · Stats'])
+    expect(screensOf(mergeBranches(null, explored()) as Doc).map((s) => [s.name, s.mode])).toEqual([['Exploratório', 'exploratory']])
   })
 
   it('keeps both branches’ notes within the document’s cap: half each, labelled', () => {

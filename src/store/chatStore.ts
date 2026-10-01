@@ -64,12 +64,12 @@ export function offeredChoices(question: RouterQuestion): QuestionChoice[] {
 }
 
 /**
- * The measured cost of one generation on the CLI (eval, Sep 30 – Oct 1): Faithful ≈ US$ 0.215, Exploratory
- * US$ 0.246–0.42. "Os dois" runs both, each with its own planner — the shared Faithful plan saves none, it only keeps
- * the two comparable — so its range is their sum.
+ * What one "Os dois" has cost on the CLI, covering every measurement so far: two generations at US$ 0.17–0.33 each
+ * after 9D (Sep 30), US$ 0.39–0.70 each after 9E, and three live Os dois runs at US$ 0.90–0.98 (Oct 1). Each branch
+ * has its own planner — the shared Faithful plan saves none, it only keeps the two comparable. A range, not a
+ * prediction: the session's own average comes first once there is one.
  */
-const FAITHFUL_COST_USD = 0.215
-const EXPLORATORY_COST_USD: [number, number] = [0.246, 0.42]
+const BOTH_COST_RANGE_USD: [number, number] = [0.5, 1.0]
 const brl = (n: number): string => n.toFixed(2).replace('.', ',')
 
 /** The note "Os dois" shows before it runs: the session's own average × 2 once there is one, else the measured range. */
@@ -77,7 +77,7 @@ export function bothCostNote(u: SessionUsage): string {
   const cost =
     u.generations > 0 && u.costUsd > 0
       ? `~US$ ${brl((u.costUsd / u.generations) * 2)} (média da sessão × 2)`
-      : `~US$ ${brl(FAITHFUL_COST_USD + EXPLORATORY_COST_USD[0])}–${brl(FAITHFUL_COST_USD + EXPLORATORY_COST_USD[1])}`
+      : `~US$ ${brl(BOTH_COST_RANGE_USD[0]).replace(/0$/, '')}–${brl(BOTH_COST_RANGE_USD[1]).replace(/0$/, '')}`
   return `≈ 2 gerações · ${cost} · ~1 min`
 }
 

@@ -73,7 +73,7 @@ describe('chatStore — modes and the router question', () => {
 
   it('the Os dois cost note: the measured range with no history, the session average × 2 once there is one', () => {
     expect(bothCostNote({ calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0, costEstimated: false, generations: 0 })).toBe(
-      '≈ 2 gerações · ~US$ 0,46–0,64 · ~1 min',
+      '≈ 2 gerações · ~US$ 0,5–1,0 · ~1 min',
     )
     expect(bothCostNote({ calls: 6, inputTokens: 1, outputTokens: 1, costUsd: 0.9, costEstimated: false, generations: 3 })).toBe(
       '≈ 2 gerações · ~US$ 0,60 (média da sessão × 2) · ~1 min',

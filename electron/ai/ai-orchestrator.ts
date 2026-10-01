@@ -423,7 +423,7 @@ async function runBoth(
     notices.push(
       `Os dois cabe até ${BOTH_MAX_SCREENS_PER_MODE} telas por modo (máx. ${MAX_SCREENS}); este fluxo tem ${count} — gerado só em Fidedigno. Peça o Exploratório separadamente.`,
     )
-    return { blueprint: (await faithful()).blueprint, mode: 'faithful', branches: 1 }
+    return { blueprint: mergeBranches((await faithful()).blueprint, null), mode: 'faithful', branches: 1 }
   }
 
   const [f, e] = await Promise.allSettled([
@@ -440,16 +440,16 @@ async function runBoth(
   if (f.status === 'rejected' && e.status === 'rejected') throw f.reason
   if (e.status === 'rejected') {
     notices.push(`Exploratório falhou (${failed(e)}) — só a tela Fidedigna foi gerada.`)
-    return { blueprint: (f as PromiseFulfilledResult<{ blueprint: unknown }>).value.blueprint, mode: 'faithful', branches: 1 }
+    return { blueprint: mergeBranches((f as PromiseFulfilledResult<{ blueprint: unknown }>).value.blueprint, null), mode: 'faithful', branches: 1 }
   }
   if (f.status === 'rejected') {
     notices.push(`Fidedigno falhou (${failed(f)}) — só a tela Exploratória foi gerada.`)
-    return { blueprint: e.value.blueprint, mode: 'exploratory', branches: 1 }
+    return { blueprint: mergeBranches(null, e.value.blueprint), mode: 'exploratory', branches: 1 }
   }
   if (sameScreens(f.value.blueprint, e.value.blueprint, manifest)) {
     notices.push(BOTH_IDENTICAL_NOTICE)
     steps.push('step 4 · Os dois: the Exploratory screens are structurally identical to the Faithful ones — dropped')
-    return { blueprint: f.value.blueprint, mode: 'faithful', branches: 2 }
+    return { blueprint: mergeBranches(f.value.blueprint, null), mode: 'faithful', branches: 2 }
   }
   steps.push('step 4 · Os dois: merged the Faithful and the Exploratory screens')
   return { blueprint: mergeBranches(f.value.blueprint, e.value.blueprint), mode: 'both', branches: 2 }
@@ -478,11 +478,11 @@ function screensOf(doc: unknown): RawScreen[] {
 }
 
 /**
- * The two branches as one document: Faithful screens first (`faithful-1…`, "Fidedigno"), then the Exploratory
+ * The two branches as one document (or the one that survived — pass null for the other): Faithful screens first (`faithful-1…`, "Fidedigno"), then the Exploratory
  * ones (`exploratory-1…`, "Exploratório") — names, ids, links and modes set here, never by the model. Each
  * branch's links are rewritten to its own screens, so a Faithful screen never leads into an Exploratory one.
  */
-export function mergeBranches(faithful: unknown, exploratory: unknown): BlueprintDocument {
+export function mergeBranches(faithful: unknown | null, exploratory: unknown | null): BlueprintDocument {
   const branch = (doc: unknown, prefix: string, label: string, mode: ScreenMode): RawScreen[] => {
     const screens = screensOf(doc)
     const ids = new Map(screens.map((s, i) => [String(s.id ?? FIRST_SCREEN_ID), `${prefix}-${i + 1}`]))
@@ -501,15 +501,21 @@ export function mergeBranches(faithful: unknown, exploratory: unknown): Blueprin
       return out
     })
   }
-  const all = [...branch(faithful, 'faithful', 'Fidedigno', 'faithful'), ...branch(exploratory, 'exploratory', 'Exploratório', 'exploratory')]
-  const notesOf = (doc: unknown): string[] => (isRecord(doc) && Array.isArray(doc.notes) ? doc.notes.filter((n): n is string => typeof n === 'string') : [])
-  // A document carries at most MAX_NOTES notes (the interpreter cuts the rest): half for each branch, so the
-  // Exploratory screen's notes are never all pushed out by the Faithful ones.
-  const half = MAX_NOTES / 2
-  const notes = [
-    ...notesOf(faithful).slice(0, half).map((n) => `Fidedigno: ${n}`),
-    ...notesOf(exploratory).slice(0, half).map((n) => `Exploratório: ${n}`),
+  const all = [
+    ...(faithful !== null ? branch(faithful, 'faithful', 'Fidedigno', 'faithful') : []),
+    ...(exploratory !== null ? branch(exploratory, 'exploratory', 'Exploratório', 'exploratory') : []),
   ]
+  const notesOf = (doc: unknown): string[] => (isRecord(doc) && Array.isArray(doc.notes) ? doc.notes.filter((n): n is string => typeof n === 'string') : [])
+  // A document carries at most MAX_NOTES notes (the interpreter cuts the rest): with both branches, half each,
+  // labelled, so the Exploratory screen's notes are never all pushed out by the Faithful ones.
+  const half = MAX_NOTES / 2
+  const notes =
+    faithful !== null && exploratory !== null
+      ? [
+          ...notesOf(faithful).slice(0, half).map((n) => `Fidedigno: ${n}`),
+          ...notesOf(exploratory).slice(0, half).map((n) => `Exploratório: ${n}`),
+        ]
+      : notesOf(faithful ?? exploratory)
   const [first, ...rest] = all
   return { version: 1, ...first, ...(notes.length > 0 ? { notes } : {}), screens: rest } as unknown as BlueprintDocument
 }
