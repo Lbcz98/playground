@@ -127,7 +127,7 @@ export function coveredBy(issue: RuleProblem, declarations: readonly Declaration
 /** A tree in either shape that carries deviations: a canvas node, or anything with `deviation` and `children`. */
 export interface DeviationNode {
   deviation?: { ruleId: string; why: string }
-  children: readonly DeviationNode[]
+  children?: readonly DeviationNode[]
 }
 
 /**
@@ -141,7 +141,7 @@ export function treeDeclarations(
   const out: Declaration[] = []
   const walk = (node: DeviationNode, at: IssuePath): void => {
     if (node.deviation) out.push({ ...node.deviation, path: at, scope: 'node', at: [...at, 'deviation'] })
-    node.children.forEach((child, i) => walk(child, [...at, 'children', i]))
+    ;(node.children ?? []).forEach((child, i) => walk(child, [...at, 'children', i]))
   }
   walk(root, ['root'])
   ;(screen?.deviation ?? []).forEach((d, j) => out.push({ ...d, path: [], scope: 'screen', at: ['screen', 'deviation', j] }))

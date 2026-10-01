@@ -2,6 +2,8 @@ import { type MutableRefObject, type RefObject, useEffect, useLayoutEffect, useM
 import type { CanvasNode } from '@/model/nodeTree'
 import { screenMode } from '@/shared/blueprint'
 import { treeDeclarations } from '@/shared/design-system/deviations'
+import { deviationReport } from '@/shared/design-system/deviationReport'
+import { treeToBlueprint } from '@/interpreter/interpret'
 import { withVocabulary } from '@/shared/design-system/primitives'
 import { useFlowStore } from '@/store/flowStore'
 import { currentPlayScreenId, usePlayStore } from '@/store/playStore'
@@ -95,6 +97,12 @@ export function Canvas(): JSX.Element {
   // The breaks an Exploratory screen declares are shown apart in the QA line, not counted as failures.
   const exploratory = screenMode(screens.find((entry) => entry.tree === tree)) === 'exploratory'
   const declarations = useMemo(() => (exploratory ? treeDeclarations(tree, tree.screen) : []), [tree, exploratory])
+  // The "N declared" badge counts the declarations the audit agrees with — the same report the Deviations panel reads.
+  const declaredCount = useMemo(() => {
+    if (!exploratory) return 0
+    const doc = treeToBlueprint(tree)
+    return deviationReport(doc.root, doc.screen, active).filter((entry) => entry.status === 'declared').length
+  }, [tree, exploratory, active])
   const checks = useMemo(
     () =>
       withRenderCheck(
@@ -118,6 +126,7 @@ export function Canvas(): JSX.Element {
         zone={zone}
         focus={focus}
         checks={checks}
+        declaredCount={declaredCount}
         screen={describeScreen(active, tree.screen)}
       />
       <div
@@ -585,6 +594,7 @@ function FrameStatus({
   zone,
   focus,
   checks,
+  declaredCount,
   screen,
 }: {
   statusRef: RefObject<HTMLDivElement>
@@ -593,11 +603,12 @@ function FrameStatus({
   zone: AnchorZone
   focus: FocusReading
   checks: FrameCheck[]
+  declaredCount: number
   screen: string | null
 }): JSX.Element {
   const problems = checks.flatMap((check) => check.problems)
   const declared = checks.flatMap((check) => check.declared)
-  const { passed, total, declared: declaredCount } = summarizeChecks(checks)
+  const { passed, total } = summarizeChecks(checks)
 
   return (
     <div
