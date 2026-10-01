@@ -30,7 +30,7 @@ import type {
   GenerateUsage,
   ScreenMode,
 } from '@/shared/blueprint'
-import { FIRST_SCREEN_ID, MAX_SCREENS } from '@/shared/blueprint'
+import { FIRST_SCREEN_ID, MAX_NOTES, MAX_SCREENS } from '@/shared/blueprint'
 import { readRequest } from '@/shared/design-system/request-signals'
 import { homeTemplate } from '@/shared/templates/home'
 import { buildPlannerPrompt, buildSystemPrompt, templatesFor } from '@/design-system/promptSpec'
@@ -503,7 +503,13 @@ export function mergeBranches(faithful: unknown, exploratory: unknown): Blueprin
   }
   const all = [...branch(faithful, 'faithful', 'Fidedigno', 'faithful'), ...branch(exploratory, 'exploratory', 'Exploratório', 'exploratory')]
   const notesOf = (doc: unknown): string[] => (isRecord(doc) && Array.isArray(doc.notes) ? doc.notes.filter((n): n is string => typeof n === 'string') : [])
-  const notes = [...notesOf(faithful), ...notesOf(exploratory).map((n) => `Exploratório: ${n}`)]
+  // A document carries at most MAX_NOTES notes (the interpreter cuts the rest): half for each branch, so the
+  // Exploratory screen's notes are never all pushed out by the Faithful ones.
+  const half = MAX_NOTES / 2
+  const notes = [
+    ...notesOf(faithful).slice(0, half).map((n) => `Fidedigno: ${n}`),
+    ...notesOf(exploratory).slice(0, half).map((n) => `Exploratório: ${n}`),
+  ]
   const [first, ...rest] = all
   return { version: 1, ...first, ...(notes.length > 0 ? { notes } : {}), screens: rest } as unknown as BlueprintDocument
 }

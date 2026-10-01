@@ -190,4 +190,12 @@ describe('"Os dois" — one plan, two branches', () => {
       ['exploratory-1', 'Exploratório', 'exploratory'],
     ])
   })
+
+  it('keeps both branches’ notes within the document’s cap: half each, labelled', () => {
+    const f = home()
+    f.notes = ['f1', 'f2', 'f3', 'f4']
+    const e = explored()
+    e.notes = ['e1', 'e2', 'e3']
+    expect(mergeBranches(f, e).notes).toEqual(['Fidedigno: f1', 'Fidedigno: f2', 'Exploratório: e1', 'Exploratório: e2'])
+  })
 })
