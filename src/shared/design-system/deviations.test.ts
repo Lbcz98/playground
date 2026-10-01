@@ -5,6 +5,7 @@ import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { DTV_SCREEN_LAYERS } from './screen-layers'
 import { RULE_SCOPE, declarableRules, ruleScope } from './deviations'
 import { homeTemplate } from '@/shared/templates/home'
+import { PATTERN_BREAKS } from './__fixtures__/patternBreaks'
 
 type Doc = Record<string, any>
 const M = SCREENFLOW_MANIFEST
@@ -272,88 +273,7 @@ describe('declaration scope (from the first real Exploratory runs)', () => {
 
 // ── Scope: where a rule's violations are reported decides where it may be declared ──────────────
 
-const model = (level: number) => DTV_SCREEN_LAYERS.models.find((m) => m.level === level)!.id
-const lvl = (n: number) => ({ model: model(n), level: n })
-
-interface ScopeCase {
-  /** A document that breaks the rule, nothing else. */
-  doc: () => Doc
-  /** The node a node-scoped declaration belongs on. */
-  node: (doc: Doc) => Doc
-  /** The screen object a screen-level declaration belongs in (where the break is reported). */
-  screen: (doc: Doc) => Doc
-}
-const SCOPE_CASES: Record<string, ScopeCase> = {
-  'layout.slots': {
-    doc: () => { const d = home(); d.root.children[0].children.push({ type: 'ContentCardHeader' }); return d },
-    node: (d) => d.root.children[0],
-    screen: (d) => d.screen,
-  },
-  'flow.next-level': {
-    doc: () => {
-      const d = home()
-      d.root.children[0].children[0].children[0].goTo = 'other'
-      return { ...d, id: 'home', screens: [{ id: 'other', screen: lvl(3), root: { type: 'Stack', children: [] } }] }
-    },
-    node: (d) => d.root.children[0].children[0].children[0],
-    screen: (d) => d.screen,
-  },
-  'flow.link-roles': {
-    doc: () => {
-      const d = home()
-      d.root.children[0].children[1].goTo = 'other' // the main menu carries no link
-      return { ...d, id: 'home', screens: [{ id: 'other', screen: lvl(2), root: { type: 'Stack', children: [] } }] }
-    },
-    node: (d) => d.root.children[0].children[1],
-    screen: (d) => d.screen,
-  },
-  'flow.rail-consistency': {
-    // A level-2 page that shows fewer cards than the Home rail it is entered from: reported on that page's root.
-    doc: () => ({ ...home(), id: 'home', screens: [{ id: 'rail', screen: lvl(2), root: { type: 'Stack', children: [] } }] }),
-    node: (d) => d.screens[0].root,
-    screen: (d) => d.screens[0].screen,
-  },
-  'level.module-limit': {
-    doc: () => ({ version: 1, screen: lvl(3), root: { type: 'Stack', props: { direction: 'vertical', justify: 'end' }, children: [{ type: 'Stack' }, { type: 'Stack' }] } }),
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-  'level.root-direction': {
-    doc: () => { const d = home(); d.root.props = { ...d.root.props, direction: 'horizontal' }; return d },
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-  'level.initial-focus': {
-    doc: () => { const d = home(); d.root.children[0].children[0].children[0].props = { title: 'Um', interactionState: 'focus' }; return d },
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-  'layout.root-align': { doc: breaksRootAlign, node: (d) => d.root, screen: (d) => d.screen },
-  'layout.no-static-center': {
-    doc: () => { const d = home(); d.root.props = { ...d.root.props, justify: 'center' }; return d },
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-  'layout.anchor': {
-    doc: () => { const d = home(); d.root.children.push({ type: 'Button', props: { label: 'A' }, anchor: true }, { type: 'Button', props: { label: 'B' }, anchor: true }); return d },
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-  'registry.new-component': {
-    doc: () => {
-      const d = home()
-      d.root.children[0].children.push({ type: 'Proposal', props: { description: 'Placar ao vivo', proposedApi: { homeScore: 'number' } } })
-      return d
-    },
-    node: (d) => d.root.children[0].children[2],
-    screen: (d) => d.screen,
-  },
-  'layers.overlay-model': {
-    doc: () => { const d = home(); d.screen = { model: 'composed', level: 1, shades: ['scrim', 'bottom'] }; return d },
-    node: (d) => d.root,
-    screen: (d) => d.screen,
-  },
-}
+const SCOPE_CASES = PATTERN_BREAKS
 
 describe('rule scope: the table agrees with where the validator reports each rule', () => {
   it('has an entry for every declarable pattern, and a fixture for every entry', () => {

@@ -1,38 +1,34 @@
-# Mode evaluation (phase 9G starts here)
+# Mode evaluation (phase 9G)
 
-`seed-9d.json` holds 10 real requests, what a good run does with each (the rules it
-should declare, and where), and what the first run of both modes produced after 9D.
-`run.ts` runs them through the real pipeline.
+The golden set is `tests/eval/modes.golden.json`: 31 real requests (baselines, one per declarable pattern, a
+variant, no-break cases, law traps, a convention written in English, and the Os dois cases), each with what a
+good run does. It grew from `seed-9d.json` (kept as history; the ids r01–r10 keep their prompts).
+
+## Deterministic — in `npm test`, no model
+
+`tests/eval/golden.test.ts`: the set is well-formed and covers every declarable pattern; each pattern request's
+expectation is still reachable (a reference screen from `src/shared/design-system/__fixtures__/patternBreaks.ts`
+validates in Exploratory with exactly the expected declaration, and is a real break in Faithful); each law trap's
+law-break fixture is rejected in both modes; the router's model-free signals read each request as expected; and no
+request appears in the router few-shot. `eval/score.test.ts` pins the scorer, the cost analysis, the job plan, the
+estimate and the cap.
+
+## Live — `npm run eval:modes`, costs money
 
 ```bash
-npm run eval:modes -- --runs 3          # the 9G round: each request 3x, both modes
-npm run eval:modes -- --only r03 --modes exploratory
+npm run eval:modes -- --stage 1 --dry-run     # the plan and its estimate; nothing runs
+npm run eval:modes -- --stage 1 --confirm     # one run of everything, capped at US$ 40
+npm run eval:modes -- --stage 2 --confirm     # runs 2 and 3, capped at US$ 70
+npm run eval:modes -- --router --confirm      # the Auto router alone, once per request
 ```
 
-It calls a real model (Claude Code CLI or an API key — `AI_PROVIDER`). A generation cost
-US$ 0.17 to 0.33 in the first round and US$ 0.65 in a later single run of the same
-request (most likely a cold prompt cache), so a full 3x round of 10 requests in both
-modes — 60 generations — is somewhere between US$ 10 and 40: run a small `--only` first.
-Results go to `eval/results/` (gitignored); an existing result file is skipped, so an
-interrupted run resumes.
+The estimate comes from the measured cost per generation of every past result under `eval/results/`. A live run
+whose estimate tops US$ 10 needs `--confirm`. Jobs run mode by mode (the prompt cache stays warm) with 2 at a
+time; a job starts only while spent + running + its own estimate stays within the cap, and the jobs left out are
+listed. Results go to `eval/results/9g/` (gitignored), stamped with the git sha and the prompts' hashes; an
+existing result is skipped, so an interrupted stage resumes. Each record carries its score; the stage summary
+(`summary.stage<N>.json`) adds the cost per generation by mode, cold vs warm calls, and the share of each call's
+cost that is the cached prefix (from `meta.calls`).
 
-## Notes for 9G
-
-- **Run each request 3 times.** One run of one request is an anecdote; the first round
-  saw a generator retry in 3 of 10 Exploratory runs and the declaration scope changed
-  between requests, so 9G measures rates, not single outcomes.
-- **r03 expects no genuine break.** Four cards grouped in one row pass the module limit,
-  so neither mode should declare anything. Whether the row fits the frame is visible
-  only in the canvas's measured Render check, which `run.ts` cannot see: judge that
-  part of r03 on the canvas (or add a headless render check to the harness).
-- **r10 is a law case:** the raw red must not reach the screen in either mode, and
-  nothing is declarable for it.
-- **Faithful must never declare.** The summary compares Faithful runs against `[—]`.
-- **What each run records:** the declared deviations with their scope (node or screen),
-  every failed attempt with its structured issues and the replan trigger
-  (`meta.trace`), the interpreter's notices, the QA line, the cost.
-- **Keep it apart from the router few-shot** (`electron/ai/router.fewshot.ts`): a test
-  fails if a request here appears there.
-- **Not yet here:** the level-dependent router signals (a count above `maxModules`, a
-  position with no overlay model) and classification with the chat history for
-  follow-up requests — both 9G candidates, see the plan.
+Not yet here: the measured Render check (overflow, overlap) — `eval:render` will load each result into the canvas
+through the `SFS_EVAL_FILE` dev hook.

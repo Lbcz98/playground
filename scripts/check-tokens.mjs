@@ -28,7 +28,10 @@ const RAW_PX = /\b\d+px\b/g
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
-    if (statSync(full).isDirectory()) yield* walk(full)
+    // Test fixtures, like tests, deliberately carry invalid values (the 9G law traps).
+    if (statSync(full).isDirectory()) {
+      if (name !== '__fixtures__') yield* walk(full)
+    }
     // Tests deliberately feed invalid values (e.g. "10px") to the interpreter.
     else if (/\.(ts|tsx|css)$/.test(name) && !/\.test\.(ts|tsx)$/.test(name)) yield full
   }

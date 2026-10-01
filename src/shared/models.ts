@@ -39,7 +39,7 @@ export function modelLabel(id: string | undefined): string {
 // Source: Anthropic public pricing, 2026-06.
 // ---------------------------------------------------------------------------
 
-interface Price {
+export interface Price {
   inputPerMTok: number
   outputPerMTok: number
 }
@@ -57,6 +57,11 @@ const PRICING: Record<string, Price> = {
  */
 export const CACHE_WRITE_MULTIPLIER = 1.25
 export const CACHE_READ_MULTIPLIER = 0.1
+
+/** A model's price per million tokens, or undefined when it is not in the table. */
+export function priceOf(model: string | undefined): Price | undefined {
+  return model ? PRICING[model] : undefined
+}
 
 export function estimateCostUsd(
   model: string | undefined,
