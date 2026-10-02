@@ -824,7 +824,7 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: ${notesLackClause(screenMode)} (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly${screenMode === 'exploratory' ? '' : ' ("O mapa é aproximado por um cartão")'}. Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) + `
+Tell the user what they would otherwise not notice: ${notesLackClause(screenMode)} (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly. Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) + `
 
 Write every piece of text meant for the user — "notes", each "deviation.why", a Proposal's "description" — in the language of the user's request, whatever language these instructions are in. Rule ids and component names stay as they are.` : `
 

@@ -2,6 +2,10 @@
  * Phase 9G, C2: the Faithful prompts are byte-identical across the Exploratory-only Proposal wording. These hashes
  * are the ones `eval/run.ts` stamps on every run, so a Faithful result always names the prompts it ran with. They move
  * only on a deliberate Faithful prompt change (and then the stage's "before" baseline stops being comparable).
+ * Oct 2: the generator hash moved a90e091535 → b010c5cf46 on purpose — the Portuguese notes example ("O mapa é aproximado
+ * por um cartão") was removed because it pulled English requests' notes into Portuguese. The planner hash did not move.
+ * Oct 2: the generator hash moved a90e091535 -> b010c5cf46 on purpose: the Portuguese notes example ("O mapa e aproximado
+ * por um cartao") was removed because it pulled English requests' notes into Portuguese. The planner hash did not move.
  */
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
@@ -13,7 +17,7 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 describe('the Faithful prompts', () => {
   it('are pinned by hash (the same hashes the eval stamps)', () => {
     expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('2e0c1f852d')
-    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('a90e091535')
+    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('b010c5cf46')
   })
 
   it('never carry the Exploratory Proposal wording', () => {
