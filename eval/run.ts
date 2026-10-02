@@ -7,6 +7,7 @@
  *   npm run eval:modes -- --stage 2 --confirm         # stage 2: runs 2 and 3, capped at US$ 70
  *   npm run eval:modes -- --router --confirm          # the Auto router alone, once per request
  *   npm run eval:modes -- --stage 1 --max-jobs 6 --confirm   # the first 6 pending jobs only
+ *   npm run eval:modes -- --only p02,p12 --modes exploratory --runs 1-5 --out eval/results/9g-b --max-usd 5 --confirm
  *   npm run eval:modes -- --only p02,o01 --runs 1 --dry-run
  *
  * Jobs run mode by mode (the prompt cache stays warm) with 2 at a time. A job starts only while the spend so far,
@@ -57,6 +58,8 @@ const RUNS: number[] = STAGE === '1' ? [1] : STAGE === '2' ? [2, 3] : rangeOf(fl
 const CAP = Number(flag('max-usd', STAGE === '2' ? '70' : '40'))
 const POOL = Math.max(1, Number.parseInt(flag('pool', '2'), 10) || 2)
 const ONLY = flag('only', '').split(',').filter(Boolean)
+/** Only these modes of each request (e.g. `--modes exploratory`); default: every mode the golden file gives it. */
+const MODES = flag('modes', '').split(',').filter(Boolean)
 const OUT = flag('out', fileURLToPath(new URL('./results/9g', import.meta.url)))
 const DRY = has('dry-run')
 const CONFIRM = has('confirm')
@@ -72,7 +75,10 @@ function rangeOf(spec: string): number[] {
 }
 
 const golden = JSON.parse(readFileSync(new URL('../tests/eval/modes.golden.json', import.meta.url), 'utf8')) as { requests: GoldenRequest[] }
-const requests = golden.requests.filter((r) => ONLY.length === 0 || ONLY.some((id) => r.id.startsWith(id)))
+const requests = golden.requests
+  .filter((r) => ONLY.length === 0 || ONLY.some((id) => r.id.startsWith(id)))
+  .map((r) => (MODES.length === 0 ? r : { ...r, modes: r.modes.filter((m) => MODES.includes(m)) }))
+  .filter((r) => r.modes.length > 0)
 const byId = new Map(golden.requests.map((r) => [r.id, r]))
 
 // ── What it costs: measured from every past result ──────────────────────────────────────────────
@@ -209,10 +215,12 @@ async function routerPass(): Promise<void> {
     const r = await routeAuto(provider, req.prompt, M)
     spent += r.usage?.costUsd ?? 0
     const got = r.decision.kind === 'go' ? r.decision.mode : r.decision.question.kind === 'law' ? 'law' : 'ask'
-    rows.push({ id: req.id, expected: req.expected.router, got, ok: got === req.expected.router, usage: r.usage })
-    console.log(`${req.id.padEnd(26)} expected ${req.expected.router?.padEnd(11)} got ${got}${got === req.expected.router ? '' : '   ✗'}`)
+    // What the classifier named, raw: a miss is either a pattern named wrongly or a conflict never seen.
+    rows.push({ id: req.id, expected: req.expected.router, got, ok: got === req.expected.router, usage: r.usage, reply: r.reply ?? null, raw: r.raw ?? null })
+    const named = r.reply ? r.reply.conflicts.map((c) => c.ruleId).join(',') || 'none' : 'unreadable'
+    console.log(`${req.id.padEnd(26)} expected ${req.expected.router?.padEnd(11)} got ${got.padEnd(11)} named ${named}${got === req.expected.router ? '' : '   ✗'}`)
   }
-  writeFileSync(join(OUT, `router.${STAMP.sha}.json`), JSON.stringify({ stamp: STAMP, spent, rows }, null, 2))
+  writeFileSync(join(OUT, `router.${STAMP.sha}.${Date.now()}.json`), JSON.stringify({ stamp: STAMP, spent, rows }, null, 2))
   console.log(`router: ${rows.filter((r: any) => r.ok).length}/${rows.length} as expected · $${spent.toFixed(2)}`)
 }
 

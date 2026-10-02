@@ -64,6 +64,10 @@ export interface AutoRoute {
   decision: RouteDecision
   usage?: GenerateUsage
   steps: string[]
+  /** The classifier's parsed answer (its reasoning and the conflicts it named), when it could be read — for the eval. */
+  reply?: ClassifierReply
+  /** The classifier's last raw answer, as it came back. */
+  raw?: string
 }
 
 export async function routeAuto(
@@ -89,7 +93,7 @@ export async function routeAuto(
       const decision = decide(signals, reply, manifest)
       const ids = reply.conflicts.map((c) => c.ruleId).join(', ') || 'none'
       steps.push(`step 0 · router: conflicts ${ids} → ${decision.kind === 'go' ? decision.mode : `ask (${decision.question.kind})`}`)
-      return { decision, usage, steps }
+      return { decision, usage, steps, reply, raw: answer.text }
     }
     steps.push(`step 0 · router: unreadable answer on attempt ${attempt}`)
     messages.push(

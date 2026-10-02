@@ -54,13 +54,11 @@ describe('the golden set', () => {
   })
 
   /**
-   * Patterns no natural request forces (Oct 2). Each still has its reference fixture, checked in the deviation tests:
-   *  - level.root-direction: a user never names the outermost container, and every on-screen arrangement asked for
-   *    so far has a non-breaking build (p06).
-   *  - flow.link-roles: a link that also skips a level reports flow.next-level only (flow.ts checks roles only when
-   *    the jump is fine), so p10's menu link to level 3 cannot raise it; a menu link to level 2 would.
+   * The pattern no natural request forces (Oct 2): level.root-direction — a user never names the outermost
+   * container, and every on-screen arrangement asked for so far has a non-breaking build (p06). p09 exercises it
+   * as an accepted extra; its reference fixture is checked in the deviation tests.
    */
-  const UNFORCED: readonly string[] = ['level.root-direction', 'flow.link-roles']
+  const UNFORCED: readonly string[] = ['level.root-direction']
 
   it('covers every declarable pattern with a pattern request that requires it, apart from the patterns no request forces', () => {
     const required = new Set(requests.filter((r) => r.group === 'pattern' || r.group === 'variant').flatMap((r) => r.expected.declare.map((d) => d.ruleId)))
@@ -89,10 +87,30 @@ describe('the golden set', () => {
     for (const r of of('both')) expect(r.modes).toEqual(['both'])
   })
 
-  it('stays apart from the router few-shot', () => {
+  /**
+   * Requests whose wording is close to a router few-shot example, kept as they are for their generation: their router
+   * sample is uninformative (memorization risk) and the report says so.
+   */
+  const NEAR_FEWSHOT: Record<string, string> = {
+    'n01-four-cards': 'Quatro cards de interatividade lado a lado numa tela de nível 3 (token overlap 0.69)',
+  }
+  const NEAR = 0.6
+
+  it('stays apart from the router few-shot: no exact match, and no token overlap of 0.6 or more unless listed', () => {
     const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\W+/g, ' ').trim()
-    const shots = new Set(ROUTER_FEWSHOT.map((s) => norm(s.request)))
-    for (const { prompt, id } of requests) expect(shots.has(norm(prompt)), id).toBe(false)
+    const tokens = (s: string) => new Set(norm(s).split(' ').filter(Boolean))
+    // Jaccard: shared words over all words of the two.
+    const overlap = (a: Set<string>, b: Set<string>) => {
+      const shared = [...a].filter((w) => b.has(w)).length
+      return shared / (a.size + b.size - shared)
+    }
+    const shots = ROUTER_FEWSHOT.map((s) => s.request)
+    const near: string[] = []
+    for (const { prompt, id } of requests) {
+      expect(shots.map(norm).includes(norm(prompt)), id).toBe(false)
+      if (Math.max(...shots.map((s) => overlap(tokens(prompt), tokens(s)))) >= NEAR) near.push(id)
+    }
+    expect([...new Set(near)].sort()).toEqual(Object.keys(NEAR_FEWSHOT).sort())
   })
 })
 

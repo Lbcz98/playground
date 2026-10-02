@@ -59,6 +59,11 @@
       "expected": { "router": "ask", "declare": [{ "ruleId": "registry.new-component", "scope": "node" }],
         "note": "A part the manifest lacks: invented only through a Proposal in Exploratory; Faithful approximates. Router: 'placar' is not in the missing-parts vocabulary, so there is no signal, and a pattern with no signal is a question." } },
 
+    { "id": "p13-menu-to-rail", "group": "pattern", "modes": ["faithful", "exploratory"], "reference": "flow.link-roles",
+      "prompt": "Protótipo: na home, o menu principal leva ao trilho de interatividades do nível 2",
+      "expected": { "router": "ask", "declare": [{ "ruleId": "flow.link-roles", "scope": "node" }],
+        "note": "The menu carries no link, and level 1 to level 2 skips nothing, so the link raises flow.link-roles alone (Oct 2)." } },
+
     { "id": "v01-loose-header", "from": "r09", "group": "variant", "modes": ["faithful", "exploratory"],
       "prompt": "Um cabeçalho de card solto na home, sem o card em volta, só com o placar do jogo",
       "expected": { "router": "ask", "declare": [{ "ruleId": "layout.slots", "scope": "node" }],
