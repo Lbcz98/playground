@@ -6,6 +6,7 @@
  *   npm run eval:modes -- --stage 1 --confirm         # stage 1: one run of everything, capped at US$ 40
  *   npm run eval:modes -- --stage 2 --confirm         # stage 2: runs 2 and 3, capped at US$ 70
  *   npm run eval:modes -- --router --confirm          # the Auto router alone, once per request
+ *   npm run eval:modes -- --stage 1 --max-jobs 6 --confirm   # the first 6 pending jobs only
  *   npm run eval:modes -- --only p02,o01 --runs 1 --dry-run
  *
  * Jobs run mode by mode (the prompt cache stays warm) with 2 at a time. A job starts only while the spend so far,
@@ -60,6 +61,8 @@ const OUT = flag('out', fileURLToPath(new URL('./results/9g', import.meta.url)))
 const DRY = has('dry-run')
 const CONFIRM = has('confirm')
 const ROUTER = has('router')
+/** Run at most this many of the pending jobs (a first slice to check the cost against the estimate). */
+const MAX_JOBS = Number.parseInt(flag('max-jobs', '0'), 10) || Infinity
 /** Above this estimate a live run needs --confirm. */
 const CONFIRM_ABOVE_USD = 10
 
@@ -198,7 +201,7 @@ async function routerPass(): Promise<void> {
 // ── Main ────────────────────────────────────────────────────────────────────────────────────────
 mkdirSync(OUT, { recursive: true })
 const jobs = planJobs(requests, RUNS)
-const pending = jobs.filter((j) => !existsSync(join(OUT, `${j.id}.${j.mode}.${j.run}.json`)))
+const pending = jobs.filter((j) => !existsSync(join(OUT, `${j.id}.${j.mode}.${j.run}.json`))).slice(0, MAX_JOBS)
 // The router pass is one classifier call per request: about half a generation (a generation is a planner and a generator call).
 const routed = requests.filter((r) => r.expected.router)
 const est = ROUTER
