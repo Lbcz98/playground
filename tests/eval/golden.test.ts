@@ -53,18 +53,27 @@ describe('the golden set', () => {
     expect(new Set(requests.map((r) => r.id)).size).toBe(requests.length)
   })
 
-  it('covers every declarable pattern with one pattern request, and its expectation names that pattern', () => {
-    const covered = of('pattern').map((r) => r.reference)
-    expect(covered.sort()).toEqual(declarableRules(M).map((r) => r.id).sort())
-    for (const r of of('pattern')) expect(r.expected.declare.map((d) => d.ruleId)).toEqual([r.reference])
+  /**
+   * Patterns no natural request forces (Oct 2). Each still has its reference fixture, checked in the deviation tests:
+   *  - level.root-direction: a user never names the outermost container, and every on-screen arrangement asked for
+   *    so far has a non-breaking build (p06).
+   *  - flow.link-roles: a link that also skips a level reports flow.next-level only (flow.ts checks roles only when
+   *    the jump is fine), so p10's menu link to level 3 cannot raise it; a menu link to level 2 would.
+   */
+  const UNFORCED: readonly string[] = ['level.root-direction', 'flow.link-roles']
+
+  it('covers every declarable pattern with a pattern request that requires it, apart from the patterns no request forces', () => {
+    const required = new Set(requests.filter((r) => r.group === 'pattern' || r.group === 'variant').flatMap((r) => r.expected.declare.map((d) => d.ruleId)))
+    expect([...required, ...UNFORCED].sort()).toEqual(declarableRules(M).map((r) => r.id).sort())
+    for (const r of of('pattern').filter((r) => r.reference)) expect(r.expected.declare.map((d) => d.ruleId)).toEqual([r.reference])
   })
 
   it('declares each expected rule at the scope the rule book gives it', () => {
     for (const r of requests) for (const d of r.expected.declare) expect(d.scope, `${r.id}: ${d.ruleId}`).toBe(ruleScope(d.ruleId))
   })
 
-  it('has five law traps, each naming a law and a law-break fixture', () => {
-    expect(of('law')).toHaveLength(5)
+  it('has four law traps, each naming a law and a law-break fixture', () => {
+    expect(of('law')).toHaveLength(4)
     for (const r of of('law')) {
       expect(ruleById(M, r.expected.law!)?.flexibility, r.id).toBe('law')
       expect(r.lawFixture! in LAW_BREAKS, r.id).toBe(true)
@@ -88,7 +97,7 @@ describe('the golden set', () => {
 })
 
 describe('reference screens: each pattern expectation is reachable under today’s rules', () => {
-  it.each(of('pattern').map((r) => [r.id, r.reference!] as const))('%s — %s', (_id, rule) => {
+  it.each(of('pattern').filter((r) => r.reference).map((r) => [r.id, r.reference!] as const))('%s — %s', (_id, rule) => {
     const fixture = PATTERN_BREAKS[rule]
     // Exploratory: the break, declared where the rule book says, validates with exactly that declaration.
     const explored = fixture.doc()
@@ -102,8 +111,8 @@ describe('reference screens: each pattern expectation is reachable under today�
   })
 })
 
-describe('law traps: the law-break fixture is rejected in both modes, by a law', () => {
-  it.each(of('law').map((r) => [r.id, r.lawFixture!] as const))('%s — %s', (_id, name) => {
+describe('law-break fixtures (the law traps, and the carousel): rejected in both modes, by a law', () => {
+  it.each(requests.filter((r) => r.lawFixture).map((r) => [r.id, r.lawFixture!] as const))('%s — %s', (_id, name) => {
     const fixture = LAW_BREAKS[name]
     for (const mode of ['faithful', 'exploratory'] as const) {
       const laws = [...new Set(issuesOf(fixture.doc(), mode).map((i) => i.ruleId))].filter((id) => ruleById(M, id)?.flexibility === 'law')
@@ -118,10 +127,10 @@ describe('router signals (the model-free half of Auto)', () => {
     for (const r of requests) expect(read(r.id).exploration.length > 0, r.id).toBe(r.id === 'n02-explore-notification')
   })
   it('only the carousel names a part the system has none of', () => {
-    for (const r of requests) expect(read(r.id).unknown, r.id).toEqual(r.id === 'l03-carousel' ? ['carousel'] : [])
+    for (const r of requests) expect(read(r.id).unknown, r.id).toEqual(r.id === 'v02-carousel' ? ['carousel'] : [])
   })
-  it('the English convention request names the component it is about', () => {
-    expect(read('c01-button-label').components).toEqual(['Button'])
+  it('the English convention request names the rail it is about', () => {
+    expect(read('c01-button-label').components).toEqual(['InteractivityMenu'])
   })
 })
 

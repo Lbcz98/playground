@@ -30,23 +30,42 @@ const record = (over: Partial<RunRecord> = {}): RunRecord => ({
 const centered = { declare: [{ ruleId: 'layout.no-static-center', scope: 'screen' as const }] }
 
 describe('scoreRun', () => {
-  it('an Exploratory run that declares exactly the expected rule, at its scope', () => {
-    const s = scoreRun(record(), centered)
-    expect(s).toMatchObject({ declareMatch: true, scopeOk: true, falseDeclarations: [], missed: [], lawHeld: true, costUsd: 0.4 })
+  it('an Exploratory run that declares exactly the expected rule, at its scope, passes', () => {
+    const s = scoreRun(record(), centered, 'pattern')
+    expect(s).toMatchObject({ pass: true, requiredMet: true, scopeOk: true, missed: [], legitimateExtras: [], falsePositives: [], lawHeld: true, costUsd: 0.4 })
   })
 
   it('a Faithful run is held to declaring nothing, whatever the request expects', () => {
-    expect(scoreRun(record({ mode: 'faithful', declared: [] }), centered).declareMatch).toBe(true)
-    expect(scoreRun(record({ mode: 'faithful' }), centered)).toMatchObject({ declareMatch: false, falseDeclarations: ['layout.no-static-center'] })
+    expect(scoreRun(record({ mode: 'faithful', declared: [] }), centered, 'pattern').pass).toBe(true)
+    expect(scoreRun(record({ mode: 'faithful' }), centered, 'pattern')).toMatchObject({ pass: false, falsePositives: ['layout.no-static-center'] })
   })
 
-  it('names a missed declaration, a false one, the wrong scope and a broken law', () => {
-    const s = scoreRun(
-      record({ declared: [{ ruleId: 'layout.no-static-center', scope: 'node' }, { ruleId: 'layers.overlay-model', scope: 'screen' }], lawsBroken: ['tokens.only'] }),
-      centered,
-    )
-    expect(s).toMatchObject({ declareMatch: false, scopeOk: false, falseDeclarations: ['layers.overlay-model'], lawHeld: false, lawsBroken: ['tokens.only'] })
-    expect(scoreRun(record({ declared: [] }), centered).missed).toEqual(['layout.no-static-center'])
+  it('a missed required declaration fails; so does one at the wrong scope; a broken law is named', () => {
+    expect(scoreRun(record({ declared: [] }), centered, 'pattern')).toMatchObject({ pass: false, requiredMet: false, missed: ['layout.no-static-center'] })
+    const s = scoreRun(record({ declared: [{ ruleId: 'layout.no-static-center', scope: 'node' }], lawsBroken: ['tokens.only'] }), centered, 'pattern')
+    expect(s).toMatchObject({ pass: false, requiredMet: true, scopeOk: false, lawHeld: false, lawsBroken: ['tokens.only'] })
+  })
+
+  it('an extra the validator accepted is legitimate in a pattern, variant or Os dois request — not a miss', () => {
+    const both = [{ ruleId: 'level.module-limit', scope: 'screen' as const }, { ruleId: 'level.root-direction', scope: 'screen' as const }]
+    const limit = { declare: [{ ruleId: 'level.module-limit', scope: 'screen' as const }] }
+    for (const group of ['pattern', 'variant']) {
+      expect(scoreRun(record({ declared: both, finalValid: true }), limit, group)).toMatchObject({ pass: true, legitimateExtras: ['level.root-direction'], falsePositives: [] })
+    }
+    // Not accepted by the validator (the final document is invalid): the extra counts against the run.
+    expect(scoreRun(record({ declared: both, finalValid: false }), limit, 'pattern')).toMatchObject({ pass: false, falsePositives: ['level.root-direction'] })
+  })
+
+  it('any extra is a false positive in a baseline, no-break, law-trap or convention request', () => {
+    for (const group of ['baseline', 'no-break', 'law', 'convention']) {
+      expect(scoreRun(record({ finalValid: true }), { declare: [] }, group), group).toMatchObject({ pass: false, falsePositives: ['layout.no-static-center'], legitimateExtras: [] })
+    }
+  })
+
+  it('Os dois: the Fidedigno screens must declare nothing; the Exploratório screens may declare what the validator accepts', () => {
+    const run = (declared: RunRecord['declared']) => scoreRun(record({ mode: 'both', declared, finalValid: true, meta: { steps: [], mode: 'both' } }), { declare: [], both: 'any' }, 'both')
+    expect(run([{ ruleId: 'flow.next-level', scope: 'node', mode: 'exploratory' }])).toMatchObject({ pass: true, legitimateExtras: ['flow.next-level'] })
+    expect(run([{ ruleId: 'flow.next-level', scope: 'node', mode: 'faithful' }])).toMatchObject({ pass: false, falsePositives: ['flow.next-level'] })
   })
 
   it('reads attempts, the first attempt’s issues, replan triggers and the vocabulary', () => {
@@ -62,6 +81,7 @@ describe('scoreRun', () => {
         vocabulary: [{ primitives: [{ consideredUnknown: [] }, { consideredUnknown: ['Slider'] }], maxChain: 2, proposals: [{}] }],
       }),
       centered,
+      'pattern',
     )
     expect(s).toMatchObject({ failedAttempts: 2, firstAttempt: ['frame.layout', 'layout.slots/undeclared-deviation'], primitives: 2, maxChain: 2, proposals: 1, reuseUnknown: 1 })
     expect(s.replanTriggers).toEqual(['undeclared-deviation (layout.slots)'])
@@ -72,8 +92,8 @@ describe('scoreRun', () => {
     expect(notesLanguage(['The card reads "Match statistics" instead of "Click here".', 'The team names are placeholders.'])).toBe('en')
     expect(notesLanguage(['O botão abre as estatísticas.'])).toBe('pt')
     expect(notesLanguage([])).toBe('none')
-    expect(scoreRun(record({ notes: ['O botão abre as estatísticas.'] }), { declare: [], language: 'en' }).languageOk).toBe(false)
-    expect(scoreRun(record({ notes: ['The label names its action.'], declared: [] }), { declare: [], language: 'en' }).languageOk).toBe(true)
+    expect(scoreRun(record({ notes: ['O botão abre as estatísticas.'] }), { declare: [], language: 'en' }, 'convention').languageOk).toBe(false)
+    expect(scoreRun(record({ notes: ['The label names its action.'], declared: [] }), { declare: [], language: 'en' }, 'convention').languageOk).toBe(true)
   })
 
   it('reads what an Os dois run delivered', () => {
@@ -81,7 +101,7 @@ describe('scoreRun', () => {
     expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.'] })).toBe('identical')
     expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Os dois cabe até 3 telas por modo (máx. 6); este fluxo tem 4'] })).toBe('faithful-only')
     expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Exploratório falhou (x) — só a tela Fidedigna foi gerada.'] })).toBe('branch-failed')
-    const s = scoreRun(record({ mode: 'both', meta: { steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar'] }, declared: [] }), { declare: [], both: 'identical' })
+    const s = scoreRun(record({ mode: 'both', meta: { steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar'] }, declared: [] }), { declare: [], both: 'identical' }, 'both')
     expect(s.both).toEqual({ outcome: 'identical', ok: true })
   })
 })

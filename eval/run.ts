@@ -128,20 +128,22 @@ const STAMP = {
 }
 
 // ── One run ─────────────────────────────────────────────────────────────────────────────────────
-type Deviation = { ruleId: string; scope: 'node' | 'screen' }
+type Deviation = { ruleId: string; scope: 'node' | 'screen'; mode: ScreenMode }
 
 /** Every declaration in a document; one on a screen's root counts as the screen's (screen rules may sit there). */
 function declaredOf(doc: BlueprintDocument): Deviation[] {
   const out: Deviation[] = []
-  const walk = (node: Record<string, any> | undefined, depth: number): void => {
+  // Each declaration carries its screen's stamped mode: an Os dois document has Faithful and Exploratory screens.
+  const walk = (node: Record<string, any> | undefined, depth: number, mode: ScreenMode): void => {
     if (!node || typeof node !== 'object') return
-    if (node.deviation) out.push({ ruleId: node.deviation.ruleId, scope: depth === 0 ? 'screen' : 'node' })
-    ;(Array.isArray(node.children) ? node.children : []).forEach((c: Record<string, any>) => walk(c, depth + 1))
+    if (node.deviation) out.push({ ruleId: node.deviation.ruleId, scope: depth === 0 ? 'screen' : 'node', mode })
+    ;(Array.isArray(node.children) ? node.children : []).forEach((c: Record<string, any>) => walk(c, depth + 1, mode))
   }
-  const screens = [{ screen: doc.screen, root: doc.root }, ...(doc.screens ?? [])] as Record<string, any>[]
+  const screens = [{ screen: doc.screen, root: doc.root, mode: doc.mode }, ...(doc.screens ?? [])] as Record<string, any>[]
   for (const s of screens) {
-    walk(s.root, 0)
-    for (const d of s.screen?.deviation ?? []) out.push({ ruleId: d.ruleId, scope: 'screen' })
+    const mode = screenMode(s)
+    walk(s.root, 0, mode)
+    for (const d of s.screen?.deviation ?? []) out.push({ ruleId: d.ruleId, scope: 'screen', mode })
   }
   return out
 }
@@ -189,7 +191,7 @@ async function runJob(job: Job): Promise<number> {
         : [],
     })
   }
-  out.score = scoreRun(out as unknown as RunRecord, req.expected)
+  out.score = scoreRun(out as unknown as RunRecord, req.expected, req.group)
   writeFileSync(file, JSON.stringify(out, null, 2))
   const cost = res.meta.usage?.costUsd ?? 0
   console.log(`done ${job.id} ${job.mode} #${job.run} ok=${res.ok} ${Math.round((Date.now() - t0) / 1000)}s $${cost.toFixed(3)}`)
@@ -301,7 +303,7 @@ function summarize(spent: number): void {
   const scores = records.filter((r) => r.score).map((r) => r.score!)
   if (failures.length > 0) console.log(`\nFAILED (not retried): ${failures.map((r) => `${r.id}.${r.mode}#${r.run}: ${r.error ?? 'no result'}`).join('; ')}`)
   const pct = (xs: boolean[]) => (xs.length ? `${xs.filter(Boolean).length}/${xs.length}` : '—')
-  console.log('\nrequest · mode · runs · declared ok · scope ok · false · missed · laws held · failed attempts · replans · prims/props · lang · both · $')
+  console.log('\nrequest · mode · runs · pass · required met · scope ok · missed · extras (legitimate) · false positives · laws held · failed attempts · replans · prims/props · lang · both · $')
   for (const req of requests) {
     for (const mode of req.modes) {
       const s = scores.filter((x) => x.id === req.id && x.mode === mode)
@@ -311,10 +313,12 @@ function summarize(spent: number): void {
           req.id,
           mode,
           s.length,
-          pct(s.map((x) => x.declareMatch)),
+          pct(s.map((x) => x.pass)),
+          pct(s.map((x) => x.requiredMet)),
           pct(s.map((x) => x.scopeOk)),
-          [...new Set(s.flatMap((x) => x.falseDeclarations))].join('+') || '—',
           [...new Set(s.flatMap((x) => x.missed))].join('+') || '—',
+          [...new Set(s.flatMap((x) => x.legitimateExtras))].join('+') || '—',
+          [...new Set(s.flatMap((x) => x.falsePositives))].join('+') || '—',
           pct(s.map((x) => x.lawHeld)),
           s.reduce((t, x) => t + x.failedAttempts, 0),
           s.reduce((t, x) => t + x.replanTriggers.length, 0),

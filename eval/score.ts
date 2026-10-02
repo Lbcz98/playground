@@ -42,7 +42,10 @@ export interface RunRecord {
     notices?: string[]
     branches?: number
   }
-  declared?: { ruleId: string; scope: 'node' | 'screen' }[]
+  /** Every declaration; `mode` is the screen's (an Os dois document has both). Absent mode: the run's own. */
+  declared?: { ruleId: string; scope: 'node' | 'screen'; mode?: 'faithful' | 'exploratory' }[]
+  /** The final document passed the validator (a declaration on it was accepted as used). */
+  finalValid?: boolean
   lawsBroken?: string[]
   notes?: string[]
   vocabulary?: { primitives: { consideredUnknown: string[] }[]; maxChain: number; proposals: unknown[] }[]
@@ -53,12 +56,17 @@ export interface RunScore {
   mode: RunMode
   run: number
   ok: boolean
-  /** The declared rules equal the expected ones (a Faithful run: none). */
-  declareMatch: boolean
-  /** Every declared rule sits at the scope the expectation gives it. */
+  /** Every required declaration is there, nothing counts as a false positive, and the required ones sit at their scope. */
+  pass: boolean
+  /** Every required (expected) declaration was made. */
+  requiredMet: boolean
+  /** Every required declaration sits at the scope the expectation gives it. */
   scopeOk: boolean
-  falseDeclarations: string[]
   missed: string[]
+  /** Declarations beyond the required ones that the validator accepted, where extras are allowed (patterns, variants, Os dois). */
+  legitimateExtras: string[]
+  /** Declarations that count against the run: on a Faithful screen, any; in a baseline, no-break, law-trap or convention request, any extra; elsewhere, an extra the validator did not accept. */
+  falsePositives: string[]
   lawHeld: boolean
   lawsBroken: string[]
   failedAttempts: number
@@ -100,13 +108,25 @@ export function bothOutcome(meta: RunRecord['meta']): BothOutcome {
   return meta.mode === 'both' ? 'differ' : 'faithful-only'
 }
 
-export function scoreRun(record: RunRecord, expected: Expected): RunScore {
+/** Groups where any declaration beyond the required ones counts against the run. */
+export const STRICT_GROUPS: readonly string[] = ['baseline', 'no-break', 'law', 'convention']
+
+export function scoreRun(record: RunRecord, expected: Expected, group: string): RunScore {
   const declared = record.declared ?? []
-  // A Faithful run never declares; Exploratory and Os dois (its Exploratory screens) declare what is expected.
+  const screenMode = (d: (typeof declared)[number]) => d.mode ?? (record.mode === 'faithful' ? 'faithful' : 'exploratory')
+  // A Faithful screen never declares: every declaration on one is a false positive.
+  const onFaithful = declared.filter((d) => screenMode(d) === 'faithful').map((d) => d.ruleId)
+  const exploratory = declared.filter((d) => screenMode(d) === 'exploratory')
+  // Required: every expected declaration, on the Exploratory screens (a Faithful run requires none).
   const want = record.mode === 'faithful' ? [] : expected.declare
-  const got = [...new Set(declared.map((d) => d.ruleId))].sort()
+  const got = [...new Set(exploratory.map((d) => d.ruleId))].sort()
   const wanted = [...new Set(want.map((d) => d.ruleId))].sort()
+  const extras = got.filter((r) => !wanted.includes(r))
+  const extrasAllowed = !STRICT_GROUPS.includes(group) && record.finalValid !== false
+  const falsePositives = [...new Set([...onFaithful, ...(extrasAllowed ? [] : extras)])].sort()
+  const missed = wanted.filter((r) => !got.includes(r))
   const scopeOf = new Map(want.map((d) => [d.ruleId, d.scope]))
+  const scopeOk = exploratory.every((d) => !scopeOf.has(d.ruleId) || scopeOf.get(d.ruleId) === d.scope)
   const trace = record.meta.trace ?? []
   const vocab = record.vocabulary ?? []
   const language = notesLanguage(record.notes ?? [])
@@ -116,10 +136,12 @@ export function scoreRun(record: RunRecord, expected: Expected): RunScore {
     mode: record.mode,
     run: record.run,
     ok: record.ok,
-    declareMatch: JSON.stringify(got) === JSON.stringify(wanted),
-    scopeOk: declared.every((d) => !scopeOf.has(d.ruleId) || scopeOf.get(d.ruleId) === d.scope),
-    falseDeclarations: got.filter((r) => !wanted.includes(r)),
-    missed: wanted.filter((r) => !got.includes(r)),
+    pass: missed.length === 0 && falsePositives.length === 0 && scopeOk,
+    requiredMet: missed.length === 0,
+    scopeOk,
+    missed,
+    legitimateExtras: extrasAllowed ? extras : [],
+    falsePositives,
     lawHeld: (record.lawsBroken ?? []).length === 0,
     lawsBroken: record.lawsBroken ?? [],
     failedAttempts: trace.length,
