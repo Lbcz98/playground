@@ -35,6 +35,7 @@ import { SCREENFLOW_MANIFEST as M } from '@/shared/design-system/screenflow-mani
 import { consideredComponents, isPrimitive, PROPOSAL_TYPE } from '@/shared/design-system/primitives'
 import {
   estimate,
+  isLimitError,
   perGeneration,
   planJobs,
   scoreRun,
@@ -209,6 +210,7 @@ async function routerPass(): Promise<void> {
   const provider = await resolveProvider()
   if (!provider) throw new Error('no AI provider')
   const rows: unknown[] = []
+  const knownMisses: string[] = []
   let spent = 0
   for (const req of routed) {
     if (spent + perCall.mean > CAP) break
@@ -218,6 +220,12 @@ async function routerPass(): Promise<void> {
     } catch (err) {
       // A failed call is a recorded result, never retried here.
       const message = err instanceof Error ? err.message.slice(0, 300) : String(err)
+      if (isLimitError(message)) {
+        const rest = routed.slice(routed.indexOf(req)).map((q) => q.id)
+        rows.push({ id: 'not-run', got: 'not run', ok: false, error: message, notRun: rest })
+        console.log(`USAGE/RATE LIMIT (${message.slice(0, 120)}) — stopped; not run: ${rest.join(', ')}\nResume: npm run eval:modes -- ${process.argv.slice(2).filter((a) => a !== '--').join(' ')}`)
+        break
+      }
       rows.push({ id: req.id, expected: req.expected.router, got: 'failed', ok: false, error: message })
       console.log(`${req.id.padEnd(26)} FAILED: ${message.slice(0, 120)}`)
       continue
@@ -227,10 +235,14 @@ async function routerPass(): Promise<void> {
     // What the classifier named, raw: a miss is either a pattern named wrongly or a conflict never seen.
     rows.push({ id: req.id, expected: req.expected.router, got, ok: got === req.expected.router, usage: r.usage, reply: r.reply ?? null, raw: r.raw ?? null })
     const named = r.reply ? r.reply.conflicts.map((c) => c.ruleId).join(',') || 'none' : 'unreadable'
-    console.log(`${req.id.padEnd(26)} expected ${req.expected.router?.padEnd(11)} got ${got.padEnd(11)} named ${named}${got === req.expected.router ? '' : '   ✗'}`)
+    const known = got !== req.expected.router && req.expected.routerKnownMiss
+    console.log(`${req.id.padEnd(26)} expected ${req.expected.router?.padEnd(11)} got ${got.padEnd(11)} named ${named}${got === req.expected.router ? '' : known ? '   ~ known miss' : '   ✗'}`)
+    if (known) knownMisses.push(`${req.id}: ${req.expected.routerKnownMiss}`)
   }
   writeFileSync(join(OUT, `router.${STAMP.sha}.${Date.now()}.json`), JSON.stringify({ stamp: STAMP, spent, rows }, null, 2))
-  console.log(`router: ${rows.filter((r: any) => r.ok).length}/${rows.length} as expected · $${spent.toFixed(2)}`)
+  const bad = rows.filter((r: any) => !r.ok && !knownMisses.some((k) => k.startsWith(`${r.id}:`))).length
+  console.log(`router: ${rows.filter((r: any) => r.ok).length}/${rows.length} as expected · ${bad} regressions · ${knownMisses.length} known misses · $${spent.toFixed(2)}`)
+  if (knownMisses.length > 0) console.log(`known misses:\n  ${knownMisses.join('\n  ')}`)
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────────
@@ -275,10 +287,13 @@ if (ROUTER) {
   if (spent > 0) console.log(`already spent on this stage: ${usd(spent)}`)
   let inFlight = 0
   const skipped: Job[] = []
+  /** Set when a call fails with a usage- or rate-limit signature: in-flight jobs finish, the rest are not run. */
+  let limitHit: string | null = null
+  const notRun: Job[] = []
   let next = 0
   await Promise.all(
     Array.from({ length: POOL }, async () => {
-      while (next < pending.length) {
+      while (next < pending.length && !limitHit) {
         const job = pending[next++]
         if (!withinCap(spent, inFlight, job, per, CAP)) {
           skipped.push(job)
@@ -295,6 +310,13 @@ if (ROUTER) {
           // A failure is a result, never retried silently: it is recorded, so a later invocation skips it too. A retry
           // is a separate, logged run (delete the record by hand).
           const message = err instanceof Error ? err.message : String(err)
+          if (isLimitError(message)) {
+            // Not a result of this job: stop, mark it (and the rest) not run, and say how to resume.
+            limitHit ??= message.slice(0, 200)
+            notRun.push(job)
+            console.log(`job NOT RUN (limit): ${job.id} ${job.mode} #${job.run}`)
+            continue
+          }
           writeFileSync(
             join(OUT, `${job.id}.${job.mode}.${job.run}.json`),
             JSON.stringify({ id: job.id, run: job.run, mode: job.mode, stamp: STAMP, ok: false, failure: 'threw', error: message, meta: { steps: [] } }, null, 2),
@@ -306,6 +328,13 @@ if (ROUTER) {
       }
     }),
   )
+  if (limitHit) {
+    notRun.push(...pending.slice(next).filter((j) => !skipped.includes(j)))
+    console.log(
+      `\nUSAGE/RATE LIMIT hit (${limitHit}) — stopped; in-flight jobs finished. ${notRun.length} job(s) not run (no failure recorded): ` +
+        `${notRun.map((j) => `${j.id}.${j.mode}#${j.run}`).join(', ')}\nResume (finished jobs are skipped): npm run eval:modes -- ${process.argv.slice(2).filter((a) => a !== '--').join(' ')}`,
+    )
+  }
   if (skipped.length > 0) console.log(`\ncap ${usd(CAP)} reached — ${skipped.length} job(s) not run: ${skipped.map((j) => `${j.id}.${j.mode}#${j.run}`).join(', ')}`)
   summarize(spent)
 }

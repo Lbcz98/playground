@@ -14,6 +14,8 @@ export interface Expected {
   router?: 'faithful' | 'exploratory' | 'ask' | 'law'
   declare: { ruleId: string; scope: 'node' | 'screen' }[]
   law?: string
+  /** A router expectation the classifier is known to miss, and why: reported apart as a known miss, not a regression. */
+  routerKnownMiss?: string
   language?: 'en' | 'pt'
   both?: BothOutcome | 'any'
 }
@@ -93,6 +95,14 @@ export function notesLanguage(notes: readonly string[]): RunScore['notesLanguage
   if (notes.length === 0) return 'none'
   const langs = new Set(notes.map((n) => (PT.test(n) ? 'pt' : EN.test(n) ? 'en' : 'pt')))
   return langs.size > 1 ? 'mixed' : (([...langs][0] as 'en' | 'pt') ?? 'none')
+}
+
+/**
+ * Whether a failure looks like a usage or rate limit (the CLI's subscription running out, an API 429): the pass then
+ * stops and marks the rest "not run" instead of recording a failure per remaining job.
+ */
+export function isLimitError(message: string): boolean {
+  return /usage limit|limit reached|rate.?limit|too many requests|\b429\b|overloaded|quota|credit balance/i.test(message)
 }
 
 export const BOTH_IDENTICAL_MARK = 'Exploratório não encontrou nada a quebrar'

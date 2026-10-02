@@ -4,6 +4,7 @@ import {
   bothOutcome,
   callCost,
   estimate,
+  isLimitError,
   notesLanguage,
   perGeneration,
   planJobs,
@@ -158,5 +159,12 @@ describe('the job plan, the estimate and the cap', () => {
     expect(withinCap(39, 0, one, per, 40)).toBe(true)
     expect(withinCap(39, 0.6, one, per, 40)).toBe(false)
     expect(withinCap(39.5, 0, two, per, 40)).toBe(false)
+  })
+})
+
+describe('usage and rate limits', () => {
+  it('recognises the signatures that stop a pass, and not an ordinary failure', () => {
+    for (const m of ['Claude AI usage limit reached|1790966400', 'rate_limit_error: 429 Too Many Requests', 'API Error: 529 overloaded_error', 'credit balance is too low']) expect(isLimitError(m), m).toBe(true)
+    for (const m of ['claude CLI returned an error (error_during_execution)', 'Could not parse the claude CLI JSON output', 'ENOENT']) expect(isLimitError(m), m).toBe(false)
   })
 })
