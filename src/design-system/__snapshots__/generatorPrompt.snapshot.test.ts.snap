@@ -117,7 +117,9 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt."
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.
+
+Write every piece of text meant for the user — "notes" — in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;
 
 exports[`generator prompt (byte snapshot) > is unchanged for an imported system (tool) 1`] = `
@@ -238,7 +240,9 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt."
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.
+
+Write every piece of text meant for the user — "notes" — in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;
 
 exports[`generator prompt (byte snapshot) > is unchanged for the built-in system (json) 1`] = `
@@ -495,7 +499,9 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt."
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.
+
+Write every piece of text meant for the user — "notes" — in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;
 
 exports[`generator prompt (byte snapshot) > is unchanged for the built-in system (tool) 1`] = `
@@ -753,5 +759,7 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt."
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to 4 short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.
+
+Write every piece of text meant for the user — "notes" — in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;

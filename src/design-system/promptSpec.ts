@@ -755,7 +755,9 @@ screen), then the numbered list for each screen under its own "Screen <id>:" hea
 When you had to approximate something the registry lacks, or a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.
 Example:
 
-${examplePlan(templates, container, gutter, zero)}`
+${examplePlan(templates, container, gutter, zero)}
+
+${request?.mode === 'exploratory' ? `Write the plan's "Notes:" line, each "Deviation:" reason and each "Proposal:" description in the language of the user's request, whatever language these instructions are in. Rule ids and component names stay as they are.` : `Write the plan's "Notes:" line in the language of the user's request, whatever language these instructions are in. Component names stay as they are.`}`
 }
 
 /** The book's rules for the components the request names, or nothing. */
@@ -814,5 +816,9 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) : ''}`
+Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) + `
+
+Write every piece of text meant for the user — "notes", each "deviation.why", a Proposal's "description" — in the language of the user's request, whatever language these instructions are in. Rule ids and component names stay as they are.` : `
+
+Write every piece of text meant for the user — "notes" — in the language of the user's request, whatever language these instructions are in. Component names stay as they are.`}`
 }

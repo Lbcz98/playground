@@ -105,7 +105,9 @@ Screen: model "<layer model id>", level <n> — why this model fits where the co
 7.     A muted body line: "Every channel, live and on demand.".
 8.     Primary button: "Start watching" — first focusable, so it holds initial focus.
 9.   Help Container (horizontal, gap sm) — anchored, a secondary floating cluster.
-10.    Ghost button: "Need help?"."
+10.    Ghost button: "Need help?".
+
+Write the plan's "Notes:" line in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;
 
 exports[`planner prompt (byte snapshot) > is unchanged for the built-in system 1`] = `
@@ -300,5 +302,7 @@ Screen: model "home", level 1 — The home screen after login: the main menu alo
 5.       InteractivityButton — "Lances da partida"
 6.       InteractivityButton — "Vote no Craque do Jogo"
 7.       InteractivityButton — "Estatísticas"
-8.     MainMenu"
+8.     MainMenu
+
+Write the plan's "Notes:" line in the language of the user's request, whatever language these instructions are in. Component names stay as they are."
 `;
