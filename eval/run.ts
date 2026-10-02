@@ -95,7 +95,9 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 const STAMP = {
   sha: (() => {
     try {
-      return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
+      const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
+      // Results from an uncommitted tree are not comparable to a sha: say so in the stamp.
+      return execSync('git status --porcelain', { encoding: 'utf8' }).trim() ? `${sha}-dirty` : sha
     } catch {
       return 'unknown'
     }
@@ -244,7 +246,14 @@ if (ROUTER) {
         try {
           spent += await runJob(job)
         } catch (err) {
-          console.log(`job failed: ${job.id} ${job.mode} #${job.run}:`, err instanceof Error ? err.message : err)
+          // A failure is a result, never retried silently: it is recorded, so a later invocation skips it too. A retry
+          // is a separate, logged run (delete the record by hand).
+          const message = err instanceof Error ? err.message : String(err)
+          writeFileSync(
+            join(OUT, `${job.id}.${job.mode}.${job.run}.json`),
+            JSON.stringify({ id: job.id, run: job.run, mode: job.mode, stamp: STAMP, ok: false, failure: 'threw', error: message, meta: { steps: [] } }, null, 2),
+          )
+          console.log(`job FAILED: ${job.id} ${job.mode} #${job.run}: ${message}`)
         } finally {
           inFlight -= reserved
         }
@@ -260,8 +269,10 @@ function summarize(spent: number): void {
   const records = jobs
     .map((j) => join(OUT, `${j.id}.${j.mode}.${j.run}.json`))
     .filter(existsSync)
-    .map((f) => JSON.parse(readFileSync(f, 'utf8')) as RunRecord & { score: RunScore })
-  const scores = records.map((r) => r.score)
+    .map((f) => JSON.parse(readFileSync(f, 'utf8')) as RunRecord & { score?: RunScore; failure?: string; error?: string })
+  const failures = records.filter((r) => !r.score)
+  const scores = records.filter((r) => r.score).map((r) => r.score!)
+  if (failures.length > 0) console.log(`\nFAILED (not retried): ${failures.map((r) => `${r.id}.${r.mode}#${r.run}: ${r.error ?? 'no result'}`).join('; ')}`)
   const pct = (xs: boolean[]) => (xs.length ? `${xs.filter(Boolean).length}/${xs.length}` : '—')
   console.log('\nrequest · mode · runs · declared ok · scope ok · false · missed · laws held · failed attempts · replans · prims/props · lang · both · $')
   for (const req of requests) {
