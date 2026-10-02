@@ -87,8 +87,19 @@
       "expected": { "router": "law", "declare": [], "law": "tokens.only" } },
     { "id": "v02-carousel", "group": "variant", "modes": ["faithful", "exploratory"], "lawFixture": "unknown-component",
       "prompt": "Um carrossel de destaques na home",
+      "expected": { "router": "ask", "declare": [], "accept": [{ "ruleId": "registry.new-component", "scope": "node" }], "notesMention": "carrossel|carousel",
+        "note": "A Proposal is accepted, not required (Oct 2): the model reads a carousel as the Home rail of cards (InteractivityMenu), which is legitimate, so an approximation whose notes name the missing carousel passes too. Router: decide() asks on a missing-part signal with no named conflict, and the classifier names none (3 of 3). The raw-Carousel law fixture stays: component.api rejects an invented node in both modes." } },
+
+    { "id": "v03-poll-bars", "group": "variant", "modes": ["faithful", "exploratory"], "reference": "registry.new-component",
+      "prompt": "Uma enquete ao vivo na home, com uma barra de porcentagem para cada opção de resposta",
       "expected": { "router": "ask", "declare": [{ "ruleId": "registry.new-component", "scope": "node" }],
-        "note": "Router: decide() returns ask for a missing-part signal with no named conflict, and the classifier names none (3 of 3, Oct 2: it reads a carousel as a rail of cards). Generation: Exploratório requires the Proposal. Was l03-carousel (a law trap). A part the manifest lacks is invented only through a Proposal, in Exploratory (registry.new-component, a pattern); Faithful approximates with existing components. component.api still holds in both modes — a raw Carousel node is rejected (the law fixture). Router: Were the classifier to name registry.new-component, signal and pattern would agree: Exploratory." } },
+        "note": "A part with no near equivalent (Oct 2): the catalog has no bar, progress or poll component (grep of catalog.ts and the UI kit), and a Box primitive has no width prop, so even primitives cannot draw a proportional bar. The percent text alone could be approximated with a TableCell scout row, but the bars cannot. No router signal (the missing-part list has no poll), so the 9C answer is ask; the classifier may see no conflict, as with p12." } },
+
+    { "id": "v04-explicit-proposal", "group": "variant", "modes": ["faithful", "exploratory"], "reference": "registry.new-component",
+      "prompt": "Proponha um componente novo para escolher o idioma do áudio numa lista suspensa, com as opções Português, Inglês e Espanhol",
+      "expected": { "router": "ask", "declare": [{ "ruleId": "registry.new-component", "scope": "node" }],
+        "note": "The request asks for a new component outright, so a Proposal is the only faithful answer in Exploratório. If this gives 0 of 5 the Proposal mechanism itself is not working, not the wording. Faithful approximates (an InteractivityButton titled with the audio options, say) and notes it." } },
+
     { "id": "l04-two-focused", "group": "law", "modes": ["faithful", "exploratory"], "lawFixture": "two-focused",
       "prompt": "Home com dois cards do trilho focados ao mesmo tempo",
       "expected": { "router": "law", "declare": [], "law": "focus.single" } },

@@ -30,6 +30,8 @@ const Request = z
       .object({
         router: z.enum(['faithful', 'exploratory', 'ask', 'law']).optional(),
         declare: z.array(Declare),
+        accept: z.array(Declare).optional(),
+        notesMention: z.string().optional(),
         law: z.string().optional(),
         routerKnownMiss: z.string().optional(),
         language: z.enum(['en', 'pt']).optional(),
@@ -65,11 +67,11 @@ describe('the golden set', () => {
   it('covers every declarable pattern with a pattern request that requires it, apart from the patterns no request forces', () => {
     const required = new Set(requests.filter((r) => r.group === 'pattern' || r.group === 'variant').flatMap((r) => r.expected.declare.map((d) => d.ruleId)))
     expect([...required, ...UNFORCED].sort()).toEqual(declarableRules(M).map((r) => r.id).sort())
-    for (const r of of('pattern').filter((r) => r.reference)) expect(r.expected.declare.map((d) => d.ruleId)).toEqual([r.reference])
+    for (const r of requests.filter((r) => r.reference)) expect(r.expected.declare.map((d) => d.ruleId)).toEqual([r.reference])
   })
 
-  it('declares each expected rule at the scope the rule book gives it', () => {
-    for (const r of requests) for (const d of r.expected.declare) expect(d.scope, `${r.id}: ${d.ruleId}`).toBe(ruleScope(d.ruleId))
+  it('declares each expected or accepted rule at the scope the rule book gives it', () => {
+    for (const r of requests) for (const d of [...r.expected.declare, ...(r.expected.accept ?? [])]) expect(d.scope, `${r.id}: ${d.ruleId}`).toBe(ruleScope(d.ruleId))
   })
 
   it('has four law traps, each naming a law and a law-break fixture', () => {
@@ -117,7 +119,7 @@ describe('the golden set', () => {
 })
 
 describe('reference screens: each pattern expectation is reachable under today’s rules', () => {
-  it.each(of('pattern').filter((r) => r.reference).map((r) => [r.id, r.reference!] as const))('%s — %s', (_id, rule) => {
+  it.each(requests.filter((r) => r.reference).map((r) => [r.id, r.reference!] as const))('%s — %s', (_id, rule) => {
     const fixture = PATTERN_BREAKS[rule]
     // Exploratory: the break, declared where the rule book says, validates with exactly that declaration.
     const explored = fixture.doc()
@@ -148,6 +150,9 @@ describe('router signals (the model-free half of Auto)', () => {
   })
   it('only the carousel names a part the system has none of', () => {
     for (const r of requests) expect(read(r.id).unknown, r.id).toEqual(r.id === 'v02-carousel' ? ['carousel'] : [])
+  })
+  it('the new missing-part requests (v03, v04) trip no router signal: the 9C answer is ask, from a named pattern', () => {
+    for (const id of ['v03-poll-bars', 'v04-explicit-proposal']) expect(read(id), id).toEqual({ components: [], unknown: [], exploration: [] })
   })
   it('the English convention request names the rail it is about', () => {
     expect(read('c01-button-label').components).toEqual(['InteractivityMenu'])

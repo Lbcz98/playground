@@ -168,3 +168,24 @@ describe('usage and rate limits', () => {
     for (const m of ['claude CLI returned an error (error_during_execution)', 'Could not parse the claude CLI JSON output', 'ENOENT']) expect(isLimitError(m), m).toBe(false)
   })
 })
+
+describe('an accepted declaration (v02: a Proposal may, but need not, stand in for the carousel)', () => {
+  const carousel = { declare: [], accept: [{ ruleId: 'registry.new-component', scope: 'node' as const }], notesMention: 'carrossel|carousel' }
+  const run = (over: Partial<RunRecord>) => scoreRun(record({ finalValid: true, ...over }), carousel, 'variant')
+
+  it('passes with the Proposal declared (not an extra, not a miss)', () => {
+    expect(run({ declared: [{ ruleId: 'registry.new-component', scope: 'node' }], notes: [] })).toMatchObject({ pass: true, notesOk: true, legitimateExtras: [], falsePositives: [] })
+  })
+  it('passes with no Proposal when the notes name the missing carousel', () => {
+    expect(run({ declared: [], notes: ['O registro não tem um carrossel próprio.'] })).toMatchObject({ pass: true, notesOk: true })
+  })
+  it('fails with no Proposal and notes that never name it', () => {
+    expect(run({ declared: [], notes: ['Usei quatro cards de exemplo.'] })).toMatchObject({ pass: false, notesOk: false })
+  })
+  it('an accepted declaration at the wrong scope fails', () => {
+    expect(run({ declared: [{ ruleId: 'registry.new-component', scope: 'screen' }] })).toMatchObject({ pass: false, scopeOk: false })
+  })
+  it('a Faithful run is held to no declaration and no note requirement', () => {
+    expect(scoreRun(record({ mode: 'faithful', declared: [], notes: [] }), carousel, 'variant').pass).toBe(true)
+  })
+})

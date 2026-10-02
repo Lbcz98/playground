@@ -13,6 +13,10 @@ export type BothOutcome = 'differ' | 'identical' | 'faithful-only' | 'branch-fai
 export interface Expected {
   router?: 'faithful' | 'exploratory' | 'ask' | 'law'
   declare: { ruleId: string; scope: 'node' | 'screen' }[]
+  /** Declarations that are accepted but not required (a Proposal for a part an existing component may legitimately cover). */
+  accept?: { ruleId: string; scope: 'node' | 'screen' }[]
+  /** When none of `accept` is declared, the notes must still match this (a regex source): the missing part is named. */
+  notesMention?: string
   law?: string
   /** A router expectation the classifier is known to miss, and why: reported apart as a known miss, not a regression. */
   routerKnownMiss?: string
@@ -64,6 +68,8 @@ export interface RunScore {
   requiredMet: boolean
   /** Every required declaration sits at the scope the expectation gives it. */
   scopeOk: boolean
+  /** An accepted declaration was made, or (when the expectation asks) the notes name the missing part. */
+  notesOk: boolean
   missed: string[]
   /** Declarations beyond the required ones that the validator accepted, where extras are allowed (patterns, variants, Os dois). */
   legitimateExtras: string[]
@@ -131,11 +137,14 @@ export function scoreRun(record: RunRecord, expected: Expected, group: string): 
   const want = record.mode === 'faithful' ? [] : expected.declare
   const got = [...new Set(exploratory.map((d) => d.ruleId))].sort()
   const wanted = [...new Set(want.map((d) => d.ruleId))].sort()
-  const extras = got.filter((r) => !wanted.includes(r))
+  const accepted = (expected.accept ?? []).map((a) => a.ruleId)
+  const extras = got.filter((r) => !wanted.includes(r) && !accepted.includes(r))
   const extrasAllowed = !STRICT_GROUPS.includes(group) && record.finalValid !== false
   const falsePositives = [...new Set([...onFaithful, ...(extrasAllowed ? [] : extras)])].sort()
   const missed = wanted.filter((r) => !got.includes(r))
-  const scopeOf = new Map(want.map((d) => [d.ruleId, d.scope]))
+  const scopeOf = new Map([...want, ...(record.mode === 'faithful' ? [] : (expected.accept ?? []))].map((d) => [d.ruleId, d.scope]))
+  const acceptedMade = (expected.accept ?? []).some((a) => got.includes(a.ruleId))
+  const notesOk = record.mode === 'faithful' || !expected.notesMention || acceptedMade || new RegExp(expected.notesMention, 'i').test((record.notes ?? []).join(' '))
   const scopeOk = exploratory.every((d) => !scopeOf.has(d.ruleId) || scopeOf.get(d.ruleId) === d.scope)
   const trace = record.meta.trace ?? []
   const vocab = record.vocabulary ?? []
@@ -146,9 +155,10 @@ export function scoreRun(record: RunRecord, expected: Expected, group: string): 
     mode: record.mode,
     run: record.run,
     ok: record.ok,
-    pass: missed.length === 0 && falsePositives.length === 0 && scopeOk,
+    pass: missed.length === 0 && falsePositives.length === 0 && scopeOk && notesOk,
     requiredMet: missed.length === 0,
     scopeOk,
+    notesOk,
     missed,
     legitimateExtras: extrasAllowed ? extras : [],
     falsePositives,
