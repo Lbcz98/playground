@@ -157,7 +157,7 @@ export async function generateUI(
       if (options.mode === 'exploratory') mode = 'exploratory'
     }
     const acc: Tally = { usage, model, calls }
-    const base: Omit<BranchArgs, 'mode' | 'plannerMessages'> = { provider, manifest, options, steps, notices, trace: [], acc }
+    const base: Omit<BranchArgs, 'mode' | 'plannerMessages'> = { provider, manifest, options, request: userPrompt, steps, notices, trace: [], acc }
     try {
       if (options.mode === 'both') {
         const res = await runBoth(userPrompt, history, base)
@@ -215,6 +215,8 @@ interface BranchArgs {
   manifest: DesignSystemManifest
   options: GenerateOptions
   mode: ScreenMode
+  /** The user's request, verbatim: the generator is shown it after the plan, for the language of everything it writes for the user. */
+  request: string
   /** The conversation the planner sees (history and the request). */
   plannerMessages: ChatTurn[]
   /** A plan already made (the shared Faithful plan of "Os dois"): the first planner call is skipped. */
@@ -228,6 +230,13 @@ interface BranchArgs {
   trace: AttemptLog[]
   acc: Tally
 }
+
+/**
+ * The user's request, after the plan. The generator otherwise sees only the plan and copies its language (stage 1 and
+ * C1: English notes for a Portuguese request and the reverse). The plan stays authoritative for what to build.
+ */
+export const originalRequestBlock = (request: string): string =>
+  `\n\nOriginal request (the plan is authoritative for what to build; this is also the language for "notes", each "deviation.why" and a Proposal's "description"):\n${request}`
 
 const withFaithfulAlternative = (prompt: string, plan: string): string =>
   `${prompt}\n\nThe same request kept inside the patterns — start from this plan and change only what the request needs to break:\n${plan}`
@@ -282,7 +291,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
         `does not mention.\n\nTEMPLATE "${choice.template.id}" (${choice.template.name}):\n` +
         `${JSON.stringify(choice.template.blueprint, null, 2)}\n\n`
       : ''
-    const genMessages: ChatTurn[] = [{ role: 'user', content: `${reference}Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planText}` }]
+    const genMessages: ChatTurn[] = [{ role: 'user', content: `${reference}Build exactly this plan as the Blueprint JSON.\n\nPLAN:\n${planText}${originalRequestBlock(a.request)}` }]
 
     let trigger: string | null = null
     let lastIssues: ValidationIssue[] = []

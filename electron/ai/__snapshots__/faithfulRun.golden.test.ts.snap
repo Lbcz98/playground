@@ -159,7 +159,10 @@ Build exactly this plan as the Blueprint JSON.
 PLAN:
 Template: home
 Screen: model "home", level 1
-1. Root Stack",
+1. Root Stack
+
+Original request (the plan is authoritative for what to build; this is also the language for "notes", each "deviation.why" and a Proposal's "description"):
+Home com uma notificação de gol, e se possível o trilho",
           "role": "user",
         },
         {
@@ -262,7 +265,10 @@ Build exactly this plan as the Blueprint JSON.
 PLAN:
 Template: home
 Screen: model "home", level 1
-1. Root Stack",
+1. Root Stack
+
+Original request (the plan is authoritative for what to build; this is also the language for "notes", each "deviation.why" and a Proposal's "description"):
+Home com uma notificação de gol, e se possível o trilho",
           "role": "user",
         },
         {
@@ -601,7 +607,10 @@ Build exactly this plan as the Blueprint JSON.
 PLAN:
 Template: home
 Screen: model "home", level 1
-1. Root Stack",
+1. Root Stack
+
+Original request (the plan is authoritative for what to build; this is also the language for "notes", each "deviation.why" and a Proposal's "description"):
+Home com uma notificação de gol, e se possível o trilho",
           "role": "user",
         },
         {
@@ -704,7 +713,10 @@ Build exactly this plan as the Blueprint JSON.
 PLAN:
 Template: home
 Screen: model "home", level 1
-1. Root Stack",
+1. Root Stack
+
+Original request (the plan is authoritative for what to build; this is also the language for "notes", each "deviation.why" and a Proposal's "description"):
+Home com uma notificação de gol, e se possível o trilho",
           "role": "user",
         },
         {
