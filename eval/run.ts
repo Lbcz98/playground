@@ -212,7 +212,16 @@ async function routerPass(): Promise<void> {
   let spent = 0
   for (const req of routed) {
     if (spent + perCall.mean > CAP) break
-    const r = await routeAuto(provider, req.prompt, M)
+    let r: Awaited<ReturnType<typeof routeAuto>>
+    try {
+      r = await routeAuto(provider, req.prompt, M)
+    } catch (err) {
+      // A failed call is a recorded result, never retried here.
+      const message = err instanceof Error ? err.message.slice(0, 300) : String(err)
+      rows.push({ id: req.id, expected: req.expected.router, got: 'failed', ok: false, error: message })
+      console.log(`${req.id.padEnd(26)} FAILED: ${message.slice(0, 120)}`)
+      continue
+    }
     spent += r.usage?.costUsd ?? 0
     const got = r.decision.kind === 'go' ? r.decision.mode : r.decision.question.kind === 'law' ? 'law' : 'ask'
     // What the classifier named, raw: a miss is either a pattern named wrongly or a conflict never seen.
