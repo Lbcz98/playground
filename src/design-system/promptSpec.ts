@@ -41,7 +41,15 @@ import {
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { readRequest } from '@/shared/design-system/request-signals'
 import type { ScreenMode } from '@/shared/blueprint'
-import { generatorDeviationContract, generatorVocabularyContract, plannerDeviationContract, plannerVocabularyContract } from './deviationContract'
+import {
+  generatorDeviationContract,
+  generatorVocabularyContract,
+  notesLackClause,
+  plannerDeviationContract,
+  plannerNotesSentence,
+  plannerVocabularyContract,
+  registryLackSentence,
+} from './deviationContract'
 import { scopedRules } from '@/shared/design-system/rules'
 import type { ManifestScreenTemplate } from '@/shared/design-system/manifest'
 import { clearBackgroundFor, screenLayersOf, sidePropFor } from '@/shared/design-system/screen-layers'
@@ -186,12 +194,12 @@ When generating full screens or master containers, you must target the base HD c
   * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the ${px(FRAME.margin)} margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.`
 }
 
-function registryLaw(): string {
+function registryLaw(mode: ScreenMode): string {
   return `### 4. COMPONENT REGISTRY STRICTNESS
 You must construct the UI using ONLY the provided Blueprint component definitions (which have been imported and mapped from our Storybook registry).
 * Never use a prop the schema doesn't define — rely exclusively on the Blueprint schema properties provided in your context.
 
-Compose, don't assume. Treat the components as building blocks and combine them freely to match what the user asks, including unconventional arrangements. Composition happens inside the frame, token, layer and focus laws, which always win. Placement rules on a component (which parent it needs, its slot order) still apply. A reference screen is a starting point, and the request can override it. If the request needs something the registry lacks, approximate it with the layout primitives and name what you approximated. Never invent a component.`
+Compose, don't assume. Treat the components as building blocks and combine them freely to match what the user asks, including unconventional arrangements. Composition happens inside the frame, token, layer and focus laws, which always win. Placement rules on a component (which parent it needs, its slot order) still apply. A reference screen is a starting point, and the request can override it. ${registryLackSentence(mode)}`
 }
 
 /**
@@ -230,8 +238,8 @@ function menuRolesLine(): string {
 }
 
 /** The Generator's global kernel: identity + the six laws. No design-system specifics. */
-export function buildGlobalKernel(): string {
-  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw(), tokenTierLaw(), screenLayerLaw()].join('\n\n')
+export function buildGlobalKernel(mode: ScreenMode = 'faithful'): string {
+  return [kernelIntro(), tokensLaw(), spatialLaw(), macroLayoutLaw(), registryLaw(mode), tokenTierLaw(), screenLayerLaw()].join('\n\n')
 }
 
 // ---------------------------------------------------------------------------
@@ -752,7 +760,7 @@ nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.
-When you had to approximate something the registry lacks, or a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.
+${plannerNotesSentence(request?.mode)}
 Example:
 
 ${examplePlan(templates, container, gutter, zero)}
@@ -802,7 +810,7 @@ no markdown fences:
   ${blueprint}
 }`
 
-  return `${buildGlobalKernel()}
+  return `${buildGlobalKernel(screenMode)}
 
 ${designSystemBinding(manifest, spec, container)}
 
@@ -816,7 +824,7 @@ fields: "version", "screen" and "root" (plus "id"/"name" for the first screen an
 request asks for several screens). Do not include an "id" field on any node —
 besides "type", "props" and "children", the only node fields are "anchor" and "goTo".
 
-Tell the user what they would otherwise not notice: when you approximated something the registry lacks, or a law overrode part of their request (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly ("O mapa é aproximado por um cartão"). Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) + `
+Tell the user what they would otherwise not notice: ${notesLackClause(screenMode)} (focus starting somewhere other than where they asked, a level's one-module limit, a component that only goes inside another), add up to ${MAX_NOTES} short sentences to "notes" — a list of strings, in the language of the request. Say it plainly${screenMode === 'exploratory' ? '' : ' ("O mapa é aproximado por um cartão")'}. Omit "notes" when the result is exactly what was asked. Notes describe the result against the request — never your own corrections after a rejected attempt.${screenMode === 'exploratory' ? generatorDeviationContract(manifest) + generatorVocabularyContract(manifest) + `
 
 Write every piece of text meant for the user — "notes", each "deviation.why", a Proposal's "description" — in the language of the user's request, whatever language these instructions are in. Rule ids and component names stay as they are.` : `
 

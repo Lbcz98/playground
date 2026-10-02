@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { ROUTER_FEWSHOT } from '../../electron/ai/router.fewshot'
+import { PROPOSAL_EXAMPLE_REQUEST } from '@/design-system/deviationContract'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST as M } from '@/shared/design-system/screenflow-manifest'
 import { declarableRules, ruleScope } from '@/shared/design-system/deviations'
@@ -153,3 +154,25 @@ describe('router signals (the model-free half of Auto)', () => {
   })
 })
 
+describe('the worked Proposal example in the Exploratory planner prompt', () => {
+  const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\W+/g, ' ').trim()
+  const tokens = (s: string) => new Set(norm(s).split(' ').filter(Boolean))
+  const overlap = (a: Set<string>, b: Set<string>) => {
+    const shared = [...a].filter((w) => b.has(w)).length
+    return shared / (a.size + b.size - shared)
+  }
+
+  it('names a part the manifest verifiably lacks', () => {
+    expect(Object.keys(M.components).filter((id) => /slider|volume|range/i.test(id))).toEqual([])
+  })
+
+  it('is not a golden request, nor a near-duplicate of one (token overlap below 0.6), nor of a router few-shot', () => {
+    const pool = [...requests.map((r) => r.prompt), ...ROUTER_FEWSHOT.map((s) => s.request)]
+    expect(pool.map(norm)).not.toContain(norm(PROPOSAL_EXAMPLE_REQUEST))
+    for (const p of pool) expect(overlap(tokens(PROPOSAL_EXAMPLE_REQUEST), tokens(p)), p).toBeLessThan(0.6)
+  })
+
+  it('is not the carousel (v02) or the scoreboard (p12) the Proposal tests use', () => {
+    expect(PROPOSAL_EXAMPLE_REQUEST).not.toMatch(/carro|carousel|placar|scoreboard/i)
+  })
+})

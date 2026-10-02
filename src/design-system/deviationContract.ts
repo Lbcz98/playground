@@ -5,6 +5,7 @@
  */
 
 import { declarableRules, MAX_WHY_LENGTH, ruleScope } from '@/shared/design-system/deviations'
+import type { ScreenMode } from '@/shared/blueprint'
 import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 import { rulesOf } from '@/shared/design-system/rules'
 import { SHADE_IDS } from '@/shared/design-system/manifest'
@@ -90,10 +91,14 @@ Prefer the registry's components, recomposed. Only when none of them expresses t
 - a small piece the registry lacks (a coloured title, a wrapper that groups pieces) is a PRIMITIVE —
   ${PRIMITIVE_TYPES.join(', ')}. For each, add a line "Primitive: <type> — considered <the components you
   looked at, by name> — <why none of them does it>".
-- a real new component (a scoreboard, a widget with its own props) is a PROPOSAL — add a line "Proposal:
-  <what it is> — <its props: name: type, …>". It is shown as a placeholder, not built.
+- a part the registry has no component for (one with props of its own) is a PROPOSAL — add a line "Proposal:
+  <what it is> — <its props: name: type, …>". It is shown as a placeholder, not built. If your notes would say
+  "the registry has no X", that is a Proposal for X, not an approximation with other components.
 At most ${PRIMITIVE_MAX_CHAIN} primitives inside each other and ${PRIMITIVE_MAX_PER_SCREEN} per screen, text included: past that, it is a Proposal.
 A request that fits the registry uses no primitive and no Proposal.
+Example — for the request "${PROPOSAL_EXAMPLE_REQUEST}", the registry has no slider, so the plan carries:
+  Proposal: Volume slider — a horizontal track with a handle that shows the current level — props: level: number, muted: boolean
+and no line that approximates it with a row of buttons.
 
 `
 }
@@ -116,9 +121,39 @@ ${PRIMITIVE_TYPES.map((t) => `- ${t}: ${primitiveProps(manifest, t)}${withVocabu
 Budget: at most ${PRIMITIVE_MAX_CHAIN} primitives nested in primitives, and ${PRIMITIVE_MAX_PER_SCREEN} per screen, primitive:Text included.
 Past it, the need is a new component: group it into one Proposal.
 
-Proposal — a component the registry lacks, shown as a placeholder and never built:
+Proposal — a component the registry lacks, shown as a placeholder and never built. If your notes would say "the registry has no X",
+declare a Proposal for X instead of approximating it with other components:
 { "type": "Proposal", "props": { "description": "<what it is and does>", "proposedApi": { "<propName>": "<short type or description>" } },
   "deviation": { "ruleId": "registry.new-component", "why": "<why the registry lacks it>" } }
 proposedApi has 1 to ${MAX_PROPOSED_PROPS} props, each an identifier (letters and digits) with a short string. A Proposal has no children and
 declares registry.new-component — nothing else, on its own node.`
+}
+
+
+// ── A part the registry lacks, per mode (phase 9G, C2) ──────────────────────────────────────────
+// Faithful approximates with the components it has and says so (its text is byte-identical to before); Exploratory
+// declares a Proposal instead — so the two modes never share a sentence that contradicts the other's rule.
+
+/** The request a worked Proposal example answers: a part the registry verifiably has no component for (no slider). */
+export const PROPOSAL_EXAMPLE_REQUEST = 'a volume slider on the clean broadcast'
+
+/** The Generator kernel's last sentence on a part the registry lacks. */
+export function registryLackSentence(mode: ScreenMode | undefined): string {
+  return mode === 'exploratory'
+    ? 'If the request needs a part the registry lacks, declare a Proposal for it (see "Exploratory mode — beyond the registry" below) instead of approximating it with other components. Never build a component of your own.'
+    : 'If the request needs something the registry lacks, approximate it with the layout primitives and name what you approximated. Never invent a component.'
+}
+
+/** The planner's closing sentence on notes. */
+export function plannerNotesSentence(mode: ScreenMode | undefined): string {
+  return mode === 'exploratory'
+    ? 'When the need is not in the registry, the plan carries a "Proposal:" line (see above), not a "Notes:" line about approximating it. When a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.'
+    : 'When you had to approximate something the registry lacks, or a law overrides part of the request, end the plan with a "Notes:" line saying so plainly, in the language of the request.'
+}
+
+/** The first clause of the generator's notes instruction. */
+export function notesLackClause(mode: ScreenMode | undefined): string {
+  return mode === 'exploratory'
+    ? 'when a Proposal stands in for something the registry lacks (say what it stands in for), or a law overrode part of their request'
+    : 'when you approximated something the registry lacks, or a law overrode part of their request'
 }
