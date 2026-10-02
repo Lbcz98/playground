@@ -232,7 +232,12 @@ if (est.high > CONFIRM_ABOVE_USD && !CONFIRM) {
 if (ROUTER) {
   await routerPass()
 } else {
-  let spent = 0
+  // A resumed stage: what its earlier invocations already spent counts toward the cap.
+  let spent = jobs
+    .map((j) => join(OUT, `${j.id}.${j.mode}.${j.run}.json`))
+    .filter(existsSync)
+    .reduce((t, f) => t + (JSON.parse(readFileSync(f, 'utf8')).meta?.usage?.costUsd ?? 0), 0)
+  if (spent > 0) console.log(`already spent on this stage: ${usd(spent)}`)
   let inFlight = 0
   const skipped: Job[] = []
   let next = 0
@@ -247,7 +252,10 @@ if (ROUTER) {
         const reserved = job.generations * per.mean
         inFlight += reserved
         try {
-          spent += await runJob(job)
+          // Read the cost first, then add: `spent += await …` reads `spent` before the await and loses the other
+          // worker's cost (seen in the first slice: US$ 0.80 counted for US$ 1.50 spent).
+          const cost = await runJob(job)
+          spent += cost
         } catch (err) {
           // A failure is a result, never retried silently: it is recorded, so a later invocation skips it too. A retry
           // is a separate, logged run (delete the record by hand).
@@ -314,7 +322,7 @@ function summarize(spent: number): void {
   const summary = { stamp: STAMP, stage: STAGE, runs: RUNS, spent, cap: CAP, records: records.length, costPerGeneration: byMode, costs }
   writeFileSync(join(OUT, `summary.stage${STAGE || 'x'}.json`), JSON.stringify({ ...summary, scores }, null, 2))
   console.log(
-    `\nspent ${usd(spent)} this session · per generation: Faithful ${usd(byMode.faithful)}, Exploratory ${usd(byMode.exploratory)}, Os dois ${usd(byMode.both)}` +
+    `\nspent ${usd(spent)} on this stage · per generation: Faithful ${usd(byMode.faithful)}, Exploratory ${usd(byMode.exploratory)}, Os dois ${usd(byMode.both)}` +
       `\ncalls ${costs.calls}: cold ${costs.cold.calls} (${usd(costs.cold.usd)}), warm ${costs.warm.calls} (${usd(costs.warm.usd)})` +
       `\nshare of a call's cost that is the cached prefix: ${Object.entries(costs.prefixShareByStep).map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(', ')}`,
   )
