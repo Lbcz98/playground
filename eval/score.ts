@@ -76,7 +76,8 @@ export interface RunScore {
   ms: number
 }
 
-const PT = /[ãõçáéíóúâêô]|\b(não|tela|para|com|uma|um|está|botão|card)\b/i
+// Words only Portuguese has ("card" is both: stage 1 read English notes about a card as mixed).
+const PT = /[ãõçáéíóúâêô]|\b(não|tela|para|com|uma|um|está|botão|fica|foi)\b/i
 const EN = /\b(the|is|are|and|button|screen|with|this|it)\b/i
 
 /** Which language a set of notes is written in (a heuristic: enough for "came back in the request's language"). */

@@ -69,6 +69,7 @@ describe('scoreRun', () => {
 
   it('checks the notes come back in the request’s language', () => {
     expect(notesLanguage(['The button opens the statistics.'])).toBe('en')
+    expect(notesLanguage(['The card reads "Match statistics" instead of "Click here".', 'The team names are placeholders.'])).toBe('en')
     expect(notesLanguage(['O botão abre as estatísticas.'])).toBe('pt')
     expect(notesLanguage([])).toBe('none')
     expect(scoreRun(record({ notes: ['O botão abre as estatísticas.'] }), { declare: [], language: 'en' }).languageOk).toBe(false)

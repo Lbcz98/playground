@@ -93,6 +93,22 @@ function pastCostsPerGeneration(dir: string): number[] {
 }
 const per = perGeneration(pastCostsPerGeneration(fileURLToPath(new URL('./results', import.meta.url))))
 
+/** Measured cost per provider call (from `meta.calls` of past results): what one router call should cost. */
+function pastCostsPerCall(dir: string): number[] {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f)
+    if (statSync(p).isDirectory()) return pastCostsPerCall(p)
+    if (!f.endsWith('.json') || f.startsWith('summary') || f.startsWith('router')) return []
+    try {
+      return ((JSON.parse(readFileSync(p, 'utf8')).meta?.calls ?? []) as CallUsage[]).flatMap((c) => (typeof c.costUsd === 'number' ? [c.costUsd] : []))
+    } catch {
+      return []
+    }
+  })
+}
+const perCall = perGeneration(pastCostsPerCall(fileURLToPath(new URL('./results', import.meta.url))), { mean: per.mean / 2, low: per.low / 2, high: per.high / 2, samples: 0 })
+
 // ── The stamp: what this run's results can be compared on ───────────────────────────────────────
 const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 10)
 const STAMP = {
@@ -187,7 +203,7 @@ async function routerPass(): Promise<void> {
   const rows: unknown[] = []
   let spent = 0
   for (const req of routed) {
-    if (spent + per.mean / 2 > CAP) break
+    if (spent + perCall.mean > CAP) break
     const r = await routeAuto(provider, req.prompt, M)
     spent += r.usage?.costUsd ?? 0
     const got = r.decision.kind === 'go' ? r.decision.mode : r.decision.question.kind === 'law' ? 'law' : 'ask'
@@ -202,15 +218,15 @@ async function routerPass(): Promise<void> {
 mkdirSync(OUT, { recursive: true })
 const jobs = planJobs(requests, RUNS)
 const pending = jobs.filter((j) => !existsSync(join(OUT, `${j.id}.${j.mode}.${j.run}.json`))).slice(0, MAX_JOBS)
-// The router pass is one classifier call per request: about half a generation (a generation is a planner and a generator call).
+// The router pass is one classifier call per request, at the measured cost of one provider call.
 const routed = requests.filter((r) => r.expected.router)
 const est = ROUTER
-  ? { generations: 0, mean: (routed.length * per.mean) / 2, low: (routed.length * per.low) / 2, high: (routed.length * per.high) / 2 }
+  ? { generations: 0, mean: routed.length * perCall.mean, low: routed.length * perCall.low, high: routed.length * perCall.high }
   : estimate(pending, per)
 const usd = (n: number) => `US$ ${n.toFixed(2)}`
 console.log(
   (ROUTER
-    ? `router pass · ${routed.length} requests with an expected Auto decision · ${routed.length} classifier calls\n`
+    ? `router pass · ${routed.length} requests with an expected Auto decision · ${routed.length} classifier calls · per call (measured, ${perCall.samples} calls): mean ${usd(perCall.mean)}, ${usd(perCall.low)}–${usd(perCall.high)}\n`
     : `stage ${STAGE || '-'} · runs ${RUNS.join(',')} · ${requests.length} requests · ${pending.length}/${jobs.length} jobs to run · ${est.generations} generations\n`) +
     `per generation (measured, ${per.samples} past runs): mean ${usd(per.mean)}, ${usd(per.low)}–${usd(per.high)}\n` +
     `estimate: ${usd(est.mean)} (${usd(est.low)}–${usd(est.high)}) · cap ${usd(CAP)} · ${POOL} at a time, mode by mode\n` +
