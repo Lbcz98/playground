@@ -69,7 +69,7 @@ const renderTool: Anthropic.Tool = {
           root: {
             type: 'object',
             description:
-              'A component node: { type, props?, children?, anchor?, goTo? }. `goTo` is a screen id — the screen a click on this node opens. `children` is only valid on a Stack. ' +
+              'A component node: { type, props?, children?, anchor?, goTo? }. `goTo` is a screen id — the screen a click on this node opens. `children` is only valid on a component the system prompt lists as accepting children. ' +
               '`anchor: true` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.',
             properties: {
               type: { type: 'string', enum: [...CATALOG_TYPES] },
