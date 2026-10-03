@@ -16,7 +16,7 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 
 describe('the Faithful prompts', () => {
   it('are pinned by hash (the same hashes the eval stamps)', () => {
-    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('6616260c43')
+    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('168a7c19bb')
     expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('4a55df4278')
   })
 

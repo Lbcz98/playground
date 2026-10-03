@@ -756,7 +756,7 @@ ${request ? componentRulesSection(manifest, request.prompt) : ''}${request?.mode
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
-nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+nesting, and its text content; mark the anchored group.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.
