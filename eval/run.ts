@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { generateUI } from '../electron/ai/ai-orchestrator'
 import { routeAuto } from '../electron/ai/classify'
 import { resolveProvider } from '../electron/ai/providers'
+import { isolated } from '../electron/ai/providers/claudeCli'
 import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
 import { treeDeclarations } from '@/shared/design-system/deviations'
 import { interpretPrototype } from '@/interpreter/interpret'
@@ -129,6 +130,8 @@ const STAMP = {
     }
   })(),
   manifest: `${M.id}@${M.version}`,
+  // The CLI provider's isolation (SFS_CLI_ISOLATE=1): results with and without it are not like for like.
+  isolation: isolated() ? 'on' : 'off',
   prompts: Object.fromEntries(
     (['faithful', 'exploratory'] as ScreenMode[]).map((m) => [m, { planner: hash(buildPlannerPrompt(M, { prompt: '', mode: m })), generator: hash(buildSystemPrompt('json', M, m)) }]),
   ),
