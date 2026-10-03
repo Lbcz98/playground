@@ -77,8 +77,9 @@ function foldMessages(messages: CompleteArgs['messages']): string {
   return `Conversation so far:\n${transcript}\n\nNow: ${last.content}`
 }
 
+/** Only without isolation, where the CLI still carries Claude Code's tools: isolated, it has none to use. */
 const GUARD =
-  'You are NOT a coding assistant here. Do not use any tools. Do not read or write files.'
+  'This is a design task, not a coding task: answer from this prompt alone, without tools and without reading or writing files.'
 
 /**
  * Isolation (default; escape hatch SFS_CLI_ISOLATE=0): the CLI otherwise loads the user's settings, hooks, plugins, skills and MCP definitions into every
@@ -123,7 +124,8 @@ async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
   const model = args.model || process.env.AI_CLI_MODEL?.trim() || undefined
   const effort = args.effort || process.env.AI_EFFORT?.trim() || undefined
 
-  const cliArgs = buildCliArgs(foldMessages(args.messages), `${GUARD}\n\n${args.system}`, model, effort)
+  const system = isolated() ? args.system : `${GUARD}\n\n${args.system}`
+  const cliArgs = buildCliArgs(foldMessages(args.messages), system, model, effort)
 
   let stdout: string
   try {
