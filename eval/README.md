@@ -47,3 +47,12 @@ through the `SFS_EVAL_FILE` dev hook.
   new component") are the requests that must produce one — 5 of 5 each on the current prompts, and v03 also 5 of 5 on
   the pre-C2 prompts (C2's Exploratory wording is harmless, but was not what made the difference).
 - **Router misses on p08 (and, as a family, on parts the catalog lacks):** the classifier sees no conflict. `routerKnownMiss`.
+- **The cache writes are the CLI's, not our prompts' (Oct 2).** A warm call writes ~19.4k tokens at every percentile,
+  whatever the request; a call with a *tiny* system prompt writes the same ~19.4k and reads ~19.3k. Our 29k-character
+  generator prompt (~10k tokens) is read from cache on the second call and adds no writes. The fixed overhead is the
+  `claude -p` session itself (the user's tools, skills, hooks, MCP definitions). Measured with a tiny prompt called
+  twice: default 19.4k written + 19.3k read, US$ 0.082; `--exclude-dynamic-system-prompt-sections` no change;
+  `--tools "" --disable-slash-commands --strict-mcp-config` 4.4k written, US$ 0.018. Request-specific text sits at 79%
+  (Faithful) / 66% (Exploratory) of the planner prompt and nowhere in the generator's, so reordering moves at most
+  ~1.8k / ~3.5k tokens, and only when a request names different components. Not applied: the flags are a provider change
+  and need a scoring check first.
