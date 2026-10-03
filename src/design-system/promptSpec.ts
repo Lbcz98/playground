@@ -152,15 +152,15 @@ export function getRegistrySpec(
 const px = (n: number): string => `${n}px`
 
 function kernelIntro(): string {
-  return `You are an expert UI Engineering Agent. Your primary directive is to generate valid Blueprint JSON (DSL) layouts that strictly adhere to our design system's physical constraints and component registry.
+  return `You are the screen generator: you turn a screen plan into a Blueprint JSON (DSL) layout built from the active design system's component registry and tokens.
 
-You must never violate the following global architectural laws:`
+A validator checks every blueprint against the global laws below and sends back any blueprint that breaks one, with its errors.`
 }
 
 function tokensLaw(): string {
   return `### 1. BLUEPRINT JSON FORMAT & TOKENS
-* **Output:** You must generate valid Blueprint JSON DSL. Do not output React components, JSX, or raw HTML.
-* **Tokens:** You are strictly forbidden from using raw pixel values (e.g., \`${px(FRAME.gutter)}\`) or HEX/RGB color codes for styling. All typography, colors, radii, spacing, and dimensions must be assigned using our global design tokens.`
+* **Output:** Blueprint JSON DSL — not React components, JSX or raw HTML.
+* **Tokens:** Typography, colors, radii, spacing and dimensions are all assigned with our global design tokens — never a raw pixel value (e.g., \`${px(FRAME.gutter)}\`) or a hex/RGB color code.`
 }
 
 function spatialLaw(): string {
@@ -168,7 +168,7 @@ function spatialLaw(): string {
   const examples = [1, 2, 3, 4, 5, 6, 8].map((n) => n * FRAME.grid).join(', ')
   return `### 2. THE SPATIAL PHYSICS & EXCEPTIONS
 The application operates on a strict mathematical ${FRAME.grid}-point grid.
-* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of ${FRAME.grid} (e.g., ${examples}).
+* Standard dimensions, margins, paddings, heights, and offsets are multiples of ${FRAME.grid} (e.g., ${examples}).
 * **Exceptions:** \`${px(halfStep)}\` (half-step) and \`${px(oneAndHalfStep)}\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
 * Never output fractional pixels or any other off-grid values outside of the allowed ${FRAME.grid}pt scale and the ${px(halfStep)}/${px(oneAndHalfStep)} exceptions.`
 }
@@ -196,8 +196,8 @@ When generating full screens or master containers, you must target the base HD c
 
 function registryLaw(mode: ScreenMode): string {
   return `### 4. COMPONENT REGISTRY STRICTNESS
-You must construct the UI using ONLY the provided Blueprint component definitions (which have been imported and mapped from our Storybook registry).
-* Never use a prop the schema doesn't define — rely exclusively on the Blueprint schema properties provided in your context.
+Build the UI from the Blueprint component definitions below (imported and mapped from our Storybook registry).
+* Use only the props a component's schema defines.
 
 Compose, don't assume. Treat the components as building blocks and combine them freely to match what the user asks, including unconventional arrangements. Composition happens inside the frame, token, layer and focus laws, which always win. Placement rules on a component (which parent it needs, its slot order) still apply. A reference screen is a starting point, and the request can override it. ${registryLackSentence(mode)}`
 }
@@ -209,7 +209,7 @@ Compose, don't assume. Treat the components as building blocks and combine them 
  */
 function tokenTierLaw(): string {
   return `### 5. TOKEN TIERS
-Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+Design tokens are tiered, and the tier decides whether you may name a token:
 * **Core:** ${TOKEN_TIER_RULE.core}
 * **Semantic:** ${TOKEN_TIER_RULE.semantic}
 * **Layout scale:** ${TOKEN_TIER_RULE.layout}
@@ -535,7 +535,7 @@ function designSystemBinding(
   return [
     `### 7. ACTIVE DESIGN SYSTEM — ${manifest.name} (v${manifest.version})`,
     `The laws above, mapped onto this system's registry and tokens.`,
-    `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container MUST be a <${container}>.`,
+    `* **Components:** only ${spec.map((c) => c.type).join(', ')}. The outermost container is a <${container}>.`,
     `* **Layout:** there is no absolute positioning. Every layout is nested containers (${containers.join(', ') || container}), each a flexbox row or column: "gap" spaces its children, "padding" is inner spacing${
       direction ? `, "${direction.prop}": "${direction.row}" makes a row` : ''
     }. Only containers hold children${leaves.length ? `; ${leaves.join(', ')} are leaves` : ''}.`,
@@ -756,7 +756,7 @@ ${request ? componentRulesSection(manifest, request.prompt) : ''}${request?.mode
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
-nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+nesting, and its text content; mark the anchored group.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.

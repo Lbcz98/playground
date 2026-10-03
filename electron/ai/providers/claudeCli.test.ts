@@ -127,7 +127,7 @@ describe('claudeCliProvider — cache tokens (before 9G)', () => {
       expect(on.args).toContain(f)
     expect(on.args[on.args.indexOf('--tools') + 1]).toBe('')
     expect(on.args[on.args.indexOf('--setting-sources') + 1]).toBe('')
-    expect(on.args[on.args.indexOf('--system-prompt') + 1]).toContain('s') // still a full replace, never --append
+    expect(on.args[on.args.indexOf('--system-prompt') + 1]).toBe('s') // still a full replace, never --append; no guard: no tools to guard
     expect(on.args).not.toContain('--append-system-prompt')
     expect(on.opts.cwd).toMatch(/sfs-cli-clean$/)
 
@@ -136,5 +136,6 @@ describe('claudeCliProvider — cache tokens (before 9G)', () => {
     for (const f of ['--tools', '--disable-slash-commands', '--strict-mcp-config', '--setting-sources', '--safe-mode', '--no-session-persistence'])
       expect(off.args).not.toContain(f)
     expect(off.opts.cwd).toBeUndefined()
+    expect(off.args[off.args.indexOf('--system-prompt') + 1]).toMatch(/^This is a design task, not a coding task: .*\n\ns$/)
   })
 })

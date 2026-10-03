@@ -13,7 +13,7 @@ function provider(...answers: string[]): AiProvider {
 }
 
 const answer = (conflicts: { ruleId: string; why?: string }[]) =>
-  JSON.stringify({ reasoning: 'r', mode: 'faithful', conflicts, faithfulAlternative: conflicts.length ? 'alt' : null })
+  JSON.stringify({ summary: 'r', mode: 'faithful', conflicts, faithfulAlternative: conflicts.length ? 'alt' : null })
 
 describe('routeAuto', () => {
   it('makes one low-effort call and lets the code decide', async () => {

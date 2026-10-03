@@ -24,7 +24,7 @@ exports[`render_ui tool (snapshot) > is unchanged for a request with no mode 1`]
               "type": "array",
             },
             "root": {
-              "description": "A component node: { type, props?, children?, anchor?, goTo? }. \`goTo\` is a screen id — the screen a click on this node opens. \`children\` is only valid on a Stack. \`anchor: true\` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.",
+              "description": "A component node: { type, props?, children?, anchor?, goTo? }. \`goTo\` is a screen id — the screen a click on this node opens. \`children\` is only valid on a component the system prompt lists as accepting children. \`anchor: true\` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.",
               "properties": {
                 "children": {
                   "items": {

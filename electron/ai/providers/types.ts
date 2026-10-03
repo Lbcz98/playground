@@ -1,4 +1,5 @@
 import type { ChatTurn, GenerateUsage, ScreenMode } from '@/shared/blueprint'
+import type { DesignSystemManifest } from '@/shared/design-system/manifest'
 
 export type ProviderId = 'api-key' | 'claude-cli'
 
@@ -10,6 +11,8 @@ export interface CompleteArgs {
   effort?: string
   /** The mode the screen is generated in. Only `renderUi` reads it, to describe the deviation field to the model. */
   mode?: ScreenMode
+  /** The active design system. Only `renderUi` reads it, to name the system's own components and root in the tool. */
+  manifest?: DesignSystemManifest
 }
 
 export interface CompleteResult {

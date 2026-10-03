@@ -14,7 +14,7 @@ const { handleGenerateUI } = await import('./handler')
 const VALID = { version: 1, screen: { model: 'home', level: 1 }, root: { type: 'Stack', props: { gap: 'sm' }, children: [] } }
 const PLAN = { text: '1. Root Stack', model: 'claude-opus-5' }
 const route = (conflicts: { ruleId: string; why?: string }[]) => ({
-  text: JSON.stringify({ reasoning: 'r', mode: 'faithful', conflicts, faithfulAlternative: conflicts.length ? 'alt' : null }),
+  text: JSON.stringify({ summary: 'r', mode: 'faithful', conflicts, faithfulAlternative: conflicts.length ? 'alt' : null }),
 })
 
 function fakeProvider(...complete: { text: string }[]): AiProvider {

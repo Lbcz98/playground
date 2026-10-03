@@ -261,7 +261,7 @@ describe('the prompts of the mode', () => {
   })
 
   it('Auto that routes to Exploratory starts the planner from the faithful alternative', async () => {
-    const route = { text: JSON.stringify({ reasoning: 'r', mode: 'exploratory', conflicts: [{ ruleId: 'layers.overlay-model' }], faithfulAlternative: 'A tela dentro dos padrões.' }) }
+    const route = { text: JSON.stringify({ summary: 'r', mode: 'exploratory', conflicts: [{ ruleId: 'layers.overlay-model' }], faithfulAlternative: 'A tela dentro dos padrões.' }) }
     const p = fake([declared()])
     vi.mocked(p.complete).mockReset()
     vi.mocked(p.complete).mockResolvedValueOnce(route).mockResolvedValue({ text: '1. Root Stack', model: 'm' } as never)

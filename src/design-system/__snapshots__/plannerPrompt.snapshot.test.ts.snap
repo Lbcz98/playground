@@ -20,7 +20,7 @@ Design system: Global CSS Tokens (v1.1.0)
 
 ### 2. THE SPATIAL PHYSICS & EXCEPTIONS
 The application operates on a strict mathematical 8-point grid.
-* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
+* Standard dimensions, margins, paddings, heights, and offsets are multiples of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
 * **Exceptions:** \`4px\` (half-step) and \`12px\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
 * Never output fractional pixels or any other off-grid values outside of the allowed 8pt scale and the 4px/12px exceptions.
 
@@ -35,7 +35,7 @@ When generating full screens or master containers, you must target the base HD c
   * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the 32px margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.
 
 ### 5. TOKEN TIERS
-Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+Design tokens are tiered, and the tier decides whether you may name a token:
 * **Core:** Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.
 * **Semantic:** Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.
 * **Layout scale:** The grid spacing steps and the radius steps. Assign them only to layout props — padding, gap, corner radius.
@@ -88,7 +88,7 @@ Accessibility rules:
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
-nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+nesting, and its text content; mark the anchored group.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.
@@ -125,7 +125,7 @@ Design system: ScreenFlow (v1.0.0)
   - <Stack> (container): The only layout primitive. A flexbox row or column with token-based gap and padding. Nest Stacks to build any layout — there is no absolute positioning.
   - <Text>: A single run of text. Pick a variant for size/weight; the element (h1–h3/p/span) follows.
   - <Button>: A call-to-action button. Text-only label, no children.
-  - <MainMenu>: The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it belongs in the anchored cluster. Lists: miscellaneousItems (up to 6 {title, subtitle?, iconSrc?} items)
+  - <MainMenu>: The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it is never anchored: it holds the focus in the content. Lists: miscellaneousItems (up to 6 {title, subtitle?, iconSrc?} items)
   - <InteractivityMenu> (container): A horizontal rail of interactivity cards. On the home screen it carries no heading and sits on the right; once the viewer enters it the whole row expands, the entered card taking the focus and the rest going selected.
   - <InteractivityButton>: One card in a rail. As an interactivity it is the way into a nível 3 screen and carries its title alone — no overline, no subtitle, no live badge. Overline, subtitle and the live badge belong to the schedule section, where a card stands for a programme. A sponsored card sets advertisingLabel (e.g. "Publicidade"), which adds the sponsor row under its text.
   - <LabelVideo>: The AO VIVO / REPLAY chip that says what the video behind the screen is.
@@ -144,7 +144,7 @@ Design system: ScreenFlow (v1.0.0)
 
 ### 2. THE SPATIAL PHYSICS & EXCEPTIONS
 The application operates on a strict mathematical 8-point grid.
-* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
+* Standard dimensions, margins, paddings, heights, and offsets are multiples of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
 * **Exceptions:** \`4px\` (half-step) and \`12px\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
 * Never output fractional pixels or any other off-grid values outside of the allowed 8pt scale and the 4px/12px exceptions.
 
@@ -159,7 +159,7 @@ When generating full screens or master containers, you must target the base HD c
   * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the 32px margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.
 
 ### 5. TOKEN TIERS
-Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+Design tokens are tiered, and the tier decides whether you may name a token:
 * **Core:** Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.
 * **Semantic:** Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.
 * **Layout scale:** The grid spacing steps and the radius steps. Assign them only to layout props — padding, gap, corner radius.
@@ -286,7 +286,7 @@ Choosing one does not end your job: still write the plan, saying what changes.
 
 First the template line, then the screen line — its layer model, its level, and why that model fits where
 the content sits. Then a numbered list. Each line: the component, its role, its
-nesting, and its text content; mark the anchored group. Keep it under ~15 lines.
+nesting, and its text content; mark the anchored group.
 When the request asks for several options, or for a clickable flow, plan every screen: a "Screens:" line
 listing each one (its id, a short name, its model and level — and for a flow, which element links to which
 screen), then the numbered list for each screen under its own "Screen <id>:" heading.
