@@ -399,7 +399,7 @@ export const Catalog = {
     label: 'Main Menu',
     category: 'layout',
     summary:
-      'The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it belongs in the anchored cluster.',
+      'The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it is never anchored: it holds the focus in the content.',
     acceptsChildren: false,
     schema: mainMenuSchema,
     defaultProps: mainMenuSchema.parse({}),

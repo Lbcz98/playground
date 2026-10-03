@@ -16,8 +16,8 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 
 describe('the Faithful prompts', () => {
   it('are pinned by hash (the same hashes the eval stamps)', () => {
-    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('2e0c1f852d')
-    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('b010c5cf46')
+    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('79d67b2712')
+    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('c3e61495bf')
   })
 
   it('never carry the Exploratory Proposal wording', () => {

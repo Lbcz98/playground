@@ -360,7 +360,7 @@ The laws above, mapped onto this system's registry and tokens.
       - fullWidth: boolean (default false)
       - disabled: boolean (default false)
 
-  <MainMenu> — The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it belongs in the anchored cluster.
+  <MainMenu> — The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it is never anchored: it holds the focus in the content.
     accepts children: no
     props:
       - focusedItem: one of [program, login, schedule, miscellaneous, channel-bug, none] (default "program")
@@ -619,7 +619,7 @@ The laws above, mapped onto this system's registry and tokens.
       - fullWidth: boolean (default false)
       - disabled: boolean (default false)
 
-  <MainMenu> — The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it belongs in the anchored cluster.
+  <MainMenu> — The home menu pinned along the bottom edge: login, schedule and miscellaneous on the left, the live program and the channel bug on the right. At rest the miscellaneous button can cycle through several items of its own (miscellaneousItems — the weather, a match, a premiere), one at a time, instead of showing one still line. One screen has at most one, and it is never anchored: it holds the focus in the content.
     accepts children: no
     props:
       - focusedItem: one of [program, login, schedule, miscellaneous, channel-bug, none] (default "program")
