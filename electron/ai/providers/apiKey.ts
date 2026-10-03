@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { RENDER_TOOL_NAME, type ScreenMode } from '@/shared/blueprint'
 import { CATALOG_TYPES } from '@/design-system/catalog'
+import { rootContainerId, type DesignSystemManifest } from '@/shared/design-system/manifest'
 import { DEFAULT_EFFORT, DEFAULT_MODEL_ID, estimateCostUsd } from '@/shared/models'
 import type { AiProvider, CompleteArgs, CompleteResult, RenderResult } from './types'
 import { unwrapBlueprint } from './types'
@@ -21,11 +22,12 @@ const ENV_EFFORT = process.env.AI_EFFORT?.trim()
 
 type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
-const renderTool: Anthropic.Tool = {
+/** The tool for a registry: its component ids and the container the root must be. */
+const buildRenderTool = (types: readonly string[], container: string): Anthropic.Tool => ({
   name: RENDER_TOOL_NAME,
   description:
     'Render a UI onto the ScreenFlow Studio canvas. Call this exactly once with the ' +
-    'complete Blueprint tree. The root node must be a Stack.',
+    `complete Blueprint tree. The root node must be a ${container}.`,
   input_schema: {
     type: 'object',
     properties: {
@@ -70,9 +72,9 @@ const renderTool: Anthropic.Tool = {
             type: 'object',
             description:
               'A component node: { type, props?, children?, anchor?, goTo? }. `goTo` is a screen id — the screen a click on this node opens. `children` is only valid on a component the system prompt lists as accepting children. ' +
-              '`anchor: true` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a Stack.',
+              `\`anchor: true\` marks the one element group, a direct child of the root, that the canvas pins to the side the TV focus is on. The root must be a ${container}.`,
             properties: {
-              type: { type: 'string', enum: [...CATALOG_TYPES] },
+              type: { type: 'string', enum: [...types] },
               props: { type: 'object' },
               children: { type: 'array', items: { type: 'object' } },
               goTo: { type: 'string' },
@@ -85,6 +87,16 @@ const renderTool: Anthropic.Tool = {
     },
     required: ['blueprint'],
   },
+})
+
+const renderTool = buildRenderTool(CATALOG_TYPES, 'Stack')
+
+/** The active design system's tool: an imported system names its own components and root container. */
+function toolFor(manifest: DesignSystemManifest | undefined): Anthropic.Tool {
+  if (!manifest) return renderTool
+  const types = Object.keys(manifest.components)
+  const container = rootContainerId(manifest) ?? 'Stack'
+  return container === 'Stack' && types.join() === CATALOG_TYPES.join() ? renderTool : buildRenderTool(types, container)
 }
 
 const DEVIATION_SHAPE = {
@@ -97,12 +109,13 @@ const DEVIATION_SHAPE = {
 } as const
 
 /**
- * The tool for a mode. Faithful is the tool above, unchanged; Exploratory adds the
+ * The tool for a mode and a design system. Faithful is the system's tool, unchanged; Exploratory adds the
  * `deviation` field to the node and to the `screen` object.
  */
-export function renderToolFor(mode: ScreenMode = 'faithful'): Anthropic.Tool {
-  if (mode !== 'exploratory') return renderTool
-  const tool = structuredClone(renderTool) as unknown as {
+export function renderToolFor(mode: ScreenMode = 'faithful', manifest?: DesignSystemManifest): Anthropic.Tool {
+  const base = toolFor(manifest)
+  if (mode !== 'exploratory') return base
+  const tool = structuredClone(base) as unknown as {
     input_schema: { properties: { blueprint: { properties: Record<string, any> } } }
   } & Anthropic.Tool
   const blueprint = tool.input_schema.properties.blueprint.properties
@@ -191,7 +204,7 @@ export const apiKeyProvider: AiProvider = {
       max_tokens: 16000,
       system: args.system,
       output_config: { effort },
-      tools: [renderToolFor(args.mode)],
+      tools: [renderToolFor(args.mode, args.manifest)],
       tool_choice: { type: 'tool', name: RENDER_TOOL_NAME },
       messages: toMessages(args.messages),
     })

@@ -48,6 +48,19 @@ describe('render_ui tool by mode', () => {
     expect(JSON.stringify(renderToolFor('faithful'))).toBe(before)
   })
 
+  it('an imported design system gets its own components and root container; the built-in one, the tool above', async () => {
+    const { renderToolFor } = await import('./apiKey')
+    const { W3C_MANIFEST } = await import('@/shared/fixtures/w3cManifest')
+    const { SCREENFLOW_MANIFEST } = await import('@/shared/design-system/screenflow-manifest')
+    expect(renderToolFor('faithful', SCREENFLOW_MANIFEST)).toBe(renderToolFor())
+    const tool = renderToolFor('faithful', W3C_MANIFEST) as any
+    const root = tool.input_schema.properties.blueprint.properties.root
+    expect(root.properties.type.enum).toEqual(Object.keys(W3C_MANIFEST.components))
+    expect(tool.description).toContain('The root node must be a Container.')
+    expect(root.description).toContain('The root must be a Container.')
+    expect(JSON.stringify(renderToolFor('exploratory', W3C_MANIFEST))).toContain('Container')
+  })
+
   it('renderUi sends the tool of the requested mode', async () => {
     createMock.mockReset()
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test'

@@ -301,7 +301,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
       let errors: string[]
       let reply = ''
       try {
-        const gen = await provider.renderUi({ system: genSystem, messages: genMessages, model: options.model, effort: options.effort, mode })
+        const gen = await provider.renderUi({ system: genSystem, messages: genMessages, model: options.model, effort: options.effort, mode, manifest })
         tally(acc, gen.usage, { step: 'generator', ...(a.branch ? { branch: a.branch } : {}), attempt })
         acc.model = gen.model ?? acc.model
         lastBlueprint = unwrapBlueprint(gen.blueprint)
