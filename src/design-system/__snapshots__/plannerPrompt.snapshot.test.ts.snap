@@ -20,7 +20,7 @@ Design system: Global CSS Tokens (v1.1.0)
 
 ### 2. THE SPATIAL PHYSICS & EXCEPTIONS
 The application operates on a strict mathematical 8-point grid.
-* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
+* Standard dimensions, margins, paddings, heights, and offsets are multiples of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
 * **Exceptions:** \`4px\` (half-step) and \`12px\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
 * Never output fractional pixels or any other off-grid values outside of the allowed 8pt scale and the 4px/12px exceptions.
 
@@ -35,7 +35,7 @@ When generating full screens or master containers, you must target the base HD c
   * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the 32px margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.
 
 ### 5. TOKEN TIERS
-Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+Design tokens are tiered, and the tier decides whether you may name a token:
 * **Core:** Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.
 * **Semantic:** Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.
 * **Layout scale:** The grid spacing steps and the radius steps. Assign them only to layout props — padding, gap, corner radius.
@@ -144,7 +144,7 @@ Design system: ScreenFlow (v1.0.0)
 
 ### 2. THE SPATIAL PHYSICS & EXCEPTIONS
 The application operates on a strict mathematical 8-point grid.
-* Standard dimensions, margins, paddings, heights, and offsets MUST evaluate to a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
+* Standard dimensions, margins, paddings, heights, and offsets are multiples of 8 (e.g., 8, 16, 24, 32, 40, 48, 64).
 * **Exceptions:** \`4px\` (half-step) and \`12px\` (1.5 step) are explicitly permitted for micro-spacing and tight component internals.
 * Never output fractional pixels or any other off-grid values outside of the allowed 8pt scale and the 4px/12px exceptions.
 
@@ -159,7 +159,7 @@ When generating full screens or master containers, you must target the base HD c
   * Optionally, mark ONE secondary floating cluster — quick actions or utility controls such as options, filters or help, never the screen's primary actions — with "anchor": true on a direct child of the outermost container. The engine lifts it out of the content flow into a bottom corner of the frame, and an anchored element never holds initial focus (except where the screen's level says focus starts on it — the third level's rounded button). If the focus is on the right — or nothing is focusable — the engine anchors it to the **Bottom-Right** (respecting the 32px margin); if the focus is on the left, it mirrors the alignment and anchors it to the **Left** margin, at the bottom.
 
 ### 5. TOKEN TIERS
-Design tokens are tiered, and the tier decides whether you may name a token. Follow this without exception:
+Design tokens are tiered, and the tier decides whether you may name a token:
 * **Core:** Raw values (a hex color, a pixel size). They exist only so other tokens can point at them. Never assign one — not even when its value is exactly what you want.
 * **Semantic:** Intent (primary text, elevated surface, default border, live status, focus glow), each an alias to a core value. Every color you assign is a semantic token chosen by the element’s role, never by its look: white text is the primary-text token.
 * **Layout scale:** The grid spacing steps and the radius steps. Assign them only to layout props — padding, gap, corner radius.

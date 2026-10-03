@@ -114,7 +114,7 @@ describe('global kernel', () => {
       expect(system.startsWith(buildGlobalKernel())).toBe(true)
     }
     const kernel = buildGlobalKernel()
-    expect(kernel.startsWith('You are an expert UI Engineering Agent.')).toBe(true)
+    expect(kernel.startsWith('You are the screen generator:')).toBe(true)
     for (const heading of [
       '### 1. BLUEPRINT JSON FORMAT & TOKENS',
       '### 2. THE SPATIAL PHYSICS & EXCEPTIONS',
@@ -125,8 +125,8 @@ describe('global kernel', () => {
     ]) {
       expect(kernel).toContain(heading)
     }
-    expect(kernel).toContain('raw pixel values (e.g., `16px`)')
-    expect(kernel).toContain('a multiple of 8 (e.g., 8, 16, 24, 32, 40, 48, 64)')
+    expect(kernel).toContain('a raw pixel value (e.g., `16px`)')
+    expect(kernel).toContain('multiples of 8 (e.g., 8, 16, 24, 32, 40, 48, 64)')
     expect(kernel).toContain('`4px` (half-step) and `12px` (1.5 step)')
     expect(kernel).toContain('the 4px/12px exceptions')
     expect(kernel).toContain('the engine will handle the upscale switch')
@@ -412,7 +412,7 @@ describe('law 4 — compose, don\'t assume', () => {
   it('keeps the property rule and frees composition under the other laws', () => {
     for (const mode of ['tool', 'json'] as const) {
       const system = buildSystemPrompt(mode)
-      expect(system).toContain("Never use a prop the schema doesn't define")
+      expect(system).toContain("Use only the props a component's schema defines.")
       expect(system).toContain("Compose, don't assume. Treat the components as building blocks")
       expect(system).toContain('frame, token, layer and focus laws, which always win')
       expect(system).toContain('Never invent a component.')
