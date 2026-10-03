@@ -110,6 +110,7 @@
     { "id": "c01-button-label", "group": "convention", "modes": ["faithful", "exploratory"],
       "prompt": "On the home screen, label the first card of the interactivity rail \"Click here\"",
       "expected": { "router": "faithful", "declare": [], "language": "en",
+        "languageKnownMiss": "An English request in Faithful still produces Portuguese notes (stage 1, C1, the request block and the removed Portuguese example: 0 of 3 each time), probably because the reference template JSON in the generator's input is Portuguese; untested. Known limitation: no more prompt text is edited for language.",
         "note": "Only a convention (copy.button-label): a note, never a declaration, and no link, so no level is skipped. Written in English: notes and any why must come back in English. Stage 1's wording (a button opening the statistics) skipped a level." } },
 
     { "id": "o01-centered", "from": "r05", "group": "both", "modes": ["both"],

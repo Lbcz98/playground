@@ -376,6 +376,14 @@ function summarize(spent: number): void {
       )
     }
   }
+  // Language: a miss is a regression unless the request carries a known-miss reason.
+  const languageMisses = scores.filter((x) => !x.languageOk)
+  if (languageMisses.length > 0) {
+    const known = languageMisses.filter((x) => byId.get(x.id)?.expected.languageKnownMiss)
+    const regressions = languageMisses.filter((x) => !byId.get(x.id)?.expected.languageKnownMiss)
+    console.log(`\nlanguage: ${regressions.length} regression(s), ${known.length} known miss(es)${regressions.length ? `: ${regressions.map((x) => `${x.id}.${x.mode}#${x.run}`).join(', ')}` : ''}`)
+    for (const id of [...new Set(known.map((x) => x.id))]) console.log(`  known miss ${id}: ${byId.get(id)!.expected.languageKnownMiss}`)
+  }
   const calls: CallUsage[] = records.flatMap((r) => r.meta.calls ?? [])
   const costs = summarizeCosts(calls)
   const byMode = Object.fromEntries(

@@ -32,3 +32,18 @@ cost that is the cached prefix (from `meta.calls`).
 
 Not yet here: the measured Render check (overflow, overlap) — `eval:render` will load each result into the canvas
 through the `SFS_EVAL_FILE` dev hook.
+
+## Known limitations (do not re-investigate blindly)
+
+- **An English request in Faithful still gets Portuguese notes (c01).** Tried, in order: one sentence at the end of the
+  planner and generator prompts (language of the request); showing the generator the original request verbatim, after
+  the plan (fixed p05 in Exploratório: 3 of 3 Portuguese, was 1 of 3); removing the one Portuguese example from the
+  Faithful notes instruction. c01 Faithful stayed Portuguese (0 of 3 each time); the plan itself came back in English.
+  Probable cause, untested: the reference template JSON in the generator's first message carries Portuguese card titles
+  and menu texts. Testing it means changing Faithful prompt text again, so it is parked: the golden file marks c01 with
+  `languageKnownMiss`, and the stage summary reports it under "language: … known miss", not as a regression.
+- **The model reads some missing parts as covered** (a carousel as the Home rail, a scoreboard as the match header).
+  That is legitimate, so v02 accepts a Proposal but does not require it; v03 (poll bars) and v04 (an explicit "propose a
+  new component") are the requests that must produce one — 5 of 5 each on the current prompts, and v03 also 5 of 5 on
+  the pre-C2 prompts (C2's Exploratory wording is harmless, but was not what made the difference).
+- **Router misses on p08 (and, as a family, on parts the catalog lacks):** the classifier sees no conflict. `routerKnownMiss`.

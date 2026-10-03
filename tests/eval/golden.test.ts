@@ -34,6 +34,7 @@ const Request = z
         notesMention: z.string().optional(),
         law: z.string().optional(),
         routerKnownMiss: z.string().optional(),
+        languageKnownMiss: z.string().optional(),
         language: z.enum(['en', 'pt']).optional(),
         both: z.enum(['differ', 'identical', 'faithful-only', 'any']).optional(),
         note: z.string().optional(),

@@ -20,6 +20,8 @@ export interface Expected {
   law?: string
   /** A router expectation the classifier is known to miss, and why: reported apart as a known miss, not a regression. */
   routerKnownMiss?: string
+  /** A language expectation the pipeline is known to miss, and why: reported apart as a known miss, not a regression. */
+  languageKnownMiss?: string
   language?: 'en' | 'pt'
   both?: BothOutcome | 'any'
 }
