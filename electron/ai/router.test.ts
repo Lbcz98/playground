@@ -4,7 +4,7 @@ import { readRequest } from '@/shared/design-system/request-signals'
 import { SCREENFLOW_MANIFEST as M } from '@/shared/design-system/screenflow-manifest'
 
 const reply = (conflicts: ClassifierReply['conflicts'], mode = 'faithful'): ClassifierReply => ({
-  reasoning: 'test',
+  summary: 'test',
   mode,
   conflicts,
   faithfulAlternative: 'A mesma tela dentro dos padrões.',

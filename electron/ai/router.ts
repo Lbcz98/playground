@@ -24,7 +24,7 @@ export interface ClassifierConflict {
 }
 
 export interface ClassifierReply {
-  reasoning: string
+  summary: string
   mode: string
   conflicts: ClassifierConflict[]
   faithfulAlternative?: string

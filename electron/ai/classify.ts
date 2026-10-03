@@ -1,7 +1,7 @@
 /**
- * The router's LLM layer (Auto mode only): one low-effort call that writes its
- * reasoning first and proposes the rules a request would break. It proposes;
- * `decide` (router.ts) decides.
+ * The router's LLM layer (Auto mode only): one low-effort call that proposes the
+ * rules a request would break, with a one-line summary. It proposes; `decide`
+ * (router.ts) decides.
  *
  * A reply that isn't the expected JSON is retried once. After that the request
  * is asked about when its own words already flagged a conflict, and otherwise
@@ -19,7 +19,7 @@ import { conflictQuestion, decide, flagged, type ClassifierReply, type RouteDeci
 import { ROUTER_FEWSHOT } from './router.fewshot'
 
 const replySchema = z.object({
-  reasoning: z.string(),
+  summary: z.string(),
   mode: z.string(),
   conflicts: z.array(z.object({ ruleId: z.string(), why: z.string().optional() })).max(24),
   faithfulAlternative: z.string().nullish(),
@@ -49,8 +49,8 @@ convention only gets a note.
 # Answer
 
 ONE JSON object and nothing else:
-{"reasoning": "…", "mode": "faithful" | "exploratory", "conflicts": [{"ruleId": "…", "why": "…"}], "faithfulAlternative": "…" | null}
-- Write "reasoning" first: what the request asks, and which rules it touches.
+{"summary": "…", "mode": "faithful" | "exploratory", "conflicts": [{"ruleId": "…", "why": "…"}], "faithfulAlternative": "…" | null}
+- "summary": one short sentence — what the request asks, and which rules it touches.
 - "conflicts": only the rules the request would break as asked, by their exact id from the book. Empty when it fits.
 - "why": one short line, in the language of the request.
 - "faithfulAlternative": when there is a conflict, the request rewritten to stay inside every rule, in the language of the request; otherwise null.
@@ -64,7 +64,7 @@ export interface AutoRoute {
   decision: RouteDecision
   usage?: GenerateUsage
   steps: string[]
-  /** The classifier's parsed answer (its reasoning and the conflicts it named), when it could be read — for the eval. */
+  /** The classifier's parsed answer (its summary and the conflicts it named), when it could be read — for the eval. */
   reply?: ClassifierReply
   /** The classifier's last raw answer, as it came back. */
   raw?: string

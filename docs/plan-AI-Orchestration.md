@@ -59,7 +59,7 @@ The router is step 0 of `ai-orchestrator.ts` and decides the mode before the pla
 
 1. **Explicit choice.** An Auto, Fidedigno or Exploratório selector in the AgentPanel. Outside Auto, the router only lists the rules in conflict.
 2. **Deterministic signals, at no cost.** Exploration words ("explore", "e se", "fora do padrão"); names that do not exist in the manifest; numbers above the limits ("quatro cards" on a level with `maxModules: 1`); a position with no overlay model.
-3. **LLM classifier with few-shot.** A low-effort call that writes the `reasoning` before deciding and returns `{ reasoning, mode, conflicts[], faithfulAlternative }`. There is no `confidence` and no numeric threshold.
+3. **LLM classifier with few-shot.** A low-effort call that returns `{ summary, mode, conflicts[], faithfulAlternative }`, the summary one sentence on what the request asks and which rules it touches. There is no `confidence` and no numeric threshold.
 
 **The mode comes from code.** The classifier only proposes `ruleId`s. The code checks that each one exists in the book, reads the level from there and compares it with the deterministic signals. Agreement decides the mode; disagreement, or a `ruleId` that does not exist, becomes a question to the user.
 
