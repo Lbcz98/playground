@@ -99,11 +99,11 @@ describe('scoreRun', () => {
 
   it('reads what an Os dois run delivered', () => {
     expect(bothOutcome({ steps: [], mode: 'both' })).toBe('differ')
-    expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.'] })).toBe('identical')
+    expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.'] })).toBe('collapsed')
     expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Os dois cabe até 3 telas por modo (máx. 6); este fluxo tem 4'] })).toBe('faithful-only')
     expect(bothOutcome({ steps: [], mode: 'faithful', notices: ['Exploratório falhou (x) — só a tela Fidedigna foi gerada.'] })).toBe('branch-failed')
-    const s = scoreRun(record({ mode: 'both', meta: { steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar'] }, declared: [] }), { declare: [], both: 'identical' }, 'both')
-    expect(s.both).toEqual({ outcome: 'identical', ok: true })
+    const s = scoreRun(record({ mode: 'both', meta: { steps: [], mode: 'faithful', notices: ['Exploratório não encontrou nada a quebrar'] }, declared: [] }), { declare: [], both: 'collapsed' }, 'both')
+    expect(s.both).toEqual({ outcome: 'collapsed', ok: true })
   })
 })
 

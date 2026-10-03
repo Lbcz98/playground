@@ -151,6 +151,39 @@ describe('"Os dois" — one plan, two branches', () => {
     expect(res.meta.notices).toContain('Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.')
   })
 
+  describe('collapses to the Faithful screen when Exploratório declares nothing, even if the tree differs', () => {
+    /** A valid tree that differs from home(): one text changed, nothing declared. */
+    const reshuffled = (): Doc => {
+      const doc = home()
+      const walk = (n: Doc): boolean => {
+        for (const key of ['title', 'text', 'label']) if (typeof n.props?.[key] === 'string') return ((n.props[key] += ' (outro)'), true)
+        return (n.children ?? []).some(walk)
+      }
+      expect(walk(doc.root)).toBe(true)
+      return doc
+    }
+    const NOTICE = 'Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.'
+
+    it('nothing declared, a different tree → only Fidedigno, with the notice', async () => {
+      const res = await run(fake({ exploratory: reshuffled() }))
+      if (!res.ok) throw new Error(res.error)
+      expect(screensOf(res.blueprint as Doc).map((s) => s.name)).toEqual(['Fidedigno'])
+      expect(res.meta.notices).toContain(NOTICE)
+      expect(res.meta.steps.some((s) => /declare no deviation/.test(s))).toBe(true)
+    })
+
+    it.each([
+      ['a declared deviation', () => explored()],
+      ['a screen-level deviation', () => ({ ...reshuffled(), screen: { ...home().screen, deviation: [{ ruleId: 'layers.overlay-model', why: 'x' }] } })],
+      ['a Proposal', () => { const d = reshuffled(); d.root.children.push({ type: 'Proposal', props: { name: 'Enquete', description: 'barras', considered: [] }, children: [] }); return d }],
+      ['a primitive', () => { const d = reshuffled(); d.root.children.push({ type: 'primitive:Box', props: {}, children: [] }); return d }],
+    ])('%s → both kept', async (_label, make) => {
+      const res = await run(fake({ exploratory: make() }))
+      if (!res.ok) throw new Error(res.error)
+      expect(res.meta.notices ?? []).not.toContain(NOTICE)
+    })
+  })
+
   it('a flow of more than 3 screens runs Faithful only and skips the Exploratory planner', async () => {
     const planF = `${PLAN_F}\nScreen a:\n1. x\nScreen b:\n1. x\nScreen c:\n1. x\nScreen d:\n1. x`
     const f = fake({ planF })
@@ -159,6 +192,24 @@ describe('"Os dois" — one plan, two branches', () => {
     expect(f.generatorCalls).toHaveLength(1)
     if (!res.ok) throw new Error(res.error)
     expect(screensOf(res.blueprint as Doc)[0]).toMatchObject({ id: 'faithful-1', name: 'Fidedigno' })
+    expect(res.meta.notices?.join(' ')).toMatch(/Os dois cabe até 3 telas por modo \(máx\. 6\); este fluxo tem 4/)
+  })
+
+  it('a plan that undercounts its screens (3 headings, 4 screens built) still stays within the limit: Faithful only', async () => {
+    const flow = (): Doc => {
+      const d = home()
+      d.id = 'home'
+      d.screens = ['a', 'b', 'c'].map((id) => ({ id, name: id, screen: { model: 'interactivity-buttons-right', level: 2 }, root: { type: 'Stack', props: {}, children: [] } }))
+      return d
+    }
+    const e = flow()
+    e.root.deviation = { ruleId: 'layout.no-static-center', why: 'centro' }
+    const planF = `${PLAN_F}\nScreen b:\n1. x\nScreen c:\n1. x\nScreen d:\n1. x` // 3 headings: the first screen has none
+    const res = await run(fake({ faithful: flow(), exploratory: e, planF }))
+    if (!res.ok) throw new Error(res.error)
+    const screens = screensOf(res.blueprint as Doc)
+    expect(screens).toHaveLength(4)
+    expect(screens.every((s) => s.mode !== 'exploratory')).toBe(true)
     expect(res.meta.notices?.join(' ')).toMatch(/Os dois cabe até 3 telas por modo \(máx\. 6\); este fluxo tem 4/)
   })
 

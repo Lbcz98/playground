@@ -8,7 +8,7 @@ import type { CallUsage } from '@/shared/blueprint'
 import { CACHE_READ_MULTIPLIER, CACHE_WRITE_MULTIPLIER, DEFAULT_MODEL_ID, priceOf } from '@/shared/models'
 
 export type RunMode = 'faithful' | 'exploratory' | 'both'
-export type BothOutcome = 'differ' | 'identical' | 'faithful-only' | 'branch-failed'
+export type BothOutcome = 'differ' | 'collapsed' | 'faithful-only' | 'branch-failed'
 
 export interface Expected {
   router?: 'faithful' | 'exploratory' | 'ask' | 'law'
@@ -113,7 +113,7 @@ export function isLimitError(message: string): boolean {
   return /usage limit|limit reached|rate.?limit|too many requests|\b429\b|overloaded|quota|credit balance/i.test(message)
 }
 
-export const BOTH_IDENTICAL_MARK = 'Exploratório não encontrou nada a quebrar'
+export const BOTH_COLLAPSED_MARK = 'Exploratório não encontrou nada a quebrar'
 export const BOTH_OVER_LIMIT_MARK = 'Os dois cabe até'
 export const BOTH_FAILED_MARK = 'falhou'
 
@@ -122,7 +122,7 @@ export function bothOutcome(meta: RunRecord['meta']): BothOutcome {
   const notices = meta.notices ?? []
   if (notices.some((n) => n.includes(BOTH_OVER_LIMIT_MARK))) return 'faithful-only'
   if (notices.some((n) => n.includes(BOTH_FAILED_MARK))) return 'branch-failed'
-  if (notices.some((n) => n.includes(BOTH_IDENTICAL_MARK))) return 'identical'
+  if (notices.some((n) => n.includes(BOTH_COLLAPSED_MARK))) return 'collapsed'
   return meta.mode === 'both' ? 'differ' : 'faithful-only'
 }
 

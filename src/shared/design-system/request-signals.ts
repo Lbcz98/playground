@@ -19,7 +19,7 @@ export interface RequestSignals {
   components: string[]
   /** UI parts the request names that the design system has no component for. */
   unknown: string[]
-  /** The words that ask to leave the patterns ("explore", "e se", "fora do padrão"). */
+  /** The words that ask to leave the patterns ("explore", "e se", "fora do padrão", "proponha um componente novo"). */
   exploration: string[]
 }
 
@@ -79,6 +79,13 @@ const EXPLORATION = [
   /\bquebr(e|ar|ando) o padrao\b/,
   /\bexperimental\b/,
   /\bwhat if\b/,
+  // An outright request for a new component ("proponha um componente novo", "propose a component"): there is nothing
+  // in the patterns to follow, so Auto asks. Prefer these over a generic "novo" so "novo card" does not trip it.
+  /\bnovos? componentes?\b/,
+  /\bcomponentes? novos?\b/,
+  /\bprop(o|oe|onha|onhas|onho|or|orem|ondo|osta|ostas)\b[^.!?]{0,30}\bcomponentes?\b/,
+  /\bnew components?\b/,
+  /\bpropos(e|ing|al)\b[^.!?]{0,30}\bcomponents?\b/,
 ]
 
 const stripAccents = (text: string): string => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()

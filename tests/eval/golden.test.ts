@@ -36,7 +36,7 @@ const Request = z
         routerKnownMiss: z.string().optional(),
         languageKnownMiss: z.string().optional(),
         language: z.enum(['en', 'pt']).optional(),
-        both: z.enum(['differ', 'identical', 'faithful-only', 'any']).optional(),
+        both: z.enum(['differ', 'collapsed', 'faithful-only', 'any']).optional(),
         note: z.string().optional(),
       })
       .strict(),
@@ -88,7 +88,7 @@ describe('the golden set', () => {
     expect(of('baseline').length).toBeGreaterThanOrEqual(5)
     expect(of('no-break').length).toBeGreaterThanOrEqual(2)
     expect(of('convention')).toMatchObject([{ expected: { language: 'en', declare: [] } }])
-    expect(of('both').map((r) => r.expected.both).sort()).toEqual(['any', 'differ', 'differ', 'faithful-only', 'identical'])
+    expect(of('both').map((r) => r.expected.both).sort()).toEqual(['any', 'collapsed', 'differ', 'differ', 'faithful-only'])
     for (const r of of('both')) expect(r.modes).toEqual(['both'])
   })
 
@@ -146,14 +146,21 @@ describe('law-break fixtures (the law traps, and the carousel): rejected in both
 
 describe('router signals (the model-free half of Auto)', () => {
   const read = (id: string) => readRequest(requests.find((r) => r.id === id)!.prompt, M)
-  it('only the exploration request carries an exploration word', () => {
-    for (const r of requests) expect(read(r.id).exploration.length > 0, r.id).toBe(r.id === 'n02-explore-notification')
+  it('only the exploration request and the explicit new-component request carry an exploration word', () => {
+    for (const r of requests)
+      expect(read(r.id).exploration.length > 0, r.id).toBe(r.id === 'n02-explore-notification' || r.id === 'v04-explicit-proposal')
   })
   it('only the carousel names a part the system has none of', () => {
     for (const r of requests) expect(read(r.id).unknown, r.id).toEqual(r.id === 'v02-carousel' ? ['carousel'] : [])
   })
-  it('the new missing-part requests (v03, v04) trip no router signal: the 9C answer is ask, from a named pattern', () => {
-    for (const id of ['v03-poll-bars', 'v04-explicit-proposal']) expect(read(id), id).toEqual({ components: [], unknown: [], exploration: [] })
+  it('v03 (a poll with bars) trips no router signal: no signal words, and Faithful is the safe direction (routerKnownMiss)', () => {
+    expect(read('v03-poll-bars')).toEqual({ components: [], unknown: [], exploration: [] })
+    expect(requests.find((r) => r.id === 'v03-poll-bars')!.expected.routerKnownMiss).toBeTruthy()
+  })
+  it('v04 asks for a new component outright: a signal alone, so Auto asks', () => {
+    const r = read('v04-explicit-proposal')
+    expect(r.components).toEqual([])
+    expect(r.exploration.length).toBeGreaterThan(0)
   })
   it('the English convention request names the rail it is about', () => {
     expect(read('c01-button-label').components).toEqual(['InteractivityMenu'])

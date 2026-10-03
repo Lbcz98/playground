@@ -17,4 +17,24 @@ describe('readRequest — real Portuguese requests, traps included', () => {
     // The Portuguese aliases belong to the built-in components, not to a same-named import.
     expect(readRequest('um botão', W3C_MANIFEST).components).toEqual([])
   })
+
+  describe('an explicit request for a new component is an exploration signal', () => {
+    const explores = (phrase: string) => readRequest(phrase, SCREENFLOW_MANIFEST).exploration.length > 0
+    it.each([
+      'Proponha um componente novo para escolher o idioma',
+      'Quero um novo componente de enquete na home',
+      'Preciso de um componente novo para a votação',
+      'Podemos propor um componente para mostrar o placar?',
+      'Proponha um componente de enquete',
+      'Propose a new component for choosing the audio language',
+      'Please propose a component that shows the score',
+      'I need a new component for polls',
+    ])('trips: %s', (phrase) => expect(explores(phrase)).toBe(true))
+    it.each([
+      'Um card novo de interatividade na home',
+      'Uma enquete ao vivo na home, com uma barra de porcentagem',
+      'Use o componente de notificação no canto',
+      'A new card on the home rail',
+    ])('does not trip: %s', (phrase) => expect(explores(phrase)).toBe(false))
+  })
 })

@@ -39,7 +39,7 @@ import { chooseTemplate, type TemplateChoice } from '@/shared/templates'
 import type { DesignSystemManifest, ManifestScreenTemplate } from '@/shared/design-system/manifest'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import { validateBlueprintAgainstManifest, type ValidationIssue } from '@/shared/design-system/manifest-zod'
-import { budgetProblems } from '@/shared/design-system/primitives'
+import { budgetProblems, isPrimitive, PROPOSAL_TYPE } from '@/shared/design-system/primitives'
 import { nodeDeclarationConflicts } from '@/shared/design-system/deviations'
 import { interpretPrototype } from '@/interpreter/interpret'
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
@@ -407,6 +407,9 @@ export const BOTH_MAX_SCREENS_PER_MODE = MAX_SCREENS / 2
 
 export const BOTH_IDENTICAL_NOTICE = 'Exploratório não encontrou nada a quebrar — só a tela Fidedigna foi mantida.'
 
+const overLimitNotice = (count: number): string =>
+  `Os dois cabe até ${BOTH_MAX_SCREENS_PER_MODE} telas por modo (máx. ${MAX_SCREENS}); este fluxo tem ${count} — gerado só em Fidedigno. Peça o Exploratório separadamente.`
+
 /** How many screens a plan lays out: its "Screen <id>:" headings, or one. */
 export function plannedScreens(planText: string): number {
   return Math.max(1, (planText.match(/^[ \t]*screen[ \t]+[A-Za-z0-9_-]+[ \t]*:/gim) ?? []).length)
@@ -441,9 +444,7 @@ async function runBoth(
     runBranch({ ...base, mode: 'faithful', branch: 'F', plannerMessages: request, firstPlan: planner.text, template })
 
   if (count > BOTH_MAX_SCREENS_PER_MODE) {
-    notices.push(
-      `Os dois cabe até ${BOTH_MAX_SCREENS_PER_MODE} telas por modo (máx. ${MAX_SCREENS}); este fluxo tem ${count} — gerado só em Fidedigno. Peça o Exploratório separadamente.`,
-    )
+    notices.push(overLimitNotice(count))
     return { blueprint: mergeBranches((await faithful()).blueprint, null), mode: 'faithful', branches: 1 }
   }
 
@@ -467,13 +468,43 @@ async function runBoth(
     notices.push(`Fidedigno falhou (${failed(f)}) — só a tela Exploratória foi gerada.`)
     return { blueprint: mergeBranches(null, e.value.blueprint), mode: 'exploratory', branches: 1 }
   }
-  if (sameScreens(f.value.blueprint, e.value.blueprint, manifest)) {
+  // The plan's headings can undercount (a planner that writes the first screen without a "Screen <id>:" heading): count
+  // what the branches actually produced, since the merged document may not exceed MAX_SCREENS.
+  const produced = Math.max(screensOf(f.value.blueprint).length, screensOf(e.value.blueprint).length)
+  if (produced > BOTH_MAX_SCREENS_PER_MODE) {
+    notices.push(overLimitNotice(produced))
+    steps.push(`step 4 · Os dois: the branches produced ${produced} screens, over the limit — only the Faithful screens were kept`)
+    return { blueprint: mergeBranches(f.value.blueprint, null), mode: 'faithful', branches: 2 }
+  }
+  const identical = sameScreens(f.value.blueprint, e.value.blueprint, manifest)
+  if (identical || declaresNothing(e.value.blueprint)) {
     notices.push(BOTH_IDENTICAL_NOTICE)
-    steps.push('step 4 · Os dois: the Exploratory screens are structurally identical to the Faithful ones — dropped')
+    steps.push(
+      identical
+        ? 'step 4 · Os dois: the Exploratory screens are structurally identical to the Faithful ones — dropped'
+        : 'step 4 · Os dois: the Exploratory screens declare no deviation, Proposal or primitive — dropped',
+    )
     return { blueprint: mergeBranches(f.value.blueprint, null), mode: 'faithful', branches: 2 }
   }
   steps.push('step 4 · Os dois: merged the Faithful and the Exploratory screens')
   return { blueprint: mergeBranches(f.value.blueprint, e.value.blueprint), mode: 'both', branches: 2 }
+}
+
+/**
+ * Whether an Exploratory document declares nothing: no deviation on a node or a screen, no composed-overlay `shades`,
+ * no Proposal and no primitive. Such a screen only reshuffles what the patterns allow, so it adds nothing to "Os dois".
+ */
+function declaresNothing(doc: unknown): boolean {
+  const walk = (node: unknown): boolean => {
+    if (!isRecord(node)) return true
+    if (node.deviation || node.type === PROPOSAL_TYPE || isPrimitive(node.type)) return false
+    return (Array.isArray(node.children) ? node.children : []).every(walk)
+  }
+  return screensOf(doc).every((s) => {
+    const spec = isRecord(s.screen) ? s.screen : {}
+    const declared = Array.isArray(spec.deviation) && spec.deviation.length > 0
+    return !declared && spec.shades === undefined && walk(s.root)
+  })
 }
 
 /** The interpreted screens of a document with every node id set aside — what the canvas would show. */

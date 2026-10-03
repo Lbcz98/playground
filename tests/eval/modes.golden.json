@@ -93,6 +93,7 @@
     { "id": "v03-poll-bars", "group": "variant", "modes": ["faithful", "exploratory"], "reference": "registry.new-component",
       "prompt": "Uma enquete ao vivo na home, com uma barra de porcentagem para cada opção de resposta",
       "expected": { "router": "ask", "declare": [{ "ruleId": "registry.new-component", "scope": "node" }],
+        "routerKnownMiss": "no signal words (the missing-part list has no poll) and the classifier names no conflict (Oct 3: routed to faithful); Faithful is the safe direction. Not changed: a router-prompt matter.",
         "note": "A part with no near equivalent (Oct 2): the catalog has no bar, progress or poll component (grep of catalog.ts and the UI kit), and a Box primitive has no width prop, so even primitives cannot draw a proportional bar. The percent text alone could be approximated with a TableCell scout row, but the bars cannot. No router signal (the missing-part list has no poll), so the 9C answer is ask; the classifier may see no conflict, as with p12." } },
 
     { "id": "v04-explicit-proposal", "group": "variant", "modes": ["faithful", "exploratory"], "reference": "registry.new-component",
@@ -121,7 +122,7 @@
       "expected": { "declare": [{ "ruleId": "layout.slots", "scope": "node" }], "both": "differ" } },
     { "id": "o03-identical", "from": "r01", "group": "both", "modes": ["both"],
       "prompt": "Home com o trilho de interatividades e uma notificação de gol",
-      "expected": { "declare": [], "both": "identical" } },
+      "expected": { "declare": [], "both": "collapsed", "note": "collapsed = Exploratório identical to Fidedigno, or it declared nothing (no deviation, shades, Proposal or primitive): only Fidedigno is kept. The id keeps the old name so stored results still match." } },
     { "id": "o04-two-screens", "group": "both", "modes": ["both"],
       "prompt": "Protótipo de duas telas: a home e, ao entrar no primeiro card do trilho, a tela de estatísticas",
       "expected": { "declare": [], "both": "any",

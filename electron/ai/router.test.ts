@@ -40,6 +40,10 @@ describe('decide — the mode comes from code', () => {
     expect(decide(exploring, reply([]), M).kind).toBe('ask')
   })
 
+  it('an explicit request for a new component, with no conflict named → ask (v04)', () => {
+    const d = decide(readRequest('Proponha um componente novo para escolher o idioma do áudio', M), reply([]), M)
+    expect(d.kind).toBe('ask')
+  })
   it('a rule the book doesn’t have → ask, even when the signals agree', () => {
     expect(decide(exploring, reply([{ ruleId: 'layout.invented' }, { ruleId: 'layers.overlay-model' }]), M).kind).toBe('ask')
   })

@@ -56,8 +56,8 @@ through the `SFS_EVAL_FILE` dev hook.
   API key, so it cannot use the subscription. `--exclude-dynamic-system-prompt-sections` changed nothing (and does not
   apply with `--system-prompt`). Our `--system-prompt` is a **full replacement** (not `--append-system-prompt`).
   `claudeCli.ts` now passes `--tools "" --disable-slash-commands --strict-mcp-config --setting-sources "" --safe-mode
-  --no-session-persistence` and runs in an empty temp directory (`$TMPDIR/sfs-cli-clean`); It is **opt-in** (`SFS_CLI_ISOLATE=1`, off by
-  default) until the scoring check below passes cleanly. The API provider is unchanged.
+  --no-session-persistence` and runs in an empty temp directory (`$TMPDIR/sfs-cli-clean`); It is the **default** (Oct 3); `SFS_CLI_ISOLATE=0` turns
+  it off. The API provider is unchanged.
 - **Cost per call, isolated (measured; `eval/cli-cost.ts`, prices fitted from 25 calls: write US$ 4, read US$ 0.2,
   output US$ 10 per MTok).** Warm planner: ~0.6k written, ~10.1k read, ~1.2k out, **US$ 0.016**. Warm generator: ~2.2k
   written (the plan and request, new every call), ~11.7k read, ~1.0k out, **US$ 0.021**. A cold call (the first of a mode,
@@ -80,3 +80,31 @@ through the `SFS_EVAL_FILE` dev hook.
   (as in all 10 earlier runs). The language of the p05 and c01 notes is Portuguese, as in most earlier runs (c01 notes
   in English appeared in some earlier runs, in neither isolated run). Verdict: not on by default. Run the full set with
   `SFS_CLI_ISOLATE=1` only when the p05 difference is judged to be noise.
+- **What the non-isolated CLI carried (probe, Oct 3, US$ 0.19, run from the repo directory exactly as the app and the eval
+  do, asked to list what it could see; the counts are the model's own rough estimates, only the CLAUDE.md size was exact).**
+  The repo's `CLAUDE.md` (82 bytes: "Active plan: docs/plan-AI-Orchestration.md…"); two SessionStart hook outputs of the
+  developer (the ponytail mode, ~4k characters, and the context-mode instructions, ~3.8k); ~61 skills and slash commands
+  (~20k characters of descriptions); ~89 deferred tool names (19 built-in, 70 MCP: Figma, Claude Docs, Google Drive,
+  context-mode) plus 11 loaded tools; MCP server instructions (Claude Docs, Figma); the environment block (cwd, platform,
+  date, a scratchpad path, the model name), the commit/PR attribution reminder, the user's email, 8 agent types and a token
+  budget. No memory index was seen. The call wrote **38.9k tokens** (against ~19.4k measured earlier from a plain shell):
+  the child `claude` inherits the `CLAUDE_CODE_*` environment of the Claude desktop session that launched it (SDK version,
+  entrypoint, desktop app, MCP/terminal switches), so runs started from inside a Code tab carry even more than a developer's
+  own setup. The stage 1 / D runs without isolation are therefore *this developer's* context, not a neutral baseline: the
+  eval of record is the isolated one.
+- **Router: an explicit request for a new component is a signal (Oct 3).** v04 ("Proponha um componente novo…") routed to
+  faithful with no conflict named. `request-signals.ts` now reads "novo componente", "componente novo", "proponha/propor …
+  componente", "new component", "propose a component" (and the obvious variants) as an exploration signal, so a signal with
+  no named conflict asks, like n02. No other golden request trips it (checked in `golden.test.ts`). v03 (a poll with bars) has
+  no signal words and the classifier names no conflict: `routerKnownMiss`, Faithful is the safe direction. n02 got "exploratory"
+  where "ask" was expected in D, but was right in earlier samples: flaky, not marked.
+- **Os dois collapses when Exploratório declares nothing (Oct 3).** The Exploratório branch is dropped, with the existing
+  notice, when its tree is identical to Fidedigno's *or* it contains no deviation (node or screen), no composed-overlay
+  `shades`, no Proposal and no primitive. The scorer's outcome `identical` is now `collapsed` (o03's expectation).
+- **o05 in D (four-screen flow) — root cause (Oct 3), from `eval/results/9h/o05-four-screens.both.1.json`.** The planner wrote
+  a plan whose "Screen <id>:" headings counted 3 (the first screen of a four-screen flow had no heading), so the >3 check
+  (`plannedScreens`, counted from the plan text) did not fire; both branches then built 4 screens each, each valid on its first
+  attempt (no retry, nothing truncated: 3.2–3.4k output tokens), and the merge produced 8 screens, over MAX_SCREENS (6):
+  `blueprint.dsl` "at most 6 screens (got 8)" plus dangling `goTo`s in the cut-off screens. In stage 1 the plan had 4 headings.
+  A bug in the check, not generator variance: `runBoth` now also counts the screens the branches produced and keeps only
+  Fidedigno when either exceeds 3 (test: 3 headings, 4 screens built).
