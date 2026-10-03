@@ -81,12 +81,12 @@ const GUARD =
   'You are NOT a coding assistant here. Do not use any tools. Do not read or write files.'
 
 /**
- * Isolation (opt-in: SFS_CLI_ISOLATE=1, off until the scoring check passes cleanly): the CLI otherwise loads the user's settings, hooks, plugins, skills and MCP definitions into every
+ * Isolation (default; escape hatch SFS_CLI_ISOLATE=0): the CLI otherwise loads the user's settings, hooks, plugins, skills and MCP definitions into every
  * call (~4k tokens written per call, and their hook text leaks into the model's context). `--setting-sources ""` skips
  * user/project/local settings (and with them hooks and plugins), `--safe-mode` also drops CLAUDE.md and memory;
- * `--system-prompt` stays a full replacement. Default flips to on once p05 holds.
+ * `--system-prompt` stays a full replacement.
  */
-export const isolated = (): boolean => process.env.SFS_CLI_ISOLATE?.trim() === '1'
+export const isolated = (): boolean => process.env.SFS_CLI_ISOLATE?.trim() !== '0'
 
 const ISOLATION_FLAGS = [
   '--tools', '',

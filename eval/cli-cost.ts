@@ -1,8 +1,8 @@
 /**
  * Cost of one `claude -p` call, cold then warm: a tiny prompt, the planner prompt and the generator prompt, twice each.
- *   npx vite-node --config vitest.config.ts eval/cli-cost.ts            # default (not isolated)
- *   SFS_CLI_ISOLATE=1 npx vite-node --config vitest.config.ts eval/cli-cost.ts
- * About US$ 0.3 isolated (SFS_CLI_ISOLATE=1), ~US$ 0.8 not. Prints written / read / uncached input / output tokens and cost per call.
+ *   npx vite-node --config vitest.config.ts eval/cli-cost.ts            # isolated (the default)
+ *   SFS_CLI_ISOLATE=0 npx vite-node --config vitest.config.ts eval/cli-cost.ts
+ * About US$ 0.3 isolated, ~US$ 0.8 not (SFS_CLI_ISOLATE=0). Prints written / read / uncached input / output tokens and cost per call.
  */
 import { claudeCliProvider } from '../electron/ai/providers/claudeCli'
 import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
