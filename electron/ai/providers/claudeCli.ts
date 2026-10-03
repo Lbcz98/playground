@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { AiProvider, CompleteArgs, CompleteResult, RenderResult } from './types'
@@ -80,6 +80,38 @@ function foldMessages(messages: CompleteArgs['messages']): string {
 const GUARD =
   'You are NOT a coding assistant here. Do not use any tools. Do not read or write files.'
 
+/**
+ * Isolation (opt-in: SFS_CLI_ISOLATE=1, off until the scoring check passes cleanly): the CLI otherwise loads the user's settings, hooks, plugins, skills and MCP definitions into every
+ * call (~4k tokens written per call, and their hook text leaks into the model's context). `--setting-sources ""` skips
+ * user/project/local settings (and with them hooks and plugins), `--safe-mode` also drops CLAUDE.md and memory;
+ * `--system-prompt` stays a full replacement. Default flips to on once p05 holds.
+ */
+export const isolated = (): boolean => process.env.SFS_CLI_ISOLATE?.trim() === '1'
+
+const ISOLATION_FLAGS = [
+  '--tools', '',
+  '--disable-slash-commands',
+  '--strict-mcp-config',
+  '--setting-sources', '',
+  '--safe-mode',
+  '--no-session-persistence',
+]
+
+/** An empty directory, so no CLAUDE.md or project settings in a real cwd can leak in. */
+function cleanCwd(): string {
+  const dir = path.join(os.tmpdir(), 'sfs-cli-clean')
+  mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+function buildCliArgs(prompt: string, system: string, model?: string, effort?: string): string[] {
+  const cliArgs = ['-p', prompt, '--output-format', 'json', '--system-prompt', system]
+  if (model) cliArgs.push('--model', model)
+  if (effort) cliArgs.push('--effort', effort)
+  if (isolated()) cliArgs.push(...ISOLATION_FLAGS)
+  return cliArgs
+}
+
 async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
   const bin = await resolveBinary()
   if (!bin) {
@@ -91,22 +123,14 @@ async function runClaude(args: CompleteArgs): Promise<CompleteResult> {
   const model = args.model || process.env.AI_CLI_MODEL?.trim() || undefined
   const effort = args.effort || process.env.AI_EFFORT?.trim() || undefined
 
-  const cliArgs = [
-    '-p',
-    foldMessages(args.messages),
-    '--output-format',
-    'json',
-    '--system-prompt',
-    `${GUARD}\n\n${args.system}`,
-  ]
-  if (model) cliArgs.push('--model', model)
-  if (effort) cliArgs.push('--effort', effort)
+  const cliArgs = buildCliArgs(foldMessages(args.messages), `${GUARD}\n\n${args.system}`, model, effort)
 
   let stdout: string
   try {
     ;({ stdout } = await execFileAsync(bin, cliArgs, {
       timeout: RUN_TIMEOUT_MS,
       maxBuffer: 10 * 1024 * 1024,
+      ...(isolated() ? { cwd: cleanCwd() } : {}),
     }))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

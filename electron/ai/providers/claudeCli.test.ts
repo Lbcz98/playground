@@ -25,6 +25,7 @@ describe('claudeCliProvider', () => {
     __resetBinaryCache()
     delete process.env.CLAUDE_CLI_PATH
     delete process.env.AI_CLI_MODEL
+    delete process.env.SFS_CLI_ISOLATE
   })
 
   it('is available when `claude --version` succeeds', async () => {
@@ -111,5 +112,29 @@ describe('claudeCliProvider — cache tokens (before 9G)', () => {
       )
     const res = await claudeCliProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }] })
     expect(res.usage).toMatchObject({ inputTokens: 4, outputTokens: 900, cacheReadTokens: 12000, cacheWriteTokens: 21000 })
+  })
+
+  it('isolates the CLI only with SFS_CLI_ISOLATE=1', async () => {
+    const run = async () => {
+      execFileImpl.mockReset()
+      __resetBinaryCache()
+      execFileImpl.mockResolvedValueOnce({ stdout: '1.2.3' }).mockResolvedValueOnce(envelope('ok'))
+      await claudeCliProvider.complete({ system: 's', messages: [{ role: 'user', content: 'x' }] })
+      return { args: execFileImpl.mock.calls[1][1] as string[], opts: execFileImpl.mock.calls[1][2] as { cwd?: string } }
+    }
+    const off = await run()
+    for (const f of ['--tools', '--disable-slash-commands', '--strict-mcp-config', '--setting-sources', '--safe-mode', '--no-session-persistence'])
+      expect(off.args).not.toContain(f)
+    expect(off.opts.cwd).toBeUndefined()
+
+    process.env.SFS_CLI_ISOLATE = '1'
+    const on = await run()
+    for (const f of ['--disable-slash-commands', '--strict-mcp-config', '--safe-mode', '--no-session-persistence'])
+      expect(on.args).toContain(f)
+    expect(on.args[on.args.indexOf('--tools') + 1]).toBe('')
+    expect(on.args[on.args.indexOf('--setting-sources') + 1]).toBe('')
+    expect(on.args[on.args.indexOf('--system-prompt') + 1]).toContain('s') // still a full replace, never --append
+    expect(on.args).not.toContain('--append-system-prompt')
+    expect(on.opts.cwd).toMatch(/sfs-cli-clean$/)
   })
 })
