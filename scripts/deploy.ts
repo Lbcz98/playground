@@ -31,7 +31,7 @@ export function changedPaths(porcelainZ: string): string[] {
 
 export interface Classified {
   designers: string[]
-  /** `web/protos/<designer>/…` files that are screens (`.tsx`). */
+  /** `web/protos/<designer>/…` files that are screens (`.tsx`) or a flow's transitions (`flow.ts`). */
   screens: string[]
   /** Anything under `web/protos/` at all. */
   inside: string[]
@@ -50,7 +50,13 @@ export function classify(paths: string[]): Classified {
       designers.add(m[1])
     } else outside.push(p)
   }
-  return { designers: [...designers].sort(), screens: inside.filter((p) => p.endsWith('.tsx')), inside, outside }
+  return { designers: [...designers].sort(), screens: inside.filter((p) => p.endsWith('.tsx') || p.endsWith('/flow.ts')), inside, outside }
+}
+
+/** The name a screen goes by: its file, or for a flow's `flow.ts` the folder. */
+const screenName = (p: string): string => {
+  const parts = p.split('/')
+  return parts[parts.length - 1] === 'flow.ts' ? parts[parts.length - 2] : parts[parts.length - 1].replace(/\.tsx$/, '')
 }
 
 export function slugify(text: string): string {
@@ -142,7 +148,7 @@ export function deploy(options: Options): Outcome {
   if (!current.startsWith(`proto/${designer}/`)) {
     const fetched = git('fetch', 'origin', base)
     if (!fetched.ok) return fail('branch', `Não consegui buscar origin/${base}: ${fetched.err}`)
-    const slug = slugify(options.message ?? found.screens.map((p) => p.split('/').pop()!.replace(/\.tsx$/, '')).join('-'))
+    const slug = slugify(options.message ?? found.screens.map(screenName).join('-'))
     branch = branchName(designer, slug, now)
     const made = git('switch', '-c', branch, `origin/${base}`)
     if (!made.ok) return fail('branch', `Não consegui criar a branch ${branch} a partir de origin/${base}: ${made.err}`)
