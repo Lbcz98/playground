@@ -45,7 +45,7 @@ function deviationsIn(text: string): RuleDeviation[] {
 }
 
 /** A literal expression's value, or `undefined` when it is anything else. `null` is a value. */
-function literal(node: ts.Expression): { value: unknown } | undefined {
+export function literal(node: ts.Expression): { value: unknown } | undefined {
   if (ts.isParenthesizedExpression(node)) return literal(node.expression)
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return { value: node.text }
   if (ts.isNumericLiteral(node)) return { value: Number(node.text) }

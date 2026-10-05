@@ -38,9 +38,9 @@ jobs:
       - run: npm ci --prefix web
       - run: npx playwright install --with-deps chromium
 
-      - name: Laws, on every screen the pull request touches
+      - name: Laws, on every screen and flow the pull request touches
         run: |
-          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx')
+          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
           if [ -n "$screens" ]; then npm run check:laws -- $screens; fi
 
       - name: Build

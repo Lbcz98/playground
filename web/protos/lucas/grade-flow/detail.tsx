@@ -1,0 +1,36 @@
+import type { ReactNode } from 'react'
+import { Stack } from '@/primitives'
+import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } from '@/ui-kit/ContentCard'
+import { RoundedButton } from '@/ui-kit/RoundedButton'
+import { Screen } from '@/ui-kit/Screen'
+import { TableCell } from '@/ui-kit/TableCell'
+
+/**
+ * Detail — one interactivity opened from the rail; Voltar holds the focus. Layer model `interactivity-cards-left`, level 3.
+ */
+export function Detail(): ReactNode {
+  return (
+    <Screen
+      model="interactivity-cards-left"
+      level={3}
+      focusSide="left"
+      anchored={<RoundedButton label="Voltar" interactionState="focus" />}
+    >
+      <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
+        <Stack direction="row" justify="start" align="end" gap="sm">
+          <ContentCard interactionState="default" height={272}>
+            <ContentCardHeader title="Estatísticas" subtitle="1º tempo" />
+            <ContentCardBody>
+              <TableCell type="scout" label="Posse de bola" values={['62%', '38%']} divider />
+              <TableCell type="team" name="EQU" position="1" stats={['11', '5', '2']} />
+              <TableCell type="team" name="ARG" position="2" stats={['7', '3', '1']} />
+            </ContentCardBody>
+            <ContentCardFooter caption="Atualizado há 1 min" />
+          </ContentCard>
+        </Stack>
+      </Stack>
+    </Screen>
+  )
+}
+
+export default Detail
