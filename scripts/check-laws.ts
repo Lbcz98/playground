@@ -220,7 +220,7 @@ function main(): void {
     console.error('usage: npm run check:laws -- <file.tsx> [...] [--json]')
     process.exit(2)
   }
-  const reports = files.map(checkLaws)
+  const reports = files.map((f) => checkLaws(f))
   if (json) console.log(JSON.stringify(reports, null, 1))
   else {
     for (const r of reports) {
