@@ -10,21 +10,33 @@
  *   component.api                          no host elements (<div>), imports only the kit
  *   layers.stack                           each screen is one <Screen> naming a layer model
  *   focus.single                           exactly one focused component per screen
+ *   everything else in the book            the screen read back as a blueprint (src/shared/export/fromTsx.ts)
+ *                                          and held to the validator in Exploratory, with the DTV manifest:
+ *                                          patterns broken undeclared, deviations declared for nothing, flow
+ *                                          and layout rules
  *
- * Patterns are not judged here. A broken pattern is a composition choice, so the file
- * declares it (`@deviation <ruleId>: <why>`); this script lists what was declared.
+ * A pattern broken without a `@deviation <ruleId>: <why>` is reported, and so is a deviation
+ * declared for a rule nothing breaks. What the JSX has that a blueprint cannot carry (a computed
+ * prop, a `.map`, text) is listed as "not read": there the check is blind.
  * Exit code 1 when a law is broken.
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
+import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
+import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
+import { parseTsx } from '../src/shared/export/fromTsx'
+import { loadDtvManifest } from './dtv-manifest'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
 export interface LawProblem {
+  /** The rule id the message is about (a law, or a pattern broken without being declared). */
   law: string
+  /** 'static' = read off the source here; 'validator' = the blueprint validator, run on the screen read back from the JSX. */
+  source?: 'static' | 'validator'
   message: string
   line?: number
 }
@@ -32,6 +44,8 @@ export interface LawReport {
   file: string
   problems: LawProblem[]
   deviations: { ruleId: string; why: string }[]
+  /** What the JSX has that the blueprint cannot carry: a computed prop, a `.map`, text — where the validator is blind. */
+  warnings: string[]
 }
 
 /** Components that hold the focus, and whether leaving `interactionState` out means focused. */
@@ -71,7 +85,7 @@ function literalProp(el: ts.JsxOpeningLikeElement, name: string): string | undef
   return undefined
 }
 
-export function checkLaws(file: string): LawReport {
+export function checkLaws(file: string, options: { skipValidator?: boolean } = {}): LawReport {
   const path = resolve(file)
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
@@ -175,10 +189,28 @@ export function checkLaws(file: string): LawReport {
     }
   }
 
+  // ── the rules book itself: the screen read back as a blueprint, held to the validator in Exploratory ──────
+  const warnings: string[] = []
+  if (!options.skipValidator) {
+    const manifest = loadDtvManifest()
+    for (const parsed of parseTsx(text, path)) {
+      warnings.push(...parsed.warnings.map((w) => `${parsed.component}: ${w}`))
+      const result = validateBlueprintAgainstManifest(parsed.doc, manifest, 'exploratory')
+      if (result.ok) continue
+      for (const issue of result.issues) {
+        // The static pass already says these in terms of the source.
+        if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
+        const flexibility = ruleById(manifest, issue.ruleId)?.flexibility ?? 'law'
+        const tail = issue.kind === 'unused-deviation' ? ' (declared for nothing)' : flexibility === 'pattern' ? ' (a pattern: fix it, or declare it with @deviation)' : ''
+        problems.push({ law: issue.ruleId, source: 'validator', message: `${issue.message}${tail}` })
+      }
+    }
+  }
+
   // ── declared deviations (patterns), as the exporter writes them ─────────────
   const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
 
-  return { file: path, problems, deviations }
+  return { file: path, problems, deviations, warnings }
 }
 
 function main(): void {
@@ -193,8 +225,9 @@ function main(): void {
   else {
     for (const r of reports) {
       for (const p of r.problems) console.log(`${r.file.replace(ROOT, '')}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
+      for (const w of r.warnings) console.log(`${r.file.replace(ROOT, '')}  not read: ${w}`)
       for (const d of r.deviations) console.log(`${r.file.replace(ROOT, '')}  declared ${d.ruleId}: ${d.why}`)
-      if (r.problems.length === 0) console.log(`${r.file.replace(ROOT, '')}  laws hold (tsc, tokens, layers, focus)`)
+      if (r.problems.length === 0) console.log(`${r.file.replace(ROOT, '')}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
     }
   }
   process.exit(reports.some((r) => r.problems.length > 0) ? 1 : 0)
