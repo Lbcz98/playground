@@ -21,3 +21,7 @@ eval/results/
 .export-test-from
 .export-test-render
 .render-check
+web/node_modules
+web/.next
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
