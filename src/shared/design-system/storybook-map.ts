@@ -132,6 +132,7 @@ export const STORYBOOK_ONLY: Record<string, string> = {
   'templates-screens': 'Reference screens rendered from Blueprint templates, not a component.',
   'ui-kit-overlay': 'The scrim is drawn by the screen model (Camadas), never placed by a Blueprint.',
   'ui-kit-overlay-screen-models': 'The screen model preview; a Blueprint names the model in `screen`, not as a node.',
+  'foundations-screen': 'The 1280×720 frame of every screen; a Blueprint names its model in `screen`, not as a node.',
   'primitives-box': 'Primitive used to build the kit; the catalog exposes Stack instead.',
   'primitives-stack': 'Primitive used to build the kit; the catalog Stack is Canvas Kit/Stack.',
   'primitives-text': 'Primitive used to build the kit; the catalog Text is Canvas Kit/Text.',

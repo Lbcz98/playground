@@ -276,6 +276,71 @@
       ],
       "subcomponents": {}
     },
+    "foundations-screen": {
+      "name": "Screen",
+      "description": "The 1280×720 DTV frame every screen is built in: video, overlay shades, then a transparent content layer.",
+      "props": {
+        "anchored": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "The anchored element group, pinned to the bottom corner on the focus side."
+        },
+        "children": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "The content: a root layout container, with no margin of its own."
+        },
+        "focusSide": {
+          "type": "'left' | 'right'",
+          "kind": "enum",
+          "options": [
+            "left",
+            "right"
+          ],
+          "required": false,
+          "defaultValue": "right",
+          "description": "Where the TV focus is. Default `right`: the anchored group pins bottom-right."
+        },
+        "level": {
+          "type": "0 | 1 | 2 | 3",
+          "kind": "enum",
+          "options": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ],
+          "required": false,
+          "description": "The navigation level. Descriptive: the model fixes it, and checks read it off the screen."
+        },
+        "model": {
+          "type": "string",
+          "kind": "string",
+          "required": true,
+          "description": "The layer model whose shades sit between the video and the content, e.g. `home`."
+        },
+        "scale": {
+          "type": "number",
+          "kind": "number",
+          "required": false,
+          "defaultValue": "1",
+          "description": "How the frame is shown; the layout itself is always 1280×720. 1.5 shows it at 1920×1080. Default 1."
+        },
+        "video": {
+          "type": "ReactNode",
+          "kind": "node",
+          "required": false,
+          "description": "What stands in for the video behind the shades. Default: nothing, so the real video shows through."
+        }
+      },
+      "title": "Foundations/Screen",
+      "stories": [
+        "foundations-screen--home"
+      ],
+      "subcomponents": {}
+    },
     "primitives-box": {
       "name": "Box",
       "description": "",

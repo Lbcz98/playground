@@ -50,6 +50,7 @@ export interface ScreenProps {
 
 const fill: CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' }
 
+/** The 1280×720 DTV frame every screen is built in: video, overlay shades, then a transparent content layer. */
 export function Screen({
   model,
   level,
