@@ -482,7 +482,10 @@ export function auditScreenLayerIssues(doc: unknown, manifest: DesignSystemManif
       add(
         'level.initial-focus',
         ['root'],
-        `<${roles.component}> ${roles.prop} ${JSON.stringify(check.found)} — ${where}: use ${check.allowed.map((a) => JSON.stringify(a)).join(' or ')}.`,
+        `<${roles.component}> ${roles.prop} ${JSON.stringify(check.found)} — ${where}: use ${check.allowed.map((a) => JSON.stringify(a)).join(' or ')}.` +
+          (check.railSide === 'left'
+            ? ` The rail counts as left because the rail's alignment is "start" — which is also what it renders when \`align\` is left out. If the focus should be on the program button (the default), put the rail on the right (align "end") instead.`
+            : ''),
       )
     }
   }

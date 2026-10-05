@@ -23,6 +23,7 @@ import { Screen } from '@/ui-kit/Screen'
 - Só componentes do kit e props que o Storybook documenta. Valor de estilo é sempre o **nome de um token** (`gap="sm"`, `background="primary"`): nada de hex, px, rem, `style` ou `className`, e nenhum elemento HTML (`div`, `span`).
 - Ícones: não existe componente de ícone genérico. Cada componente traz os seus; não importe `.svg` na tela.
 - A raiz do `<Screen>` não pinta fundo nem tem margem: o quadro cuida disso, e a camada de conteúdo é transparente.
+- Home: por padrão o foco fica no botão do programa (`MainMenu focusedItem="program"`, à direita) e a trilha vai à direita: escreva `<InteractivityMenu align="end">`. Atenção: sem `align`, a trilha renderiza à ESQUERDA (o padrão do componente é `start`) e a regra exige foco num botão da esquerda (`schedule`, `miscellaneous` ou `login`). Trilha à esquerda só quando o pedido disser.
 - Um único foco por tela (nível 0 não tem). Vários componentes nascem focados por padrão: confira `docs-show`.
 - Fuja do padrão só de propósito, e diga: comentário `@deviation <regra>: <por quê>` (na função, para regra de tela; antes do elemento, para regra de nó).
 
