@@ -86,4 +86,15 @@ describe('auditRender — problems only the real render can show', () => {
     expect(problems).toHaveLength(1)
     expect(problems[0]).toMatch(/"C" has been squeezed/)
   })
+
+  it('catches any container that paints a background over the whole frame, not only the root', () => {
+    const covering = node({ type: 'Stack', top: 32, left: 32, width: 1216, height: 656, paints: true })
+    expect(auditRender({ frame, nodes: [covering], texts: [] }).join()).toMatch(/<Stack> paints a background over the whole frame/)
+  })
+
+  it('lets a card paint its own surface, and a covering container that paints nothing', () => {
+    const card = node({ paints: true, width: 320, height: 272 })
+    const stack = node({ type: 'Stack', top: 32, left: 32, width: 1216, height: 656, paints: false })
+    expect(auditRender({ frame, nodes: [card, stack], texts: [] })).toEqual([])
+  })
 })

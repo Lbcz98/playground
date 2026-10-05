@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AiProvider } from './providers'
 
 vi.mock('./providers', async (importActual) => {
@@ -7,7 +7,7 @@ vi.mock('./providers', async (importActual) => {
 })
 
 const { resolveProvider } = await import('./providers')
-const { generateUI } = await import('./ai-orchestrator')
+const { generateUI, setRenderCheck } = await import('./ai-orchestrator')
 const { MalformedOutputError } = await import('./providers/types')
 const { SCREEN_TEMPLATES } = await import('@/shared/templates')
 
@@ -308,5 +308,58 @@ describe('generateUI — a reply that is not JSON', () => {
     const res = await generateUI('a screen')
     expect(res.ok).toBe(false)
     expect(provider.renderUi).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('generateUI — the render check before delivery', () => {
+  const COVER = { ruleId: 'layers.stack' as const, message: '<Stack> paints a background over the whole frame — remove it.' }
+  afterEach(() => setRenderCheck(undefined))
+
+  it('paints a valid screen, sends the problems back, and delivers once it is clean', async () => {
+    const provider = fakeProvider()
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+    const check = vi.fn().mockResolvedValueOnce([COVER]).mockResolvedValue([])
+    setRenderCheck(check)
+
+    const res = await generateUI('a screen')
+
+    expect(res.ok).toBe(true)
+    expect(check).toHaveBeenCalledTimes(2)
+    expect(provider.renderUi).toHaveBeenCalledTimes(2)
+    const retry = vi.mocked(provider.renderUi).mock.calls[1][0].messages.at(-1)!.content
+    expect(retry).toContain('painted on the 1280×720 frame')
+    expect(retry).toContain('paints a background over the whole frame')
+    if (res.ok) expect(res.meta.steps?.join('\n')).toContain('render check clean')
+  })
+
+  it('delivers the valid screen when the problems outlast the retries, and says what is left', async () => {
+    const provider = fakeProvider()
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+    setRenderCheck(vi.fn().mockResolvedValue([COVER]))
+
+    const res = await generateUI('a screen')
+
+    expect(res.ok).toBe(true)
+    expect(provider.renderUi).toHaveBeenCalledTimes(3)
+    if (res.ok) expect(res.meta.steps?.join('\n')).toMatch(/render check: 1 problem\(s\) remain/)
+  })
+
+  it('changes nothing when no check is registered', async () => {
+    const provider = fakeProvider()
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+    const res = await generateUI('a screen')
+    expect(res.ok).toBe(true)
+    expect(provider.renderUi).toHaveBeenCalledTimes(1)
+    if (res.ok) expect(res.meta.steps?.join('\n')).not.toContain('render check')
+  })
+
+  it('does not fail the generation when the check itself cannot run', async () => {
+    const provider = fakeProvider()
+    vi.mocked(resolveProvider).mockResolvedValue(provider)
+    setRenderCheck(vi.fn().mockRejectedValue(new Error('no chromium')))
+    const res = await generateUI('a screen')
+    expect(res.ok).toBe(true)
+    expect(provider.renderUi).toHaveBeenCalledTimes(1)
+    if (res.ok) expect(res.meta.steps?.join('\n')).toContain('render check did not run: no chromium')
   })
 })

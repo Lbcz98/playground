@@ -23,7 +23,11 @@
     "storybook:manifest": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts",
     "storybook:manifest:check": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts -- --check",
     "dtv:export": "vite-node --config vitest.config.ts scripts/storybook/export-dtv.ts",
-    "build-storybook": "storybook build"
+    "deploy": "vite-node --config vitest.config.ts scripts/deploy.ts --",
+    "check:laws": "vite-node --config vitest.config.ts scripts/check-laws.ts --",
+    "export:tsx": "vite-node --config vitest.config.ts scripts/export-tsx.ts --",
+    "build-storybook": "storybook build",
+    "browsers:install": "playwright install chromium"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
@@ -43,6 +47,7 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.3.1",
+    "playwright": "^1.56.0",
     "postcss": "^8.4.49",
     "storybook": "^10.6.0",
     "tailwindcss": "^3.4.17",

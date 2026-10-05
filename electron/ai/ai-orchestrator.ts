@@ -43,10 +43,24 @@ import { budgetProblems, isPrimitive, PROPOSAL_TYPE } from '@/shared/design-syst
 import { nodeDeclarationConflicts } from '@/shared/design-system/deviations'
 import { interpretPrototype } from '@/interpreter/interpret'
 import { restStrayFocus, stretchRoots } from '@/shared/layout/frame'
+import type { RenderIssue } from '@/shared/layout/renderAudit'
 import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
 import { routeAuto } from './classify'
 import { explicitNotices } from './router'
+
+/**
+ * The render check: a blueprint that validates is painted and measured (`auditRender`) before it is handed
+ * back, and what only the render shows — content cut off, past the frame, text on text, a container that covers
+ * the frame with a fill — goes back to the generator like any other issue. The orchestrator has no DOM, so the
+ * host registers how to render (`scripts/render-check.ts` for a headless run). Without one nothing changes:
+ * the canvas still measures after it paints and asks for one repair turn (`chatStore`).
+ */
+export type RenderCheck = (blueprint: unknown, manifest: DesignSystemManifest) => Promise<RenderIssue[]>
+let renderCheck: RenderCheck | undefined
+export function setRenderCheck(check: RenderCheck | undefined): void {
+  renderCheck = check
+}
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
 
@@ -300,6 +314,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
     for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
       let errors: string[]
       let reply = ''
+      let renderFailed = false
       try {
         const gen = await provider.renderUi({ system: genSystem, messages: genMessages, model: options.model, effort: options.effort, mode, manifest })
         tally(acc, gen.usage, { step: 'generator', ...(a.branch ? { branch: a.branch } : {}), attempt })
@@ -323,8 +338,26 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
         const budget = mode === 'exploratory' ? budgetIssues(lastBlueprint, manifest) : []
         const all = [...(checked.ok ? [] : checked.issues), ...budget]
         if (all.length === 0) {
-          step(`step 2 · generator: valid on attempt ${attempt}`)
-          return { blueprint: lastBlueprint, valid: true }
+          // It validates. Paint it before handing it back: what only the render shows is the generator's to fix too.
+          let rendered: RenderIssue[] = []
+          if (renderCheck) {
+            try {
+              rendered = await renderCheck(lastBlueprint, manifest)
+            } catch (err) {
+              step(`step 2 · render check did not run: ${err instanceof Error ? err.message : String(err)}`)
+            }
+          }
+          if (rendered.length === 0) {
+            step(`step 2 · generator: valid on attempt ${attempt}${renderCheck ? ' · render check clean' : ''}`)
+            return { blueprint: lastBlueprint, valid: true }
+          }
+          if (attempt > MAX_RETRIES) {
+            // Out of retries: the screen is valid, so it goes out; the canvas reports what is left.
+            step(`step 3 · render check: ${rendered.length} problem(s) remain after ${MAX_RETRIES} retr${MAX_RETRIES === 1 ? 'y' : 'ies'} — the canvas reports them`)
+            return { blueprint: lastBlueprint, valid: true }
+          }
+          renderFailed = true
+          all.push(...rendered.map((r): ValidationIssue => ({ ruleId: r.ruleId, path: ['root'], message: r.message })))
         }
         lastIssues = all
         errors = feedback(all, mode)
@@ -368,7 +401,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
         genMessages.push({
           role: 'user',
           content:
-            `That Blueprint is invalid:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
+            `${renderFailed ? 'That Blueprint is valid, but painted on the 1280×720 frame it has problems' : 'That Blueprint is invalid'}:\n${errors.map((e) => `- ${e}`).join('\n')}\n\n` +
             `Return the corrected JSON — same structure, only fixing these problems. Do not mention the fixes in "notes".`,
         })
       }

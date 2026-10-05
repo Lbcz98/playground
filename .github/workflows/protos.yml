@@ -1,0 +1,47 @@
+name: protos
+
+# What a designer's pull request must pass: only their folder, the laws, and a build.
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'src/**'
+      - 'tokens/**'
+      - 'scripts/**'
+      - '.github/workflows/protos.yml'
+
+jobs:
+  protos:
+    name: protos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Branches the /deploy command opens (proto/<designer>/…) may change one folder and nothing else.
+      - name: Only web/protos/<designer>/
+        if: startsWith(github.head_ref, 'proto/')
+        run: |
+          designer=$(echo "${{ github.head_ref }}" | cut -d/ -f2)
+          outside=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -v "^web/protos/${designer}/" || true)
+          if [ -n "$outside" ]; then
+            echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm ci --prefix web
+      - run: npx playwright install --with-deps chromium
+
+      - name: Laws, on every screen the pull request touches
+        run: |
+          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx')
+          if [ -n "$screens" ]; then npm run check:laws -- $screens; fi
+
+      - name: Build
+        run: npm run build --prefix web

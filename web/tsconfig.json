@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "incremental": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "../src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "shims.d.ts",
+    "app",
+    "protos",
+    "../src/ui-kit",
+    "../src/primitives",
+    "../src/design-system",
+    "../src/styles",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "../src/**/*.test.ts",
+    "../src/**/*.test.tsx",
+    "../src/**/*.stories.tsx"
+  ]
+}
