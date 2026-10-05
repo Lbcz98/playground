@@ -15,7 +15,7 @@ import { relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { createServer } from 'vite'
-import { auditRender, type RenderMeasurement } from '../src/shared/layout/renderAudit'
+import { auditRenderIssues, type RenderIssue, type RenderMeasurement } from '../src/shared/layout/renderAudit'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -45,7 +45,9 @@ function loadPlaywright(): Playwright {
   throw new RenderAuditUnavailable('Playwright is not installed (npm i -D playwright, or set PLAYWRIGHT_PATH) — the render check was skipped.')
 }
 
-export type RenderResult = { file: string; problems: string[]; error?: undefined } | { file: string; problems: []; error: string }
+export type RenderResult =
+  | { file: string; problems: string[]; issues: RenderIssue[]; error?: undefined }
+  | { file: string; problems: []; issues: []; error: string }
 
 export async function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
   const playwright = loadPlaywright()
@@ -80,15 +82,18 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
         const failed = await page.evaluate<string | undefined>('window.__error')
         if (failed) {
-          results.push({ file, problems: [], error: failed })
+          results.push({ file, problems: [], issues: [], error: failed })
           continue
         }
         await page.waitForTimeout(300) // fonts and the first layout settle
         const measured = await page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
-        if ('error' in measured) results.push({ file, problems: [], error: measured.error })
-        else results.push({ file, problems: auditRender(measured) })
+        if ('error' in measured) results.push({ file, problems: [], issues: [], error: measured.error })
+        else {
+          const issues = auditRenderIssues(measured)
+          results.push({ file, problems: issues.map((i) => i.message), issues })
+        }
       } catch (e) {
-        results.push({ file, problems: [], error: String(e).split('\n')[0] })
+        results.push({ file, problems: [], issues: [], error: String(e).split('\n')[0] })
       } finally {
         await page.close()
       }

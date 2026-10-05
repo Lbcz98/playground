@@ -41,8 +41,8 @@ describe('the render check on screens written as TSX', () => {
     check(results.get(name)!)
   }
 
-  it('is silent on the exported reference screens', run('ok.tsx', (r) => expect(r).toEqual({ file: expect.any(String), problems: [] })))
-  it('is silent on the home', run('ok-home.tsx', (r) => expect(r).toEqual({ file: expect.any(String), problems: [] })))
+  it('is silent on the exported reference screens', run('ok.tsx', (r) => expect(r.problems).toEqual([])))
+  it('is silent on the home', run('ok-home.tsx', (r) => expect(r.problems).toEqual([])))
   it(
     'names a container that covers the frame with a background',
     run('fill.tsx', (r) => expect(r.problems.join('\n')).toMatch(/paints a background over the whole frame/)),

@@ -73,8 +73,21 @@ function spills(inner: Box, outer: Box): boolean {
  * takes rectangles Canvas.tsx already measured off the real DOM, returns nothing
  * about layout mechanics (`getBoundingClientRect`, scale) itself.
  */
+/** A render problem and the rule it breaks: the frame (overflow, cut off, overlap) or the layer stack (a covering fill). */
+export interface RenderIssue {
+  ruleId: 'frame.layout' | 'layers.stack'
+  message: string
+}
+
 export function auditRender(m: RenderMeasurement): string[] {
-  const problems: string[] = []
+  return auditRenderIssues(m).map((i) => i.message)
+}
+
+export function auditRenderIssues(m: RenderMeasurement): RenderIssue[] {
+  const found: RenderIssue[] = []
+  const problems = {
+    push: (message: string, ruleId: RenderIssue['ruleId'] = 'frame.layout'): void => void found.push({ ruleId, message }),
+  }
   const frame: Box = { top: 0, left: 0, width: m.frame.width, height: m.frame.height }
 
   // Content its own container clips away: one problem per container, counted —
@@ -104,6 +117,7 @@ export function auditRender(m: RenderMeasurement): string[] {
     if (n.width >= frame.width * COVERS_FRAME && n.height >= frame.height * COVERS_FRAME) {
       problems.push(
         `<${n.type}> paints a background over the whole frame — the content layer is transparent so the video and the overlay show through. Remove its background; a container that covers the frame never paints one.`,
+        'layers.stack',
       )
     }
   }
@@ -135,5 +149,5 @@ export function auditRender(m: RenderMeasurement): string[] {
     }
   }
 
-  return problems
+  return found
 }
