@@ -1,0 +1,4 @@
+# Each designer owns their own folder; everything else is the kit's maintainers'.
+# Add a line per designer, e.g.:
+#   /web/protos/ana/   @ana-github-handle
+*                      @Lbcz98
