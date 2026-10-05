@@ -25,6 +25,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
+import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
 import { parseTsx } from '../src/shared/export/fromTsx'
@@ -201,7 +202,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
         const flexibility = ruleById(manifest, issue.ruleId)?.flexibility ?? 'law'
-        const tail = issue.kind === 'unused-deviation' ? ' (declared for nothing)' : flexibility === 'pattern' ? ' (a pattern: fix it, or declare it with @deviation)' : ''
+        const where =
+          issue.kind === 'unused-deviation' && ruleScope(issue.ruleId) === 'screen' && !/on the screen/.test(issue.message)
+            ? " — this rule is about the whole screen: declare it once, in the component's JSDoc (or on the root element), not on the node that shows it"
+            : ''
+        const tail = issue.kind === 'unused-deviation' ? ` (declared for nothing${where})` : flexibility === 'pattern' ? ' (a pattern: fix it, or declare it with @deviation)' : ''
         problems.push({ law: issue.ruleId, source: 'validator', message: `${issue.message}${tail}` })
       }
     }
