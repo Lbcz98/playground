@@ -47,6 +47,7 @@ import { addUsage, resolveProvider, type AiProvider } from './providers'
 import { MalformedOutputError, unwrapBlueprint } from './providers/types'
 import { routeAuto } from './classify'
 import { explicitNotices } from './router'
+import { activeSkills, withSkills, type Skill } from './skills'
 
 const MAX_RETRIES = clamp(Number.parseInt(process.env.AI_MAX_VALIDATION_RETRIES ?? '', 10) || 2, 0, 4)
 
@@ -113,6 +114,16 @@ export async function generateUI(
     `design system: ${manifest.name} v${manifest.version} (${Object.keys(manifest.components).length} components)`,
   ]
 
+  // The skills SFS_SKILLS turns on, read before the provider and before any model call: a bad name costs nothing and is never skipped.
+  let skills: Skill[]
+  try {
+    skills = activeSkills()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: message, stage: 'skills', meta: { source: 'dummy', durationMs: Date.now() - startedAt, steps: [...steps, `error: ${message}`] } }
+  }
+  if (skills.length > 0) steps.push(`skills: ${skills.map((s) => s.name).join(', ')}`)
+
   const provider = await resolveProvider()
   if (!provider) {
     steps.push('no AI provider available — returning the home template')
@@ -157,7 +168,7 @@ export async function generateUI(
       if (options.mode === 'exploratory') mode = 'exploratory'
     }
     const acc: Tally = { usage, model, calls }
-    const base: Omit<BranchArgs, 'mode' | 'plannerMessages'> = { provider, manifest, options, request: userPrompt, steps, notices, trace: [], acc }
+    const base: Omit<BranchArgs, 'mode' | 'plannerMessages'> = { provider, manifest, options, request: userPrompt, skills, steps, notices, trace: [], acc }
     try {
       if (options.mode === 'both') {
         const res = await runBoth(userPrompt, history, base)
@@ -217,6 +228,8 @@ interface BranchArgs {
   mode: ScreenMode
   /** The user's request, verbatim: the generator is shown it after the plan, for the language of everything it writes for the user. */
   request: string
+  /** The skills SFS_SKILLS turned on: their full text closes the generator's system prompt (never the planner's). */
+  skills: Skill[]
   /** The conversation the planner sees (history and the request). */
   plannerMessages: ChatTurn[]
   /** A plan already made (the shared Faithful plan of "Os dois"): the first planner call is skipped. */
@@ -249,7 +262,7 @@ async function runBranch(a: BranchArgs): Promise<{ blueprint: unknown; valid: bo
   const { provider, manifest, options, mode, acc, notices, trace } = a
   const step = (line: string): void => void a.steps.push(a.branch ? `[${a.branch}] ${line}` : line)
   const generatorMode = provider.id === 'api-key' ? 'tool' : 'json'
-  const genSystem = buildSystemPrompt(generatorMode, manifest, mode)
+  const genSystem = withSkills(buildSystemPrompt(generatorMode, manifest, mode), a.skills)
   const plannerSystem = buildPlannerPrompt(manifest, { prompt: String(a.plannerMessages.at(-1)?.content ?? ''), mode })
   const replans = mode === 'exploratory' ? maxReplans() : 0
 

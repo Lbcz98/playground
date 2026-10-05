@@ -25,7 +25,8 @@ npm run eval:modes -- --router --confirm      # the Auto router alone, once per 
 The estimate comes from the measured cost per generation of every past result under `eval/results/`. A live run
 whose estimate tops US$ 10 needs `--confirm`. Jobs run mode by mode (the prompt cache stays warm) with 2 at a
 time; a job starts only while spent + running + its own estimate stays within the cap, and the jobs left out are
-listed. Results go to `eval/results/9g/` (gitignored), stamped with the git sha and the prompts' hashes; an
+listed. Results go to `eval/results/9g/` (gitignored), stamped with the git sha, the CLI isolation, the skills `SFS_SKILLS`
+turned on and the prompts' hashes (the hashes are the prompts without skills); an
 existing result is skipped, so an interrupted stage resumes. Each record carries its score; the stage summary
 (`summary.stage<N>.json`) adds the cost per generation by mode, cold vs warm calls, and the share of each call's
 cost that is the cached prefix (from `meta.calls`).
