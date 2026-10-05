@@ -23,6 +23,7 @@
     "storybook:manifest": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts",
     "storybook:manifest:check": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts -- --check",
     "dtv:export": "vite-node --config vitest.config.ts scripts/storybook/export-dtv.ts",
+    "check:laws": "vite-node --config vitest.config.ts scripts/check-laws.ts --",
     "export:tsx": "vite-node --config vitest.config.ts scripts/export-tsx.ts --",
     "build-storybook": "storybook build"
   },
