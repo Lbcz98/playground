@@ -19,3 +19,4 @@ eval/results/
 .export-test
 .export-test-laws
 .export-test-from
+.export-test-render

@@ -1,0 +1,51 @@
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from '../../../scripts/render-audit'
+import { DTV_TEMPLATES } from '../../../scripts/storybook/dtv-templates'
+import type { BlueprintDocument } from '../blueprint'
+import { exportBlueprintToTsx } from './toTsx'
+
+/** The render check needs Playwright and a Chromium; where they are missing the suite skips instead of failing. */
+const OUT = join(fileURLToPath(new URL('../../..', import.meta.url)), '.export-test-render')
+const ref = (id: string): string => exportBlueprintToTsx(DTV_TEMPLATES.find((t) => t.id === id)!.blueprint as BlueprintDocument).code
+
+let results: Map<string, RenderResult> | undefined
+let unavailable: string | undefined
+
+beforeAll(async () => {
+  mkdirSync(OUT, { recursive: true })
+  const files: Record<string, string> = {
+    'ok.tsx': ref('interactivity-cards-right'),
+    'ok-home.tsx': ref('home'),
+    // a container inside the root that covers the frame with a surface
+    'fill.tsx': ref('home').replace('<Stack direction="column"', '<Stack background="primary" direction="column"'),
+    // more rows than the card holds
+    'cut.tsx': ref('interactivity-cards-right').replace(/<TableCell type="team" name="ARG"[^>]*\/>/, (row) => row.repeat(12)),
+  }
+  for (const [name, code] of Object.entries(files)) writeFileSync(join(OUT, name), code)
+  try {
+    const out = await renderAuditFiles(Object.keys(files).map((name) => join(OUT, name)))
+    results = new Map(out.map((r) => [r.file.split('/').pop()!, r]))
+  } catch (e) {
+    if (!(e instanceof RenderAuditUnavailable)) throw e
+    unavailable = e.message
+  }
+}, 180_000)
+afterAll(() => rmSync(OUT, { recursive: true, force: true }))
+
+describe('the render check on screens written as TSX', () => {
+  const run = (name: string, check: (r: RenderResult) => void) => (): void => {
+    if (!results) return void console.warn(`skipped: ${unavailable}`)
+    check(results.get(name)!)
+  }
+
+  it('is silent on the exported reference screens', run('ok.tsx', (r) => expect(r).toEqual({ file: expect.any(String), problems: [] })))
+  it('is silent on the home', run('ok-home.tsx', (r) => expect(r).toEqual({ file: expect.any(String), problems: [] })))
+  it(
+    'names a container that covers the frame with a background',
+    run('fill.tsx', (r) => expect(r.problems.join('\n')).toMatch(/paints a background over the whole frame/)),
+  )
+  it('counts what a card cuts off', run('cut.tsx', (r) => expect(r.problems.join('\n')).toMatch(/cuts off/)))
+})

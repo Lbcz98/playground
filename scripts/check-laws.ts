@@ -15,6 +15,10 @@
  *                                          patterns broken undeclared, deviations declared for nothing, flow
  *                                          and layout rules
  *
+ * Then the screen is rendered in a headless Chromium (scripts/render-audit.ts) and the pure
+ * `auditRender` runs on it: content cut off or past the frame, text on text, and a container that
+ * covers the frame with a background (`layers.stack`). `--no-render` skips it.
+ *
  * A pattern broken without a `@deviation <ruleId>: <why>` is reported, and so is a deviation
  * declared for a rule nothing breaks. What the JSX has that a blueprint cannot carry (a computed
  * prop, a `.map`, text) is listed as "not read": there the check is blind.
@@ -30,6 +34,7 @@ import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
 import { parseTsx } from '../src/shared/export/fromTsx'
 import { loadDtvManifest } from './dtv-manifest'
+import { renderAuditFiles, RenderAuditUnavailable } from './render-audit'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -37,7 +42,7 @@ export interface LawProblem {
   /** The rule id the message is about (a law, or a pattern broken without being declared). */
   law: string
   /** 'static' = read off the source here; 'validator' = the blueprint validator, run on the screen read back from the JSX. */
-  source?: 'static' | 'validator'
+  source?: 'static' | 'validator' | 'render'
   message: string
   line?: number
 }
@@ -218,7 +223,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   return { file: path, problems, deviations, warnings }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const files = process.argv.slice(2).filter((a) => a !== '--' && !a.startsWith('--'))
   const json = process.argv.includes('--json')
   if (files.length === 0) {
@@ -226,6 +231,19 @@ function main(): void {
     process.exit(2)
   }
   const reports = files.map((f) => checkLaws(f))
+  if (!process.argv.includes('--no-render')) {
+    try {
+      const rendered = await renderAuditFiles(files)
+      for (const r of rendered) {
+        const report = reports.find((x) => x.file === resolve(r.file))!
+        if (r.error) report.warnings.push(`render check did not run: ${r.error}`)
+        for (const message of r.problems) report.problems.push({ law: 'render', source: 'render', message })
+      }
+    } catch (e) {
+      if (!(e instanceof RenderAuditUnavailable)) throw e
+      console.error(e.message)
+    }
+  }
   if (json) console.log(JSON.stringify(reports, null, 1))
   else {
     for (const r of reports) {
@@ -238,4 +256,4 @@ function main(): void {
   process.exit(reports.some((r) => r.problems.length > 0) ? 1 : 0)
 }
 
-if (!process.env.VITEST) main()
+if (!process.env.VITEST) void main()

@@ -31,6 +31,8 @@ export interface MeasuredNode extends Box {
   type: string
   /** Set when an ancestor inside the frame clips overflow — what the viewer actually sees of this node. */
   clip?: ClipBox
+  /** The node paints a background over what is behind it (a solid or near-solid fill, or an image/gradient). */
+  paints?: boolean
 }
 
 export interface MeasuredText extends Box {
@@ -53,6 +55,8 @@ const COLLAPSED_WIDTH = 4
 const OVERLAP_SLACK = 2
 /** A box past an edge by less than this is normal sub-pixel rounding. */
 const EDGE_SLACK = 0.5
+/** A box this much of the frame in both width and height covers it: the margin is 32 of 1280×720, so the content area is 95% × 91%. */
+const COVERS_FRAME = 0.85
 
 /** Whether `inner` spills past `outer` on any side. */
 function spills(inner: Box, outer: Box): boolean {
@@ -91,6 +95,17 @@ export function auditRender(m: RenderMeasurement): string[] {
     problems.push(
       `<${ownerType}> fits ${shown} <${type}>${shown === 1 ? '' : 's'} and cuts off ${cut} — keep it to ${shown}, or move the rest onto another screen. That count is for the card as built: a taller header or an added footer leaves room for fewer.`,
     )
+  }
+
+  // The content layer is transparent (`layers.stack`): the video and the overlay show through it. A node that
+  // covers the frame and paints a background hides them, whatever container it is — not just the root.
+  for (const n of m.nodes) {
+    if (!n.paints) continue
+    if (n.width >= frame.width * COVERS_FRAME && n.height >= frame.height * COVERS_FRAME) {
+      problems.push(
+        `<${n.type}> paints a background over the whole frame — the content layer is transparent so the video and the overlay show through. Remove its background; a container that covers the frame never paints one.`,
+      )
+    }
   }
 
   // A node its container already hides is reported above; past the frame, only what's visible counts.
