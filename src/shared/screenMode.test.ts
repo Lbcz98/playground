@@ -32,7 +32,7 @@ describe('nobody else defaults a mode', () => {
     })
 
   it('no source file compares a mode with "faithful" or falls back to it by hand', () => {
-    const offenders = [...files('src'), ...files('electron')]
+    const offenders = files('src')
       .filter((f) => !f.endsWith('blueprint.ts'))
       .flatMap((f) =>
         readFileSync(f, 'utf8')

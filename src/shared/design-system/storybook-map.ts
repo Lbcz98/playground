@@ -129,7 +129,6 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
 
 /** Storybook components that document no catalog component, and why. */
 export const STORYBOOK_ONLY: Record<string, string> = {
-  'templates-screens': 'Reference screens rendered from Blueprint templates, not a component.',
   'ui-kit-overlay': 'The scrim is drawn by the screen model (Camadas), never placed by a Blueprint.',
   'ui-kit-overlay-screen-models': 'The screen model preview; a Blueprint names the model in `screen`, not as a node.',
   'foundations-screen': 'The 1280×720 frame of every screen; a Blueprint names its model in `screen`, not as a node.',

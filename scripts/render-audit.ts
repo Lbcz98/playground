@@ -27,6 +27,7 @@ type Page = {
   goto(url: string): Promise<unknown>
   waitForFunction(fn: string, arg?: unknown, o?: Record<string, unknown>): Promise<unknown>
   waitForTimeout(ms: number): Promise<void>
+  reload(): Promise<unknown>
   evaluate<T>(fn: string): Promise<T>
   on(event: string, handler: (arg: { text?: () => string; message?: string }) => void): void
   close(): Promise<void>
@@ -59,7 +60,12 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
     resolve: { alias: { '@': resolve(ROOT, 'src') } },
     plugins: [react()],
     server: { host: '127.0.0.1', port: 0 },
-    optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'] },
+    // Scan the harness itself so every dependency is pre-bundled before the first page loads — a dependency
+    // found late makes Vite reload the page in the middle of the measurement ("no <Screen> rendered").
+    optimizeDeps: {
+      entries: ['scripts/render-harness/index.html'],
+      include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    },
   })
   await server.listen()
   const address = server.httpServer?.address()
@@ -86,7 +92,15 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
           continue
         }
         await page.waitForTimeout(300) // fonts and the first layout settle
-        const measured = await page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        let measured = await page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        // A cold Vite cache can reload the page while it optimizes a dependency, so the first read may land on an
+        // empty page. One reload settles it; a screen that really renders nothing fails the same way again.
+        if ('error' in measured && /no <Screen>/.test(measured.error)) {
+          await page.reload()
+          await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
+          await page.waitForTimeout(500)
+          measured = await page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        }
         if ('error' in measured) results.push({ file, problems: [], issues: [], error: measured.error })
         else {
           const issues = auditRenderIssues(measured)
