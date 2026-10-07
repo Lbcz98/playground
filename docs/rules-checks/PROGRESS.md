@@ -14,7 +14,7 @@ Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 | T03 | Primitives and local components | T02, T05 | verified | 23a08bd | 0 | verdicts/T03.md | |
 | T04 | Flow across screens with `<Link>` | T03 | verified | 341e4b8 | 0 | verdicts/T04.md | |
 | T07 | PR report and CI gate | T01, T02, T03, T04 | verified | 7ed136e | 0 | verdicts/T07.md | |
-| T08 | Designer guide, e2e, final sweep | T01–T07 | in_progress | | 0 | | |
+| T08 | Designer guide, e2e, final sweep | T01–T07 | verified | 43781d9 | 0 | verdicts/T08.md | |
 
 ## Spec conflicts raised
 _(task, what the spec assumed, what the code showed, the user's decision)_
