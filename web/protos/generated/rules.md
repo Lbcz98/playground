@@ -120,6 +120,10 @@ A button label names the action it performs.
 
 Applies to: `Button`, `WideButton`, `InteractivityButton`
 
+### `render.legibility` Legible text
+
+Text never lands on top of other text and is never squeezed to nothing by a container too small for it.
+
 ### `templates.reference` Reference screens
 
 A generation starts from the reference screen whose shape the plan describes.
