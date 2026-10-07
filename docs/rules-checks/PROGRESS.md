@@ -2,11 +2,11 @@
 
 Maintained by the orchestrator. Statuses: `todo`, `in_progress`, `verified`, `blocked`. Update this file and commit it (`progress: Txx <status>`) after every verdict.
 
-Base: `spike/tsx-exporter` @ _(orchestrator fills in the sha)_ · Branch: `feat/rules-and-checks`
+Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 
 | Task | Title | Depends on | Status | Commit | Rounds | Verdict file | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| T00 | Baseline and conformance corpus | — | todo | | 0 | | |
+| T00 | Baseline and conformance corpus | — | in_progress | | 0 | | |
 | T01 | Render findings: laws block, legibility warns | T00 | todo | | 0 | | |
 | T05 | Generated guides and drift check | T00 | todo | | 0 | | |
 | T06 | ScreenFlow boundary guard | T00 | todo | | 0 | | |
