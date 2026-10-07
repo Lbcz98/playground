@@ -22,6 +22,9 @@ describe('conformance corpus (static + validator)', () => {
       expect(r.notRead).toBeGreaterThanOrEqual(c.expect.notRead ?? 0)
       if (c.expect.notRead === undefined) expect(r.notRead).toBe(0)
       expect(r.deviations).toEqual(c.expect.deviations ?? [])
+      expect({ reuses: r.reuses, proposals: r.proposals }).toEqual({ reuses: c.expect.reuses ?? 0, proposals: c.expect.proposals ?? 0 })
+      if (c.expect.problemFile) expect(r.problemFiles.some((f) => f.endsWith(c.expect.problemFile!))).toBe(true)
+      for (const re of c.expect.messages ?? []) expect(r.problems.some((m) => re.test(m))).toBe(true)
     }, 120_000)
   }
 })

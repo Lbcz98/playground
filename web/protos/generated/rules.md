@@ -139,6 +139,24 @@ Breaks a pattern rule on purpose (Exploratory mode). Laws and conventions cannot
 - On a node: `{/* @deviation <ruleId>: <why> */}` right before the element it covers.
 - On the screen: A comment on the component (JSDoc or line comments above it); covers the screen.
 
+### `@reuse`
+
+Form: `@reuse <KitComponent>: <why>`
+
+A primitive (Box, Text) says which kit component it considered and why none would do. Required on every primitive.
+
+- On a node: `{/* @reuse <KitComponent>: <why> */}` right before the primitive.
+- On the screen: Not applicable: it belongs to one primitive.
+
+### `@proposal`
+
+Form: `@proposal (JSDoc block: why / description / figma / proposedApi)`
+
+A component the kit lacks, written in `components/` of your folder. Each exported component carries the block; why, description and one proposedApi line (`<prop>: "<type>"`) are required, figma is optional.
+
+- On a node: Not applicable: it sits on the component, not on the element that uses it.
+- On the screen: A JSDoc block above each exported component in `components/`.
+
 ### Where each pattern is declared
 
 - On the node where it breaks (a screen-level declaration is an error): `flow.link-roles`, `flow.next-level`, `layout.slots`, `registry.new-component`

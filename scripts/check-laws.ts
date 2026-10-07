@@ -31,10 +31,13 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
+import type { BlueprintNode } from '../src/shared/blueprint'
+import { budgetProblems } from '../src/shared/design-system/primitives'
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
-import { parseTsx, type NotRead } from '../src/shared/export/fromTsx'
+import { parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
+import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
 import { loadDtvManifest } from './dtv-manifest'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
@@ -47,6 +50,8 @@ export interface LawProblem {
   source?: 'static' | 'validator' | 'render'
   message: string
   line?: number
+  /** The file the message is about, when it is not the screen itself (a local component). */
+  file?: string
 }
 export interface LawReport {
   file: string
@@ -61,6 +66,10 @@ export interface LawReport {
   notRead: NotRead[]
   /** `read`: JSX elements turned into blueprint nodes. `notRead`: constructs skipped. */
   coverage: { read: number; notRead: number }
+  /** Every `@reuse` on a primitive. */
+  reuses: { line: number; primitive: string; considered: string; why: string }[]
+  /** Local components the screen uses, with the proposal each declares. */
+  proposals: { file: string; name: string; why: string; api: Record<string, string>; description: string; figma?: string }[]
 }
 
 /** Components that hold the focus, and whether leaving `interactionState` out means focused. */
@@ -118,11 +127,48 @@ const hasJsx = (sf: ts.SourceFile): boolean => {
   return found
 }
 
+/** The source line of the deepest node an issue path passes through. */
+function lineAt(parsed: ParsedScreen, path: readonly (string | number)[]): number | undefined {
+  let cur: unknown = parsed.doc
+  let line: number | undefined
+  for (const k of path) {
+    cur = (cur as Record<string, unknown> | undefined)?.[k]
+    const l = typeof cur === 'object' && cur ? parsed.lines.get(cur) : undefined
+    if (l) line = l
+  }
+  return line
+}
+
+const resolveLocal = (from: string, spec: string): string | undefined => {
+  const target = resolve(dirname(from), spec)
+  return LOCAL_EXT.map((e) => target + e).find((f) => existsSync(f) && statSync(f).isFile())
+}
+
+/** The components a file exports (function declarations and arrow/function consts), with the JSDoc above each. */
+function componentExports(sf: ts.SourceFile): Map<string, { line: number; comment: string }> {
+  const out = new Map<string, { line: number; comment: string }>()
+  const text = sf.getFullText()
+  const isExport = (n: ts.Node): boolean => (ts.getCombinedModifierFlags(n as ts.Declaration) & ts.ModifierFlags.Export) !== 0
+  for (const stmt of sf.statements) {
+    const names: string[] = []
+    if (ts.isFunctionDeclaration(stmt) && isExport(stmt)) {
+      if (stmt.name) names.push(stmt.name.text)
+      if (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Default) names.push('default')
+    } else if (ts.isVariableStatement(stmt) && isExport(stmt)) {
+      for (const d of stmt.declarationList.declarations)
+        if (ts.isIdentifier(d.name) && /^[A-Z]/.test(d.name.text) && d.initializer && (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer))) names.push(d.name.text)
+    }
+    const comments = (ts.getLeadingCommentRanges(text, stmt.getFullStart()) ?? []).map((r) => text.slice(r.pos, r.end)).filter((c) => c.startsWith('/**'))
+    for (const name of names) out.set(name, { line: LINE(sf, stmt), comment: comments[comments.length - 1] ?? '' })
+  }
+  return out
+}
+
 export function checkLaws(file: string, options: { skipValidator?: boolean } = {}): LawReport {
   const path = resolve(file)
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
-  const add = (law: string, message: string, line?: number): void => void problems.push({ law, message, line })
+  const add = (law: string, message: string, line?: number, file?: string): void => void problems.push({ law, message, line, ...(file ? { file } : {}) })
 
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
   const folder = designerFolder(path)
@@ -151,7 +197,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       if (inside.startsWith('..') || isAbsolute(inside)) bad('outside this designer folder')
       else if (NOT_CODE.test(m)) bad('image or style file')
       else {
-        const hit = LOCAL_EXT.map((e) => target + e).find((f) => existsSync(f) && statSync(f).isFile())
+        const hit = resolveLocal(file, m)
         if (hit && !locals.has(hit) && hit !== path && /\.(tsx?|json)$/.test(hit)) {
           const t = readFileSync(hit, 'utf8')
           const lsf = ts.createSourceFile(hit, t, ts.ScriptTarget.ES2022, true, hit.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
@@ -176,13 +222,14 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   }
 
   // ── tokens.only: the screen, and local files that have JSX (a file with none is data) ───────────
-  const scan = (src: string, prefix: string): void =>
+  const scan = (src: string, prefix: string, file?: string): void =>
     src.split('\n').forEach((raw, i) => {
+      if (/^\s*(\/\*\*|\*)/.test(raw)) return // a doc-comment line (the @proposal block) is words, not a value
       const code = raw.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '')
-      for (const [label, re] of RAW) if (re.test(code)) add('tokens.only', `${prefix}${label} — a design value is a token name`, i + 1)
+      for (const [label, re] of RAW) if (re.test(code)) add('tokens.only', `${prefix}${label} — a design value is a token name`, i + 1, file)
     })
   scan(text, '')
-  for (const [f, l] of locals) if (f.endsWith('.tsx') && hasJsx(l.sf)) scan(l.text, `${rel(f)}: `)
+  for (const [f, l] of locals) if (f.endsWith('.tsx') && hasJsx(l.sf)) scan(l.text, `${rel(f)}: `, f)
 
   // ── per screen: layers.stack and focus.single ───────────────────────────────
   const visit = (node: ts.Node, visitor: (n: ts.Node) => void): void => {
@@ -190,6 +237,13 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
     node.forEachChild((c) => visit(c, visitor))
   }
   const screens: { el: ts.JsxOpeningLikeElement; scope: ts.Node }[] = []
+  for (const [f, l] of locals) {
+    if (!f.endsWith('.tsx')) continue
+    visit(l.sf, (n) => {
+      if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && /^[a-z]/.test(n.tagName.getText()))
+        add('component.api', `${rel(f)}: <${n.tagName.getText()}> is a host element — use a kit component (Stack, Box, Text, …)`, LINE(l.sf, n), f)
+    })
+  }
   visit(sf, (n) => {
     if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && n.tagName.getText() === 'Screen') {
       // the component that returns it: the nearest enclosing function
@@ -259,17 +313,72 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const warnings: string[] = []
   const notRead: NotRead[] = []
   const coverage = { read: 0, notRead: 0 }
+  const reuses: LawReport['reuses'] = []
+  const proposals: LawReport['proposals'] = []
+
+  // Local components (components/ of this folder) the screen imports: each needs its @proposal block.
+  const components = new Map<string, ParsedProposal | null>()
+  sf.forEachChild((node) => {
+    if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier) || !node.moduleSpecifier.text.startsWith('.')) return
+    const hit = resolveLocal(path, node.moduleSpecifier.text)
+    if (!hit || !hit.endsWith('.tsx') || relative(folder, hit).split(sep)[0] !== 'components') return
+    const exported = componentExports(locals.get(hit)?.sf ?? ts.createSourceFile(hit, '', ts.ScriptTarget.ES2022))
+    const clause = node.importClause
+    const wanted: { local: string; name: string }[] = []
+    if (clause?.name) wanted.push({ local: clause.name.text, name: 'default' })
+    if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
+      for (const e of clause.namedBindings.elements) wanted.push({ local: e.name.text, name: (e.propertyName ?? e.name).text })
+    for (const { local, name } of wanted) {
+      const ex = exported.get(name)
+      if (!ex) continue
+      const parsed = parseProposal(ex.comment)
+      const where = `${rel(hit)}:${ex.line}`
+      const shape = '/** @proposal / why: <why the kit lacks it> / description: <what it is> / figma: <link, optional> / proposedApi: / <prop>: "<type>" */ (one field per line)'
+      if (!parsed) {
+        add('registry.new-component', `${where} <${local}> is a component the kit lacks and has no @proposal — add a JSDoc block above its export: ${shape}`, node && LINE(sf, node), hit)
+        components.set(local, null)
+      } else if (!parsed.proposal) {
+        add('registry.new-component', `${where} <${local}> has an incomplete @proposal — add: ${parsed.missing.join('; ')}`, ex.line, hit)
+        components.set(local, null)
+      } else {
+        components.set(local, parsed.proposal)
+        proposals.push({ file: rel(hit), name: local, why: parsed.proposal.why, description: parsed.proposal.description, ...(parsed.proposal.figma ? { figma: parsed.proposal.figma } : {}), api: parsed.proposal.api })
+      }
+    }
+  })
+
   if (!options.skipValidator) {
     const manifest = loadDtvManifest()
-    for (const parsed of parseTsx(text, path)) {
+    for (const parsed of parseTsx(text, path, components)) {
+      reuses.push(...parsed.reuses)
       warnings.push(...parsed.warnings.map((w) => `${parsed.component}: ${w}`))
       notRead.push(...parsed.notRead)
       coverage.read += parsed.read
+      // The budget is not part of the validator (the interpreter runs it); the same function, on the screen read back.
+      type Budget = { type: string; children: Budget[] }
+      const toBudget = (n: BlueprintNode): Budget => ({ type: n.type, children: (n.children ?? []).map(toBudget) })
+      for (const over of budgetProblems(toBudget(parsed.doc.root))) {
+        const line = lineAt(parsed, over.path)
+        problems.push({
+          law: over.ruleId,
+          source: 'validator',
+          message: `${line ? `line ${line}: ` : ''}${over.message} In TSX: move the structure into a component in components/ with a @proposal block, or use kit components.`,
+          line,
+        })
+      }
       const result = validateBlueprintAgainstManifest(parsed.doc, manifest, 'exploratory')
       if (result.ok) continue
       for (const issue of result.issues) {
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
+        if (issue.ruleId === 'primitives.reuse') {
+          const line = lineAt(parsed, issue.path)
+          const fix = /has no "reuse"|"reuse" must be|is not an object/.test(issue.message)
+            ? ' In TSX: write {/* @reuse <KitComponent>: <why no kit component would do> */} right before the primitive.'
+            : ' In TSX: fix the component name in {/* @reuse <KitComponent>: <why> */} right before the primitive.'
+          problems.push({ law: issue.ruleId, source: 'validator', message: `${line ? `line ${line}: ` : ''}${issue.message}${fix}`, line })
+          continue
+        }
         const flexibility = ruleById(manifest, issue.ruleId)?.flexibility ?? 'law'
         const where =
           issue.kind === 'unused-deviation' && ruleScope(issue.ruleId) === 'screen' && !/on the screen/.test(issue.message)
@@ -285,7 +394,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
 
   coverage.notRead = notRead.length
-  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage }
+  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage, reuses, proposals }
 }
 
 /** Folds one render result into a report: blocking findings are problems, legibility findings advisories. */

@@ -1,3 +1,4 @@
+import { PRIMITIVE_MAX_CHAIN, PRIMITIVE_MAX_PER_SCREEN } from '../../../src/shared/design-system/primitives'
 import { DTV_TEMPLATES } from '../../../scripts/storybook/dtv-templates'
 import type { BlueprintDocument } from '../../../src/shared/blueprint'
 import { exportBlueprintToTsx } from '../../../src/shared/export/toTsx'
@@ -13,6 +14,10 @@ export interface CorpusCase {
     notRead?: number // minimum count of "not read" warnings
     deviations?: string[] // declared rule ids
     advisories?: string[] // advisory rule ids (render.legibility); default none
+    reuses?: number // entries in the report's `reuses`; default 0
+    proposals?: number // entries in the report's `proposals`; default 0
+    problemFile?: string // a problem must be attributed to a file ending with this
+    messages?: RegExp[] // each must match some problem message
     render?: boolean // needs Chromium; the case self-skips without it
     note?: string // why the expectation is what it is
   }
@@ -56,6 +61,31 @@ const withImport = (imp: string, extra: Record<string, string> = {}): { files: R
   files: { 's.tsx': screen('<MainMenu />', { imports: imp }), ...extra },
   entry: 's.tsx',
 })
+
+// ── primitives and local components (T03) ─────────────────────────────────────────────────────────
+const PRIM_IMPORT = "import { Box, Text } from '@/primitives'"
+const REUSE = '{/* @reuse WideButton: it is a surface, not a button */}'
+const box = (inner = '', reuse = REUSE): string => `${reuse}<Box>${inner}</Box>`
+const withPrims = (inner: string): { files: Record<string, string>; entry: string } =>
+  one('s.tsx', screen(`<MainMenu />${inner}`, { imports: PRIM_IMPORT.replace(/Box, Text|Box|Text/, (m) => m.split(', ').filter((n) => inner.includes(`<${n}`)).join(', ')) }))
+const nested = (n: number): string => (n === 0 ? '' : box(nested(n - 1)))
+const MAX_PER_SCREEN = PRIMITIVE_MAX_PER_SCREEN
+const MAX_CHAIN = PRIMITIVE_MAX_CHAIN
+const PROPOSAL = (extra = ''): string => `/**
+ * @proposal
+ * why: The kit stepper is horizontal and static.
+ * description: A vertical accordion stepper that expands the active step.
+ * figma: https://figma.com/file/12345
+ * proposedApi:
+ *   activeStep: "number"
+ *   onStepChange: "function"${extra}
+ */`
+const STEPPER = (doc: string, body = '<Box />'): string => `import { Box } from '@/primitives'\n${doc}\nexport function Stepper() {\n  return ${body}\n}\n`
+const withLocal = (component: string): { files: Record<string, string>; entry: string } =>
+  ({
+    files: { 's.tsx': screen('<MainMenu /><Stepper />', { imports: "import { Stepper } from './components/Stepper'" }), 'components/Stepper.tsx': component },
+    entry: 's.tsx',
+  })
 const FORMS = 'allowed forms are listed in the message'
 
 export const CASES: CorpusCase[] = [
@@ -206,5 +236,88 @@ export const CASES: CorpusCase[] = [
     title: 'the same text in a screen file is tokens.only',
     ...one('s.tsx', `${screen('<MainMenu />')}\nexport const W = '12px'\n`),
     expect: { exit: 1, laws: ['tokens.only'] },
+  },
+  {
+    id: 'primitive-box-with-reuse',
+    title: 'a Box with @reuse passes and is reported',
+    ...withPrims(box()),
+    expect: { exit: 0, laws: [], reuses: 1 },
+  },
+  {
+    id: 'primitive-box-without-reuse',
+    title: 'a Box with no @reuse is primitives.reuse',
+    ...withPrims('<Box />'),
+    expect: { exit: 1, laws: ['primitives.reuse'], messages: [/line \d+: .*@reuse <KitComponent>: <why/] },
+  },
+  {
+    id: 'reuse-unknown-component',
+    title: 'a @reuse naming something that is not a kit component is primitives.reuse',
+    ...withPrims(box('', '{/* @reuse FancyCard: nothing like it */}')),
+    expect: { exit: 1, laws: ['primitives.reuse'], reuses: 1, messages: [/FancyCard/] },
+  },
+  {
+    id: 'primitive-text-words',
+    title: 'a Text with plain words and @reuse is read, not skipped',
+    ...withPrims(`{/* @reuse WideButton: plain label */}<Text>Hello</Text>`),
+    expect: { exit: 0, laws: [], reuses: 1 },
+  },
+  {
+    id: 'primitive-budget-count',
+    title: 'one primitive more than the per-screen budget is primitives.budget',
+    ...withPrims(Array.from({ length: MAX_PER_SCREEN + 1 }, () => box()).join('')),
+    expect: { exit: 1, laws: ['primitives.budget'], reuses: MAX_PER_SCREEN + 1, messages: [/@proposal/] },
+  },
+  {
+    id: 'primitive-budget-chain',
+    title: 'one primitive more than the chain budget is primitives.budget',
+    ...withPrims(nested(MAX_CHAIN + 1).replace(/^(\{[^}]*\})/, '$1')),
+    expect: { exit: 1, laws: ['primitives.budget'], reuses: MAX_CHAIN + 1 },
+  },
+  {
+    id: 'primitive-budget-at-limits',
+    title: 'exactly at both limits passes',
+    ...withPrims(nested(MAX_CHAIN) + Array.from({ length: MAX_PER_SCREEN - MAX_CHAIN }, () => box()).join('')),
+    expect: { exit: 0, laws: [], reuses: MAX_PER_SCREEN },
+  },
+  {
+    id: 'local-component-with-proposal',
+    title: 'a local component with a @proposal passes and the proposal is reported',
+    ...withLocal(STEPPER(PROPOSAL(), `<Box />`).replace('<Box />', '<Stack gap="sm" />').replace("import { Box }", "import { Stack }")),
+    expect: { exit: 0, laws: [], proposals: 1 },
+  },
+  {
+    id: 'local-component-without-proposal',
+    title: 'a local component with no @proposal is registry.new-component',
+    ...withLocal(STEPPER('/** a stepper */', '<Stack gap="sm" />').replace("import { Box }", "import { Stack }")),
+    expect: { exit: 1, laws: ['registry.new-component'], problemFile: 'components/Stepper.tsx', messages: [/no @proposal/] },
+  },
+  {
+    id: 'local-component-incomplete-proposal',
+    title: 'a @proposal missing its why and API names what to add',
+    ...withLocal(`import { Stack } from '@/primitives'\n/**\n * @proposal\n * description: A stepper.\n */\nexport function Stepper() {\n  return <Stack gap="sm" />\n}\n`),
+    expect: { exit: 1, laws: ['registry.new-component'], problemFile: 'components/Stepper.tsx', messages: [/why: <why the kit lacks it>.*proposedApi/] },
+  },
+  {
+    id: 'local-component-hex',
+    title: 'a raw hex inside the component file is tokens.only, attributed to that file',
+    ...withLocal(STEPPER(PROPOSAL(), `<Stack gap="sm" />`).replace("import { Box }", "import { Stack }") + "export const COLOR = '#e10600'\n"),
+    expect: { exit: 1, laws: ['tokens.only'], problemFile: 'components/Stepper.tsx', proposals: 1 },
+  },
+  {
+    id: 'local-component-host-element',
+    title: 'a host element inside the component file is component.api, attributed to that file',
+    ...withLocal(STEPPER(PROPOSAL(), `<div />`)),
+    expect: { exit: 1, laws: ['component.api'], problemFile: 'components/Stepper.tsx', proposals: 1 },
+  },
+  {
+    id: 'stack-is-a-container',
+    title: 'Stack from @/primitives stays the kit container: no @reuse, not a primitive',
+    ...one('s.tsx', screen('<MainMenu />')),
+    expect: {
+      exit: 0,
+      laws: [],
+      reuses: 0,
+      note: 'Finding: there are two Stacks. The kit Stack (@/primitives, a layout container, in the DTV manifest) is what TSX `Stack` always means; the blueprint vocabulary also has primitive:Stack, which rules.ts lists under primitives.reuse/budget/registry.new-component appliesTo. fromTsx PRIMITIVE_TAGS maps only Box and Text, so primitive:Stack is unreachable from TSX and a Stack needs no @reuse. Decided by the user: keep Stack a container, rules.ts untouched.',
+    },
   },
 ]

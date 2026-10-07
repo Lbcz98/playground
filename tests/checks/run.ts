@@ -16,6 +16,9 @@ export interface CaseResult {
   problems: string[]
   advisories: string[]
   advisoryLaws: string[]
+  reuses: number
+  proposals: number
+  problemFiles: string[]
   skipped?: string
 }
 
@@ -51,6 +54,9 @@ export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResul
     problems: report.problems.map((p) => `[${p.law}] ${p.message}`),
     advisories: report.advisories.map((p) => `[${p.law}] ${p.message}`),
     advisoryLaws: [...new Set(report.advisories.map((p) => p.law))].sort(),
+    reuses: report.reuses.length,
+    proposals: report.proposals.length,
+    problemFiles: report.problems.flatMap((p) => (p.file ? [p.file] : [])),
     skipped,
   }
 }
