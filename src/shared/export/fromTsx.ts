@@ -20,6 +20,7 @@
 import ts from 'typescript'
 import type { BlueprintDocument, BlueprintNode } from '../blueprint'
 import type { RuleDeviation, ScreenSpec } from '../design-system/manifest'
+import { DEVIATION, REUSE, type ParsedProposal } from './commentGrammar'
 
 export interface ParsedScreen {
   /** The component that returns the `<Screen>`. */
@@ -27,11 +28,33 @@ export interface ParsedScreen {
   doc: BlueprintDocument
   /** What the source says that the blueprint cannot carry — each one is a place a check is blind. */
   warnings: string[]
+  /** The same findings, structured: what kind of construct was skipped and where. */
+  notRead: NotRead[]
+  /** JSX elements converted into blueprint nodes. */
+  read: number
+  /** Every `@reuse` read on a primitive. */
+  reuses: { line: number; primitive: string; considered: string; why: string }[]
+  /** Every `<Link href="/designer/screen">` that wraps exactly one kit element: `goTo` is set on `node`. `href` is the raw string. */
+  links: { line: number; href: string; node: BlueprintNode }[]
+  /** The source line of each blueprint node, for messages about the validator's issues. */
+  lines: WeakMap<object, number>
+}
+
+/**
+ * Local components (name as used in the JSX) the screen imports from `components/`: a proposal
+ * becomes a `Proposal` node; `null` (no valid proposal) leaves the element out, the caller reports it.
+ */
+export type LocalComponents = ReadonlyMap<string, ParsedProposal | null>
+
+export type NotReadKind = 'computed-prop' | 'iteration' | 'spread' | 'text' | 'conditional' | 'other'
+export interface NotRead {
+  line: number
+  kind: NotReadKind
+  message: string
 }
 
 type JsxElementLike = ts.JsxElement | ts.JsxSelfClosingElement
 
-const DEVIATION = /@deviation\s+([\w.-]+)\s*:\s*([^\n]*?)\s*(?:\*\/|\n|$)/g
 
 /** The kit's own layout primitives are the Exploratório vocabulary, `primitive:*`, in a blueprint. */
 const PRIMITIVE_TAGS = new Set(['Box', 'Text'])
@@ -73,7 +96,7 @@ export function literal(node: ts.Expression): { value: unknown } | undefined {
   return undefined
 }
 
-export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[] {
+export function parseTsx(source: string, fileName = 'screen.tsx', components: LocalComponents = new Map()): ParsedScreen[] {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
   const results: ParsedScreen[] = []
 
@@ -99,10 +122,36 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
   }
   walk(sf)
 
+  /** The local name of `next/link`'s default import, if the file has one. */
+  let linkName = ''
+  for (const st of sf.statements) {
+    if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier) && st.moduleSpecifier.text === 'next/link' && st.importClause?.name) linkName = st.importClause.name.text
+  }
+
   for (const { el, fn, name } of found) {
     const warnings: string[] = []
-    const warn = (node: ts.Node, message: string): void => {
-      warnings.push(`line ${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: ${message}`)
+    const notRead: NotRead[] = []
+    let read = 0
+    const reuses: ParsedScreen['reuses'] = []
+    const links: ParsedScreen['links'] = []
+    const lines = new WeakMap<object, number>()
+    const warn = (node: ts.Node, message: string, kind: NotReadKind = 'other'): void => {
+      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
+      warnings.push(`line ${line}: ${message}`)
+      notRead.push({ line, kind, message })
+    }
+    /** A computed child: a `.map`/`.flatMap` anywhere in it is iteration, a ternary or `&&`/`||`/`??` is a conditional. */
+    const kindOfChild = (e: ts.Expression): NotReadKind => {
+      let iter = false
+      let cond = false
+      const look = (n: ts.Node): void => {
+        if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && /^(map|flatMap|forEach)$/.test(n.expression.name.text)) iter = true
+        if (ts.isConditionalExpression(n)) cond = true
+        if (ts.isBinaryExpression(n) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(n.operatorToken.kind)) cond = true
+        n.forEachChild(look)
+      }
+      look(e)
+      return iter ? 'iteration' : cond ? 'conditional' : 'other'
     }
 
     // ── the node builder ──────────────────────────────────────────────────────
@@ -110,7 +159,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       const props: Record<string, unknown> = {}
       for (const attr of opening.attributes.properties) {
         if (ts.isJsxSpreadAttribute(attr)) {
-          warn(attr, `spread on <${opening.tagName.getText()}> is not read`)
+          warn(attr, `spread on <${opening.tagName.getText()}> is not read`, 'spread')
           continue
         }
         const key = attr.name.getText()
@@ -121,7 +170,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
         else if (ts.isJsxExpression(init) && init.expression) {
           const value = literal(init.expression)
           if (value) props[key] = value.value
-          else warn(attr, `<${opening.tagName.getText()} ${key}={…}> is not a literal — left out`)
+          else warn(attr, `<${opening.tagName.getText()} ${key}={…}> is not a literal — left out`, 'computed-prop')
         }
       }
       return props
@@ -131,19 +180,46 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
     const nodesOf = (children: readonly ts.Node[]): BlueprintNode[] => {
       const out: BlueprintNode[] = []
       let pending: RuleDeviation[] = []
+      let pendingReuse: { considered: string; why: string } | undefined
       for (const child of children) {
         if (ts.isJsxText(child)) {
-          if (child.text.trim()) warn(child, `text "${child.text.trim().slice(0, 30)}" between tags is not read`)
+          if (child.text.trim()) warn(child, `text "${child.text.trim().slice(0, 30)}" between tags is not read`, 'text')
         } else if (ts.isJsxExpression(child)) {
           if (!child.expression) {
-            pending.push(...deviationsIn(child.getText(sf)))
+            const text = child.getText(sf)
+            pending.push(...deviationsIn(text))
+            const m = [...text.matchAll(REUSE)][0]
+            if (m) pendingReuse = { considered: m[1].trim(), why: m[2].replace(/\s+/g, ' ').trim() }
           } else {
-            warn(child, 'a computed child ({…}) is not read')
+            warn(child, 'a computed child ({…}) is not read', kindOfChild(child.expression))
           }
         } else if (ts.isJsxFragment(child)) {
           out.push(...nodesOf(child.children))
         } else if (isElement(child)) {
+          const tag = tagOf(child)
+          if (components.has(tag) && components.get(tag) === null) {
+            pending = []
+            pendingReuse = undefined
+            continue
+          }
+          // `next/link` is navigation, not a kit element: its one kit child carries the `goTo`.
+          const wrapped = tag === linkName ? linkOf(child) : undefined
+          if (wrapped) {
+            if (wrapped.length > 0 && pending.length > 0) {
+              wrapped[0].deviation = pending[0]
+              pending = []
+            }
+            out.push(...wrapped)
+            continue
+          }
           const node = nodeOf(child)
+          if (pendingReuse) {
+            if (PRIMITIVE_TAGS.has(tag)) {
+              node.reuse = pendingReuse
+              reuses.push({ line: lines.get(node)!, primitive: tag, ...pendingReuse })
+            } else warn(child, `@reuse before <${tag}>, which is not a primitive (Box, Text) — remove it`)
+            pendingReuse = undefined
+          }
           if (pending.length > 0) {
             node.deviation = pending[0]
             if (pending.length > 1) warn(child, `only one @deviation per node — kept ${pending[0].ruleId}`)
@@ -155,10 +231,39 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       return out
     }
 
+    /** The nodes inside a `<Link>`; the single one gets `goTo`. Anything the checker cannot follow is "not read", never a problem. */
+    function linkOf(link: JsxElementLike): BlueprintNode[] {
+      const href = openingOf(link).attributes.properties.find((a): a is ts.JsxAttribute => ts.isJsxAttribute(a) && a.name.getText() === 'href')
+      const init = href?.initializer
+      const value = init && ts.isStringLiteral(init) ? init.text : init && ts.isJsxExpression(init) && init.expression ? literal(init.expression)?.value : undefined
+      const inner = ts.isJsxElement(link) ? nodesOf(link.children) : []
+      if (typeof value !== 'string') warn(link, href ? '<Link href={…}> is not a string literal — the link is not followed' : '<Link> has no href — the link is not followed', 'computed-prop')
+      else if (inner.length !== 1) warn(link, `<Link> wraps ${inner.length} kit elements — the link is not followed (wrap exactly one)`)
+      else {
+        inner[0].goTo = value.replace(/^\//, '')
+        links.push({ line: sf.getLineAndCharacterOfPosition(link.getStart(sf)).line + 1, href: value, node: inner[0] })
+      }
+      return inner
+    }
+
     function nodeOf(element: JsxElementLike): BlueprintNode {
+      read++
       const tag = tagOf(element)
-      const node: BlueprintNode = { type: PRIMITIVE_TAGS.has(tag) ? `primitive:${tag}` : tag }
+      const proposal = components.get(tag)
+      const node: BlueprintNode = proposal
+        ? { type: 'Proposal', props: { description: proposal.description, proposedApi: proposal.api }, deviation: { ruleId: 'registry.new-component', why: proposal.why } }
+        : { type: PRIMITIVE_TAGS.has(tag) ? `primitive:${tag}` : tag }
+      lines.set(node, sf.getLineAndCharacterOfPosition(element.getStart(sf)).line + 1)
+      if (proposal) return node
       const props = propsOf(openingOf(element))
+      // A primitive Text carries its words as `text`: plain words between the tags are read, not skipped.
+      if (tag === 'Text' && ts.isJsxElement(element)) {
+        const words = element.children.filter(ts.isJsxText).map((t) => t.text.trim()).filter(Boolean).join(' ')
+        if (words && element.children.every((c) => ts.isJsxText(c))) {
+          props.text = words
+          return Object.assign(node, { props })
+        }
+      }
       if (Object.keys(props).length > 0) node.props = props
       if (ts.isJsxElement(element)) {
         const children = nodesOf(element.children)
@@ -177,7 +282,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       const init = attr.initializer
       if (key === 'model' || key === 'level') {
         const value = init && ts.isStringLiteral(init) ? init.text : init && ts.isJsxExpression(init) && init.expression ? literal(init.expression)?.value : undefined
-        if (value === undefined) warn(attr, `<Screen ${key}> is not a literal`)
+        if (value === undefined) warn(attr, `<Screen ${key}> is not a literal`, 'computed-prop')
         else (spec as unknown as Record<string, unknown>)[key] = value
       } else if (key === 'anchored' && init && ts.isJsxExpression(init) && init.expression) {
         const expr = init.expression
@@ -213,7 +318,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       mode: 'exploratory',
       root,
     }
-    results.push({ component: name, doc, warnings })
+    results.push({ component: name, doc, warnings, notRead, read, reuses, links, lines })
   }
   return results
 }

@@ -10,6 +10,10 @@ on:
       - 'scripts/**'
       - '.github/workflows/protos.yml'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   protos:
     name: protos
@@ -38,6 +42,27 @@ jobs:
       - run: npm ci --prefix web
       - run: npx playwright install --with-deps chromium
 
+      # The laws run on every touched screen and may fail; the report is still built and posted, then the job fails.
+      - name: Laws, on every screen the pull request touches
+        id: laws
+        run: |
+          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx')
+          echo '{"schemaVersion":1,"reports":[]}' > report.json
+          code=0
+          if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > report.json || code=$?; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Report, comment and summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run pr:report --silent -- report.json > report.md || { echo "The laws report could not be built."; cat report.json; exit 1; }
+          npm run pr:comment --silent -- report.md
+
+      - name: Fail when the laws failed
+        if: steps.laws.outputs.code != '0'
+        run: exit 1
       - name: Laws, on every screen and flow the pull request touches
         run: |
           screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')

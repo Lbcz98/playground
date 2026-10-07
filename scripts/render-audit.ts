@@ -46,8 +46,8 @@ function loadPlaywright(): Playwright {
 }
 
 export type RenderResult =
-  | { file: string; problems: string[]; issues: RenderIssue[]; error?: undefined }
-  | { file: string; problems: []; issues: []; error: string }
+  | { file: string; problems: string[]; issues: RenderIssue[]; measured?: RenderMeasurement; error?: undefined }
+  | { file: string; problems: []; issues: []; measured?: undefined; error: string }
 
 export async function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
   const playwright = loadPlaywright()
@@ -56,7 +56,7 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
     configFile: false,
     root: ROOT,
     logLevel: 'silent',
-    resolve: { alias: { '@': resolve(ROOT, 'src') } },
+    resolve: { alias: { '@': resolve(ROOT, 'src'), 'next/link': resolve(ROOT, 'scripts/render-harness/next-link.tsx') } },
     plugins: [react()],
     server: { host: '127.0.0.1', port: 0 },
     optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'] },
@@ -90,7 +90,7 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         if ('error' in measured) results.push({ file, problems: [], issues: [], error: measured.error })
         else {
           const issues = auditRenderIssues(measured)
-          results.push({ file, problems: issues.map((i) => i.message), issues })
+          results.push({ file, problems: issues.map((i) => i.message), issues, measured })
         }
       } catch (e) {
         results.push({ file, problems: [], issues: [], error: String(e).split('\n')[0] })

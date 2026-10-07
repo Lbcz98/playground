@@ -246,6 +246,14 @@ export const RULES = [
     source: 'rules.ts',
     appliesTo: ['Button', 'WideButton', 'InteractivityButton'],
   },
+  {
+    id: 'render.legibility',
+    title: 'Legible text',
+    statement: 'Text never lands on top of other text and is never squeezed to nothing by a container too small for it.',
+    flexibility: 'convention',
+    category: 'frame',
+    source: 'renderAudit.ts',
+  },
 ] as const satisfies readonly PatternRule[]
 
 /**
@@ -271,6 +279,7 @@ export const GLOBAL_RULE_IDS: readonly string[] = [
   'layout.no-static-center',
   'layout.anchor',
   'templates.reference',
+  'render.legibility',
 ]
 
 /** Every id in the built-in book — the validator can only name one of these. */

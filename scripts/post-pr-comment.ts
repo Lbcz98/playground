@@ -1,3 +1,8 @@
+/**
+ * `npm run pr:comment -- report.md` — one sticky comment per pull request.
+ * Finds the comment holding the marker and updates it, else creates it. The markdown always goes to
+ * $GITHUB_STEP_SUMMARY. On a fork, or with a read-only token, nothing is posted and the exit is 0.
+ */
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
