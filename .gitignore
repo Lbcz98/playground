@@ -30,3 +30,4 @@ web/tsconfig.tsbuildinfo
 .storybook-mcp.log
 .checks-corpus-pr
 .checks-corpus-e2e
+.export-test-flow

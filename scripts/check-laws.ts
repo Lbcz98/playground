@@ -28,6 +28,13 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+ * A folder with a `flow.ts` (or its `flow.ts`, or any screen inside it) is also checked as a flow: every
+ * state file as above, then the transitions between them (a state that does not exist, a key bound twice,
+ * a state nothing leads to, a jump past the next level, the rail rule across states).
+ * Exit code 1 when a law is broken.
+ */
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
@@ -39,6 +46,8 @@ import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/scre
 import { parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
 import { MAX_SCREENS } from '../src/shared/blueprint'
 import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
+import { parseTsx } from '../src/shared/export/fromTsx'
+import { flowFileIssues, parseFlowFile, type FlowStateScreen } from '../src/shared/export/flowFile'
 import { loadDtvManifest } from './dtv-manifest'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
@@ -495,13 +504,62 @@ export function addRenderResult(report: LawReport, r: Pick<RenderResult, 'issues
   }
 }
 
+export interface FlowReport {
+  dir: string
+  /** The states found (file names without .tsx). */
+  states: string[]
+  problems: LawProblem[]
+}
+
+/** The transitions of a flow folder, read from its `flow.ts` and held against the states in it. The state files themselves are `checkLaws`'s. */
+export function checkFlow(dir: string): FlowReport {
+  const folder = resolve(dir)
+  const problems: LawProblem[] = []
+  const add = (law: string, message: string): void => void problems.push({ law, message })
+  const states = readdirSync(folder)
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => f.replace(/\.tsx$/, ''))
+    .sort()
+  const parsed = parseFlowFile(readFileSync(join(folder, 'flow.ts'), 'utf8'))
+  for (const message of parsed.problems) add('blueprint.dsl', message)
+  if (!parsed.flow) return { dir: folder, states, problems }
+
+  const screens: FlowStateScreen[] = []
+  for (const id of states) {
+    const found = parseTsx(readFileSync(join(folder, `${id}.tsx`), 'utf8'), `${id}.tsx`)
+    if (found.length !== 1) {
+      add('layers.stack', `${id}.tsx holds ${found.length} screens — a state is one file with one <Screen>.`)
+      continue
+    }
+    screens.push({ id, screen: found[0].doc.screen, root: found[0].doc.root })
+  }
+  if (states.length === 0) add('blueprint.dsl', 'this flow folder has no state (.tsx) files.')
+  for (const issue of flowFileIssues(parsed.flow, screens, loadDtvManifest())) add(issue.ruleId, issue.message)
+  return { dir: folder, states, problems }
+}
+
+/** A flow folder, from a path to it, to its flow.ts, or to a state file inside it. */
+function flowFolderOf(arg: string): string | undefined {
+  const path = resolve(arg)
+  const dir = existsSync(path) && statSync(path).isDirectory() ? path : dirname(path)
+  return existsSync(join(dir, 'flow.ts')) ? dir : undefined
+}
+
 async function main(): Promise<void> {
-  const files = process.argv.slice(2).filter((a) => a !== '--' && !a.startsWith('--'))
+  const args = process.argv.slice(2).filter((a) => a !== '--' && !a.startsWith('--'))
   const json = process.argv.includes('--json')
-  if (files.length === 0) {
-    console.error('usage: npm run check:laws -- <file.tsx> [...] [--json]')
+  if (args.length === 0) {
+    console.error('usage: npm run check:laws -- <file.tsx | flow-folder> [...] [--json]')
     process.exit(2)
   }
+  const flowDirs = [...new Set(args.map(flowFolderOf).filter((d): d is string => d !== undefined))]
+  const files = [
+    ...new Set([
+      ...args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a)),
+      ...flowDirs.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.tsx')).map((f) => join(d, f))),
+    ]),
+  ]
+  const flows = flowDirs.map(checkFlow)
   const reports = files.map((f) => checkLaws(f))
   const requireRender = process.argv.includes('--require-render')
   let renderFailed = false
@@ -526,7 +584,13 @@ async function main(): Promise<void> {
     }
   }
   if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports }, null, 1))
+  if (json) console.log(JSON.stringify({ reports, flows }, null, 1))
   else {
+    for (const f of flows) {
+      const name = `${f.dir.replace(ROOT, '')}/flow.ts`
+      for (const p of f.problems) console.log(`${name}  [${p.law}] ${p.message}`)
+      if (f.problems.length === 0) console.log(`${name}  flow holds (${f.states.length} states, keys bound once, every state reached, no level skipped)`)
+    }
     for (const r of reports) {
       for (const p of r.problems) console.log(`${r.file.replace(ROOT, '')}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
       for (const a of r.advisories) console.log(`${r.file.replace(ROOT, '')}  advisory [${a.law}] ${a.message}`)
@@ -536,6 +600,7 @@ async function main(): Promise<void> {
     }
   }
   process.exit(renderFailed || reports.some((r) => r.problems.length > 0) ? 1 : 0)
+  process.exit(reports.some((r) => r.problems.length > 0) || flows.some((f) => f.problems.length > 0) ? 1 : 0)
 }
 
 if (!process.env.VITEST) void main()

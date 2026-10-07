@@ -60,6 +60,28 @@ Navegar é `<Link href="/<seu-nome>/<tela>">` (de `next/link`) em volta de **um*
 - **Só avisa** (legibilidade): texto sobre texto ou espremido. Aparece na saída e no comentário do PR, sem bloquear.
 - Se o Chromium não sobe, a medição não roda; no CI isso é falha (`--require-render`). Local: `npm run browsers:install`.
 
+## Fluxo (várias telas que se ligam)
+
+Um fluxo é uma **pasta** `web/protos/<seu-nome>/<fluxo>/`: um `.tsx` por **estado** (cada um é uma tela como acima, com o foco desenhado por `interactionState`/`focusedItem`) e um `flow.ts` que diz que tecla do controle leva de um estado a outro. Mover o foco para outro cartão é outro estado (`rail` → `rail-cinema`), não código.
+
+```ts
+// flow.ts — só dados literais (sem variáveis, spread ou chamadas): a checagem lê o arquivo, não o executa
+export default {
+  start: 'home',
+  transitions: [
+    { from: 'home', key: 'up', to: 'rail' },
+    { from: 'rail', key: 'enter', to: 'detail' },
+  ],
+}
+```
+
+- Teclas: `up`, `down`, `left`, `right`, `enter`. **Voltar é automático** (Esc/Backspace volta pelos estados visitados); não declare `back`.
+- O nome do estado é o nome do arquivo sem `.tsx`. Cada arquivo tem um só `<Screen>`; não escreva estado, rota ou `onClick` na tela.
+- Camadas: uma tecla abre o nível seguinte ou volta a um nível acima, nunca pula (Home 1 → trilha 2 → interatividade 3). A trilha entrada mostra os mesmos cartões da Home.
+- Uma tecla, um destino por estado; todo estado precisa ser alcançável a partir de `start`.
+- Exemplo completo: `web/protos/lucas/grade-flow/`. Veja em `/<seu-nome>/<fluxo>` com `cd web && npm run dev` (setas e Enter; Esc volta; R reinicia).
+- Conferir: `npm run check:laws -- web/protos/<seu-nome>/<fluxo>` (a pasta inteira: cada estado e as transições).
+
 ## Laço de conferência
 
 Depois de escrever ou mudar uma tela:
@@ -69,3 +91,6 @@ npm run check:laws -- web/protos/<seu-nome>/<tela>.tsx
 ```
 
 Repita até ficar limpo (avisos de legibilidade não precisam sumir). Ele roda o `tsc`, os tokens, o livro de regras e mede a tela renderizada (corte, estouro, texto sobreposto, fundo que cobre o quadro). Para ver a tela: `cd web && npm run dev`, em `/<seu-nome>/<tela>`. Para publicar: `/deploy`.
+Repita até ficar limpo. Ele roda o `tsc`, os tokens, o livro de regras e mede a tela renderizada (corte, estouro, texto sobreposto, fundo que cobre o quadro). Para ver a tela: `cd web && npm run dev`, em `/<seu-nome>/<tela>`. Para publicar: `/deploy`.
+
+Pedido com "fluxo", "ao clicar", "leva para" ou mais de uma tela: faça um fluxo (pasta), não uma tela com estado interno.
