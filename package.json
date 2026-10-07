@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:checks": "vitest run tests/checks",
     "lint:tokens": "node scripts/check-tokens.mjs",
     "eval:modes": "vite-node --config vitest.config.ts eval/run.ts --",
     "tokens:build": "vite-node --config vitest.config.ts scripts/build-tokens.ts",
