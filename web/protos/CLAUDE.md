@@ -8,7 +8,7 @@ Uma tela é um arquivo `.tsx` com `export default` de um componente que devolve 
    - `docs-list` lista os componentes; `docs-show <id>` dá a descrição, as props com os **valores permitidos** (espaçamentos, fundos, raios, alinhamentos) e exemplos. Nunca invente uma prop que ele não mostra.
    - Comece por `foundations-screen` (o quadro 1280×720 de toda tela).
    - `stories-preview` devolve o link de um componente renderizado.
-2. **Os arquivos do repo**, para o que o MCP não traz: tokens em `tokens/tokens.json`, modelos de camada em `src/shared/design-system/screen-layers.ts`, telas de referência em `scripts/storybook/dtv-templates.ts` (ou as de `web/protos/lucas/`).
+2. **Os arquivos do repo**, para o que o MCP não traz: tokens em [`generated/tokens.md`](generated/tokens.md), regras em [`generated/rules.md`](generated/rules.md), modelos de camada em `src/shared/design-system/screen-layers.ts`, telas de referência em `scripts/storybook/dtv-templates.ts` (ou as de `web/protos/lucas/`).
 
 ## Imports (os exemplos do Storybook mostram `from 'screenflow-studio'`: troque)
 
