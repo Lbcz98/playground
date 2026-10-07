@@ -6,7 +6,7 @@ Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 
 | Task | Title | Depends on | Status | Commit | Rounds | Verdict file | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| T00 | Baseline and conformance corpus | — | in_progress | | 0 | | |
+| T00 | Baseline and conformance corpus | — | verified | 8d99e29 | 0 | verdicts/T00.md | |
 | T01 | Render findings: laws block, legibility warns | T00 | todo | | 0 | | |
 | T05 | Generated guides and drift check | T00 | todo | | 0 | | |
 | T06 | ScreenFlow boundary guard | T00 | todo | | 0 | | |
