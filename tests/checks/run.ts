@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkLaws } from '../../scripts/check-laws'
+import { addRenderResult, checkLaws } from '../../scripts/check-laws'
 import { renderAuditFiles, RenderAuditUnavailable } from '../../scripts/render-audit'
 import type { CorpusCase } from './corpus/cases'
 
@@ -14,6 +14,8 @@ export interface CaseResult {
   notRead: number
   deviations: string[]
   problems: string[]
+  advisories: string[]
+  advisoryLaws: string[]
   skipped?: string
 }
 
@@ -35,8 +37,7 @@ export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResul
   if (render) {
     try {
       const [r] = await renderAuditFiles([entry])
-      if (r.error) report.warnings.push(`render check did not run: ${r.error}`)
-      for (const message of r.problems) report.problems.push({ law: 'render', source: 'render', message })
+      addRenderResult(report, r)
     } catch (e) {
       if (!(e instanceof RenderAuditUnavailable)) throw e
       skipped = e.message
@@ -48,6 +49,8 @@ export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResul
     notRead: report.warnings.length,
     deviations: report.deviations.map((d) => d.ruleId),
     problems: report.problems.map((p) => `[${p.law}] ${p.message}`),
+    advisories: report.advisories.map((p) => `[${p.law}] ${p.message}`),
+    advisoryLaws: [...new Set(report.advisories.map((p) => p.law))].sort(),
     skipped,
   }
 }

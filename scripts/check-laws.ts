@@ -22,6 +22,8 @@
  * A pattern broken without a `@deviation <ruleId>: <why>` is reported, and so is a deviation
  * declared for a rule nothing breaks. What the JSX has that a blueprint cannot carry (a computed
  * prop, a `.map`, text) is listed as "not read": there the check is blind.
+ * Text on text and squeezed text are advisories (`render.legibility`): printed, exit 0. `--require-render`
+ * makes a render audit that cannot run (no Playwright or Chromium, harness error) exit 1.
  * Exit code 1 when a law is broken.
  */
 import { readFileSync } from 'node:fs'
@@ -34,7 +36,7 @@ import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
 import { parseTsx } from '../src/shared/export/fromTsx'
 import { loadDtvManifest } from './dtv-manifest'
-import { renderAuditFiles, RenderAuditUnavailable } from './render-audit'
+import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
@@ -48,7 +50,10 @@ export interface LawProblem {
 }
 export interface LawReport {
   file: string
+  /** Blocking: any of these makes the run exit 1. */
   problems: LawProblem[]
+  /** Advisory (render.legibility): printed, never fails the run. */
+  advisories: LawProblem[]
   deviations: { ruleId: string; why: string }[]
   /** What the JSX has that the blueprint cannot carry: a computed prop, a `.map`, text — where the validator is blind. */
   warnings: string[]
@@ -220,7 +225,16 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   // ── declared deviations (patterns), as the exporter writes them ─────────────
   const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
 
-  return { file: path, problems, deviations, warnings }
+  return { file: path, problems, advisories: [], deviations, warnings }
+}
+
+/** Folds one render result into a report: blocking findings are problems, legibility findings advisories. */
+export function addRenderResult(report: LawReport, r: Pick<RenderResult, 'issues' | 'error'>): void {
+  if (r.error) report.warnings.push(`render check did not run: ${r.error}`)
+  for (const i of r.issues) {
+    if (i.severity === 'warn') report.advisories.push({ law: i.ruleId, source: 'render', message: i.message })
+    else report.problems.push({ law: 'render', source: 'render', message: i.message })
+  }
 }
 
 async function main(): Promise<void> {
@@ -231,29 +245,39 @@ async function main(): Promise<void> {
     process.exit(2)
   }
   const reports = files.map((f) => checkLaws(f))
+  const requireRender = process.argv.includes('--require-render')
+  let renderFailed = false
   if (!process.argv.includes('--no-render')) {
+    const didNotRun = (cause: string): void => {
+      for (const r of reports) r.warnings.push(`render check did not run: ${cause}`)
+      if (requireRender) renderFailed = true
+      console.error(`${cause}${requireRender ? ' — --require-render: failing' : ''}`)
+    }
     try {
       const rendered = await renderAuditFiles(files)
       for (const r of rendered) {
-        const report = reports.find((x) => x.file === resolve(r.file))!
-        if (r.error) report.warnings.push(`render check did not run: ${r.error}`)
-        for (const message of r.problems) report.problems.push({ law: 'render', source: 'render', message })
+        addRenderResult(reports.find((x) => x.file === resolve(r.file))!, r)
+        if (r.error && requireRender) {
+          renderFailed = true
+          console.error(`${r.file}: render check did not run (${r.error}) — --require-render: failing`)
+        }
       }
     } catch (e) {
       if (!(e instanceof RenderAuditUnavailable)) throw e
-      console.error(e.message)
+      didNotRun(e.message)
     }
   }
   if (json) console.log(JSON.stringify(reports, null, 1))
   else {
     for (const r of reports) {
       for (const p of r.problems) console.log(`${r.file.replace(ROOT, '')}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
+      for (const a of r.advisories) console.log(`${r.file.replace(ROOT, '')}  advisory [${a.law}] ${a.message}`)
       for (const w of r.warnings) console.log(`${r.file.replace(ROOT, '')}  not read: ${w}`)
       for (const d of r.deviations) console.log(`${r.file.replace(ROOT, '')}  declared ${d.ruleId}: ${d.why}`)
       if (r.problems.length === 0) console.log(`${r.file.replace(ROOT, '')}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
     }
   }
-  process.exit(reports.some((r) => r.problems.length > 0) ? 1 : 0)
+  process.exit(renderFailed || reports.some((r) => r.problems.length > 0) ? 1 : 0)
 }
 
 if (!process.env.VITEST) void main()

@@ -10,7 +10,11 @@ describe('conformance corpus (render)', () => {
     it(`${c.id}: ${c.title}`, async () => {
       const r = await runCase(c, true)
       if (r.skipped) return void console.warn(`skipped ${c.id}: ${r.skipped}`)
-      expect({ exit: r.exit, laws: r.laws }).toEqual({ exit: c.expect.exit, laws: [...c.expect.laws].sort() })
+      expect({ exit: r.exit, laws: r.laws, advisories: r.advisoryLaws }).toEqual({
+        exit: c.expect.exit,
+        laws: [...c.expect.laws].sort(),
+        advisories: [...(c.expect.advisories ?? [])].sort(),
+      })
       expect(r.deviations).toEqual(c.expect.deviations ?? [])
     }, 180_000)
   }

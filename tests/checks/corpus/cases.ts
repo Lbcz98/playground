@@ -12,6 +12,7 @@ export interface CorpusCase {
     laws: string[] // problem rule ids, sorted
     notRead?: number // minimum count of "not read" warnings
     deviations?: string[] // declared rule ids
+    advisories?: string[] // advisory rule ids (render.legibility); default none
     render?: boolean // needs Chromium; the case self-skips without it
     note?: string // why the expectation is what it is
   }
@@ -109,12 +110,18 @@ export const CASES: CorpusCase[] = [
     id: 'render-covering-fill',
     title: 'a container painting a background over the frame is layers.stack (render)',
     ...one('s.tsx', HOME.replace('<Stack direction="column"', '<Stack background="primary" direction="column"')),
-    expect: { exit: 1, laws: ['render'], render: true, note: 'check:laws reports every render finding as law "render" today (T01 splits it)' },
+    expect: { exit: 1, laws: ['render'], render: true, note: 'layers.stack render finding blocks; reported as law "render"' },
+  },
+  {
+    id: 'render-clean',
+    title: 'a clean reference screen has no render problems and no advisories (render)',
+    ...one('s.tsx', HOME),
+    expect: { exit: 0, laws: [], advisories: [], render: true },
   },
   {
     id: 'render-clipped',
     title: 'more rows than the card holds is cut off (render)',
     ...one('s.tsx', CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/, (row) => row.repeat(12))),
-    expect: { exit: 1, laws: ['render'], render: true, note: 'cut-off content; reported as law "render" today' },
+    expect: { exit: 1, laws: ['render'], render: true, note: 'cut-off content blocks; reported as law "render"' },
   },
 ]

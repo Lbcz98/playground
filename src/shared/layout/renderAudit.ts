@@ -75,7 +75,9 @@ function spills(inner: Box, outer: Box): boolean {
  */
 /** A render problem and the rule it breaks: the frame (overflow, cut off, overlap) or the layer stack (a covering fill). */
 export interface RenderIssue {
-  ruleId: 'frame.layout' | 'layers.stack'
+  ruleId: 'frame.layout' | 'layers.stack' | 'render.legibility'
+  /** 'block' fails check:laws (cut off, past the frame, covering fill); 'warn' is advisory (text on text, squeezed text). */
+  severity: 'block' | 'warn'
   message: string
 }
 
@@ -86,7 +88,8 @@ export function auditRender(m: RenderMeasurement): string[] {
 export function auditRenderIssues(m: RenderMeasurement): RenderIssue[] {
   const found: RenderIssue[] = []
   const problems = {
-    push: (message: string, ruleId: RenderIssue['ruleId'] = 'frame.layout'): void => void found.push({ ruleId, message }),
+    push: (message: string, ruleId: RenderIssue['ruleId'] = 'frame.layout'): void =>
+      void found.push({ ruleId, severity: ruleId === 'render.legibility' ? 'warn' : 'block', message }),
   }
   const frame: Box = { top: 0, left: 0, width: m.frame.width, height: m.frame.height }
 
@@ -133,7 +136,7 @@ export function auditRenderIssues(m: RenderMeasurement): RenderIssue[] {
   const shown = m.texts.filter(visible)
   for (const t of shown) {
     if (t.width < COLLAPSED_WIDTH && t.text.length > 0) {
-      problems.push(`"${t.text}" has been squeezed down to nothing — its container is too small for it.`)
+      problems.push(`"${t.text}" has been squeezed down to nothing — its container is too small for it.`, 'render.legibility')
     }
   }
   const live = shown.filter((t) => t.width >= COLLAPSED_WIDTH && t.height > 0)
@@ -144,7 +147,7 @@ export function auditRenderIssues(m: RenderMeasurement): RenderIssue[] {
       const ix = Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left)
       const iy = Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top)
       if (ix > OVERLAP_SLACK && iy > OVERLAP_SLACK) {
-        problems.push(`"${a.text}" overlaps "${b.text}" — two pieces of text land on top of each other.`)
+        problems.push(`"${a.text}" overlaps "${b.text}" — two pieces of text land on top of each other.`, 'render.legibility')
       }
     }
   }
