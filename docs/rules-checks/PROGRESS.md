@@ -20,6 +20,8 @@ Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 _(task, what the spec assumed, what the code showed, the user's decision)_
 - T03 · Gate 2 · spec gave `@proposal <proposed API>` only, but the validator needs why, description, proposedApi · user: structured `@proposal` JSDoc block with fields `why`, `description`, `figma`, `proposedApi` (map of prop -> type string). Designers do not hand-write it: a conversational agent intake (4 questions: what/behavior/why new/Figma link) compiles it. Intake instructions are agent-md content; not part of T03 code unless inside its Touches (otherwise T08 designer guide).
 - T03 · Gate 1 · TSX `Stack` is always the kit Stack container (PRIMITIVE_TAGS maps only Box/Text) · user: keep as container, leave rules.ts alone, record in AC5 case note.
+- T04 · AC2 · spec expected a JSDoc `@deviation flow.next-level` on the component to be honored; RULE_SCOPE marks flow.next-level and flow.link-roles as node-scope, so a screen-level declaration is a blueprint.dsl error · user: declare on the node, `{/* @deviation flow.next-level: … */}` right before the <Link>; AC2 amended accordingly; JSDoc declaration gets the existing "declare it on the node" message; flow.rail-consistency stays declarable in JSDoc; no rule or flexibility change.
+- T04 · Touches · next/link render alias must live in scripts/render-audit.ts (outside Touches) · user: allowed, minimal edit, reported as a deviation.
 
 ## Decisions taken during the work
 _(date, task, decision, who decided)_
