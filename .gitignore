@@ -22,6 +22,7 @@ eval/results/
 .export-test-render
 .render-check
 .checks-corpus
+.checks-corpus-cli
 web/node_modules
 web/.next
 web/next-env.d.ts

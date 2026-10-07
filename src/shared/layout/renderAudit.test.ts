@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { auditRender, type RenderMeasurement } from './renderAudit'
+import { auditRender, auditRenderIssues, type RenderMeasurement } from './renderAudit'
+
+/** message → severity: cut off → block (frame.layout); past the frame → block (frame.layout); covering fill → block (layers.stack); text on text → warn (render.legibility); squeezed text → warn (render.legibility). */
+describe('auditRenderIssues — severity of each finding', () => {
+  const only = (m: RenderMeasurement) => auditRenderIssues(m).map((i) => [i.ruleId, i.severity])
+  const fr = { width: 1280, height: 720 }
+  const nd = (over: Partial<RenderMeasurement['nodes'][number]>) => ({ id: 'n', type: 'ContentCard', top: 100, left: 100, width: 200, height: 200, ...over })
+  const tx = (over: Partial<RenderMeasurement['texts'][number]>) => ({ text: 'T', top: 100, left: 100, width: 60, height: 20, ...over })
+  it('content cut off by its container: block, frame.layout', () => {
+    const card = { ownerId: 'c', ownerType: 'ContentCard', top: 100, left: 100, width: 200, height: 50 }
+    const row = nd({ id: 'r', type: 'TableCell', top: 200, height: 20, clip: card })
+    expect(only({ frame: fr, nodes: [row], texts: [] })).toEqual([['frame.layout', 'block']])
+  })
+  it('node past the frame edge: block, frame.layout', () => {
+    expect(only({ frame: fr, nodes: [nd({ left: -10 })], texts: [] })).toEqual([['frame.layout', 'block']])
+  })
+  it('covering fill: block, layers.stack', () => {
+    const n = nd({ type: 'Stack', top: 32, left: 32, width: 1216, height: 656, paints: true })
+    expect(only({ frame: fr, nodes: [n], texts: [] })).toEqual([['layers.stack', 'block']])
+  })
+  it('text overlapping text: warn, render.legibility', () => {
+    const a = tx({ text: 'A', width: 100, height: 16 })
+    const b = tx({ text: 'B', top: 105, left: 150, width: 100, height: 16 })
+    expect(only({ frame: fr, nodes: [], texts: [a, b] })).toEqual([['render.legibility', 'warn']])
+  })
+  it('text squeezed to nothing: warn, render.legibility', () => {
+    expect(only({ frame: fr, nodes: [], texts: [tx({ width: 1 })] })).toEqual([['render.legibility', 'warn']])
+  })
+})
 
 const frame = { width: 1280, height: 720 }
 const node = (over: Partial<RenderMeasurement['nodes'][number]>) => ({
