@@ -5,6 +5,10 @@
  */
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { MARKER } from './pr-report'
 
 export interface PostOptions {
@@ -27,6 +31,27 @@ export function postComment(body: string, o: PostOptions): string {
   const w = id ? gh(['api', '-X', 'PATCH', `${base}/comments/${id}`, '-f', `body=${body}`]) : gh(['api', '-X', 'POST', `${base}/${o.pr}/comments`, '-f', `body=${body}`])
   if (w.status !== 0) return denied('write', w.stderr)
   return id ? 'updated' : 'created'
+  if (!body || !body.trim()) return 'skipped: empty comment body'
+  const gh = o.gh ?? realGh
+  const base = `repos/${o.repo}/issues`
+  const markerExpr = JSON.stringify(MARKER)
+  const list = gh(['api', '--paginate', `${base}/${o.pr}/comments`, '--jq', `.[] | select(.body | contains(${markerExpr})) | .id`])
+  if (list.status !== 0) return denied('list', list.stderr)
+  const id = list.stdout.split('\n').find((l) => l.trim())?.trim()
+
+  // Pass the markdown via a temporary file instead of `-f body=...`; large / multiline bodies
+  // can trigger GitHub validation errors when sent as a literal field value.
+  const file = join(tmpdir(), `protos-pr-comment-${process.pid}-${Date.now()}.md`)
+  writeFileSync(file, body)
+  try {
+    const w = id
+      ? gh(['api', '-X', 'PATCH', `${base}/comments/${id}`, '--input', file])
+      : gh(['api', '-X', 'POST', `${base}/${o.pr}/comments`, '--input', file])
+    if (w.status !== 0) return denied('write', w.stderr)
+    return id ? 'updated' : 'created'
+  } finally {
+    rmSync(file, { force: true })
+  }
 }
 
 function denied(step: string, stderr: string): string {
