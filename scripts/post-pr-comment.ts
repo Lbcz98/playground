@@ -4,8 +4,6 @@
  * $GITHUB_STEP_SUMMARY. On a fork, or with a read-only token, nothing is posted and the exit is 0.
  */
 import { spawnSync } from 'node:child_process'
-import { appendFileSync, readFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -23,14 +21,6 @@ const realGh = (args: string[]) => spawnSync('gh', args, { encoding: 'utf8' })
 /** Returns what it did: 'created', 'updated', or 'skipped: <why>'. */
 export function postComment(body: string, o: PostOptions): string {
   if (o.fork) return 'skipped: pull request from a fork (read-only token)'
-  const gh = o.gh ?? realGh
-  const base = `repos/${o.repo}/issues`
-  const list = gh(['api', '--paginate', `${base}/${o.pr}/comments`, '--jq', `.[] | select(.body | contains("${MARKER}")) | .id`])
-  if (list.status !== 0) return denied('list', list.stderr)
-  const id = list.stdout.split('\n').find((l) => l.trim())?.trim()
-  const w = id ? gh(['api', '-X', 'PATCH', `${base}/comments/${id}`, '-f', `body=${body}`]) : gh(['api', '-X', 'POST', `${base}/${o.pr}/comments`, '-f', `body=${body}`])
-  if (w.status !== 0) return denied('write', w.stderr)
-  return id ? 'updated' : 'created'
   if (!body || !body.trim()) return 'skipped: empty comment body'
   const gh = o.gh ?? realGh
   const base = `repos/${o.repo}/issues`
