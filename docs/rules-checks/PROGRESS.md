@@ -18,6 +18,8 @@ Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 
 ## Spec conflicts raised
 _(task, what the spec assumed, what the code showed, the user's decision)_
+- T03 · Gate 2 · spec gave `@proposal <proposed API>` only, but the validator needs why, description, proposedApi · user: structured `@proposal` JSDoc block with fields `why`, `description`, `figma`, `proposedApi` (map of prop -> type string). Designers do not hand-write it: a conversational agent intake (4 questions: what/behavior/why new/Figma link) compiles it. Intake instructions are agent-md content; not part of T03 code unless inside its Touches (otherwise T08 designer guide).
+- T03 · Gate 1 · TSX `Stack` is always the kit Stack container (PRIMITIVE_TAGS maps only Box/Text) · user: keep as container, leave rules.ts alone, record in AC5 case note.
 
 ## Decisions taken during the work
 _(date, task, decision, who decided)_
