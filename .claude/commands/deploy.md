@@ -13,4 +13,5 @@ Publique o trabalho do designer. Ele não precisa conhecer Git: fale em telas e 
    - **`changes` falhou:** há alterações fora da pasta do designer, ou em mais de uma pasta. Liste os arquivos e pergunte o que fazer. Não os desfaça nem os esconda por conta própria.
    - **CI falhou:** abra o log com `gh run view --log-failed`, corrija na pasta do designer e repita o passo 1 (ele atualiza o mesmo pull request).
    - **`setup` falhou:** diga o que falta (por exemplo `gh auth login`) e pare.
-3. Nunca use `--force`, nunca publique em `main` e nunca altere arquivos fora de `web/protos/<designer>/` para fazer a checagem passar.
+3. Avisos de legibilidade não bloqueiam a publicação; os comentários `@reuse` e `@proposal` fazem parte do contrato e aparecem no comentário do pull request.
+4. Nunca use `--force`, nunca publique em `main` e nunca altere arquivos fora de `web/protos/<designer>/` para fazer a checagem passar.
