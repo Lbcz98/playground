@@ -37,7 +37,7 @@ export interface CompiledTokens {
  * components manifest — can't read a type derived from `CssVar`.
  * `src/primitives/tokens.ts` proves each one equals its derived twin.
  */
-const NAME_FAMILIES: ReadonlyArray<{ type: string; prefix: string; doc: string }> = [
+export const NAME_FAMILIES: ReadonlyArray<{ type: string; prefix: string; doc: string }> = [
   { type: 'SpacingStep', prefix: '--dimension-spacing-core-', doc: 'A step of the spacing scale.' },
   { type: 'RadiusStep', prefix: '--dimension-radius-core-', doc: 'A step of the radius scale.' },
   { type: 'SurfaceColor', prefix: '--color-semantic-functional-background-', doc: 'A functional background role.' },

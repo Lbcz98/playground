@@ -20,6 +20,7 @@
 import ts from 'typescript'
 import type { BlueprintDocument, BlueprintNode } from '../blueprint'
 import type { RuleDeviation, ScreenSpec } from '../design-system/manifest'
+import { DEVIATION } from './commentGrammar'
 
 export interface ParsedScreen {
   /** The component that returns the `<Screen>`. */
@@ -31,7 +32,6 @@ export interface ParsedScreen {
 
 type JsxElementLike = ts.JsxElement | ts.JsxSelfClosingElement
 
-const DEVIATION = /@deviation\s+([\w.-]+)\s*:\s*([^\n]*?)\s*(?:\*\/|\n|$)/g
 
 /** The kit's own layout primitives are the Exploratório vocabulary, `primitive:*`, in a blueprint. */
 const PRIMITIVE_TAGS = new Set(['Box', 'Text'])
