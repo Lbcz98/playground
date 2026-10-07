@@ -58,7 +58,7 @@ describe('check:laws on a real advisory screen', () => {
 
 describe('addRenderResult — severity routing', () => {
   it('puts warn findings in advisories and block findings in problems', () => {
-    const rep = { file: 'f', problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 0, notRead: 0 }, reuses: [], proposals: [] }
+    const rep = { file: 'f', problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 0, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] } }
     addRenderResult(rep, {
       issues: [
         { ruleId: 'render.legibility', severity: 'warn', message: 'overlap' },
