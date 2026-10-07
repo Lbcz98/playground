@@ -10,8 +10,8 @@ Base: `spike/tsx-exporter` @ `786521d` · Branch: `feat/rules-and-checks`
 | T01 | Render findings: laws block, legibility warns | T00 | verified | 0f8d468 | 1 | verdicts/T01.md | |
 | T05 | Generated guides and drift check | T00 | verified | 5b4a53c | 0 | verdicts/T05.md | |
 | T06 | ScreenFlow boundary guard | T00 | verified | 48279bc | 0 | verdicts/T06.md | |
-| T02 | Free-form TSX: logic, local imports | T01 | in_progress | | 0 | | |
-| T03 | Primitives and local components | T02, T05 | todo | | 0 | | |
+| T02 | Free-form TSX: logic, local imports | T01 | verified | 4ed92ca | 0 | verdicts/T02.md | |
+| T03 | Primitives and local components | T02, T05 | in_progress | | 0 | | |
 | T04 | Flow across screens with `<Link>` | T03 | todo | | 0 | | |
 | T07 | PR report and CI gate | T01, T02, T03, T04 | todo | | 0 | | |
 | T08 | Designer guide, e2e, final sweep | T01–T07 | todo | | 0 | | |
