@@ -28,6 +28,17 @@ export interface ParsedScreen {
   doc: BlueprintDocument
   /** What the source says that the blueprint cannot carry — each one is a place a check is blind. */
   warnings: string[]
+  /** The same findings, structured: what kind of construct was skipped and where. */
+  notRead: NotRead[]
+  /** JSX elements converted into blueprint nodes. */
+  read: number
+}
+
+export type NotReadKind = 'computed-prop' | 'iteration' | 'spread' | 'text' | 'conditional' | 'other'
+export interface NotRead {
+  line: number
+  kind: NotReadKind
+  message: string
 }
 
 type JsxElementLike = ts.JsxElement | ts.JsxSelfClosingElement
@@ -101,8 +112,25 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
 
   for (const { el, fn, name } of found) {
     const warnings: string[] = []
-    const warn = (node: ts.Node, message: string): void => {
-      warnings.push(`line ${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: ${message}`)
+    const notRead: NotRead[] = []
+    let read = 0
+    const warn = (node: ts.Node, message: string, kind: NotReadKind = 'other'): void => {
+      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
+      warnings.push(`line ${line}: ${message}`)
+      notRead.push({ line, kind, message })
+    }
+    /** A computed child: a `.map`/`.flatMap` anywhere in it is iteration, a ternary or `&&`/`||`/`??` is a conditional. */
+    const kindOfChild = (e: ts.Expression): NotReadKind => {
+      let iter = false
+      let cond = false
+      const look = (n: ts.Node): void => {
+        if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && /^(map|flatMap|forEach)$/.test(n.expression.name.text)) iter = true
+        if (ts.isConditionalExpression(n)) cond = true
+        if (ts.isBinaryExpression(n) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(n.operatorToken.kind)) cond = true
+        n.forEachChild(look)
+      }
+      look(e)
+      return iter ? 'iteration' : cond ? 'conditional' : 'other'
     }
 
     // ── the node builder ──────────────────────────────────────────────────────
@@ -110,7 +138,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       const props: Record<string, unknown> = {}
       for (const attr of opening.attributes.properties) {
         if (ts.isJsxSpreadAttribute(attr)) {
-          warn(attr, `spread on <${opening.tagName.getText()}> is not read`)
+          warn(attr, `spread on <${opening.tagName.getText()}> is not read`, 'spread')
           continue
         }
         const key = attr.name.getText()
@@ -121,7 +149,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
         else if (ts.isJsxExpression(init) && init.expression) {
           const value = literal(init.expression)
           if (value) props[key] = value.value
-          else warn(attr, `<${opening.tagName.getText()} ${key}={…}> is not a literal — left out`)
+          else warn(attr, `<${opening.tagName.getText()} ${key}={…}> is not a literal — left out`, 'computed-prop')
         }
       }
       return props
@@ -133,12 +161,12 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       let pending: RuleDeviation[] = []
       for (const child of children) {
         if (ts.isJsxText(child)) {
-          if (child.text.trim()) warn(child, `text "${child.text.trim().slice(0, 30)}" between tags is not read`)
+          if (child.text.trim()) warn(child, `text "${child.text.trim().slice(0, 30)}" between tags is not read`, 'text')
         } else if (ts.isJsxExpression(child)) {
           if (!child.expression) {
             pending.push(...deviationsIn(child.getText(sf)))
           } else {
-            warn(child, 'a computed child ({…}) is not read')
+            warn(child, 'a computed child ({…}) is not read', kindOfChild(child.expression))
           }
         } else if (ts.isJsxFragment(child)) {
           out.push(...nodesOf(child.children))
@@ -156,6 +184,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
     }
 
     function nodeOf(element: JsxElementLike): BlueprintNode {
+      read++
       const tag = tagOf(element)
       const node: BlueprintNode = { type: PRIMITIVE_TAGS.has(tag) ? `primitive:${tag}` : tag }
       const props = propsOf(openingOf(element))
@@ -177,7 +206,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       const init = attr.initializer
       if (key === 'model' || key === 'level') {
         const value = init && ts.isStringLiteral(init) ? init.text : init && ts.isJsxExpression(init) && init.expression ? literal(init.expression)?.value : undefined
-        if (value === undefined) warn(attr, `<Screen ${key}> is not a literal`)
+        if (value === undefined) warn(attr, `<Screen ${key}> is not a literal`, 'computed-prop')
         else (spec as unknown as Record<string, unknown>)[key] = value
       } else if (key === 'anchored' && init && ts.isJsxExpression(init) && init.expression) {
         const expr = init.expression
@@ -213,7 +242,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx'): ParsedScreen[
       mode: 'exploratory',
       root,
     }
-    results.push({ component: name, doc, warnings })
+    results.push({ component: name, doc, warnings, notRead, read })
   }
   return results
 }

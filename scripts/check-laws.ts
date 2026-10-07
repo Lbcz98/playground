@@ -26,15 +26,15 @@
  * makes a render audit that cannot run (no Playwright or Chromium, harness error) exit 1.
  * Exit code 1 when a law is broken.
  */
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
-import { parseTsx } from '../src/shared/export/fromTsx'
+import { parseTsx, type NotRead } from '../src/shared/export/fromTsx'
 import { loadDtvManifest } from './dtv-manifest'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
@@ -57,6 +57,10 @@ export interface LawReport {
   deviations: { ruleId: string; why: string }[]
   /** What the JSX has that the blueprint cannot carry: a computed prop, a `.map`, text — where the validator is blind. */
   warnings: string[]
+  /** `warnings`, structured (line, kind, message). */
+  notRead: NotRead[]
+  /** `read`: JSX elements turned into blueprint nodes. `notRead`: constructs skipped. */
+  coverage: { read: number; notRead: number }
 }
 
 /** Components that hold the focus, and whether leaving `interactionState` out means focused. */
@@ -96,38 +100,89 @@ function literalProp(el: ts.JsxOpeningLikeElement, name: string): string | undef
   return undefined
 }
 
+/** `web/protos/<name>/` when the file is inside one; otherwise the file's own directory (corpus, tests). */
+export function designerFolder(path: string): string {
+  const m = path.split(sep).join('/').match(/^(.*\/web\/protos\/[^/]+)\//)
+  return m ? m[1].split('/').join(sep) : dirname(path)
+}
+
+const LOCAL_EXT = ['', '.ts', '.tsx', '.json', '/index.ts', '/index.tsx']
+const NOT_CODE = /\.(svg|png|jpe?g|gif|webp|avif|ico|css|scss)$/i
+const hasJsx = (sf: ts.SourceFile): boolean => {
+  let found = false
+  const look = (n: ts.Node): void => {
+    if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n) || ts.isJsxFragment(n)) found = true
+    else if (!found) n.forEachChild(look)
+  }
+  look(sf)
+  return found
+}
+
 export function checkLaws(file: string, options: { skipValidator?: boolean } = {}): LawReport {
   const path = resolve(file)
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
   const add = (law: string, message: string, line?: number): void => void problems.push({ law, message, line })
 
-  // ── tsc against the real kit ────────────────────────────────────────────────
+  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
+  const folder = designerFolder(path)
+  const rel = (f: string): string => f.replace(ROOT, '')
+  const FORMS = `allowed: react, @/primitives, @/ui-kit/*, or a relative import inside this designer's folder (${rel(folder)}/) — data .ts/.json and helpers; no images or .svg, no other designer's folder, no other @/ path, no npm package`
+
+  // ── imports: the kit, React, and this designer's own folder ─────────────────
+  // The closure of local files is read too: data modules are exempt from the raw-value scan, files with JSX are not.
+  const locals = new Map<string, { text: string; sf: ts.SourceFile }>()
+  const importsOf = (file: string, fsf: ts.SourceFile): void => {
+    const prefix = file === path ? '' : `${rel(file)}: `
+    const specs: { m: string; node: ts.Node }[] = []
+    fsf.forEachChild((node) => {
+      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier))
+        specs.push({ m: node.moduleSpecifier.text, node })
+    })
+    for (const { m, node } of specs) {
+      const bad = (why: string): void => add('component.api', `${prefix}imports "${m}" (${why}) — ${FORMS}`, LINE(fsf, node))
+      if (m === 'react' || m === '@/primitives' || m.startsWith('@/ui-kit/')) continue
+      if (!m.startsWith('.')) {
+        bad(isAbsolute(m) ? 'absolute path' : m.startsWith('@/') ? 'not part of the kit' : 'npm package')
+        continue
+      }
+      const target = resolve(dirname(file), m)
+      const inside = relative(folder, target)
+      if (inside.startsWith('..') || isAbsolute(inside)) bad('outside this designer folder')
+      else if (NOT_CODE.test(m)) bad('image or style file')
+      else {
+        const hit = LOCAL_EXT.map((e) => target + e).find((f) => existsSync(f) && statSync(f).isFile())
+        if (hit && !locals.has(hit) && hit !== path && /\.(tsx?|json)$/.test(hit)) {
+          const t = readFileSync(hit, 'utf8')
+          const lsf = ts.createSourceFile(hit, t, ts.ScriptTarget.ES2022, true, hit.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+          locals.set(hit, { text: t, sf: lsf })
+          if (!hit.endsWith('.json')) importsOf(hit, lsf)
+        }
+      }
+    }
+  }
+  importsOf(path, sf)
+
+  // ── tsc against the real kit (the screen and its local files) ───────────────
   const configPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!
   const config = ts.parseJsonConfigFileContent(ts.readConfigFile(configPath, ts.sys.readFile).config, ts.sys, ROOT)
   const program = ts.createProgram([path], { ...config.options, noEmit: true })
   for (const d of ts.getPreEmitDiagnostics(program)) {
-    if (!d.file || resolve(d.file.fileName) !== path) continue
+    if (!d.file) continue
+    const f = resolve(d.file.fileName)
+    if (f !== path && !locals.has(f)) continue
     const line = d.start !== undefined ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : undefined
-    add('component.api', `TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`, line)
+    add('component.api', `${f === path ? '' : `${rel(f)}: `}TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`, line)
   }
 
-  // ── tokens.only ─────────────────────────────────────────────────────────────
-  text.split('\n').forEach((raw, i) => {
-    const code = raw.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '')
-    for (const [label, re] of RAW) if (re.test(code)) add('tokens.only', `${label} — a design value is a token name`, i + 1)
-  })
-
-  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
-
-  // ── imports: only the kit and React ─────────────────────────────────────────
-  sf.forEachChild((node) => {
-    if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return
-    const m = node.moduleSpecifier.text
-    if (!(m === 'react' || m === '@/primitives' || m.startsWith('@/ui-kit/'))) {
-      add('component.api', `imports "${m}" — a screen is built from the kit (@/primitives, @/ui-kit/*) only`, LINE(sf, node))
-    }
-  })
+  // ── tokens.only: the screen, and local files that have JSX (a file with none is data) ───────────
+  const scan = (src: string, prefix: string): void =>
+    src.split('\n').forEach((raw, i) => {
+      const code = raw.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '')
+      for (const [label, re] of RAW) if (re.test(code)) add('tokens.only', `${prefix}${label} — a design value is a token name`, i + 1)
+    })
+  scan(text, '')
+  for (const [f, l] of locals) if (f.endsWith('.tsx') && hasJsx(l.sf)) scan(l.text, `${rel(f)}: `)
 
   // ── per screen: layers.stack and focus.single ───────────────────────────────
   const visit = (node: ts.Node, visitor: (n: ts.Node) => void): void => {
@@ -202,10 +257,14 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
   // ── the rules book itself: the screen read back as a blueprint, held to the validator in Exploratory ──────
   const warnings: string[] = []
+  const notRead: NotRead[] = []
+  const coverage = { read: 0, notRead: 0 }
   if (!options.skipValidator) {
     const manifest = loadDtvManifest()
     for (const parsed of parseTsx(text, path)) {
       warnings.push(...parsed.warnings.map((w) => `${parsed.component}: ${w}`))
+      notRead.push(...parsed.notRead)
+      coverage.read += parsed.read
       const result = validateBlueprintAgainstManifest(parsed.doc, manifest, 'exploratory')
       if (result.ok) continue
       for (const issue of result.issues) {
@@ -225,7 +284,8 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   // ── declared deviations (patterns), as the exporter writes them ─────────────
   const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
 
-  return { file: path, problems, advisories: [], deviations, warnings }
+  coverage.notRead = notRead.length
+  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage }
 }
 
 /** Folds one render result into a report: blocking findings are problems, legibility findings advisories. */

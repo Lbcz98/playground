@@ -25,3 +25,26 @@ describe('conformance corpus (static + validator)', () => {
     }, 120_000)
   }
 })
+
+describe('structured not-read and coverage', () => {
+  it('reports kind, line and coverage; warnings stay human-readable', async () => {
+    const c = CASES.find((x) => x.id === 'logic-map-clean')!
+    const { checkLaws } = await import('../../scripts/check-laws')
+    const { writeCase } = await import('./run')
+    const r = checkLaws(writeCase(c))
+    expect(r.notRead.map((n) => n.kind)).toContain('iteration')
+    expect(r.notRead.every((n) => n.line > 0 && n.message)).toBe(true)
+    expect(r.coverage.notRead).toBe(r.notRead.length)
+    expect(r.coverage.read).toBeGreaterThan(3)
+    expect(r.warnings).toHaveLength(r.notRead.length)
+  })
+})
+
+describe('forbidden imports name the allowed forms', () => {
+  for (const id of ['import-other-designer', 'import-escapes-folder', 'import-alias-store', 'import-npm-package', 'import-svg']) {
+    it(id, async () => {
+      const r = await runCase(CASES.find((c) => c.id === id)!, false)
+      expect(r.problems.some((p) => /imports ".*" \(.*\) — allowed: react, @\/primitives, @\/ui-kit\/\*/.test(p))).toBe(true)
+    }, 120_000)
+  }
+})

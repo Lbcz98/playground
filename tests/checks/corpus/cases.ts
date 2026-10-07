@@ -46,6 +46,18 @@ const OVERLAP = CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/g, '').
   "stats={['11111111', '55555555', '22222222', '1111111', '111111', '11111111']}",
 )
 
+const ARG_ROW = /<TableCell type="team" name="ARG"[^>]*\/>/
+const withRows = (n: number): string =>
+  CARDS.replace(ARG_ROW, '{ROWS.map((r) => <TableCell key={r} type="team" name="ARG" position="2" stats={[\'7\', \'3\', \'1\']} />)}').replace(
+    'export function',
+    `const ROWS = [${Array.from({ length: n }, (_, i) => i).join(', ')}]\nexport function`,
+  )
+const withImport = (imp: string, extra: Record<string, string> = {}): { files: Record<string, string>; entry: string } => ({
+  files: { 's.tsx': screen('<MainMenu />', { imports: imp }), ...extra },
+  entry: 's.tsx',
+})
+const FORMS = 'allowed forms are listed in the message'
+
 export const CASES: CorpusCase[] = [
   { id: 'clean-home', title: 'an exported reference screen is clean', ...one('s.tsx', HOME), expect: { exit: 0, laws: [] } },
   {
@@ -69,8 +81,7 @@ export const CASES: CorpusCase[] = [
   {
     id: 'foreign-import',
     title: 'an import outside the kit is component.api',
-    files: { 's.tsx': screen('<MainMenu />', { imports: "import './data'" }), 'data.ts': 'export const x = 1\n' },
-    entry: 's.tsx',
+    ...one('s.tsx', screen('<MainMenu />', { imports: "import 'lodash'" })),
     expect: { exit: 1, laws: ['component.api'] },
   },
   {
@@ -135,5 +146,65 @@ export const CASES: CorpusCase[] = [
     title: 'stat values too wide for their columns land on each other (render)',
     ...one('s.tsx', OVERLAP),
     expect: { exit: 0, laws: [], advisories: ['render.legibility'], render: true, note: 'text on text is advisory, never blocks. No squeezed-text case: no kit component with tokens collapses text below 4px' },
+  },
+  {
+    id: 'logic-map-clean',
+    title: 'a rail built with .map over a local array is clean, and the .map is counted as not read',
+    ...one('s.tsx', withRows(1)),
+    expect: { exit: 0, laws: [], notRead: 1 },
+  },
+  {
+    id: 'logic-map-clipped',
+    title: 'a .map that makes too many rows for the card is cut off (render)',
+    ...one('s.tsx', withRows(12)),
+    expect: { exit: 1, laws: ['render'], render: true, notRead: 1, note: 'the render audit still runs on a screen with logic' },
+  },
+  {
+    id: 'import-own-data',
+    title: 'a data module in the designer folder can be imported',
+    ...withImport("import { items } from './data'\nexport const USED = items", { 'data.ts': 'export const items = [1, 2]\n' }),
+    expect: { exit: 0, laws: [] },
+  },
+  {
+    id: 'import-other-designer',
+    title: "another designer's folder is component.api",
+    ...withImport("import { x } from '../other/data'"),
+    expect: { exit: 1, laws: ['component.api'], note: FORMS },
+  },
+  {
+    id: 'import-escapes-folder',
+    title: 'a path that escapes the folder is component.api',
+    ...withImport("import { x } from '../../../package.json'"),
+    expect: { exit: 1, laws: ['component.api'], note: FORMS },
+  },
+  {
+    id: 'import-alias-store',
+    title: 'any other @/ path is component.api',
+    ...withImport("import { useStore } from '@/store/useStore'"),
+    expect: { exit: 1, laws: ['component.api'], note: FORMS },
+  },
+  {
+    id: 'import-npm-package',
+    title: 'an npm package is component.api',
+    ...withImport("import { clsx } from 'clsx'"),
+    expect: { exit: 1, laws: ['component.api'], note: FORMS },
+  },
+  {
+    id: 'import-svg',
+    title: 'an .svg is component.api',
+    ...withImport("import logo from './logo.svg'", { 'logo.svg': '<svg/>' }),
+    expect: { exit: 1, laws: ['component.api'], note: FORMS },
+  },
+  {
+    id: 'data-module-raw-value',
+    title: 'a data file with no JSX may hold the text "12px"',
+    ...withImport("import { W } from './data'\nexport const USED = W", { 'data.ts': "export const W = '12px'\n" }),
+    expect: { exit: 0, laws: [] },
+  },
+  {
+    id: 'screen-raw-value',
+    title: 'the same text in a screen file is tokens.only',
+    ...one('s.tsx', `${screen('<MainMenu />')}\nexport const W = '12px'\n`),
+    expect: { exit: 1, laws: ['tokens.only'] },
   },
 ]

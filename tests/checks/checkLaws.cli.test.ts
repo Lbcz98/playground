@@ -31,6 +31,13 @@ describe('check:laws --require-render', () => {
     expect(r.code).toBe(1)
     expect(r.out).toMatch(/Chromium could not start/)
   }, 120_000)
+  it('--json carries notRead and coverage for every file', () => {
+    const r = run(['--json', '--no-render'], {}, 'logic-map-clean')
+    const j = JSON.parse(r.stdout)[0]
+    expect(j.notRead.length).toBeGreaterThanOrEqual(1)
+    expect(j.coverage.notRead).toBe(j.notRead.length)
+    expect(j.coverage.read).toBeGreaterThan(0)
+  }, 120_000)
   it('--json prints problems and advisories apart', () => {
     const r = run(['--json', '--no-render'])
     expect(r.code).toBe(0)
@@ -51,7 +58,7 @@ describe('check:laws on a real advisory screen', () => {
 
 describe('addRenderResult — severity routing', () => {
   it('puts warn findings in advisories and block findings in problems', () => {
-    const rep = { file: 'f', problems: [], advisories: [], deviations: [], warnings: [] }
+    const rep = { file: 'f', problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 0, notRead: 0 } }
     addRenderResult(rep, {
       issues: [
         { ruleId: 'render.legibility', severity: 'warn', message: 'overlap' },
