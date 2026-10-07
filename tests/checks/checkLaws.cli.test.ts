@@ -33,7 +33,7 @@ describe('check:laws --require-render', () => {
   }, 120_000)
   it('--json carries notRead and coverage for every file', () => {
     const r = run(['--json', '--no-render'], {}, 'logic-map-clean')
-    const j = JSON.parse(r.stdout)[0]
+    const j = JSON.parse(r.stdout).reports[0]
     expect(j.notRead.length).toBeGreaterThanOrEqual(1)
     expect(j.coverage.notRead).toBe(j.notRead.length)
     expect(j.coverage.read).toBeGreaterThan(0)
@@ -41,20 +41,25 @@ describe('check:laws --require-render', () => {
   it('--json prints problems and advisories apart', () => {
     const r = run(['--json', '--no-render'])
     expect(r.code).toBe(0)
-    expect(JSON.parse(r.stdout)[0]).toMatchObject({ problems: [], advisories: [] })
+    expect(JSON.parse(r.stdout).reports[0]).toMatchObject({ problems: [], advisories: [] })
   }, 120_000)
 })
 
 describe('check:laws on a real advisory screen', () => {
   it('exit 0 and a non-empty advisories array when only legibility is found', () => {
     const r = run(['--json'], {}, 'render-text-overlap')
-    const rep = JSON.parse(r.stdout)[0]
+    const rep = JSON.parse(r.stdout).reports[0]
     expect(r.code).toBe(0)
     expect(rep.problems).toEqual([])
     expect(rep.advisories.length).toBeGreaterThan(0)
     expect(rep.advisories[0].law).toBe('render.legibility')
   }, 180_000)
 })
+
+it('--json wraps the reports with a schemaVersion', () => {
+  const r = run(['--json', '--no-render'])
+  expect(JSON.parse(r.stdout)).toMatchObject({ schemaVersion: 1, reports: [{ problems: [] }] })
+}, 120_000)
 
 describe('addRenderResult — severity routing', () => {
   it('puts warn findings in advisories and block findings in problems', () => {

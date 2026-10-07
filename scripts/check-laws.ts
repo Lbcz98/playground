@@ -46,6 +46,9 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 /** Types `next/link` for the root tsc, which has no `next` (the render harness and web/ resolve their own). */
 const NEXT_SHIM = resolve(ROOT, 'scripts/render-harness/next-shim.d.ts')
 
+/** The shape of `--json`: `{ schemaVersion, reports: LawReport[] }`. Bump on a breaking change (scripts/pr-report.ts reads it). */
+export const SCHEMA_VERSION = 1
+
 export interface LawProblem {
   /** The rule id the message is about (a law, or a pattern broken without being declared). */
   law: string
@@ -522,7 +525,7 @@ async function main(): Promise<void> {
       didNotRun(e.message)
     }
   }
-  if (json) console.log(JSON.stringify(reports, null, 1))
+  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports }, null, 1))
   else {
     for (const r of reports) {
       for (const p of r.problems) console.log(`${r.file.replace(ROOT, '')}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
