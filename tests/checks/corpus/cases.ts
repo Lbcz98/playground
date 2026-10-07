@@ -40,6 +40,12 @@ const one = (name: string, code: string): { files: Record<string, string>; entry
 const BROKEN = CARDS.replace('align="stretch"', 'align="end"')
 const DEV = '/** @deviation layout.root-align: the card sits at the end */\nexport function'
 
+// The clipped screen with its extra rows gone and wide stat values: "11111111" and "55555555" collide in the team row.
+const OVERLAP = CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/g, '').replace(
+  "stats={['11', '5', '2']}",
+  "stats={['11111111', '55555555', '22222222', '1111111', '111111', '11111111']}",
+)
+
 export const CASES: CorpusCase[] = [
   { id: 'clean-home', title: 'an exported reference screen is clean', ...one('s.tsx', HOME), expect: { exit: 0, laws: [] } },
   {
@@ -123,5 +129,11 @@ export const CASES: CorpusCase[] = [
     title: 'more rows than the card holds is cut off (render)',
     ...one('s.tsx', CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/, (row) => row.repeat(12))),
     expect: { exit: 1, laws: ['render'], render: true, note: 'cut-off content blocks; reported as law "render"' },
+  },
+  {
+    id: 'render-text-overlap',
+    title: 'stat values too wide for their columns land on each other (render)',
+    ...one('s.tsx', OVERLAP),
+    expect: { exit: 0, laws: [], advisories: ['render.legibility'], render: true, note: 'text on text is advisory, never blocks. No squeezed-text case: no kit component with tokens collapses text below 4px' },
   },
 ]

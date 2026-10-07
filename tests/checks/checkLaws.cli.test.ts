@@ -9,10 +9,10 @@ import { CASES } from './corpus/cases'
 const DIR = fileURLToPath(new URL('../../.checks-corpus-cli', import.meta.url))
 afterAll(() => rmSync(DIR, { recursive: true, force: true }))
 
-const run = (args: string[], env: Record<string, string> = {}) => {
+const run = (args: string[], env: Record<string, string> = {}, id = 'clean-home') => {
   const entry = `${DIR}/s.tsx`
   mkdirSync(DIR, { recursive: true })
-  writeFileSync(entry, CASES.find((c) => c.id === 'clean-home')!.files['s.tsx'])
+  writeFileSync(entry, CASES.find((c) => c.id === id)!.files['s.tsx'])
   const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', entry, ...args], {
     encoding: 'utf8',
     env: { ...process.env, VITEST: '', ...env },
@@ -36,6 +36,17 @@ describe('check:laws --require-render', () => {
     expect(r.code).toBe(0)
     expect(JSON.parse(r.stdout)[0]).toMatchObject({ problems: [], advisories: [] })
   }, 120_000)
+})
+
+describe('check:laws on a real advisory screen', () => {
+  it('exit 0 and a non-empty advisories array when only legibility is found', () => {
+    const r = run(['--json'], {}, 'render-text-overlap')
+    const rep = JSON.parse(r.stdout)[0]
+    expect(r.code).toBe(0)
+    expect(rep.problems).toEqual([])
+    expect(rep.advisories.length).toBeGreaterThan(0)
+    expect(rep.advisories[0].law).toBe('render.legibility')
+  }, 180_000)
 })
 
 describe('addRenderResult — severity routing', () => {
