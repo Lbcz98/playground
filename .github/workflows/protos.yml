@@ -1,23 +1,41 @@
 name: protos
 
-# What a designer's pull request must pass: only their folder, the laws, and a build.
+# `kit`: the checks themselves (typecheck, tests, tokens), on every pull request and on main.
+# `protos`: what a designer's pull request must pass: only their folder, the laws, and a build.
+# No path filter: a required check that never starts leaves the pull request pending forever.
 on:
   pull_request:
-    paths:
-      - 'web/**'
-      - 'src/**'
-      - 'tokens/**'
-      - 'scripts/**'
-      - '.github/workflows/protos.yml'
+  push:
+    branches: [main]
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
+  kit:
+    name: kit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The render tests need a browser; without one they only warn.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint:tokens
+      - run: npm run tokens:check
+
   protos:
     name: protos
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
