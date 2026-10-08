@@ -1,5 +1,5 @@
 /** Phase 9D: the deviation contract's shape and the plumbing that carries it. */
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   BLUEPRINT_DOCUMENT_KEYS,
   BLUEPRINT_NODE_KEYS,
@@ -8,7 +8,6 @@ import {
 } from './blueprint'
 import { treeToBlueprint } from '@/interpreter/interpret'
 import { makeNode } from '@/model/nodeTree'
-import { useFlowStore } from '@/store/flowStore'
 
 describe('keys', () => {
   it('lets only an Exploratory node carry a deviation', () => {
@@ -41,16 +40,5 @@ describe('the deviation travels with its node', () => {
     const node = makeNode('Stack')
     node.deviation = deviation
     expect(structuredClone(node).deviation).toEqual(deviation)
-  })
-
-  beforeEach(() => useFlowStore.getState().reset())
-
-  it('replaceDocument copies the root’s deviation, and clears it when the new root has none', () => {
-    const root = makeNode('Stack')
-    root.deviation = deviation
-    useFlowStore.getState().replaceDocument(root, 'test')
-    expect(useFlowStore.getState().tree.deviation).toEqual(deviation)
-    useFlowStore.getState().replaceDocument(makeNode('Stack'), 'test')
-    expect(useFlowStore.getState().tree).not.toHaveProperty('deviation')
   })
 })

@@ -7,7 +7,7 @@
  * everything a Box can look like is a token. For flex layout, use `<Stack>`.
  */
 
-import { createElement, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
+import { createElement, type AriaAttributes, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import {
   borderColor,
   radius as radiusStep,
@@ -34,7 +34,19 @@ export type BoxElement =
   | 'li'
   | 'span'
 
-export interface BoxProps extends Omit<HTMLAttributes<HTMLElement>, 'style' | 'className'> {
+/**
+ * The HTML attributes a primitive hands to its element: identity and accessibility (`id`, `role`,
+ * `aria-*`, and `data-*`, which JSX takes without a declaration). Nothing that styles, scripts or
+ * injects markup: no `style`, `className`, handlers or `dangerouslySetInnerHTML`.
+ */
+export type PassThroughProps = Pick<HTMLAttributes<HTMLElement>, 'id' | 'role'> & AriaAttributes
+
+/** `rest` cut down to `PassThroughProps`. The types do not see a spread, so the cut is made here too. */
+export function passThrough(rest: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(rest).filter(([key]) => key === 'id' || key === 'role' || /^(aria|data)-/.test(key)))
+}
+
+export interface BoxProps extends PassThroughProps {
   as?: BoxElement
   padding?: GridSpacing
   /** Overrides `padding` on the inline (left/right) edges. */
@@ -63,6 +75,7 @@ export function resolveBoxProps<P extends BoxProps>({
   border,
   radius,
   grow,
+  children,
   ...rest
 }: P) {
   const inline = paddingX ?? padding
@@ -81,7 +94,7 @@ export function resolveBoxProps<P extends BoxProps>({
     minWidth: grow ? 0 : undefined,
     listStyle: as === 'ul' || as === 'ol' ? 'none' : undefined,
   }
-  return { as, style, rest }
+  return { as, style, rest: { ...passThrough(rest), children } }
 }
 
 export function Box(props: BoxProps): ReactNode {

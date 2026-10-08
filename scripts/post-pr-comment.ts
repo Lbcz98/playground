@@ -29,10 +29,10 @@ export function postComment(body: string, o: PostOptions): string {
   if (list.status !== 0) return denied('list', list.stderr)
   const id = list.stdout.split('\n').find((l) => l.trim())?.trim()
 
-  // Pass the markdown via a temporary file instead of `-f body=...`; large / multiline bodies
-  // can trigger GitHub validation errors when sent as a literal field value.
-  const file = join(tmpdir(), `protos-pr-comment-${process.pid}-${Date.now()}.md`)
-  writeFileSync(file, body)
+  // `--input` is the request body itself, so the file is the JSON the API takes, not the markdown.
+  // (A file, not `-f body=...`: a large multiline body as a literal field value trips GitHub's validation.)
+  const file = join(tmpdir(), `protos-pr-comment-${process.pid}-${Date.now()}.json`)
+  writeFileSync(file, JSON.stringify({ body }))
   try {
     const w = id
       ? gh(['api', '-X', 'PATCH', `${base}/comments/${id}`, '--input', file])

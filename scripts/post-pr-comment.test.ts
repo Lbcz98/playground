@@ -19,8 +19,13 @@ const fs = require('fs')
 const a = process.argv.slice(2)
 const f = ${JSON.stringify(store)}
 const all = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : []
-const body = (a.find((x) => x.startsWith('body=')) || '').slice(5)
 const write = a.includes('-X')
+// The request body is the file after --input, and the API takes JSON: anything else is a 400, as on GitHub.
+let body = ''
+if (write) {
+  try { body = JSON.parse(fs.readFileSync(a[a.indexOf('--input') + 1], 'utf8')).body } catch { console.error('HTTP 400: Problems parsing JSON'); process.exit(1) }
+  if (typeof body !== 'string') { console.error('HTTP 422: Validation Failed'); process.exit(1) }
+}
 if (write && process.env.READONLY) { console.error('HTTP 403: Resource not accessible by integration'); process.exit(1) }
 if (!write) { console.log(all.filter((c) => c.body.includes(${JSON.stringify(MARKER)})).map((c) => c.id).join('\\n')); process.exit(0) }
 if (a[a.indexOf('-X') + 1] === 'POST') all.push({ id: 100 + all.length, body })

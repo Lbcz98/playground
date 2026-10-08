@@ -24,17 +24,14 @@
  * prop, a `.map`, text) is listed as "not read": there the check is blind.
  * Text on text and squeezed text are advisories (`render.legibility`): printed, exit 0. `--require-render`
  * makes a render audit that cannot run (no Playwright or Chromium, harness error) exit 1.
- * Exit code 1 when a law is broken.
- */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+ *
  * A folder with a `flow.ts` (or its `flow.ts`, or any screen inside it) is also checked as a flow: every
  * state file as above, then the transitions between them (a state that does not exist, a key bound twice,
  * a state nothing leads to, a jump past the next level, the rail rule across states).
  * Exit code 1 when a law is broken.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
@@ -46,7 +43,6 @@ import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/scre
 import { parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
 import { MAX_SCREENS } from '../src/shared/blueprint'
 import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
-import { parseTsx } from '../src/shared/export/fromTsx'
 import { flowFileIssues, parseFlowFile, type FlowStateScreen } from '../src/shared/export/flowFile'
 import { loadDtvManifest } from './dtv-manifest'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
@@ -55,7 +51,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 /** Types `next/link` for the root tsc, which has no `next` (the render harness and web/ resolve their own). */
 const NEXT_SHIM = resolve(ROOT, 'scripts/render-harness/next-shim.d.ts')
 
-/** The shape of `--json`: `{ schemaVersion, reports: LawReport[] }`. Bump on a breaking change (scripts/pr-report.ts reads it). */
+/** The shape of `--json`: `{ schemaVersion, reports: LawReport[], flows: FlowReport[] }`. Bump on a breaking change (scripts/pr-report.ts reads it). */
 export const SCHEMA_VERSION = 1
 
 export interface LawProblem {
@@ -583,8 +579,7 @@ async function main(): Promise<void> {
       didNotRun(e.message)
     }
   }
-  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports }, null, 1))
-  if (json) console.log(JSON.stringify({ reports, flows }, null, 1))
+  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports, flows }, null, 1))
   else {
     for (const f of flows) {
       const name = `${f.dir.replace(ROOT, '')}/flow.ts`
@@ -599,8 +594,7 @@ async function main(): Promise<void> {
       if (r.problems.length === 0) console.log(`${r.file.replace(ROOT, '')}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
     }
   }
-  process.exit(renderFailed || reports.some((r) => r.problems.length > 0) ? 1 : 0)
-  process.exit(reports.some((r) => r.problems.length > 0) || flows.some((f) => f.problems.length > 0) ? 1 : 0)
+  process.exit(renderFailed || reports.some((r) => r.problems.length > 0) || flows.some((f) => f.problems.length > 0) ? 1 : 0)
 }
 
 if (!process.env.VITEST) void main()

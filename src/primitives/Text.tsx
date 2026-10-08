@@ -7,7 +7,8 @@
  * escape hatch, so text can't drift off the type scale.
  */
 
-import { createElement, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
+import { createElement, type CSSProperties, type ReactNode } from 'react'
+import { passThrough, type PassThroughProps } from './Box'
 import type { TextStyle } from '@/styles/global-tokens'
 import { opacity as opacityRole, textClass, textColor, type OpacityRole, type TextColor } from './tokens'
 
@@ -26,7 +27,7 @@ export type TextElement =
   | 'h5'
   | 'h6'
 
-export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style' | 'className' | 'color'> {
+export interface TextProps extends PassThroughProps {
   /** A `.text-*` utility class from global.css. */
   variant?: TextStyle
   /** A functional text role, a `status-*` colour, or `inherit` to take the parent's. */
@@ -58,10 +59,14 @@ export function Text({
   as = 'span',
   align,
   truncate = false,
+  htmlFor,
+  children,
   ...rest
 }: TextProps): ReactNode {
   return createElement(as, {
-    ...rest,
+    ...passThrough(rest),
+    htmlFor,
+    children,
     className: textClass(variant),
     style: {
       margin: 0,

@@ -132,3 +132,45 @@ describe('<Box> and <Stack>', () => {
   })
 })
 
+
+describe('what a primitive hands to its element', () => {
+  // A spread is not held to the prop types, so the runtime has to refuse these too.
+  const smuggled = {
+    dangerouslySetInnerHTML: { __html: '<b style="color:red">raw</b>' },
+    onClick: () => undefined,
+    style: { color: 'red' },
+    className: 'raw',
+    hidden: true,
+  } as object
+
+  it.each([
+    ['Box', (p: object) => <Box {...p} />],
+    ['Stack', (p: object) => <Stack {...p} />],
+    ['Text', (p: object) => <Text {...p} />],
+  ])('%s drops markup, handlers, style and class that arrive through a spread', (_name, render) => {
+    const out = html(render(smuggled))
+    expect(out).not.toContain('raw')
+    expect(out).not.toContain('color:red')
+    expect(out).not.toContain('hidden')
+  })
+
+  it('keeps identity and accessibility: id, role, aria-*, data-*', () => {
+    const attrs = { id: 'a', role: 'list', 'aria-label': 'b', 'data-x': 'c' }
+    for (const out of [html(<Box {...attrs} />), html(<Stack {...attrs} />), html(<Text {...attrs}>t</Text>)]) {
+      for (const attr of ['id="a"', 'role="list"', 'aria-label="b"', 'data-x="c"']) expect(out).toContain(attr)
+    }
+  })
+
+  it('refuses them at the type level', () => {
+    // @ts-expect-error raw markup is not a primitive's to render
+    void (<Box dangerouslySetInnerHTML={{ __html: '' }} />)
+    // @ts-expect-error a screen has no handlers: navigation lives in flow.ts
+    void (<Text onClick={() => undefined}>t</Text>)
+    // @ts-expect-error
+    void (<Stack hidden />)
+  })
+
+  it('Text still labels a control', () => {
+    expect(html(<Text as="label" htmlFor="field">t</Text>)).toContain('for="field"')
+  })
+})

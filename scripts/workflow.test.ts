@@ -6,17 +6,40 @@ import { describe, expect, it } from 'vitest'
 const ROOT = join(__dirname, '..')
 const yml = readFileSync(join(ROOT, '.github/workflows/protos.yml'), 'utf8')
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
+const webPkg = JSON.parse(readFileSync(join(ROOT, 'web/package.json'), 'utf8')) as { scripts: Record<string, string> }
+
+const kitJob = yml.slice(yml.indexOf('\n  kit:'), yml.indexOf('\n  protos:'))
+const protosJob = yml.slice(yml.indexOf('\n  protos:'))
 
 describe('.github/workflows/protos.yml', () => {
+  it('holds the checks themselves to typecheck, tests and the token checks, on every pull request and on main', () => {
+    expect(yml.indexOf('\n  kit:')).toBeGreaterThan(0)
+    for (const script of ['typecheck', 'test', 'lint:tokens', 'tokens:check']) expect(kitJob, script).toMatch(new RegExp(`npm (run )?${script}$`, 'm'))
+    // No path filter: a required check that never starts leaves the pull request pending forever.
+    expect(yml).toMatch(/^on:\n  pull_request:\n  push:\n    branches: \[main\]$/m)
+    expect(protosJob).toMatch(/^    if: github\.event_name == 'pull_request'$/m)
+  })
   it('parses (ruby\'s YAML, or actionlint, when installed)', () => {
     const lint = spawnSync('actionlint', [join(ROOT, '.github/workflows/protos.yml')], { encoding: 'utf8' })
     if (!lint.error) expect(lint.stdout).toBe('')
     const ruby = spawnSync('ruby', ['-ryaml', '-e', 'YAML.load_file(ARGV[0])', join(ROOT, '.github/workflows/protos.yml')], { encoding: 'utf8' })
     if (!ruby.error) expect(ruby.stderr).toBe('')
-    expect(yml).toMatch(/^permissions:\n(  .*\n)*  pull-requests: write$/m)
+    // Least privilege: read-only by default; only the job that posts the comment may write to the pull request.
+    expect(yml).toMatch(/^permissions:\n  contents: read\n\n/m)
+    expect(protosJob).toMatch(/^    permissions:\n      contents: read\n      pull-requests: write$/m)
+    expect(kitJob).not.toContain('pull-requests: write')
+  })
+  it('never pastes pull request text into a shell, and leaves no token behind for the code it runs', () => {
+    // A branch name is the author's text: inside `run:` it would be executed. It arrives through `env:` instead.
+    const scripts = [...yml.matchAll(/^ +run: (\|\n(?: {10,}.*\n|\n)+|.*\n)/gm)].map((m) => m[1]).join('')
+    expect(scripts).not.toContain('${{')
+    expect(protosJob).toMatch(/HEAD_REF: \$\{\{ github\.head_ref \}\}/)
+    // The jobs run the pull request's own code (render harness, next build): checkout must not keep the token on disk.
+    expect(yml.match(/uses: actions\/checkout@v4/g)?.length).toBe(yml.match(/persist-credentials: false/g)?.length)
   })
   it('only runs npm scripts and files that exist', () => {
-    for (const m of yml.matchAll(/npm run ([\w:.-]+)/g)) expect(pkg.scripts, `npm run ${m[1]}`).toHaveProperty(m[1].replace(/ .*/, ''))
+    // `--prefix web` runs a script of web/package.json, anything else one of the root's.
+    for (const m of yml.matchAll(/npm run ([\w:.-]+)([^\n]*)/g)) expect(/--prefix web\b/.test(m[2]) ? webPkg.scripts : pkg.scripts, `npm run ${m[0]}`).toHaveProperty(m[1])
     for (const script of ['check:laws', 'pr:report', 'pr:comment']) {
       expect(yml).toContain(`npm run ${script}`)
       expect(existsSync(join(ROOT, pkg.scripts[script].match(/scripts\/[\w-]+\.ts/)![0])), script).toBe(true)

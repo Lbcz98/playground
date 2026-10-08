@@ -69,7 +69,7 @@ describe('a realistic designer folder, end to end', () => {
     const r = laws('ok', DETAIL)
     if (/Chromium could not start/.test(r.stderr)) return console.warn('e2e: no Chromium, skipped')
     expect(r.stderr + JSON.stringify(r.json?.reports.map((x: { problems: unknown }) => x.problems))).toBe(r.stderr + '[[],[],[]]')
-    expect(r.code).toBe(0)
+    expect(r.code, r.stderr).toBe(0)
     const md = renderReport(r.json, ROOT)
     for (const h of ['Blocking problems (0)', 'Legibility warnings (', 'Declared deviations (1)', 'Primitives and proposals (2)', 'Not read (', 'Flow edges (2)'])
       expect(md).toContain(h)
@@ -95,9 +95,11 @@ describe('web/protos/CLAUDE.md only names things that exist', () => {
   const real = (p: string): boolean => [ROOT, `${ROOT}web/protos/`, `${ROOT}src/`].some((b) => existsSync(b + p) || existsSync(`${b}${p}.tsx`) || existsSync(`${b}${p}.ts`) || existsSync(`${b}${p}/index.ts`))
 
   it('npm run scripts exist', () => {
-    const names = [...doc.matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1])
-    expect(names.length).toBeGreaterThan(0)
-    for (const n of names) expect(scripts, n).toHaveProperty(n)
+    // After `cd web &&` the script is one of web/package.json, otherwise one of the root's.
+    const webScripts = JSON.parse(readFileSync(`${ROOT}web/package.json`, 'utf8')).scripts as Record<string, string>
+    const runs = [...doc.matchAll(/(cd web && )?npm run ([\w:-]+)/g)].map((m) => ({ web: !!m[1], name: m[2] }))
+    expect(runs.length).toBeGreaterThan(0)
+    for (const r of runs) expect(r.web ? webScripts : scripts, `${r.web ? 'web: ' : ''}${r.name}`).toHaveProperty(r.name)
   })
   it('file paths exist', () => {
     const paths = [...doc.matchAll(/`([\w./@-]+\/[\w./-]+\.(?:tsx?|md|json|mjs))`|\]\(([\w./-]+)\)/g)].map((m) => m[1] ?? m[2])
