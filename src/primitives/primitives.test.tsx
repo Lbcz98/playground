@@ -33,18 +33,44 @@ describe('token vocabulary', () => {
     expect(ms(motion['focus-cycle-duration'].$value)).toBe(ms(motion['focus-cycle-step'].$value) * 4)
   })
 
-  it('every var() a primitive references is defined by global.css', () => {
-    const dir = fileURLToPath(new URL('.', import.meta.url))
+  // The kit's own sources: primitives, and the UI kit's stylesheet (its .tsx
+  // files name tokens through the typed helpers; CSS has no types to lean on).
+  const kitSources = (): { name: string; text: string }[] =>
+    ['.', '../ui-kit'].flatMap((rel) => {
+      const dir = fileURLToPath(new URL(rel, import.meta.url))
+      return readdirSync(dir)
+        .filter((name) => /\.(tsx?|css)$/.test(name) && !/\.(test|stories)\./.test(name))
+        .map((name) => ({ name, text: readFileSync(join(dir, name), 'utf8') }))
+    })
+
+  it('every var() the kit references is defined by global.css', () => {
     const defined = new Set<string>(CSS_VARS)
-    const missing = readdirSync(dir)
-      .filter((name) => /\.(tsx?|css)$/.test(name) && !name.includes('.test.'))
-      .flatMap((name) =>
-        [...readFileSync(join(dir, name), 'utf8').matchAll(/var\((--[\w-]+)\)|'(--[\w-]+)'/g)]
-          .map((m) => m[1] ?? m[2])
-          .filter((v) => !v.endsWith('-') && !defined.has(v))
-          .map((v) => `${name}: ${v}`),
-      )
+    const missing = kitSources().flatMap(({ name, text }) =>
+      [...text.matchAll(/var\((--[\w-]+)\)|'(--[\w-]+)'/g)]
+        .map((m) => m[1] ?? m[2])
+        // `--_name` is a component-local value, set inline by the component (below).
+        .filter((v) => !v.endsWith('-') && !v.startsWith('--_') && !defined.has(v))
+        .map((v) => `${name}: ${v}`),
+    )
     expect(missing).toEqual([])
+  })
+
+  it('every sfs- class a kit component names has a rule, and every --_ value a rule reads is set by a component', () => {
+    const sources = kitSources()
+    const css = sources
+      .filter(({ name }) => name.endsWith('.css'))
+      .map(({ text }) => text.replace(/\/\*[\s\S]*?\*\//g, ''))
+      .join('\n')
+    const code = sources.filter(({ name }) => !name.endsWith('.css'))
+    const ruled = new Set([...css.matchAll(/\.(sfs-[a-z-]*[a-z])/g)].map((m) => m[1]))
+    const unruled = code.flatMap(({ name, text }) =>
+      [...text.matchAll(/(?<![\w-])sfs-[a-z-]*[a-z]/g)].filter((m) => !ruled.has(m[0])).map((m) => `${name}: ${m[0]}`),
+    )
+    expect(unruled).toEqual([])
+
+    const set = new Set(code.flatMap(({ text }) => [...text.matchAll(/'(--_[\w-]+)'/g)].map((m) => m[1])))
+    const unset = [...css.matchAll(/var\((--_[\w-]+)\)/g)].map((m) => m[1]).filter((v) => !set.has(v))
+    expect(unset).toEqual([])
   })
 
   it('refuses off-grid spacing at the type level', () => {

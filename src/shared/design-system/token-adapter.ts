@@ -16,6 +16,7 @@
 
 import type { ManifestTokens, TokenTier, TokenTierMap } from './manifest'
 import { rawTierFor } from './manifest'
+import { hexWithAlpha, isAlpha } from './color-alpha'
 import { isSpringSpec, springToCss } from './spring'
 
 export type TokenGroup = keyof ManifestTokens
@@ -161,6 +162,8 @@ interface RawToken {
   tier?: 'core' | 'semantic'
   /** A gradient's CSS angle, from `$extensions["com.screenflow.css"].angle` (DTCG carries none). */
   angle?: string
+  /** An alpha variant's share of the colour it aliases, from `$extensions["com.screenflow.css"].alpha`. */
+  alpha?: number
 }
 
 /** The vendor key a DTCG file uses for CSS-only hints. */
@@ -224,6 +227,7 @@ function walk(
       alias,
       tier: inheritedTier,
       angle,
+      alpha: isObject(ext) && isAlpha(ext.alpha) ? ext.alpha : undefined,
     })
     return
   }
@@ -298,6 +302,24 @@ function parse(raw: unknown): ParsedTokens {
   // Reference resolution — index by dotted path, then resolve up to a few hops.
   const byPath = new Map<string, RawToken>()
   for (const t of collected) byPath.set(t.path.join('.'), t)
+  const lookup = (ref: string): RawToken | undefined => byPath.get(ref) ?? byPath.get(ref.replace(/\//g, '.'))
+
+  // Alpha variants first: `{base}` + alpha becomes the literal `#RRGGBBAA` a
+  // manifest needs (global.css keeps the same pair live as a color-mix), so every
+  // alias and gradient stop that points at one reads a finished colour.
+  const literalColor = (t: RawToken, depth = 0): string | null => {
+    if (depth > 8) return null
+    const target = t.ref ? lookup(t.ref) : undefined
+    const base = t.ref ? (target ? literalColor(target, depth + 1) : null) : typeof t.value === 'string' ? t.value : null
+    if (base === null || t.alpha === undefined) return base
+    return hexWithAlpha(base, t.alpha)
+  }
+  const mixed = collected.filter((t) => t.alpha !== undefined && t.ref).map((t) => [t, literalColor(t)] as const)
+  for (const [t, value] of mixed) {
+    t.ref = undefined
+    if (value === null) t.unresolved = true
+    else t.value = value
+  }
   for (let pass = 0; pass < 5; pass++) {
     let changed = false
     for (const t of collected) {

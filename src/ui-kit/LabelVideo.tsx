@@ -9,15 +9,10 @@
  * here so the pill sizes itself from its own padding and label.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import {
-  size,
-  spacing,
-  textClass,
-  token,
-  type InteractionState,
-} from '@/primitives'
+import type { ReactNode } from 'react'
+import { textClass, type InteractionState } from '@/primitives'
 import volumeOnIcon from './icons/volume-on.svg'
+import './ui-kit.css'
 
 export type LabelVideoKind = 'live' | 'replay'
 
@@ -35,51 +30,24 @@ const LABEL: Record<LabelVideoKind, string> = {
   replay: 'REPLAY',
 }
 
-const base: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingInline: spacing('2xs'),
-  paddingBlock: spacing('3xs'),
-  borderRadius: token('--dimension-radius-semantic-pill'),
-  color: token('--color-semantic-functional-text-primary'),
-  whiteSpace: 'nowrap',
-}
-
-function fillFor(kind: LabelVideoKind, focus: boolean): CSSProperties {
-  if (!focus) return { backgroundColor: token('--color-semantic-functional-background-tint') }
-  return kind === 'live'
-    ? { backgroundImage: token('--gradient-semantic-status-live') }
-    : { backgroundImage: token('--gradient-semantic-status-replay') }
-}
-
 /** The AO VIVO / REPLAY chip that says what the video behind the screen is. */
 export function LabelVideo({
   kind = 'live',
   interactionState,
   mini = false,
 }: LabelVideoProps): ReactNode {
-  const focus =
-    (interactionState ?? 'focus') === 'focus'
+  const state = interactionState ?? 'focus'
   const compact = mini && kind === 'live'
-  const showIcon = focus && !compact
+  const showIcon = state === 'focus' && !compact
 
   return (
     <span
-      className={`${textClass(compact ? 'caption-extra-bold' : 'body-sm-extra-bold')} sfs-motion`}
-      style={{
-        ...base,
-        ...fillFor(kind, focus),
-        gap: spacing(showIcon ? '2xs' : '3xs'),
-      }}
+      className={`sfs-label-video ${textClass(compact ? 'caption-extra-bold' : 'body-sm-extra-bold')} sfs-motion`}
+      data-kind={kind}
+      data-state={state}
+      data-mini={compact ? '' : undefined}
     >
-      {showIcon && (
-        <img
-          src={volumeOnIcon}
-          alt=""
-          style={{ width: size('icon-sm'), height: size('icon-sm'), flexShrink: 0, display: 'block' }}
-        />
-      )}
+      {showIcon && <img src={volumeOnIcon} alt="" className="sfs-label-video-icon" />}
       {LABEL[kind]}
     </span>
   )

@@ -1,0 +1,842 @@
+/*
+ * The UI kit components' static CSS. The pattern (classes, data-* variants,
+ * `--_name` values, specificity against Tailwind) is written down once, at the
+ * top of src/primitives/primitives.css. Token-only, like everything in the kit.
+ */
+
+/*
+ * RoundButtonShell: the hit target, the circle inside it, and what the circle
+ * holds. `data-state` on the root is the TV focus the prop carries.
+ */
+.sfs-round-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  padding: 0;
+  border: none;
+  /* So the keyboard-focus outline follows the circle. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-round-button-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-round-button[data-state='default'] > .sfs-round-button-circle {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-round-button-content {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* The mark of an icon-only round control (RoundedButton, CloseButton). */
+.sfs-round-button-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-round-rest);
+  height: var(--dimension-size-semantic-icon-round-rest);
+}
+
+.sfs-round-button[data-state='focus'] .sfs-round-button-icon {
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+}
+
+/*
+ * LabelVideo: the AO VIVO / REPLAY chip. Resting it is a translucent chip;
+ * focused it takes its kind's gradient and, unless `data-mini`, the volume icon
+ * (the wider gap is the icon's).
+ */
+.sfs-label-video {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dimension-spacing-core-3xs);
+  padding-inline: var(--dimension-spacing-core-2xs);
+  padding-block: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+.sfs-label-video[data-state='default'] {
+  background-color: var(--color-semantic-functional-background-tint);
+}
+
+.sfs-label-video[data-state='focus'][data-kind='live'] {
+  background-image: var(--gradient-semantic-status-live);
+}
+
+.sfs-label-video[data-state='focus'][data-kind='replay'] {
+  background-image: var(--gradient-semantic-status-replay);
+}
+
+.sfs-label-video[data-state='focus']:not([data-mini]) {
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-label-video-icon {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-icon-sm);
+  height: var(--dimension-size-semantic-icon-sm);
+}
+
+/*
+ * AlertBug: the hit target is the transmission bug's edge, so neither style
+ * shifts the layout. `data-style` is whose mark it is; `data-state` is the focus
+ * it draws (only the interface bug takes it), which also sets the mark's edge.
+ */
+.sfs-alert-bug {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-alert-bug-transmission);
+  height: var(--dimension-size-semantic-alert-bug-transmission);
+  padding: 0;
+  border: none;
+  /* So the keyboard-focus outline follows the bug's shape. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-alert-bug-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-alert-bug);
+  height: var(--dimension-size-semantic-alert-bug);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-alert-bug-mark {
+  display: block;
+  width: var(--dimension-size-semantic-alert-bug);
+  height: var(--dimension-size-semantic-alert-bug);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-alert-bug-mark:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-alert-bug-mark[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+.sfs-alert-bug[data-state='focus'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-state='focus'] .sfs-alert-bug-mark {
+  width: var(--dimension-size-semantic-alert-bug-focus);
+  height: var(--dimension-size-semantic-alert-bug-focus);
+}
+
+.sfs-alert-bug[data-style='transmission'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-style='transmission'] .sfs-alert-bug-mark {
+  width: var(--dimension-size-semantic-alert-bug-transmission);
+  height: var(--dimension-size-semantic-alert-bug-transmission);
+}
+
+/*
+ * WideButton: the pill call to action. `data-state` is the TV focus the prop
+ * carries; the cursor says what a press will do. The (0,2,0) cursor rules beat
+ * preflight's `:disabled` (0,1,0), which would otherwise tie with the base.
+ */
+.sfs-wide-button {
+  position: relative;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-wide-button-width);
+  height: var(--dimension-size-semantic-control-height);
+  padding: 0;
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-wide-button[data-state='disabled'] {
+  cursor: not-allowed;
+}
+
+.sfs-wide-button[data-state='loading'] {
+  cursor: progress;
+}
+
+.sfs-wide-button-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+/* Focused, the ring paints its own fill; every other state paints the pill. */
+.sfs-wide-button:not([data-state='focus']) > .sfs-wide-button-content {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-wide-button-icon {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-icon-sm);
+  height: var(--dimension-size-semantic-icon-sm);
+}
+
+/*
+ * InteractivityButton: the 10-foot card. `data-state` is the TV focus the prop
+ * carries: `default` is the small card, `focus` and `selected` the expanded one
+ * (`selected` dims its content). The inset is the one value set inline, as
+ * `--_inset`: it is a token Figma draws off the grid, and the visual probe
+ * (scripts/visual/regression.mjs) excuses it by finding that token in the style.
+ */
+.sfs-interactivity-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  padding: var(--_inset);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-card-expanded);
+  background: none;
+  cursor: pointer;
+  text-align: start;
+}
+
+.sfs-interactivity-button[data-state='default'] {
+  width: var(--dimension-size-semantic-card-width);
+  height: var(--dimension-size-semantic-card-height);
+  border-radius: var(--dimension-radius-semantic-card);
+}
+
+/* Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
+.sfs-interactivity-button-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--dimension-radius-semantic-card-expanded);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-interactivity-button[data-state='default'] > .sfs-interactivity-button-fill {
+  border-radius: var(--dimension-radius-semantic-card);
+}
+
+.sfs-interactivity-button-header {
+  position: relative;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-interactivity-button-live,
+.sfs-interactivity-button-thumbnail {
+  position: relative;
+}
+
+.sfs-interactivity-button-check {
+  display: block;
+  width: var(--dimension-size-semantic-icon-lg);
+  height: var(--dimension-size-semantic-icon-lg);
+}
+
+.sfs-interactivity-button-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-interactivity-button:not([data-state='focus']) > .sfs-interactivity-button-body {
+  opacity: var(--opacity-semantic-content-muted);
+}
+
+/* Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
+.sfs-interactivity-button-supporting {
+  display: flex;
+  mix-blend-mode: luminosity;
+}
+
+.sfs-interactivity-button-advertising {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-interactivity-button-logo {
+  display: block;
+  height: var(--dimension-size-semantic-icon-lg);
+}
+
+/*
+ * InteractivityMenu: the rail scrolls horizontally, so it stays a plain element
+ * rather than a Stack. `data-align` is the edge the cards sit on.
+ */
+.sfs-interactivity-menu-rail {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: var(--dimension-spacing-core-2xs);
+  overflow-x: auto;
+}
+
+.sfs-interactivity-menu-rail[data-align='end'] {
+  justify-content: flex-end;
+}
+
+.sfs-interactivity-menu-item {
+  flex-shrink: 0;
+}
+
+/*
+ * Notification: `round-button` (the hit target) around `round-button-circle`
+ * (the visible pill), as RoundButtonShell builds it. `data-kind` is `message`
+ * or `rounded` (the pill closed up around the logo); `data-state` the TV focus.
+ */
+.sfs-notification {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: var(--dimension-size-semantic-round-button);
+  padding: 0;
+  border: none;
+  /* Paints nothing itself; the radius is for the keyboard focus outline to follow the pill. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-notification[data-kind='rounded'] {
+  width: var(--dimension-size-semantic-round-button);
+}
+
+.sfs-notification-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-xs);
+  height: var(--dimension-size-semantic-round-button-circle);
+  padding-inline: var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+/* At rest the pill paints itself; focused, the ring paints its own fill. */
+.sfs-notification[data-state='default'] > .sfs-notification-pill {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-notification[data-kind='rounded'] > .sfs-notification-pill {
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  padding-inline: 0;
+}
+
+/* Positioned, so it paints above the FocusRing: unpositioned, it would go under the ring's fill. */
+.sfs-notification-logo {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-notification-logo:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-notification-logo[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+/*
+ * The column the message is laid out to, so one line and two give the pill the
+ * same shape. `white-space` is inherited, so this is also what lets the title
+ * break; and being a flex column it blockifies the `<Text>` span, which puts the
+ * line box on the text's own line height. It hugs that text; the pill centres it.
+ */
+.sfs-notification-title {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-notification-text-width);
+  white-space: pre-line;
+}
+
+/*
+ * Overlay: fills its positioned parent and never takes pointer events. The
+ * direction (`data-overlay`) picks the shade; every direction but the
+ * notification's `top-right` lays the scrim under it (a background colour
+ * paints under the background image). `base` is the scrim alone.
+ */
+.sfs-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-overlay:not([data-overlay='top-right']) {
+  background-color: var(--color-semantic-overlay-scrim);
+}
+
+.sfs-overlay[data-overlay='bottom'],
+.sfs-screen-overlay-shade[data-shade='bottom'] {
+  background-image: var(--gradient-semantic-overlay-bottom);
+}
+
+.sfs-overlay[data-overlay='left'],
+.sfs-screen-overlay-shade[data-shade='left'] {
+  background-image: var(--gradient-semantic-overlay-left);
+}
+
+.sfs-overlay[data-overlay='right'],
+.sfs-screen-overlay-shade[data-shade='right'] {
+  background-image: var(--gradient-semantic-overlay-right);
+}
+
+.sfs-overlay[data-overlay='bottom-right'],
+.sfs-screen-overlay-shade[data-shade='bottom-right'] {
+  background-image: var(--gradient-semantic-overlay-bottom-right);
+}
+
+.sfs-overlay[data-overlay='bottom-left'],
+.sfs-screen-overlay-shade[data-shade='bottom-left'] {
+  background-image: var(--gradient-semantic-overlay-bottom-left);
+}
+
+.sfs-overlay[data-overlay='top-right'],
+.sfs-screen-overlay-shade[data-shade='top-right'] {
+  background-image: var(--gradient-semantic-overlay-top-right);
+}
+
+/* ScreenOverlay: one layer per shade of the model, bottom to top. The scrim is a colour, every other shade a gradient. */
+.sfs-screen-overlay,
+.sfs-screen-overlay-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-screen-overlay-shade[data-shade='scrim'] {
+  background-color: var(--color-semantic-overlay-scrim);
+}
+
+/*
+ * Screen: the DTV frame. `--_width` and `--_height` are the 1280×720 base
+ * (frameSpec, in TypeScript); `--_scale` shows it larger without re-laying it
+ * out, and only applies when `data-scaled` is on the root.
+ */
+.sfs-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--_width);
+  height: var(--_height);
+  padding: var(--dimension-spacing-core-xl);
+  overflow: hidden;
+}
+
+.sfs-screen[data-scaled] {
+  transform-origin: top left;
+  transform: scale(var(--_scale));
+}
+
+/* The video and the overlay layers: the frame's full size, out of the flow. */
+.sfs-screen-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-screen-content {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.sfs-screen-anchor {
+  position: relative;
+  display: flex;
+  gap: var(--dimension-spacing-core-sm);
+}
+
+.sfs-screen-anchor[data-anchor-zone='bottom-left'] {
+  justify-content: flex-start;
+}
+
+.sfs-screen-anchor[data-anchor-zone='bottom-right'] {
+  justify-content: flex-end;
+}
+
+/*
+ * TableCell: one row (`data-type`: team, athlete, scout), each with its own
+ * height token. A row keeps its height: in a body too short for it, it is cut
+ * off rather than every row squeezed.
+ */
+.sfs-table-cell {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-table-cell[data-type='team'],
+.sfs-table-cell[data-type='athlete'] {
+  height: var(--dimension-size-semantic-table-cell-md);
+}
+
+.sfs-table-cell[data-type='scout'] {
+  height: var(--dimension-size-semantic-table-cell-lg);
+}
+
+/* Figma's athlete row: a 16 line, 8 under it. */
+.sfs-table-cell[data-type='athlete'] {
+  padding-bottom: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-table-cell[data-divider] {
+  border-bottom: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+}
+
+.sfs-table-cell-group {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+
+.sfs-table-cell[data-type='athlete'] .sfs-table-cell-group {
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-table-cell-shield {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-mark {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-mark[data-mark='card-warning'] {
+  color: var(--color-semantic-functional-status-warning);
+}
+
+.sfs-table-cell-mark[data-mark='card-error'],
+.sfs-table-cell-mark[data-mark='substitution'],
+.sfs-table-cell-mark[data-mark='heart'] {
+  color: var(--color-semantic-functional-status-error);
+}
+
+.sfs-table-cell-mark[data-mark='ball'] {
+  color: var(--color-semantic-functional-text-primary);
+}
+
+.sfs-table-cell-glyph {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+
+.sfs-table-cell-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-stat {
+  display: block;
+  width: var(--dimension-size-semantic-table-stat-column);
+}
+
+.sfs-table-cell-value {
+  width: var(--dimension-size-semantic-table-value-column);
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * ContentCard: the tall card and its three zones. `data-state` is the TV focus
+ * the prop carries; `data-sized` says a height was set per use (`--_height`, a
+ * count of grid steps): without it the same value is only the cap the card hugs
+ * up to. `data-pressable` is the card acting as one button.
+ */
+.sfs-content-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-core-lg);
+  border-radius: var(--dimension-radius-semantic-content-card);
+}
+
+.sfs-content-card:not([data-sized]) {
+  max-height: var(--_height);
+}
+
+.sfs-content-card[data-sized] {
+  height: var(--_height);
+}
+
+/* At rest the card paints itself; focused, the ring paints its own fill. */
+.sfs-content-card[data-state='default'] {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-content-card[data-pressable] {
+  cursor: pointer;
+}
+
+/* The zones' column. `--_gap` is the kit's gutter, or the `gap` set per use. */
+.sfs-content-card-zones {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--_gap);
+  min-height: 0;
+}
+
+.sfs-content-card[data-state='default'] > .sfs-content-card-zones {
+  opacity: var(--opacity-semantic-content-muted);
+}
+
+.sfs-content-card-header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+/* The header's rows: a line of things that may shrink, so a long name ellipsises. */
+.sfs-content-card-match,
+.sfs-content-card-side,
+.sfs-content-card-partner,
+.sfs-content-card-subtitle,
+.sfs-content-card-ad {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+
+.sfs-content-card-match,
+.sfs-content-card-subtitle {
+  justify-content: space-between;
+}
+
+/* The badge beside the text column, a gutter apart. */
+.sfs-content-card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-sm);
+  min-width: 0;
+}
+
+/* The advertising tag sits over its rule. */
+.sfs-content-card-ad {
+  padding-bottom: var(--dimension-spacing-core-2xs);
+  border-bottom: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+}
+
+.sfs-content-card-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+
+.sfs-content-card-stats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-content-card-stat {
+  display: block;
+  width: var(--dimension-size-semantic-table-stat-column);
+}
+
+/* A crest, a flag, a logo — and the verified tick, which is one in the live colour. */
+.sfs-content-card-badge,
+.sfs-content-card-tick {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-content-card-tick {
+  color: var(--color-semantic-functional-status-live);
+}
+
+.sfs-content-card-tick-glyph {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+
+/*
+ * The body takes the height the header and footer leave and clips there. Its
+ * gap is `table-row-gap` (BODY_GAP in TableCell.tsx); a `gap` set per use
+ * redefines that token inline on the body, so the flush rule for scout rows
+ * (primitives.css) cancels the same amount.
+ */
+.sfs-content-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--dimension-spacing-semantic-table-row-gap);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Pinned to the card's bottom edge, with or without a body above it. */
+.sfs-content-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+  margin-top: auto;
+}
+
+/*
+ * MainMenu. Its round controls are RoundButtonShell's; what is its own is the
+ * content they hold, the two text columns, the miscellaneous cycle and the
+ * channel bug.
+ */
+
+/* A viewer's or a broadcast's image, or the neutral circle when none is given (`data-empty`). */
+.sfs-main-menu-circle {
+  display: block;
+  width: var(--_size);
+  height: var(--_size);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-main-menu-circle:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-main-menu-circle[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+.sfs-main-menu-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+}
+
+/* The miscellaneous button's current item, larger than a control's glyph. */
+.sfs-main-menu-item-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+}
+
+/* Text columns that can shrink below their content, so a long title ellipsises. */
+.sfs-main-menu-text,
+.sfs-main-menu-lines,
+.sfs-main-menu-program {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+
+.sfs-main-menu-text {
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-main-menu-program {
+  align-items: end;
+  padding-inline: var(--dimension-spacing-core-xs);
+  padding-block: var(--dimension-spacing-core-2xs);
+  text-align: right;
+}
+
+/*
+ * The cycle: the item leaving and the one arriving share one grid cell. The
+ * layers carry the carousel animations (primitives.css); `data-fade` is the
+ * text's cycle, which dissolves from its own corner instead of the centre.
+ */
+.sfs-main-menu-cycle {
+  display: grid;
+  min-width: 0;
+}
+
+.sfs-main-menu-cycle-layer {
+  display: grid;
+  grid-area: 1 / 1;
+  place-items: center;
+  min-width: 0;
+}
+
+.sfs-main-menu-cycle[data-fade] > .sfs-main-menu-cycle-layer {
+  place-items: start;
+}
+
+/* The channel bug: the logo fills the button. */
+.sfs-main-menu-bug {
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  padding: 0;
+  border: none;
+  /* So the focus outline follows the logo's shape. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+/*
+ * The TV focus on the bug (`data-focused`, from the prop) sits outside it, where
+ * an inset ring would cover the logo: FocusRing.tsx's `focusOutline`, as a rule.
+ * It declares exactly what `.sfs-focusable:focus-visible` does (same
+ * specificity), so the prop's focus and the keyboard's draw the one outline
+ * whichever rule comes last.
+ */
+.sfs-main-menu-bug[data-focused] {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}

@@ -17,10 +17,9 @@
  * uses exactly one of them.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import { token, type SemanticVar } from '@/primitives'
-import type { ShadeId } from '@/shared/design-system/manifest'
+import type { ReactNode } from 'react'
 import { DTV_SCREEN_LAYERS, screenModel } from '@/shared/design-system/screen-layers'
+import './ui-kit.css'
 
 export type OverlayDirection =
   | 'base'
@@ -46,37 +45,9 @@ export interface OverlayProps {
   direction?: OverlayDirection
 }
 
-const SHADE: Record<Exclude<OverlayDirection, 'base'>, SemanticVar> = {
-  bottom: '--gradient-semantic-overlay-bottom',
-  left: '--gradient-semantic-overlay-left',
-  right: '--gradient-semantic-overlay-right',
-  'bottom-right': '--gradient-semantic-overlay-bottom-right',
-  'bottom-left': '--gradient-semantic-overlay-bottom-left',
-  'top-right': '--gradient-semantic-overlay-top-right',
-}
-
-/** The notification overlay has no scrim in Figma (its base layer is hidden). */
-const WITHOUT_SCRIM: ReadonlySet<OverlayDirection> = new Set(['top-right'])
-
-const fill: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  pointerEvents: 'none',
-}
-
 export function Overlay({ direction = 'bottom' }: OverlayProps): ReactNode {
-  return (
-    <div
-      aria-hidden
-      data-overlay={direction}
-      style={{
-        ...fill,
-        // A background colour paints under the background image: scrim, then shade.
-        backgroundColor: WITHOUT_SCRIM.has(direction) ? undefined : token('--color-semantic-overlay-scrim'),
-        backgroundImage: direction === 'base' ? undefined : token(SHADE[direction]),
-      }}
-    />
-  )
+  // Scrim and shade per direction are in ui-kit.css (`data-overlay`).
+  return <div aria-hidden className="sfs-overlay" data-overlay={direction} />
 }
 
 /** Every DTV screen model, in the order of the Figma Modelos table's levels. */
@@ -87,19 +58,13 @@ export interface ScreenOverlayProps {
   model: string
 }
 
-function shadeStyle(shade: ShadeId): CSSProperties {
-  return shade === 'scrim'
-    ? { ...fill, backgroundColor: token('--color-semantic-overlay-scrim') }
-    : { ...fill, backgroundImage: token(SHADE[shade]) }
-}
-
 export function ScreenOverlay({ model }: ScreenOverlayProps): ReactNode {
   const found = screenModel(DTV_SCREEN_LAYERS, model)
   if (!found) return null
   return (
-    <div aria-hidden data-screen-model={found.id} style={fill}>
+    <div aria-hidden className="sfs-screen-overlay" data-screen-model={found.id}>
       {found.shades.map((shade) => (
-        <div key={shade} data-shade={shade} style={shadeStyle(shade)} />
+        <div key={shade} className="sfs-screen-overlay-shade" data-shade={shade} />
       ))}
     </div>
   )

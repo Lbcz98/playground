@@ -28,12 +28,13 @@
  * neutral token-coloured circle fills in when none is given.
  */
 
-import { type CSSProperties, type ReactNode, useState } from 'react'
-import { focusOutline, size, spacing, Stack, Text, token, type SizeRole } from '@/primitives'
+import { type ReactNode, useState } from 'react'
+import { size, Stack, Text, vars, type SizeRole } from '@/primitives'
 import scheduleIcon from './icons/schedule.svg'
 import miscellaneousFocusIcon from './icons/miscellaneous-focus.svg'
 import weatherIcon from './icons/weather.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
+import './ui-kit.css'
 
 export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug'
 
@@ -90,38 +91,11 @@ export interface MainMenuProps {
   onBugClick?: () => void
 }
 
-const PILL = token('--dimension-radius-semantic-pill')
-
-/** A text column that can shrink below its content, so long titles ellipsise. */
-const textStack: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: spacing('3xs'),
-  minWidth: 0,
-}
-
+/** Content, not chrome: the image given, or a neutral circle when there is none. */
 function ContentCircle({ src, role, alt }: { src?: string; role: SizeRole; alt: string }): ReactNode {
-  const edge = size(role)
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={alt}
-        style={{ width: edge, height: edge, borderRadius: PILL, objectFit: 'cover', display: 'block' }}
-      />
-    )
-  }
-  return (
-    <span
-      style={{
-        width: edge,
-        height: edge,
-        borderRadius: PILL,
-        backgroundColor: token('--color-semantic-functional-background-elevated'),
-        display: 'block',
-      }}
-    />
-  )
+  const edge = vars({ '--_size': size(role) })
+  if (src) return <img src={src} alt={alt} className="sfs-main-menu-circle" style={edge} />
+  return <span className="sfs-main-menu-circle" data-empty="" style={edge} />
 }
 
 interface CycleStep {
@@ -151,20 +125,19 @@ function CycleLayers({
   onDone: () => void
 }): ReactNode {
   const moving = step.previous !== null
-  const layer: CSSProperties = { gridArea: '1 / 1', display: 'grid', placeItems: fade ? 'start' : 'center', minWidth: 0 }
+  const layer = 'sfs-main-menu-cycle-layer'
   return (
-    <span style={{ display: 'grid', minWidth: 0 }}>
+    <span className="sfs-main-menu-cycle" data-fade={fade ? '' : undefined}>
       {moving ? (
         <span
           key={`out-${step.previous}`}
-          className={fade ? 'sfs-carousel-fade-out' : 'sfs-carousel-out'}
+          className={`${layer} ${fade ? 'sfs-carousel-fade-out' : 'sfs-carousel-out'}`}
           onAnimationEnd={onDone}
-          style={layer}
         >
           {render(items[step.previous as number])}
         </span>
       ) : null}
-      <span key={`in-${step.index}`} className={moving ? (fade ? 'sfs-carousel-fade-in' : 'sfs-carousel-in') : undefined} style={layer}>
+      <span key={`in-${step.index}`} className={moving ? `${layer} ${fade ? 'sfs-carousel-fade-in' : 'sfs-carousel-in'}` : layer}>
         {render(items[step.index])}
       </span>
     </span>
@@ -206,11 +179,7 @@ export function MainMenu({
         </RoundButtonShell>
 
         <RoundButtonShell interactionState={stateOf('schedule')} focusItem="schedule" label="Schedule" onClick={onScheduleClick}>
-          <img
-            src={scheduleIcon}
-            alt=""
-            style={{ width: size('icon-xl'), height: size('icon-xl'), display: 'block' }}
-          />
+          <img src={scheduleIcon} alt="" className="sfs-main-menu-icon" />
         </RoundButtonShell>
 
         <Stack direction="row" align="center">
@@ -218,34 +187,24 @@ export function MainMenu({
             {/* At rest it shows its current item (the weather); focused, the dots of
                 "more" — the button holds various interactivities (Figma: Personalização). */}
             {focused === 'miscellaneous' ? (
-              <img
-                src={miscellaneousFocusIcon}
-                alt=""
-                style={{ width: size('icon-xl'), height: size('icon-xl'), display: 'block' }}
-              />
+              <img src={miscellaneousFocusIcon} alt="" className="sfs-main-menu-icon" />
             ) : (
               <CycleLayers
                 step={cycle}
                 items={items}
                 onDone={settle}
-                render={(item) => (
-                  <img
-                    src={item.iconSrc ?? weatherIcon}
-                    alt=""
-                    style={{ width: size('icon-2xl'), height: size('icon-2xl'), display: 'block' }}
-                  />
-                )}
+                render={(item) => <img src={item.iconSrc ?? weatherIcon} alt="" className="sfs-main-menu-item-icon" />}
               />
             )}
           </RoundButtonShell>
-          <div style={{ ...textStack, paddingInlineStart: spacing('3xs') }}>
+          <div className="sfs-main-menu-text">
             <CycleLayers
               step={cycle}
               items={items}
               fade
               onDone={settle}
               render={(item) => (
-                <span style={textStack}>
+                <span className="sfs-main-menu-lines">
                   <Text variant="body-lg-bold" opacity="title" truncate>
                     {item.title}
                   </Text>
@@ -256,7 +215,7 @@ export function MainMenu({
               )}
             />
             {items.length > 1 ? (
-              <span aria-hidden className="sfs-carousel-tick" onAnimationIteration={next} style={{ position: 'absolute' }} />
+              <span aria-hidden className="sfs-carousel-tick" onAnimationIteration={next} />
             ) : null}
           </div>
         </Stack>
@@ -264,15 +223,7 @@ export function MainMenu({
 
       <Stack direction="row" align="center" gap="3xs">
         <Stack direction="row" align="center">
-          <div
-            style={{
-              ...textStack,
-              alignItems: 'end',
-              textAlign: 'right',
-              paddingInline: spacing('xs'),
-              paddingBlock: spacing('2xs'),
-            }}
-          >
+          <div className="sfs-main-menu-program">
             <Text variant="body-lg-bold" opacity="title" truncate>
               {programTitle}
             </Text>
@@ -287,24 +238,11 @@ export function MainMenu({
 
         <button
           type="button"
-          className="sfs-motion sfs-focusable"
+          className="sfs-main-menu-bug sfs-motion sfs-focusable"
           aria-label="Interactive content"
           data-focus-item="channel-bug"
           data-focused={focused === 'channel-bug' ? '' : undefined}
           onClick={onBugClick}
-          style={{
-            width: size('channel-bug'),
-            height: size('channel-bug'),
-            padding: 0,
-            border: 'none',
-            borderRadius: PILL,
-            background: 'none',
-            cursor: 'pointer',
-            display: 'grid',
-            placeItems: 'center',
-            // The logo fills the button, so focus sits outside it instead of as an inset ring.
-            ...(focused === 'channel-bug' ? focusOutline : null),
-          }}
         >
           <ContentCircle src={bugSrc} role="channel-bug" alt="" />
         </button>

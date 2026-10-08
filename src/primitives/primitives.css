@@ -1,7 +1,42 @@
 /*
- * The little that inline styles can't express: keyframes.
- * Token-only, like everything else in src/primitives.
+ * The kit's static CSS. Primitives live here; components in src/ui-kit/ui-kit.css.
+ * Each .tsx imports the sheet whose classes it names, so every render path
+ * (app, Storybook, web/, the render harness) gets it with the component.
+ *
+ * The pattern (new code follows it; older components still carry inline styles
+ * and are being moved over):
+ *
+ * - Static declarations are a class, never an inline `style`. One class per
+ *   element: `sfs-<component>` on the root, `sfs-<component>-<part>` inside.
+ * - A variant or state is a `data-*` attribute on the component's root
+ *   (`data-state="focus"`, `data-kind="live"`), read as
+ *   `.sfs-x[data-state='focus']` or `.sfs-x[data-state='focus'] > .sfs-x-part`.
+ *   Real DOM states (:focus-visible, :active, :hover) hang off the same class.
+ * - A value only the render knows (a size or radius role taken as a prop, a
+ *   measured number) is passed with `vars({ '--_name': value })` (tokens.ts)
+ *   and read as `var(--_name)`. It is set on the very element whose class reads
+ *   it, every time, because custom properties inherit. The prefix is `--_`:
+ *   `--sfs-*` belongs to the canvas (design-system/cssVars.ts purges it).
+ * - Values are tokens, `var(--…)` from styles/global.css: semantic ones, plus
+ *   the layout scales `spacing()` and `radius()` give TSX
+ *   (`--dimension-spacing-core-*` on the grid, `--dimension-radius-core-*`).
+ *   No other core token, no raw px or hex: scripts/tokens/audit.test.ts and
+ *   `npm run lint:tokens` hold that, and primitives.test.tsx checks that every
+ *   token, class and `--_name` named here exists on the other side.
+ * - Specificity is the contract with Tailwind, not source order: these sheets
+ *   load before index.css in the app and after it in Storybook. A single class
+ *   (0,1,0) beats preflight's element selectors either way, and a variant
+ *   (0,2,0) beats its base. So: never restate a property through a second class
+ *   on the same element, and never put a Tailwind utility for the same property
+ *   next to an sfs class. Preflight's few (0,1,0) rules (`[type='button']`,
+ *   `:disabled`, `[hidden]`) tie with a class: check them when styling those.
  */
+
+.sfs-spinner {
+  display: block;
+  width: var(--_size);
+  height: var(--_size);
+}
 
 @keyframes sfs-spin {
   to {
@@ -168,6 +203,28 @@
 }
 
 /*
+ * RestingBorder: a masked layer with a hole, so the gradient is only the stroke
+ * (see RestingBorder.tsx). The standard `mask` comes after the prefixed pair on
+ * purpose: it resets mask-composite, which the last line then sets.
+ */
+.sfs-resting-border {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: var(--_stroke);
+  border-radius: var(--_radius);
+  background-image: var(--gradient-semantic-border-default);
+  -webkit-mask:
+    linear-gradient(black 0 0) content-box,
+    linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black 0 0) content-box,
+    linear-gradient(black 0 0);
+  mask-composite: exclude;
+}
+
+/*
  * Real DOM focus. The kit draws focus from a prop (the TV focus the canvas
  * moves), so a control reached by the keyboard while its prop says `default`
  * would show nothing: it gets the outside `focusOutline` (FocusRing.tsx) instead.
@@ -194,6 +251,7 @@
 }
 
 .sfs-carousel-tick {
+  position: absolute;
   opacity: 0;
   pointer-events: none;
   animation: sfs-carousel-tick var(--motion-semantic-carousel-step) linear infinite;

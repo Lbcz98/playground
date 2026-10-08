@@ -55,6 +55,65 @@ describe('parseDesignTokens — other shapes', () => {
   })
 })
 
+describe('parseDesignTokens — alpha variants', () => {
+  const alpha = (value: string, a: number) => ({ $value: value, $extensions: { 'com.screenflow.css': { alpha: a } } })
+  const file = {
+    color: {
+      $type: 'color',
+      core: { black: { $value: '#000000' }, slate: { $value: '#2b313a' }, 'black-alpha-0': alpha('{color.core.black}', 0) },
+      opacity: {
+        dark: { 30: alpha('{color.core.black}', 0.3), 50: alpha('{color.core.black}', 0.5), 60: alpha('{color.core.black}', 0.6) },
+        rounded: alpha('{color.core.slate}', 0.2),
+        faint: alpha('{color.opacity.dark.50}', 0.5),
+      },
+      semantic: { scrim: { $value: '{color.opacity.dark.60}' } },
+    },
+    gradient: {
+      $type: 'gradient',
+      fade: { $value: [{ color: '{color.core.black-alpha-0}', position: 0 }, { color: '{color.opacity.dark.60}', position: 1 }] },
+    },
+  }
+
+  it('become the literal #RRGGBBAA of their base, which is what a manifest holds', () => {
+    const { tokens, warnings } = parseDesignTokensWithReport(file)
+    expect(warnings).toEqual([])
+    expect(tokens.colors).toMatchObject({
+      'core-black-alpha-0': '#00000000',
+      'opacity-dark-30': '#0000004D',
+      'opacity-dark-50': '#00000080',
+      'opacity-dark-60': '#00000099',
+      'opacity-rounded': '#2B313A33',
+      // An alpha variant of an alpha variant multiplies.
+      'opacity-faint': '#00000040',
+      // A plain alias to a variant keeps the variant's alpha.
+      'semantic-scrim': '#00000099',
+    })
+    expect(tokens.gradients).toEqual({ fade: 'linear-gradient(180deg, #00000000 0%, #00000099 100%)' })
+  })
+
+  it('follow the base: changing it once moves every variant', () => {
+    const moved = structuredClone(file)
+    moved.color.core.black.$value = '#112233'
+    expect(parseDesignTokens(moved).colors).toMatchObject({ 'opacity-dark-30': '#1122334D', 'semantic-scrim': '#11223399' })
+  })
+
+  it('a variant whose base does not resolve is left out, with a reason', () => {
+    const { tokens, warnings } = parseDesignTokensWithReport({ color: { $type: 'color', a: alpha('{color.nope}', 0.5) } })
+    expect(tokens.colors).toBeUndefined()
+    expect(warnings).toEqual([{ token: 'color.a', message: expect.stringMatching(/\{color\.nope\} points at no token/) }])
+  })
+
+  it('the repo’s own tokens.json still yields the hex its alpha tokens used to state', () => {
+    expect(parseDesignTokens(REPO_TOKENS).colors).toMatchObject({
+      'core-neutral-white-alpha-0': '#EEEEEE00',
+      'opacity-base-rounded': '#2B313A33',
+      'opacity-dark-10': '#0000001A',
+      'opacity-dark-70': '#000000B3',
+      'opacity-dark-90': '#000000E6',
+    })
+  })
+})
+
 describe('parseDesignTokensWithReport — what the parse leaves out', () => {
   it('reports an alias that points at no token, and a value that is not CSS', () => {
     const { tokens, warnings } = parseDesignTokensWithReport({
