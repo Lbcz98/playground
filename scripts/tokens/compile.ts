@@ -10,10 +10,13 @@
  *     (`typography.fontFamily.primary` → `--typography-font-family-primary`).
  *   - `{dot.path}` aliases stay live as `var(--dot-path)`, so a core change
  *     flows through every semantic token that points at it.
+ *   - A colour alias with an `alpha` extension becomes a `color-mix()` of its
+ *     base with `transparent`, so an alpha variant never restates the base.
  *   - `typography` composites become `.text-*` utility classes instead.
  */
 
 import { frameSpec } from '../../src/design-system/primitives'
+import { alphaPercent, isAlpha } from '../../src/shared/design-system/color-alpha'
 import { isSpringSpec, springToCss } from '../../src/shared/design-system/spring'
 
 /** Paths are relative to the project root. */
@@ -57,7 +60,7 @@ interface Token {
   extensions?: Json
 }
 
-/** Vendor key for platform hints DTCG has no field for (e.g. a gradient's angle). */
+/** Vendor key for hints DTCG has no field for: a gradient's `angle`, a colour alias's `alpha`. */
 export const CSS_EXTENSION = 'com.screenflow.css'
 
 const SUPPORTED_TYPES = new Set([
@@ -218,6 +221,17 @@ export function compileTokens(root: unknown): CompiledTokens {
 
   const token = (path: string[]): Token => byPath.get(where(path))!
 
+  /** The alpha a colour token applies to the base it aliases, when it declares one. */
+  const alphaOf = (t: Token): number | undefined => {
+    const hint = t.extensions?.[CSS_EXTENSION]
+    if (!isObject(hint) || hint.alpha === undefined) return undefined
+    if (t.type !== 'color') throw new Error(`${where(t.path)}: ${CSS_EXTENSION}.alpha is for color tokens, not ${t.type}`)
+    if (!isAlpha(hint.alpha)) {
+      throw new Error(`${where(t.path)}: expected ${CSS_EXTENSION}.alpha from 0 to 1, got ${JSON.stringify(hint.alpha)}`)
+    }
+    return hint.alpha
+  }
+
   const vars: Array<{ token: Token; name: string; value: string }> = []
   const classes: Array<{ token: Token; name: string; declarations: string[] }> = []
   const seen = new Map<string, string>()
@@ -246,7 +260,22 @@ export function compileTokens(root: unknown): CompiledTokens {
     }
     const name = cssVarName(t.path)
     claim(name, t.path)
-    vars.push({ token: t, name, value: aliasVar(t.value, t.path, [t.type]) ?? literal(t.type, t.value, t.path) })
+    const alias = aliasVar(t.value, t.path, [t.type])
+    const alpha = alphaOf(t)
+    if (alpha === undefined) {
+      vars.push({ token: t, name, value: alias ?? literal(t.type, t.value, t.path) })
+      continue
+    }
+    if (!alias) {
+      throw new Error(`${where(t.path)}: ${CSS_EXTENSION}.alpha needs an alias to its base colour, got ${JSON.stringify(t.value)}`)
+    }
+    // An alpha variant states its base once and stays live: changing the base
+    // moves every variant. Mixed `in srgb` on purpose — against `transparent`
+    // that keeps the base's own sRGB channels and only scales alpha, so the
+    // result is numerically the 8-digit hex it replaces (#00000099 for 60% black).
+    // A perceptual space (oklab, the color-mix default elsewhere) is for mixing
+    // two colours, and would round-trip the channels for nothing.
+    vars.push({ token: t, name, value: `color-mix(in srgb, ${alias} ${alphaPercent(alpha)}%, transparent)` })
   }
 
   return {

@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url'
 import { RULES } from '../src/shared/design-system/rules'
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { COMMENT_TAGS } from '../src/shared/export/commentGrammar'
-import { collectTokens, cssVarName, NAME_FAMILIES, textClassName, TOKENS_SOURCE } from './tokens/compile'
+import { hexWithAlpha, isAlpha } from '../src/shared/design-system/color-alpha'
+import { collectTokens, CSS_EXTENSION, cssVarName, NAME_FAMILIES, textClassName, TOKENS_SOURCE } from './tokens/compile'
 
 export const GUIDE_FILES = { tokens: 'web/protos/generated/tokens.md', rules: 'web/protos/generated/rules.md' } as const
 
@@ -39,11 +40,19 @@ export function tokensGuide(root: unknown): string {
       const m = /^\{([^}]+)\}$/.exec(v)
       if (!m) return v
       if (seen.includes(m[1])) throw new Error(`alias cycle at ${m[1]}`)
-      return resolve(byPath.get(m[1])?.value, [...seen, m[1]])
+      const target = byPath.get(m[1])
+      return target && literalOf(target, [...seen, m[1]])
     }
     if (Array.isArray(v)) return v.map((x) => resolve(x, seen))
     if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, resolve(x, seen)]))
     return v
+  }
+  /** A token's resolved value; an alpha variant shows the `#RRGGBBAA` of its base, not the bare base. */
+  const literalOf = (t: Tok, seen: string[] = []): unknown => {
+    const value = resolve(t.value, seen)
+    const hint = t.extensions?.[CSS_EXTENSION]
+    const alpha = hint && typeof hint === 'object' ? (hint as Json).alpha : undefined
+    return typeof value === 'string' && isAlpha(alpha) ? (hexWithAlpha(value, alpha) ?? value) : value
   }
   const show = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => cmp(a, b))) : x)))
 
@@ -76,7 +85,7 @@ export function tokensGuide(root: unknown): string {
   for (const g of [...groups.keys()].sort(cmp)) {
     out.push('', `## ${g}`, '', '| Path | Value | Screen name |', '| --- | --- | --- |')
     for (const t of groups.get(g)!.sort((a, b) => cmp(a.path.join('.'), b.path.join('.')))) {
-      out.push(`| \`${t.path.join('.')}\` | ${cell(show(resolve(t.value)))} | ${cell(screenName(t))} |`)
+      out.push(`| \`${t.path.join('.')}\` | ${cell(show(literalOf(t)))} | ${cell(screenName(t))} |`)
     }
   }
   return out.join('\n') + '\n'

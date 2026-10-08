@@ -42,7 +42,14 @@ resolve, malformed values, and unknown `$type`s.
 - **Typography:** `typography.<style>.<weight>` composites become utility classes
   (`.text-body-md-bold`), not variables.
 - **Platform hints** that DTCG has no field for go under
-  `$extensions["com.screenflow.css"]`. So far that is only a gradient's `angle`
-  (the default is `180deg`).
+  `$extensions["com.screenflow.css"]`: a gradient's `angle` (the default is
+  `180deg`), and a colour's `alpha`.
+- **Alpha variants** never restate their base. A translucent colour aliases the
+  base and sets `alpha` from 0 to 1:
+  `{ "$value": "{color.core.neutral.black}", "$extensions": { "com.screenflow.css": { "alpha": 0.6 } } }`.
+  `global.css` gets `color-mix(in srgb, var(--color-core-neutral-black) 60%, transparent)`,
+  and the design system manifest gets the literal `#00000099`, both from that one
+  pair. Use an 8-digit hex only for a translucent colour whose RGB is no token
+  (`color.opacity.light.*`, `greymid-30`, `background`).
 - **`$description`** is carried into `global.css` as a comment. Use it for where
   a value came from and why.
