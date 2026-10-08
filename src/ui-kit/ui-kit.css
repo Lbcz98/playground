@@ -319,6 +319,8 @@
   height: var(--dimension-size-semantic-round-button);
   padding: 0;
   border: none;
+  /* Paints nothing itself; the radius is for the keyboard focus outline to follow the pill. */
+  border-radius: var(--dimension-radius-semantic-pill);
   background: none;
   cursor: pointer;
 }
