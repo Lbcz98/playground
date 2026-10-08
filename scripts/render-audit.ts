@@ -46,8 +46,23 @@ function loadPlaywright(): Playwright {
 }
 
 export type RenderResult =
-  | { file: string; problems: string[]; issues: RenderIssue[]; measured?: RenderMeasurement; error?: undefined }
-  | { file: string; problems: []; issues: []; measured?: undefined; error: string }
+  | {
+      file: string
+      problems: string[]
+      issues: RenderIssue[]
+      measured?: RenderMeasurement
+      /** What the page reported for `prefers-reduced-motion`: the audit asks for `reduced`. */
+      motion?: 'reduced' | 'full'
+      /** How many measurements it took for two in a row to be equal. */
+      settledAfter?: number
+      error?: undefined
+    }
+  | { file: string; problems: []; issues: []; measured?: undefined; motion?: undefined; settledAfter?: undefined; error: string }
+
+/** Between two measurements, ms. */
+const SETTLE_STEP = 100
+/** Measurements before giving up on a screen that keeps changing (about 3s). */
+const SETTLE_TRIES = 30
 
 export async function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
   const playwright = loadPlaywright()
@@ -71,7 +86,8 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
     })
     const results: RenderResult[] = []
     for (const file of files) {
-      const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+      // Motion off (the kit stops its animations and transitions under `prefers-reduced-motion`): what is measured is the resting screen.
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' })
       if (process.env.RENDER_AUDIT_DEBUG) {
         page.on('console', (m) => console.error('[page]', m.text?.()))
         page.on('pageerror', (e) => console.error('[page error]', e.message ?? e))
@@ -85,12 +101,24 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
           results.push({ file, problems: [], issues: [], error: failed })
           continue
         }
-        await page.waitForTimeout(300) // fonts and the first layout settle
-        const measured = await page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        // Fonts and the first layout settle at their own pace: measure until two readings in a row are equal.
+        const read = (): Promise<RenderMeasurement | { error: string }> => page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        let measured = await read()
+        let reads = 1
+        let settled = false
+        while (!settled && !('error' in measured) && reads < SETTLE_TRIES) {
+          await page.waitForTimeout(SETTLE_STEP)
+          const next = await read()
+          reads++
+          settled = JSON.stringify(next) === JSON.stringify(measured)
+          measured = next
+        }
         if ('error' in measured) results.push({ file, problems: [], issues: [], error: measured.error })
+        else if (!settled) results.push({ file, problems: [], issues: [], error: `the screen was still changing after ${(SETTLE_TRIES * SETTLE_STEP) / 1000}s with motion off, so it cannot be measured` })
         else {
           const issues = auditRenderIssues(measured)
-          results.push({ file, problems: issues.map((i) => i.message), issues, measured })
+          const motion = (await page.evaluate<boolean>("matchMedia('(prefers-reduced-motion: reduce)').matches")) ? 'reduced' : 'full'
+          results.push({ file, problems: issues.map((i) => i.message), issues, measured, motion, settledAfter: reads })
         }
       } catch (e) {
         results.push({ file, problems: [], issues: [], error: String(e).split('\n')[0] })
