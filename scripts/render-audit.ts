@@ -95,13 +95,14 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         page.on('pageerror', (e) => console.error('[page error]', e.message ?? e))
       }
       // The dev server may reload the page while it is being read (Vite re-optimizing dependencies on a cold cache,
-      // which is every CI run): wait for the new page to be ready and read again.
+      // which is every CI run): wait for the new page to be ready and read again. A read that lands on the new
+      // document before it is ready (`__measure` not defined yet, or defined with nothing rendered) counts as the same.
       const onPage = async <T,>(read: () => Promise<T>): Promise<T> => {
         for (let attempt = 0; ; attempt++) {
           try {
             return await read()
           } catch (e) {
-            if (attempt >= RELOADS || !/Execution context was destroyed|navigation/.test(String(e))) throw e
+            if (attempt >= RELOADS || !/Execution context was destroyed|navigation|__measure is not a function/.test(String(e))) throw e
             await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
           }
         }
@@ -116,7 +117,13 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
           continue
         }
         // Fonts and the first layout settle at their own pace: measure until two readings in a row are equal.
-        const read = (): Promise<RenderMeasurement | { error: string }> => onPage(() => page.evaluate<RenderMeasurement | { error: string }>('window.__measure()'))
+        // Only a page that says it is ready is measured: a freshly reloaded one defines `__measure` before it has rendered anything.
+        const read = (): Promise<RenderMeasurement | { error: string }> =>
+          onPage(async () => {
+            const got = await page.evaluate<RenderMeasurement | { error: string } | { notReady: true }>('window.__ready === true ? window.__measure() : { notReady: true }')
+            if ('notReady' in got) throw new Error('navigation: the page is not ready yet')
+            return got
+          })
         let measured = await read()
         let reads = 1
         let settled = false
