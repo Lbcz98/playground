@@ -22,10 +22,12 @@ export interface NodeSource {
 export function paintsBackground(el: Element): boolean {
   const style = getComputedStyle(el)
   if (style.backgroundImage !== 'none') return true
-  const m = style.backgroundColor.match(/rgba?\(([^)]+)\)/)
+  // A `color-mix()` token computes to `color(srgb r g b / a)`, not `rgba()`.
+  const m = style.backgroundColor.match(/(rgba?|color)\(([^)]+)\)/)
   if (!m) return false
-  const parts = m[1].split(/[ ,/]+/).filter(Boolean)
-  const alpha = parts.length >= 4 ? Number(parts[3]) : 1
+  const [channels, slashAlpha] = m[2].split('/')
+  const parts = channels.split(/[ ,]+/).filter(Boolean)
+  const alpha = slashAlpha !== undefined ? Number(slashAlpha) : m[1] !== 'color' && parts.length >= 4 ? Number(parts[3]) : 1
   return alpha >= 0.5
 }
 

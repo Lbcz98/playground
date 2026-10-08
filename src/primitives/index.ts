@@ -19,6 +19,7 @@ export {
   spacing,
   textClass,
   token,
+  vars,
   type BorderColor,
   type GridSpacing,
   type OpacityRole,

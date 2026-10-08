@@ -46,14 +46,14 @@ import {
 import {
   FocusRing,
   RestingBorder,
-  size,
   spacing,
   Text,
   token,
+  vars,
   type InteractionState,
 } from '@/primitives'
+import './ui-kit.css'
 import { contentCardSpec, frameSpec, spacingScale } from '@/design-system/primitives'
-import { BODY_GAP } from './TableCell'
 
 export type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
 
@@ -85,9 +85,6 @@ export interface ContentCardProps {
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
-
-const RADIUS = token('--dimension-radius-semantic-content-card')
-const INSET = spacing(contentCardSpec.inset)
 
 /**
  * The height as a count of grid steps, so it can only ever land on the grid: `2xs`
@@ -130,6 +127,9 @@ export function cardPress(onClick: () => void) {
   }
 }
 
+/** The token the body's gap is (BODY_GAP in TableCell.tsx), by name: a `gap` set per use redefines it. */
+const BODY_GAP_TOKEN = '--dimension-spacing-semantic-table-row-gap'
+
 /** Which page of rows the card is on, for its body. */
 const CardPage = createContext<{ page: number; rowsPerPage?: number }>({ page: 0 })
 
@@ -150,39 +150,25 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
     if (import.meta.env.DEV && act) warnOnNestedControls(card.current)
   })
 
-  const frame: CSSProperties = {
-    position: 'relative',
-    width: size('content-card-width'),
-    // Omitted: hug the content, capped at the tallest card — what doesn't fit is
-    // cut off by the body, where the render check sees it.
-    ...(height === undefined ? { maxHeight: gridHeight(contentCardSpec.maxHeight) } : { height: gridHeight(height) }),
-    padding: INSET,
-    borderRadius: RADIUS,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    flexShrink: 0,
-    backgroundColor: focus ? undefined : token('--color-semantic-functional-background-translucent'),
-    cursor: act ? 'pointer' : undefined,
-  }
-
-
-  const zones: CSSProperties = {
-    position: 'relative',
-    flex: '1 1 auto',
-    minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: gap === undefined ? spacing('sm') : `${gap}px`,
-    opacity: focus ? undefined : token('--opacity-semantic-content-muted'),
-  }
-
   return (
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
-    <div ref={card} tabIndex={0} className="sfs-motion sfs-focusable" style={frame} {...(act && cardPress(act))}>
+    <div
+      ref={card}
+      tabIndex={0}
+      className="sfs-content-card sfs-motion sfs-focusable"
+      data-state={state}
+      data-sized={height === undefined ? undefined : ''}
+      data-pressable={act ? '' : undefined}
+      // Omitted: hug the content, capped at the tallest card — what doesn't fit is
+      // cut off by the body, where the render check sees it.
+      style={vars({ '--_height': gridHeight(height ?? contentCardSpec.maxHeight) })}
+      {...(act && cardPress(act))}
+    >
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
       <CardPage.Provider value={{ page, rowsPerPage }}>
-        <div style={zones}>{children}</div>
+        <div className="sfs-content-card-zones" style={vars({ '--_gap': gap === undefined ? spacing('sm') : `${gap}px` })}>
+          {children}
+        </div>
       </CardPage.Provider>
     </div>
   )
@@ -225,13 +211,10 @@ export interface ContentCardHeaderProps {
   ad?: { label: string; logo?: ReactNode }
 }
 
-const badgeSlot: CSSProperties = { display: 'flex', alignItems: 'center', flexShrink: 0 }
-const rowGap: CSSProperties = { display: 'flex', alignItems: 'center', gap: spacing('2xs'), minWidth: 0 }
-
 function VerifiedTick(): ReactNode {
   return (
-    <span style={{ ...badgeSlot, color: token('--color-semantic-functional-status-live') }} aria-hidden>
-      <svg viewBox="0 0 12 12" style={{ height: '1em', width: 'auto', display: 'block' }} fill="none">
+    <span className="sfs-content-card-tick" aria-hidden>
+      <svg viewBox="0 0 12 12" className="sfs-content-card-tick-glyph" fill="none">
         <circle cx="6" cy="6" r="6" fill="currentColor" />
         <path
           d="M3.4 6.2 5.1 7.9 8.6 4.4"
@@ -267,7 +250,7 @@ export function ContentCardHeader({
   ad,
 }: ContentCardHeaderProps): ReactNode {
   const text = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing('3xs'), minWidth: 0, flex: '1 1 auto' }}>
+    <div className="sfs-content-card-text">
       {overline ? (
         <Text as="span" variant="body-sm-medium" color="muted">
           {overline}
@@ -279,16 +262,16 @@ export function ContentCardHeader({
         </Text>
       ) : null}
       {subtitle || stats?.length ? (
-        <div style={{ ...rowGap, justifyContent: 'space-between' }}>
+        <div className="sfs-content-card-subtitle">
           {subtitle ? (
             <Text as="span" variant="body-sm-medium" color="muted">
               {subtitle}
             </Text>
           ) : null}
           {stats?.length ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs'), flexShrink: 0 }}>
+            <div className="sfs-content-card-stats">
               {stats.map((stat, i) => (
-                <span key={i} style={{ display: 'block', width: size('table-stat-column') }}>
+                <span key={i} className="sfs-content-card-stat">
                   <Text as="span" variant="body-sm-medium" color="subtle" align="center">
                     {stat}
                   </Text>
@@ -302,27 +285,27 @@ export function ContentCardHeader({
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing('2xs'), flexShrink: 0 }}>
+    <div className="sfs-content-card-header">
       {match ? (
-        <div style={{ ...rowGap, justifyContent: 'space-between' }}>
-          <div style={rowGap}>
-            {match.home.badge ? <span style={badgeSlot}>{match.home.badge}</span> : null}
+        <div className="sfs-content-card-match">
+          <div className="sfs-content-card-side">
+            {match.home.badge ? <span className="sfs-content-card-badge">{match.home.badge}</span> : null}
             <Text as="span" variant="body-sm-bold" truncate>
               {match.home.name}
             </Text>
           </div>
-          <div style={rowGap}>
+          <div className="sfs-content-card-side">
             <Text as="span" variant="body-sm-bold" truncate>
               {match.away.name}
             </Text>
-            {match.away.badge ? <span style={badgeSlot}>{match.away.badge}</span> : null}
+            {match.away.badge ? <span className="sfs-content-card-badge">{match.away.badge}</span> : null}
           </div>
         </div>
       ) : null}
 
       {partner ? (
-        <div style={rowGap}>
-          {partner.logo ? <span style={badgeSlot}>{partner.logo}</span> : null}
+        <div className="sfs-content-card-partner">
+          {partner.logo ? <span className="sfs-content-card-badge">{partner.logo}</span> : null}
           <Text as="span" variant="body-sm-bold" truncate>
             {partner.name}
           </Text>
@@ -331,25 +314,18 @@ export function ContentCardHeader({
       ) : null}
 
       {overline || title || subtitle || stats?.length || icon ? (
-        <div style={{ ...rowGap, gap: spacing('sm') }}>
-          {icon ? <span style={badgeSlot}>{icon}</span> : null}
+        <div className="sfs-content-card-heading">
+          {icon ? <span className="sfs-content-card-badge">{icon}</span> : null}
           {text}
         </div>
       ) : null}
 
       {ad ? (
-        <div
-          style={{
-            ...rowGap,
-            gap: spacing('2xs'),
-            paddingBottom: spacing('2xs'),
-            borderBottom: `${token('--dimension-border-width-semantic-divider')} solid ${token('--color-semantic-functional-border-subtle')}`,
-          }}
-        >
+        <div className="sfs-content-card-ad">
           <Text as="span" variant="caption-medium" color="muted">
             {ad.label}
           </Text>
-          {ad.logo ? <span style={badgeSlot}>{ad.logo}</span> : null}
+          {ad.logo ? <span className="sfs-content-card-badge">{ad.logo}</span> : null}
         </div>
       ) : null}
     </div>
@@ -383,17 +359,12 @@ export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps):
   }
   return (
     <div
-      style={{
-        flex: '1 1 auto',
-        minHeight: 0,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: BODY_GAP,
-        // A gap set per use re-points the table-row-gap token inside this body, so
-        // the flush rule for scout rows (primitives.css) cancels the same amount.
-        ...(gap === undefined ? {} : { ['--dimension-spacing-semantic-table-row-gap' as string]: `${gap}px` }),
-      }}
+      className="sfs-content-card-body"
+      // A gap set per use re-points the table-row-gap token inside this body, so
+      // the body's own gap, the flush rule for scout rows (primitives.css) and
+      // anything a row spaces by that token all move together. Not a `--_` value:
+      // it is the token itself that is redefined here, for the body's subtree.
+      style={gap === undefined ? undefined : ({ [BODY_GAP_TOKEN]: `${gap}px` } as CSSProperties)}
       data-card-body=""
     >
       {rows}
@@ -416,17 +387,7 @@ export interface ContentCardFooterProps {
 /** The bottom zone, pinned to the card's bottom edge even when there is no body above it. */
 export function ContentCardFooter({ caption, children }: ContentCardFooterProps): ReactNode {
   return (
-    <div
-      style={{
-        marginTop: 'auto',
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        gap: spacing('2xs'),
-      }}
-    >
+    <div className="sfs-content-card-footer">
       {caption ? (
         <Text as="span" variant="footnote-medium" opacity="text-secondary" align="center">
           {caption}

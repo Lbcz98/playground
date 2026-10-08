@@ -28,16 +28,9 @@
  * lives in `opacity.semantic.focus-glow`.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import {
-  FocusRing,
-  RestingBorder,
-  size,
-  spacing,
-  Text,
-  token,
-  type InteractionState,
-} from '@/primitives'
+import type { ReactNode } from 'react'
+import { FocusRing, RestingBorder, Text, type InteractionState } from '@/primitives'
+import './ui-kit.css'
 
 export type NotificationKind = 'message' | 'rounded'
 export type NotificationState = Extract<InteractionState, 'default' | 'focus'>
@@ -54,76 +47,11 @@ export interface NotificationProps {
   onClick?: () => void
 }
 
-const PILL = token('--dimension-radius-semantic-pill')
-
-const root: CSSProperties = {
-  position: 'relative',
-  height: size('round-button'),
-  padding: 0,
-  border: 'none',
-  background: 'none',
-  cursor: 'pointer',
-  display: 'grid',
-  placeItems: 'center',
-  flexShrink: 0,
-}
-
-/** The visible pill: the logo, then the text, inside the round-button circle. */
-const pill: CSSProperties = {
-  position: 'relative',
-  display: 'flex',
-  alignItems: 'center',
-  gap: spacing('xs'),
-  height: size('round-button-circle'),
-  paddingInline: spacing('sm'),
-  borderRadius: PILL,
-}
-
-/** At rest the pill paints itself; focused, the ring paints its own fill. */
-const restPill: CSSProperties = {
-  ...pill,
-  backgroundColor: token('--color-semantic-functional-background-translucent'),
-}
-
-/** `rounded` is the pill closed up around the logo alone. */
-const roundedPill: CSSProperties = {
-  width: size('round-button-circle'),
-  paddingInline: 0,
-  justifyContent: 'center',
-}
-
-/**
- * The column the message is laid out to, so one line and two give the pill the
- * same shape. `white-space` is inherited, so this is also what lets the title
- * break; and being a flex column it blockifies the `<Text>` span, which is what
- * puts the line box on the text's own line height instead of the one it would
- * otherwise inherit from the page. It hugs that text, and the pill centres it.
- */
-const titleColumn: CSSProperties = {
-  position: 'relative',
-  display: 'flex',
-  flexDirection: 'column',
-  width: size('notification-text-width'),
-  flexShrink: 0,
-  whiteSpace: 'pre-line',
-}
-
 function Logo({ src }: { src?: string }): ReactNode {
-  const edge = size('avatar')
-  // Positioned, so it paints above `<FocusRing>`, which is: an unpositioned logo
-  // goes under the ring's fill and the focused pill loses it altogether.
-  const shape: CSSProperties = {
-    position: 'relative',
-    width: edge,
-    height: edge,
-    borderRadius: PILL,
-    display: 'block',
-    flexShrink: 0,
-  }
   return src ? (
-    <img src={src} alt="" style={{ ...shape, objectFit: 'cover' }} />
+    <img src={src} alt="" className="sfs-notification-logo" />
   ) : (
-    <span style={{ ...shape, backgroundColor: token('--color-semantic-functional-background-elevated') }} />
+    <span className="sfs-notification-logo" data-empty="" />
   )
 }
 
@@ -135,28 +63,23 @@ export function Notification({
   logoSrc,
   onClick,
 }: NotificationProps): ReactNode {
-  const state = (interactionState ?? 'default')
-  const focus = state === 'focus'
+  const state = interactionState ?? 'default'
   const rounded = kind === 'rounded'
 
   return (
     <button
-      className="sfs-motion"
+      className="sfs-notification sfs-motion sfs-focusable"
+      data-kind={kind}
+      data-state={state}
       type="button"
       onClick={onClick}
       aria-label={rounded ? 'Notificação' : undefined}
-      style={{ ...root, width: rounded ? size('round-button') : undefined }}
     >
-      <span
-        style={{
-          ...(focus ? pill : restPill),
-          ...(rounded ? roundedPill : null),
-        }}
-      >
-        {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
+      <span className="sfs-notification-pill">
+        {state === 'focus' ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <Logo src={logoSrc} />
         {rounded ? null : (
-          <span style={titleColumn}>
+          <span className="sfs-notification-title">
             <Text as="span" variant="body-sm-bold">
               {title}
             </Text>

@@ -3,7 +3,10 @@
  *
  * For every source file (stories included, tests excluded) it records:
  *   - each custom property referenced, by tier — `core` holds a raw value,
- *     `semantic` names an intent and aliases core (tokens.json's `semantic` groups);
+ *     `semantic` names an intent and aliases core (tokens.json's `semantic` groups).
+ *     The layout scales are the exception TSX reaches through `spacing()` and
+ *     `radius()`; a stylesheet has no helper, so there the same steps (and only
+ *     the steps those helpers accept) may be named directly and are not counted;
  *   - untyped `var(--…)` string literals in TS/TSX, which the compiler can't check;
  *   - `.text-*` classes applied as raw strings instead of through `<Text>`;
  *   - measured sizes read from `ui-kit/untokenized.ts`.
@@ -13,6 +16,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { GRID_SPACING, RADIUS_STEPS } from '../../src/primitives/tokens'
 import { collectTokens, cssVarName, textClassName } from './compile'
 
 export const AUDITED_DIRS = ['src/ui-kit', 'src/primitives'] as const
@@ -28,6 +32,12 @@ export interface FileAudit {
   rawTextClasses: number
   measuredSizes: number
 }
+
+/** What `spacing()` and `radius()` (src/primitives/tokens.ts) can produce: no off-grid step. */
+const LAYOUT_SCALE = new Set<string>([
+  ...GRID_SPACING.map((step) => `--dimension-spacing-core-${step}`),
+  ...RADIUS_STEPS.map((step) => `--dimension-radius-core-${step}`),
+])
 
 const VAR_NAME = /--[a-z0-9]+(?:-[a-z0-9]+)*/g
 const UNTYPED_VAR = /var\(--/g
@@ -69,6 +79,7 @@ export function auditComponents(root: string, tokensJson: Record<string, unknown
       }
       for (const [name] of text.matchAll(VAR_NAME)) {
         const tier = tiers.get(name)
+        if (tier === 'core' && path.endsWith('.css') && LAYOUT_SCALE.has(name)) continue
         if (tier) bump(audit[tier], name)
       }
       audits.push(audit)

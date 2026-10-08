@@ -9,6 +9,7 @@
  * the build of every primitive that used it.
  */
 
+import type { CSSProperties } from 'react'
 import { CSS_VARS, type CssVar, type TextStyle } from '@/styles/global-tokens'
 import type * as Generated from './token-names'
 
@@ -75,6 +76,15 @@ function cssVar(name: CssVar): string {
 /** A semantic token as a CSS value. Core names don't type-check: components never name raw values. */
 export function token(name: SemanticVar): string {
   return `var(${name})`
+}
+
+/**
+ * Component-local custom properties: the one thing a kit component's inline
+ * `style` carries. A value only the render knows goes in as `--_name` and the
+ * component's class reads it from there (see primitives.css).
+ */
+export function vars(values: Record<`--_${string}`, string | number>): CSSProperties {
+  return values as CSSProperties
 }
 
 /** The generated utility class for a text style, for elements that can't be a `<Text>`. */

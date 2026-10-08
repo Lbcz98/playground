@@ -16,9 +16,10 @@
  * own interaction state either.
  */
 
-import { Children, useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
-import { spacing, Stack, Text } from '@/primitives'
+import { Children, useEffect, useRef, type ReactNode } from 'react'
+import { Stack, Text } from '@/primitives'
 import { InteractivityButton, type InteractivityButtonState } from './InteractivityButton'
+import './ui-kit.css'
 
 export interface InteractivityMenuItem {
   title: string
@@ -47,14 +48,6 @@ export interface InteractivityMenuProps {
    * rail (nível 2) starts from the left. Default `start`.
    */
   align?: 'start' | 'end'
-}
-
-/** Scrolls horizontally, so it stays a plain element rather than a Stack. */
-const rail: CSSProperties = {
-  display: 'flex',
-  alignItems: 'flex-end',
-  gap: spacing('2xs'),
-  overflowX: 'auto',
 }
 
 function stateFor(index: number, activeIndex: number | null | undefined): InteractivityButtonState {
@@ -88,16 +81,16 @@ export function InteractivityMenu({
           {heading}
         </Text>
       )}
-      <div style={{ ...rail, justifyContent: align === 'end' ? 'flex-end' : 'flex-start' }}>
+      <div className="sfs-interactivity-menu-rail" data-align={align}>
         {children != null
-          ? Children.map(children, (card) => <div style={{ flexShrink: 0 }}>{card}</div>)
+          ? Children.map(children, (card) => <div className="sfs-interactivity-menu-item">{card}</div>)
           : (items ?? []).map((item, index) => (
               <div
                 key={index}
                 ref={(el) => {
                   itemRefs.current[index] = el
                 }}
-                style={{ flexShrink: 0 }}
+                className="sfs-interactivity-menu-item"
               >
                 <InteractivityButton
                   interactionState={stateFor(index, activeIndex)}

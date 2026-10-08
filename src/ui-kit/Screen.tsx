@@ -20,10 +20,11 @@
  * rendered screen (`renderAudit`, `focusReading`); keep them.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import { spacing } from '@/primitives'
+import type { ReactNode } from 'react'
+import { vars } from '@/primitives'
 import { frameSpec } from '@/design-system/primitives'
 import { ScreenOverlay } from './Overlay'
+import './ui-kit.css'
 
 /** The navigation level of the screen (Camadas): 0 clean broadcast, 1 home, 2 rail, 3 one interactivity. */
 export type ScreenLevel = 0 | 1 | 2 | 3
@@ -48,8 +49,6 @@ export interface ScreenProps {
   children?: ReactNode
 }
 
-const fill: CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' }
-
 /** The 1280×720 DTV frame every screen is built in: video, overlay shades, then a transparent content layer. */
 export function Screen({
   model,
@@ -60,50 +59,31 @@ export function Screen({
   scale = 1,
   children,
 }: ScreenProps): ReactNode {
-  const frame: CSSProperties = {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing('sm'),
-    boxSizing: 'border-box',
-    width: frameSpec.baseWidth,
-    height: frameSpec.baseHeight,
-    padding: spacing('xl'),
-    overflow: 'hidden',
-    transformOrigin: scale === 1 ? undefined : 'top left',
-    transform: scale === 1 ? undefined : `scale(${scale})`,
-  }
   const zone = focusSide === 'left' ? 'bottom-left' : 'bottom-right'
 
   return (
-    <div data-screen-layer="video" data-screen-level={level} data-focus={focusSide} style={frame}>
-      {video ? <div style={fill}>{video}</div> : null}
-      <div aria-hidden data-screen-layer="overlay" style={fill}>
+    <div
+      className="sfs-screen"
+      data-screen-layer="video"
+      data-screen-level={level}
+      data-focus={focusSide}
+      data-scaled={scale === 1 ? undefined : ''}
+      // The base size and the scale are TypeScript data (frameSpec, the prop): passed, not copied into the CSS.
+      style={vars({
+        '--_width': `${frameSpec.baseWidth}px`,
+        '--_height': `${frameSpec.baseHeight}px`,
+        '--_scale': scale,
+      })}
+    >
+      {video ? <div className="sfs-screen-layer">{video}</div> : null}
+      <div aria-hidden className="sfs-screen-layer" data-screen-layer="overlay">
         <ScreenOverlay model={model} />
       </div>
-      <div
-        data-screen-layer="content"
-        style={{
-          position: 'relative',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr)',
-          gridTemplateRows: 'minmax(0, 1fr)',
-          flex: 1,
-          minHeight: 0,
-        }}
-      >
+      <div className="sfs-screen-content" data-screen-layer="content">
         {children}
       </div>
       {anchored ? (
-        <div
-          data-anchor-zone={zone}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            gap: spacing('sm'),
-            justifyContent: zone === 'bottom-left' ? 'flex-start' : 'flex-end',
-          }}
-        >
+        <div className="sfs-screen-anchor" data-anchor-zone={zone}>
           {anchored}
         </div>
       ) : null}

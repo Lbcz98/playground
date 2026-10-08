@@ -23,6 +23,23 @@ describe('compileTokens', () => {
     expect(css).toContain('--color-semantic-text: var(--color-core-white);')
   })
 
+  it('derives an alpha variant from its base with color-mix, so the base is stated once', () => {
+    const alpha = (value: string, a: unknown) => ({ ...color(value), $extensions: { 'com.screenflow.css': { alpha: a } } })
+    const { css } = compileTokens({
+      color: {
+        core: { black: color('#000000'), 'black-alpha-0': alpha('{color.core.black}', 0) },
+        opacity: { dark: { 30: alpha('{color.core.black}', 0.3), 55: alpha('{color.core.black}', 0.555) } },
+        semantic: { scrim: color('{color.opacity.dark.30}') },
+      },
+    })
+    // srgb: against `transparent` only alpha scales, matching the old 8-digit hex.
+    expect(css).toContain('--color-opacity-dark-30: color-mix(in srgb, var(--color-core-black) 30%, transparent);')
+    expect(css).toContain('--color-opacity-dark-55: color-mix(in srgb, var(--color-core-black) 55.5%, transparent);')
+    expect(css).toContain('--color-core-black-alpha-0: color-mix(in srgb, var(--color-core-black) 0%, transparent);')
+    expect(css).toContain('--color-semantic-scrim: var(--color-opacity-dark-30);')
+    expect(css.match(/#000000/g)).toHaveLength(1)
+  })
+
   it('compiles a duration, and rejects one without a unit', () => {
     const { css } = compileTokens({
       motion: { $type: 'duration', semantic: { 'focus-cycle': { $value: '6000ms' } } },
@@ -113,6 +130,26 @@ describe('compileTokens', () => {
       ['a malformed dimension', { a: { $value: '8', $type: 'dimension' } }, /expected a dimension/],
       ['a token with no $type', { a: { $value: '#FFFFFF' } }, /no \$type/],
       ['an unsupported $type', { a: { $value: '0 2px 4px #000000', $type: 'shadow' } }, /unsupported \$type/],
+      [
+        'an alpha outside 0..1',
+        { a: color('#000000'), b: { ...color('{a}'), $extensions: { 'com.screenflow.css': { alpha: 30 } } } },
+        /expected com\.screenflow\.css\.alpha from 0 to 1, got 30/,
+      ],
+      [
+        'an alpha that is not a number',
+        { a: color('#000000'), b: { ...color('{a}'), $extensions: { 'com.screenflow.css': { alpha: '30%' } } } },
+        /expected com\.screenflow\.css\.alpha from 0 to 1/,
+      ],
+      [
+        'an alpha on a literal colour, which has no base to derive from',
+        { a: { ...color('#000000'), $extensions: { 'com.screenflow.css': { alpha: 0.3 } } } },
+        /alpha needs an alias to its base colour/,
+      ],
+      [
+        'an alpha on a token that is not a colour',
+        { a: { $value: '8px', $type: 'dimension', $extensions: { 'com.screenflow.css': { alpha: 0.3 } } } },
+        /alpha is for color tokens, not dimension/,
+      ],
       [
         'two tokens that flatten to one name',
         { a: { 'b-c': color('#FFFFFF') }, 'a-b': { c: color('#000000') } },
