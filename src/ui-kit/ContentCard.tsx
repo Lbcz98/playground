@@ -152,7 +152,6 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
 
   const frame: CSSProperties = {
     position: 'relative',
-    boxSizing: 'border-box',
     width: size('content-card-width'),
     // Omitted: hug the content, capped at the tallest card — what doesn't fit is
     // cut off by the body, where the render check sees it.

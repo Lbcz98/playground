@@ -398,8 +398,29 @@
 
 /* ===== Typography · Utility Classes ===== */
 
-.text-caption-medium {
+.text-caption-medium,
+.text-caption-bold,
+.text-caption-extra-bold,
+.text-footnote-medium,
+.text-footnote-bold,
+.text-body-sm-medium,
+.text-body-sm-bold,
+.text-body-sm-extra-bold,
+.text-body-md-regular,
+.text-body-md-medium,
+.text-body-md-bold,
+.text-body-lg-medium,
+.text-body-lg-bold,
+.text-heading-5-medium,
+.text-heading-5-bold,
+.text-heading-4-medium,
+.text-heading-4-bold,
+.text-heading-3-medium,
+.text-heading-3-bold {
   font-family: var(--typography-font-family-primary);
+}
+
+.text-caption-medium {
   font-size: var(--typography-font-size-xs);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -407,7 +428,6 @@
 }
 
 .text-caption-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-xs);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -415,7 +435,6 @@
 }
 
 .text-caption-extra-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-xs);
   font-weight: var(--typography-font-weight-extra-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -423,7 +442,6 @@
 }
 
 .text-footnote-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-sm);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -431,7 +449,6 @@
 }
 
 .text-footnote-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-sm);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -439,7 +456,6 @@
 }
 
 .text-body-sm-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-md);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -447,7 +463,6 @@
 }
 
 .text-body-sm-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-md);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -455,7 +470,6 @@
 }
 
 .text-body-sm-extra-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-md);
   font-weight: var(--typography-font-weight-extra-bold);
   letter-spacing: var(--typography-letter-spacing-tighter);
@@ -463,7 +477,6 @@
 }
 
 .text-body-md-regular {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-base);
   font-weight: var(--typography-font-weight-regular);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -471,7 +484,6 @@
 }
 
 .text-body-md-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-base);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -479,7 +491,6 @@
 }
 
 .text-body-md-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-base);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -487,7 +498,6 @@
 }
 
 .text-body-lg-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-lg);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -495,7 +505,6 @@
 }
 
 .text-body-lg-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-lg);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -503,7 +512,6 @@
 }
 
 .text-heading-5-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-xl);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -511,7 +519,6 @@
 }
 
 .text-heading-5-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-xl);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -519,7 +526,6 @@
 }
 
 .text-heading-4-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-2xl);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -527,7 +533,6 @@
 }
 
 .text-heading-4-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-2xl);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -535,7 +540,6 @@
 }
 
 .text-heading-3-medium {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-3xl);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-tight);
@@ -543,7 +547,6 @@
 }
 
 .text-heading-3-bold {
-  font-family: var(--typography-font-family-primary);
   font-size: var(--typography-font-size-3xl);
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
