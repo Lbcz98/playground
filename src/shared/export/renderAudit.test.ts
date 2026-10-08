@@ -55,6 +55,15 @@ describe('the render check on screens written as TSX', () => {
     expect(r.motion).toBe('reduced')
     expect(r.settledAfter).toBeGreaterThanOrEqual(2)
   }))
+  // Vite re-optimizes dependencies on a cold cache (every CI run) and reloads the page in the middle of the measurement.
+  it('measures a screen whose page reloads once, after it was ready', async () => {
+    if (!results) return void console.warn(`skipped: ${unavailable}`)
+    const reload = "if (!sessionStorage.getItem('reloaded')) { sessionStorage.setItem('reloaded', '1'); setTimeout(() => location.reload(), 180) }\n"
+    writeFileSync(join(OUT, 'reload.tsx'), reload + ref('home'))
+    const [r] = await renderAuditFiles([join(OUT, 'reload.tsx')])
+    expect(r.error).toBeUndefined()
+    expect(r.measured).toEqual(results.get('ok-home.tsx')!.measured)
+  }, 120_000)
   it('reads the same rectangles on a second run', async () => {
     if (!results) return void console.warn(`skipped: ${unavailable}`)
     const [again] = await renderAuditFiles([join(OUT, 'ok-home.tsx')])

@@ -59,6 +59,8 @@ export type RenderResult =
     }
   | { file: string; problems: []; issues: []; measured?: undefined; motion?: undefined; settledAfter?: undefined; error: string }
 
+/** Reloads of the page tolerated while reading it. */
+const RELOADS = 5
 /** Between two measurements, ms. */
 const SETTLE_STEP = 100
 /** Measurements before giving up on a screen that keeps changing (about 3s). */
@@ -92,17 +94,29 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         page.on('console', (m) => console.error('[page]', m.text?.()))
         page.on('pageerror', (e) => console.error('[page error]', e.message ?? e))
       }
+      // The dev server may reload the page while it is being read (Vite re-optimizing dependencies on a cold cache,
+      // which is every CI run): wait for the new page to be ready and read again.
+      const onPage = async <T,>(read: () => Promise<T>): Promise<T> => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await read()
+          } catch (e) {
+            if (attempt >= RELOADS || !/Execution context was destroyed|navigation/.test(String(e))) throw e
+            await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
+          }
+        }
+      }
       try {
         const url = `http://127.0.0.1:${port}/scripts/render-harness/index.html?file=/${relative(ROOT, resolve(file))}`
         await page.goto(url)
         await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
-        const failed = await page.evaluate<string | undefined>('window.__error')
+        const failed = await onPage(() => page.evaluate<string | undefined>('window.__error'))
         if (failed) {
           results.push({ file, problems: [], issues: [], error: failed })
           continue
         }
         // Fonts and the first layout settle at their own pace: measure until two readings in a row are equal.
-        const read = (): Promise<RenderMeasurement | { error: string }> => page.evaluate<RenderMeasurement | { error: string }>('window.__measure()')
+        const read = (): Promise<RenderMeasurement | { error: string }> => onPage(() => page.evaluate<RenderMeasurement | { error: string }>('window.__measure()'))
         let measured = await read()
         let reads = 1
         let settled = false
@@ -117,7 +131,7 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         else if (!settled) results.push({ file, problems: [], issues: [], error: `the screen was still changing after ${(SETTLE_TRIES * SETTLE_STEP) / 1000}s with motion off, so it cannot be measured` })
         else {
           const issues = auditRenderIssues(measured)
-          const motion = (await page.evaluate<boolean>("matchMedia('(prefers-reduced-motion: reduce)').matches")) ? 'reduced' : 'full'
+          const motion = (await onPage(() => page.evaluate<boolean>("matchMedia('(prefers-reduced-motion: reduce)').matches"))) ? 'reduced' : 'full'
           results.push({ file, problems: issues.map((i) => i.message), issues, measured, motion, settledAfter: reads })
         }
       } catch (e) {
