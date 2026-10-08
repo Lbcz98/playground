@@ -11,8 +11,9 @@
  * Absolutely positioned: render it inside a `position: relative` control.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import { token, type RadiusRole } from './tokens'
+import type { ReactNode } from 'react'
+import './primitives.css'
+import { token, type RadiusRole, vars } from './tokens'
 
 export interface RestingBorderProps {
   /** The control's corner shape. */
@@ -21,26 +22,15 @@ export interface RestingBorderProps {
   width?: 'button' | 'card'
 }
 
-const ring = {
-  position: 'absolute',
-  inset: 0,
-  pointerEvents: 'none',
-  backgroundImage: token('--gradient-semantic-border-default'),
-  WebkitMask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-  WebkitMaskComposite: 'xor',
-  mask: 'linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)',
-  maskComposite: 'exclude',
-} as CSSProperties
-
 export function RestingBorder({ shape, width = 'button' }: RestingBorderProps): ReactNode {
   return (
     <span
       aria-hidden
-      style={{
-        ...ring,
-        padding: token(`--dimension-border-width-semantic-${width}`),
-        borderRadius: token(`--dimension-radius-semantic-${shape}`),
-      }}
+      className="sfs-resting-border"
+      style={vars({
+        '--_stroke': token(`--dimension-border-width-semantic-${width}`),
+        '--_radius': token(`--dimension-radius-semantic-${shape}`),
+      })}
     />
   )
 }

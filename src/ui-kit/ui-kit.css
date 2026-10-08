@@ -1,0 +1,96 @@
+/*
+ * The UI kit components' static CSS. The pattern (classes, data-* variants,
+ * `--_name` values, specificity against Tailwind) is written down once, at the
+ * top of src/primitives/primitives.css. Token-only, like everything in the kit.
+ */
+
+/*
+ * RoundButtonShell: the hit target, the circle inside it, and what the circle
+ * holds. `data-state` on the root is the TV focus the prop carries.
+ */
+.sfs-round-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  padding: 0;
+  border: none;
+  /* So the keyboard-focus outline follows the circle. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-round-button-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-round-button[data-state='default'] > .sfs-round-button-circle {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-round-button-content {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* The mark of an icon-only round control (RoundedButton, CloseButton). */
+.sfs-round-button-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-round-rest);
+  height: var(--dimension-size-semantic-icon-round-rest);
+}
+
+.sfs-round-button[data-state='focus'] .sfs-round-button-icon {
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+}
+
+/*
+ * LabelVideo: the AO VIVO / REPLAY chip. Resting it is a translucent chip;
+ * focused it takes its kind's gradient and, unless `data-mini`, the volume icon
+ * (the wider gap is the icon's).
+ */
+.sfs-label-video {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dimension-spacing-core-3xs);
+  padding-inline: var(--dimension-spacing-core-2xs);
+  padding-block: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+.sfs-label-video[data-state='default'] {
+  background-color: var(--color-semantic-functional-background-tint);
+}
+
+.sfs-label-video[data-state='focus'][data-kind='live'] {
+  background-image: var(--gradient-semantic-status-live);
+}
+
+.sfs-label-video[data-state='focus'][data-kind='replay'] {
+  background-image: var(--gradient-semantic-status-replay);
+}
+
+.sfs-label-video[data-state='focus']:not([data-mini]) {
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-label-video-icon {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-icon-sm);
+  height: var(--dimension-size-semantic-icon-sm);
+}

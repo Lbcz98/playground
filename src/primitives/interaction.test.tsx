@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { FocusRing, focusOutline, Spinner, size, token } from '.'
+import { CloseButton } from '@/ui-kit/CloseButton'
+import { LabelVideo } from '@/ui-kit/LabelVideo'
+import { FocusRing, focusOutline, RestingBorder, Spinner, size, token } from '.'
 
 const html = (node: ReactElement): string => renderToStaticMarkup(node)
 
@@ -44,8 +46,43 @@ describe('<Spinner>', () => {
   it('is decorative and sized by a size role', () => {
     const out = html(<Spinner size="icon-md" />)
     expect(out).toContain('alt=""')
-    expect(out).toContain('class="sfs-spin"')
-    expect(out).toContain('width:var(--dimension-size-semantic-icon-md)')
+    // The class sizes it from `--_size`; the role is all the inline style carries.
+    expect(out).toContain('class="sfs-spinner sfs-spin"')
+    expect(out).toContain('style="--_size:var(--dimension-size-semantic-icon-md)"')
+  })
+})
+
+describe('<RestingBorder>', () => {
+  it('is a decorative layer whose stroke and corner are semantic tokens', () => {
+    const out = html(<RestingBorder shape="pill" width="card" />)
+    expect(out).toContain('aria-hidden="true"')
+    expect(out).toContain('class="sfs-resting-border"')
+    expect(out).toContain('--_stroke:var(--dimension-border-width-semantic-card)')
+    expect(out).toContain('--_radius:var(--dimension-radius-semantic-pill)')
+  })
+})
+
+describe('class-styled kit components', () => {
+  it('carry their state as data attributes and no static inline style', () => {
+    const focused = html(<CloseButton />)
+    expect(focused).toMatch(/<button type="button" class="sfs-round-button sfs-motion sfs-focusable" data-state="focus"/)
+    expect(focused).toContain('data-focus-ring')
+    const resting = html(<CloseButton interactionState="default" />)
+    expect(resting).toContain('data-state="default"')
+    expect(resting).toContain('class="sfs-resting-border"')
+    // Only component-local values (`--_name`) are left inline, outside the FocusRing.
+    for (const style of resting.matchAll(/style="([^"]*)"/g)) {
+      expect(style[1].split(';').every((declaration) => declaration.startsWith('--_'))).toBe(true)
+    }
+  })
+
+  it('LabelVideo says its kind, state and size to the stylesheet', () => {
+    expect(html(<LabelVideo kind="replay" />)).toMatch(/data-kind="replay" data-state="focus"><img[^>]*class="sfs-label-video-icon"/)
+    const mini = html(<LabelVideo mini />)
+    expect(mini).toContain('data-mini=""')
+    expect(mini).not.toContain('<img')
+    expect(html(<LabelVideo kind="replay" mini interactionState="default" />)).not.toContain('data-mini')
+    expect(mini).not.toContain('style=')
   })
 })
 

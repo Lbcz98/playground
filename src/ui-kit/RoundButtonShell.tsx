@@ -12,14 +12,9 @@
  * caller's job.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import {
-  FocusRing,
-  RestingBorder,
-  size,
-  token,
-  type InteractionState,
-} from '@/primitives'
+import type { ReactNode } from 'react'
+import { FocusRing, RestingBorder, type InteractionState } from '@/primitives'
+import './ui-kit.css'
 
 export type RoundButtonState = Extract<InteractionState, 'default' | 'focus'>
 
@@ -34,36 +29,6 @@ export interface RoundButtonShellProps {
   children?: ReactNode
 }
 
-const root: CSSProperties = {
-  position: 'relative',
-  width: size('round-button'),
-  height: size('round-button'),
-  padding: 0,
-  border: 'none',
-  // So the keyboard-focus outline follows the circle.
-  borderRadius: token('--dimension-radius-semantic-pill'),
-  background: 'none',
-  cursor: 'pointer',
-  display: 'grid',
-  placeItems: 'center',
-  flexShrink: 0,
-}
-
-const circle: CSSProperties = {
-  position: 'relative',
-  width: size('round-button-circle'),
-  height: size('round-button-circle'),
-  borderRadius: token('--dimension-radius-semantic-pill'),
-  overflow: 'hidden',
-  display: 'grid',
-  placeItems: 'center',
-}
-
-const restCircle: CSSProperties = {
-  ...circle,
-  backgroundColor: token('--color-semantic-functional-background-translucent'),
-}
-
 export function RoundButtonShell({
   interactionState,
   label,
@@ -71,16 +36,21 @@ export function RoundButtonShell({
   focusItem,
   children,
 }: RoundButtonShellProps): ReactNode {
-  const focus =
-    (interactionState ?? 'default') === 'focus'
+  const state = interactionState ?? 'default'
+  const focus = state === 'focus'
 
   return (
-    <button type="button" className="sfs-motion sfs-focusable" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
-      <span style={focus ? circle : restCircle}>
+    <button
+      type="button"
+      className="sfs-round-button sfs-motion sfs-focusable"
+      data-state={state}
+      aria-label={label}
+      data-focus-item={focusItem}
+      onClick={onClick}
+    >
+      <span className="sfs-round-button-circle">
         {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
-        <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
-          {children}
-        </span>
+        <span className="sfs-round-button-content">{children}</span>
       </span>
     </button>
   )
