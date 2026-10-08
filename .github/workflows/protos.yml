@@ -43,11 +43,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
 
       # The laws run on every touched screen and may fail; the report is still built and posted, then the job fails.
-      - name: Laws, on every screen the pull request touches
+      - name: Laws, on every screen and flow the pull request touches
         id: laws
         run: |
-          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx')
-          echo '{"schemaVersion":1,"reports":[]}' > report.json
+          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
+          echo '{"schemaVersion":1,"reports":[],"flows":[]}' > report.json
           code=0
           if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > report.json || code=$?; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
@@ -63,10 +63,5 @@ jobs:
       - name: Fail when the laws failed
         if: steps.laws.outputs.code != '0'
         run: exit 1
-      - name: Laws, on every screen and flow the pull request touches
-        run: |
-          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
-          if [ -n "$screens" ]; then npm run check:laws -- $screens; fi
-
       - name: Build
         run: npm run build --prefix web
