@@ -5,8 +5,12 @@ import { addRenderResult, checkLaws } from '../../scripts/check-laws'
 import { renderAuditFiles, RenderAuditUnavailable } from '../../scripts/render-audit'
 import type { CorpusCase } from './corpus/cases'
 
-/** Inside the repo so `@/…` and the kit resolve; git-ignored; removed afterwards. */
-export const OUT = join(fileURLToPath(new URL('../..', import.meta.url)), '.checks-corpus')
+/**
+ * Inside the repo so `@/…` and the kit resolve; git-ignored; removed afterwards. One folder per test
+ * worker: two corpus test files run at the same time, and one cleaning up used to delete the files the
+ * other was still reading (a data module gone mid-check reads as a broken import).
+ */
+export const OUT = join(fileURLToPath(new URL('../..', import.meta.url)), '.checks-corpus', `w${process.env.VITEST_POOL_ID ?? process.pid}`)
 
 export interface CaseResult {
   exit: 0 | 1
