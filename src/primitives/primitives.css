@@ -251,6 +251,7 @@
 }
 
 .sfs-carousel-tick {
+  position: absolute;
   opacity: 0;
   pointer-events: none;
   animation: sfs-carousel-tick var(--motion-semantic-carousel-step) linear infinite;

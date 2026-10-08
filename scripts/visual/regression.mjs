@@ -148,10 +148,9 @@ function probe() {
     if (literal) literals.push({ at: where(el), literal: literal[0], style: el.getAttribute('style') })
   }
 
-  // The card itself — a story may also size a wrapper off the same token.
-  const CARD_WIDTH = 'var(--dimension-size-semantic-content-card-width)'
-  const cards = [...root.querySelectorAll('[style*="--dimension-size-semantic-content-card-width"]')]
-    .filter((el) => el.style.width === CARD_WIDTH)
+  // The card itself, by its class (its width is a rule in ui-kit.css, not an
+  // inline style) — a story may also size a wrapper off the same token.
+  const cards = [...root.querySelectorAll('.sfs-content-card')]
     .map((el) => {
       const cs = getComputedStyle(el)
       const expected = {

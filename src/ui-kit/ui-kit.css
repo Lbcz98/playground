@@ -585,3 +585,256 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/*
+ * ContentCard: the tall card and its three zones. `data-state` is the TV focus
+ * the prop carries; `data-sized` says a height was set per use (`--_height`, a
+ * count of grid steps): without it the same value is only the cap the card hugs
+ * up to. `data-pressable` is the card acting as one button.
+ */
+.sfs-content-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-core-lg);
+  border-radius: var(--dimension-radius-semantic-content-card);
+}
+
+.sfs-content-card:not([data-sized]) {
+  max-height: var(--_height);
+}
+
+.sfs-content-card[data-sized] {
+  height: var(--_height);
+}
+
+/* At rest the card paints itself; focused, the ring paints its own fill. */
+.sfs-content-card[data-state='default'] {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-content-card[data-pressable] {
+  cursor: pointer;
+}
+
+/* The zones' column. `--_gap` is the kit's gutter, or the `gap` set per use. */
+.sfs-content-card-zones {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--_gap);
+  min-height: 0;
+}
+
+.sfs-content-card[data-state='default'] > .sfs-content-card-zones {
+  opacity: var(--opacity-semantic-content-muted);
+}
+
+.sfs-content-card-header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+/* The header's rows: a line of things that may shrink, so a long name ellipsises. */
+.sfs-content-card-match,
+.sfs-content-card-side,
+.sfs-content-card-partner,
+.sfs-content-card-subtitle,
+.sfs-content-card-ad {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+
+.sfs-content-card-match,
+.sfs-content-card-subtitle {
+  justify-content: space-between;
+}
+
+/* The badge beside the text column, a gutter apart. */
+.sfs-content-card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-sm);
+  min-width: 0;
+}
+
+/* The advertising tag sits over its rule. */
+.sfs-content-card-ad {
+  padding-bottom: var(--dimension-spacing-core-2xs);
+  border-bottom: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+}
+
+.sfs-content-card-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+
+.sfs-content-card-stats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-content-card-stat {
+  display: block;
+  width: var(--dimension-size-semantic-table-stat-column);
+}
+
+/* A crest, a flag, a logo — and the verified tick, which is one in the live colour. */
+.sfs-content-card-badge,
+.sfs-content-card-tick {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-content-card-tick {
+  color: var(--color-semantic-functional-status-live);
+}
+
+.sfs-content-card-tick-glyph {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+
+/*
+ * The body takes the height the header and footer leave and clips there. Its
+ * gap is `table-row-gap` (BODY_GAP in TableCell.tsx); a `gap` set per use
+ * redefines that token inline on the body, so the flush rule for scout rows
+ * (primitives.css) cancels the same amount.
+ */
+.sfs-content-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--dimension-spacing-semantic-table-row-gap);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Pinned to the card's bottom edge, with or without a body above it. */
+.sfs-content-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+  margin-top: auto;
+}
+
+/*
+ * MainMenu. Its round controls are RoundButtonShell's; what is its own is the
+ * content they hold, the two text columns, the miscellaneous cycle and the
+ * channel bug.
+ */
+
+/* A viewer's or a broadcast's image, or the neutral circle when none is given (`data-empty`). */
+.sfs-main-menu-circle {
+  display: block;
+  width: var(--_size);
+  height: var(--_size);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-main-menu-circle:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-main-menu-circle[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+.sfs-main-menu-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+}
+
+/* The miscellaneous button's current item, larger than a control's glyph. */
+.sfs-main-menu-item-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+}
+
+/* Text columns that can shrink below their content, so a long title ellipsises. */
+.sfs-main-menu-text,
+.sfs-main-menu-lines,
+.sfs-main-menu-program {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+
+.sfs-main-menu-text {
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-main-menu-program {
+  align-items: end;
+  padding-inline: var(--dimension-spacing-core-xs);
+  padding-block: var(--dimension-spacing-core-2xs);
+  text-align: right;
+}
+
+/*
+ * The cycle: the item leaving and the one arriving share one grid cell. The
+ * layers carry the carousel animations (primitives.css); `data-fade` is the
+ * text's cycle, which dissolves from its own corner instead of the centre.
+ */
+.sfs-main-menu-cycle {
+  display: grid;
+  min-width: 0;
+}
+
+.sfs-main-menu-cycle-layer {
+  display: grid;
+  grid-area: 1 / 1;
+  place-items: center;
+  min-width: 0;
+}
+
+.sfs-main-menu-cycle[data-fade] > .sfs-main-menu-cycle-layer {
+  place-items: start;
+}
+
+/* The channel bug: the logo fills the button. */
+.sfs-main-menu-bug {
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  padding: 0;
+  border: none;
+  /* So the focus outline follows the logo's shape. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+/*
+ * The TV focus on the bug (`data-focused`, from the prop) sits outside it, where
+ * an inset ring would cover the logo: FocusRing.tsx's `focusOutline`, as a rule.
+ * It declares exactly what `.sfs-focusable:focus-visible` does (same
+ * specificity), so the prop's focus and the keyboard's draw the one outline
+ * whichever rule comes last.
+ */
+.sfs-main-menu-bug[data-focused] {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}

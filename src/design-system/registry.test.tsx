@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import type { ReactNode } from 'react'
 import { cloneElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -67,7 +68,11 @@ describe('hydrateRegistry — built-in ScreenFlow', () => {
     it('a table heading: the column headings beside the subtitle, empty ones left out', () => {
       const out = html({ title: 'Grupo A', subtitle: 'Classificação', stat1: 'Pts', stat3: 'V' })
       expect(out).toMatch(/Classificação[\s\S]*Pts[\s\S]*V/)
-      expect(out.match(/table-stat-column/g)).toHaveLength(2)
+      // One stat column per heading given, each the width of the table's stat column (ui-kit.css).
+      expect(out.match(/class="sfs-content-card-stat"/g)).toHaveLength(2)
+      expect(readFileSync(new URL('../ui-kit/ui-kit.css', import.meta.url), 'utf8')).toMatch(
+        /\.sfs-content-card-stat \{\s*display: block;\s*width: var\(--dimension-size-semantic-table-stat-column\);/,
+      )
     })
 
     it('a partner above the title, with the verified tick only when asked', () => {
