@@ -48,6 +48,8 @@ const root: CSSProperties = {
   height: size('alert-bug-transmission'),
   padding: 0,
   border: 'none',
+  // So the keyboard-focus outline follows the bug's shape.
+  borderRadius: PILL,
   background: 'none',
   cursor: 'pointer',
   display: 'grid',
@@ -82,7 +84,7 @@ export function AlertBug({
   }
 
   return (
-    <button type="button" className="sfs-motion" aria-label={label} onClick={onClick} style={root}>
+    <button type="button" className="sfs-motion sfs-focusable" aria-label={label} onClick={onClick} style={root}>
       <span style={circle}>
         {focus ? <FocusRing shape="pill" /> : null}
         {src ? (

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
@@ -54,5 +55,13 @@ describe('focusOutline', () => {
       outline: 'var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline)',
       outlineOffset: 'var(--dimension-spacing-semantic-focus-offset)',
     })
+  })
+
+  it('is also what real keyboard focus draws, unless the control already shows its <FocusRing>', () => {
+    const css = readFileSync(new URL('./primitives.css', import.meta.url), 'utf8')
+    expect(css).toMatch(
+      /\.sfs-focusable:focus-visible \{\s*outline: var\(--dimension-border-width-semantic-focus-ring\) solid var\(--color-semantic-focus-outline\);\s*outline-offset: var\(--dimension-spacing-semantic-focus-offset\);/,
+    )
+    expect(css).toMatch(/\.sfs-focusable:focus-visible:has\(\[data-focus-ring\]\) \{\s*outline: none;/)
   })
 })

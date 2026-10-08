@@ -164,7 +164,6 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
     overflow: 'hidden',
     flexShrink: 0,
     backgroundColor: focus ? undefined : token('--color-semantic-functional-background-translucent'),
-    outline: 'none',
     cursor: act ? 'pointer' : undefined,
   }
 
@@ -181,7 +180,7 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
 
   return (
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
-    <div ref={card} tabIndex={0} className="sfs-motion" style={frame} {...(act && cardPress(act))}>
+    <div ref={card} tabIndex={0} className="sfs-motion sfs-focusable" style={frame} {...(act && cardPress(act))}>
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
       <CardPage.Provider value={{ page, rowsPerPage }}>
         <div style={zones}>{children}</div>

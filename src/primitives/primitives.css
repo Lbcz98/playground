@@ -155,6 +155,33 @@
     linear-gradient(black 0 0);
 }
 
+/* Without mask-composite the mask would leave the band a filled box over the
+   control: draw a plain ring in the outline colour instead. `!important` because
+   the gradient is inline and the cycle's keyframes repaint it. */
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .sfs-ring-band {
+    -webkit-mask: none;
+    mask: none;
+    background-image: none !important;
+    border: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  }
+}
+
+/*
+ * Real DOM focus. The kit draws focus from a prop (the TV focus the canvas
+ * moves), so a control reached by the keyboard while its prop says `default`
+ * would show nothing: it gets the outside `focusOutline` (FocusRing.tsx) instead.
+ * A control already drawing its <FocusRing> keeps just that — never two rings.
+ */
+.sfs-focusable:focus-visible {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}
+
+.sfs-focusable:focus-visible:has([data-focus-ring]) {
+  outline: none;
+}
+
 /*
  * The miscellaneous button's cycle (Figma: Dinamic Carousel). The tick is an
  * invisible animation whose every iteration advances the cycle, so the cycle
