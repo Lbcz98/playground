@@ -15,22 +15,19 @@ const DIR = `${ROOT}.checks-corpus-e2e`
 afterAll(() => rmSync(DIR, { recursive: true, force: true }))
 
 const ref = (id: string): string => exportBlueprintToTsx(DTV_TEMPLATES.find((t) => t.id === id)!.blueprint as BlueprintDocument).code
+const LINK_IMPORT = "import Link from 'next/link'\nimport { Stack }"
+const BTN_HOME = '<InteractivityButton title="Opções de áudio" interactionState="default" />'
+const BTN_RAIL = '<InteractivityButton title="Opções de áudio" interactionState="selected" />'
 
 const HOME = ref('home')
-  .replace('import { Stack }', 'import { Box, Stack }')
+  .replace('import { Stack }', LINK_IMPORT.replace('{ Stack }', '{ Box, Stack }'))
   .replace('</InteractivityMenu>', '</InteractivityMenu>\n          {/* @reuse InteractivityButton: a plain surface, not a button */}\n          <Box />')
+  .replace(BTN_HOME, `<Link href="/ana/rail">${BTN_HOME}</Link>`)
   .replace('</InteractivityMenu>', '  {TITLES.map((t) => <InteractivityButton key={t} title={t} interactionState="default" />)}\n          </InteractivityMenu>') // logic: not read
   .replace('/**\n * ScreenView', "const TITLES = ['Resumo']\n\n/**\n * ScreenView")
 const RAIL = ref('interactivity-buttons-right')
-// The way from one state to the next is the flow's own file, not something a screen carries.
-const FLOW = `export default {
-  start: 'home',
-  transitions: [
-    { from: 'home', key: 'up', to: 'rail' },
-    { from: 'rail', key: 'enter', to: 'detail' },
-  ],
-}
-`
+  .replace('import { Stack }', "import Link from 'next/link'\nimport { Stack }")
+  .replace(BTN_RAIL, `<Link href="/ana/detail">${BTN_RAIL}</Link>`)
 const CARDS = ref('interactivity-cards-right')
 const OVERLAP = CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/g, '').replace(
   "stats={['11', '5', '2']}",
@@ -46,26 +43,19 @@ const PROPOSAL = `/**
  */`
 const STEPPER = `import { Stack } from '@/primitives'\n${PROPOSAL}\nexport function Stepper() {\n  return <Stack gap="sm" />\n}\n`
 const DEVIATION = '/** @deviation layout.root-align: the card sits at the end */\nexport function'
-const DETAIL = OVERLAP.replace("import { Stack } from '@/primitives'", "import { Stack } from '@/primitives'\nimport { Stepper } from '../components/Stepper'")
+const DETAIL = OVERLAP.replace("import { Stack } from '@/primitives'", "import { Stack } from '@/primitives'\nimport { Stepper } from './components/Stepper'")
   .replace('export function', DEVIATION)
   .replace('align="stretch"', 'align="end"') // breaks layout.root-align, declared above
   .replace('<ContentCard ', '<Stepper />\n          <ContentCard ')
-// web/protos/ana/: one flow folder (a state per file, and flow.ts) and the designer's own components/.
-const FOLDER = (detail: string, flow: string): Record<string, string> => ({
-  'jornada/home.tsx': HOME,
-  'jornada/rail.tsx': RAIL,
-  'jornada/detail.tsx': detail,
-  'jornada/flow.ts': flow,
-  'components/Stepper.tsx': STEPPER,
-})
+const FOLDER = (detail: string): Record<string, string> => ({ 'home.tsx': HOME, 'rail.tsx': RAIL, 'detail.tsx': detail, 'components/Stepper.tsx': STEPPER })
 
-const laws = (name: string, detail: string, flow = FLOW) => {
-  const dir = `${DIR}/${name}/web/protos/ana`
-  for (const [f, code] of Object.entries(FOLDER(detail, flow))) {
+const laws = (name: string, detail: string) => {
+  const dir = `${DIR}/${name}/ana`
+  for (const [f, code] of Object.entries(FOLDER(detail))) {
     mkdirSync(dirname(`${dir}/${f}`), { recursive: true })
     writeFileSync(`${dir}/${f}`, code)
   }
-  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', `${dir}/jornada`, '--json', '--require-render'], {
+  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', ...['home', 'rail', 'detail'].map((s) => `${dir}/${s}.tsx`), '--json', '--require-render'], {
     encoding: 'utf8',
     cwd: ROOT,
     env: { ...process.env, VITEST: '' },
@@ -81,13 +71,12 @@ describe('a realistic designer folder, end to end', () => {
     expect(r.stderr + JSON.stringify(r.json?.reports.map((x: { problems: unknown }) => x.problems))).toBe(r.stderr + '[[],[],[]]')
     expect(r.code, r.stderr).toBe(0)
     const md = renderReport(r.json, ROOT)
-    for (const h of ['Blocking problems (0)', 'Legibility warnings (', 'Declared deviations (1)', 'Primitives and proposals (2)', 'Not read (', 'Flows (1)'])
+    for (const h of ['Blocking problems (0)', 'Legibility warnings (', 'Declared deviations (1)', 'Primitives and proposals (2)', 'Not read (', 'Flow edges (2)'])
       expect(md).toContain(h)
     expect(md).toMatch(/Legibility warnings \([1-9]/)
     expect(md).toMatch(/Not read \([1-9]/)
-    expect(md).toContain('reuse `.checks-corpus-e2e/ok/web/protos/ana/jornada/home.tsx:')
-    expect(md).toContain('proposal `.checks-corpus-e2e/ok/web/protos/ana/components/Stepper.tsx`')
-    expect(md).toContain('`.checks-corpus-e2e/ok/web/protos/ana/jornada/flow.ts` — 3 states: detail, home, rail')
+    expect(md).toContain('reuse `.checks-corpus-e2e/ok/ana/home.tsx:')
+    expect(md).toContain('proposal `.checks-corpus-e2e/ok/ana/components/Stepper.tsx`')
   }, 300_000)
 
   it('exits 1 when one law is broken', () => {
@@ -96,15 +85,6 @@ describe('a realistic designer folder, end to end', () => {
     expect(r.code).toBe(1)
     expect(renderReport(r.json, ROOT)).toMatch(/Blocking problems \([1-9]/)
     expect(r.stdout).toContain('layout.root-align')
-  }, 300_000)
-
-  it('exits 1 when only the flow is broken, and the report names flow.ts among the blocking problems', () => {
-    // Home (level 1) straight to the detail (level 3): the screens are fine, the transition is not.
-    const r = laws('jump', DETAIL, FLOW.replace("{ from: 'home', key: 'up', to: 'rail' }", "{ from: 'home', key: 'up', to: 'rail' },\n    { from: 'home', key: 'enter', to: 'detail' }"))
-    if (/Chromium could not start/.test(r.stderr)) return console.warn('e2e: no Chromium, skipped')
-    expect(r.json.reports.flatMap((x: { problems: unknown[] }) => x.problems)).toEqual([])
-    expect(r.code).toBe(1)
-    expect(renderReport(r.json, ROOT)).toMatch(/Blocking problems \(1\)\n\n- `[^`]*jornada\/flow\.ts` \[flow\.next-level\]/)
   }, 300_000)
 })
 

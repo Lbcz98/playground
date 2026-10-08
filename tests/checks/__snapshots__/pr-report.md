@@ -24,7 +24,7 @@ None.
 
 - `.checks-corpus-pr/logic.tsx:27` [iteration] a computed child ({…}) is not read
 
-### Flows (1)
+### Flow edges (1)
 
-- `.checks-corpus-pr/flow/flow.ts` — 2 states: home, rail
+- `.checks-corpus-pr/home` → `.checks-corpus-pr/rail` (line 19)
 

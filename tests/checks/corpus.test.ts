@@ -51,3 +51,20 @@ describe('forbidden imports name the allowed forms', () => {
     }, 120_000)
   }
 })
+
+describe('flow across screens', () => {
+  const run = async (id: string) => {
+    const { checkLaws } = await import('../../scripts/check-laws')
+    const { writeCase } = await import('./run')
+    return checkLaws(writeCase(CASES.find((x) => x.id === id)!))
+  }
+  it('link-home-to-rail: one edge, home to rail', async () => {
+    const r = await run('link-home-to-rail')
+    expect(r.flow.edges).toEqual([{ from: 'link-home-to-rail/home', to: 'link-home-to-rail/rail', line: expect.any(Number) }])
+  }, 120_000)
+  it('folder-eight-screens: says the flow rules were not checked for the component', async () => {
+    const r = await run('folder-eight-screens')
+    expect(r.notRead.map((n) => n.message).join()).toMatch(/flow rules .* were not checked/)
+    expect(r.problems).toEqual([])
+  }, 120_000)
+})

@@ -31,22 +31,26 @@
  * Exit code 1 when a law is broken.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
-import type { BlueprintNode } from '../src/shared/blueprint'
+import type { BlueprintDocument, BlueprintNode } from '../src/shared/blueprint'
 import { budgetProblems } from '../src/shared/design-system/primitives'
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
 import { parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
+import { MAX_SCREENS } from '../src/shared/blueprint'
 import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
 import { flowFileIssues, parseFlowFile, type FlowStateScreen } from '../src/shared/export/flowFile'
 import { loadDtvManifest } from './dtv-manifest'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
+/** Types `next/link` for the root tsc, which has no `next` (the render harness and web/ resolve their own). */
+const NEXT_SHIM = resolve(ROOT, 'scripts/render-harness/next-shim.d.ts')
+
 /** The shape of `--json`: `{ schemaVersion, reports: LawReport[], flows: FlowReport[] }`. Bump on a breaking change (scripts/pr-report.ts reads it). */
 export const SCHEMA_VERSION = 1
 
@@ -77,6 +81,8 @@ export interface LawReport {
   reuses: { line: number; primitive: string; considered: string; why: string }[]
   /** Local components the screen uses, with the proposal each declares. */
   proposals: { file: string; name: string; why: string; api: Record<string, string>; description: string; figma?: string }[]
+  /** The links leaving this screen (`<Link href>` around a kit element) that point at a screen of the folder. */
+  flow: { edges: { from: string; to: string; line: number }[] }
 }
 
 /** Components that hold the focus, and whether leaving `interactionState` out means focused. */
@@ -180,7 +186,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
   const folder = designerFolder(path)
   const rel = (f: string): string => f.replace(ROOT, '')
-  const FORMS = `allowed: react, @/primitives, @/ui-kit/*, or a relative import inside this designer's folder (${rel(folder)}/) — data .ts/.json and helpers; no images or .svg, no other designer's folder, no other @/ path, no npm package`
+  const FORMS = `allowed: react, @/primitives, @/ui-kit/*, next/link (only to link to a screen of this folder), or a relative import inside this designer's folder (${rel(folder)}/) — data .ts/.json and helpers; no images or .svg, no other designer's folder, no other @/ path, no npm package`
 
   // ── imports: the kit, React, and this designer's own folder ─────────────────
   // The closure of local files is read too: data modules are exempt from the raw-value scan, files with JSX are not.
@@ -194,9 +200,9 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
     })
     for (const { m, node } of specs) {
       const bad = (why: string): void => add('component.api', `${prefix}imports "${m}" (${why}) — ${FORMS}`, LINE(fsf, node))
-      if (m === 'react' || m === '@/primitives' || m.startsWith('@/ui-kit/')) continue
+      if (m === 'react' || m === 'next/link' || m === '@/primitives' || m.startsWith('@/ui-kit/')) continue
       if (!m.startsWith('.')) {
-        bad(isAbsolute(m) ? 'absolute path' : m.startsWith('@/') ? 'not part of the kit' : m === 'next/link' ? 'a screen has no links: the way from one state to another is a transition in flow.ts' : 'npm package')
+        bad(isAbsolute(m) ? 'absolute path' : m.startsWith('@/') ? 'not part of the kit' : 'npm package')
         continue
       }
       const target = resolve(dirname(file), m)
@@ -219,7 +225,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   // ── tsc against the real kit (the screen and its local files) ───────────────
   const configPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!
   const config = ts.parseJsonConfigFileContent(ts.readConfigFile(configPath, ts.sys.readFile).config, ts.sys, ROOT)
-  const program = ts.createProgram([path], { ...config.options, noEmit: true })
+  const program = ts.createProgram([path, NEXT_SHIM], { ...config.options, noEmit: true })
   for (const d of ts.getPreEmitDiagnostics(program)) {
     if (!d.file) continue
     const f = resolve(d.file.fileName)
@@ -324,13 +330,14 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const proposals: LawReport['proposals'] = []
 
   // Local components (components/ of this folder) a file imports: each needs its @proposal block.
-  const componentsFor = (file: string, fsf: ts.SourceFile): Map<string, ParsedProposal | null> => {
+  // `report`: the entry's own problems and proposals; other screens of the flow only need the map.
+  const componentsFor = (file: string, fsf: ts.SourceFile, report: boolean): Map<string, ParsedProposal | null> => {
     const components = new Map<string, ParsedProposal | null>()
     fsf.forEachChild((node) => {
       if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier) || !node.moduleSpecifier.text.startsWith('.')) return
       const hit = resolveLocal(file, node.moduleSpecifier.text)
       if (!hit || !hit.endsWith('.tsx') || relative(folder, hit).split(sep)[0] !== 'components') return
-      const exported = componentExports(locals.get(hit)?.sf ?? ts.createSourceFile(hit, readFileSync(hit, 'utf8'), ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX))
+      const exported = componentExports(locals.get(hit)?.sf ?? ts.createSourceFile(hit, report ? '' : readFileSync(hit, 'utf8'), ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX))
       const clause = node.importClause
       const wanted: { local: string; name: string }[] = []
       if (clause?.name) wanted.push({ local: clause.name.text, name: 'default' })
@@ -343,25 +350,94 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         const where = `${rel(hit)}:${ex.line}`
         const shape = '/** @proposal / why: <why the kit lacks it> / description: <what it is> / figma: <link, optional> / proposedApi: / <prop>: "<type>" */ (one field per line)'
         if (!parsed) {
-          add('registry.new-component', `${where} <${local}> is a component the kit lacks and has no @proposal — add a JSDoc block above its export: ${shape}`, LINE(fsf, node), hit)
+          if (report) add('registry.new-component', `${where} <${local}> is a component the kit lacks and has no @proposal — add a JSDoc block above its export: ${shape}`, LINE(fsf, node), hit)
           components.set(local, null)
         } else if (!parsed.proposal) {
-          add('registry.new-component', `${where} <${local}> has an incomplete @proposal — add: ${parsed.missing.join('; ')}`, ex.line, hit)
+          if (report) add('registry.new-component', `${where} <${local}> has an incomplete @proposal — add: ${parsed.missing.join('; ')}`, ex.line, hit)
           components.set(local, null)
         } else {
           components.set(local, parsed.proposal)
-          proposals.push({ file: rel(hit), name: local, why: parsed.proposal.why, description: parsed.proposal.description, ...(parsed.proposal.figma ? { figma: parsed.proposal.figma } : {}), api: parsed.proposal.api })
+          if (report) proposals.push({ file: rel(hit), name: local, why: parsed.proposal.why, description: parsed.proposal.description, ...(parsed.proposal.figma ? { figma: parsed.proposal.figma } : {}), api: parsed.proposal.api })
         }
       }
     })
     return components
   }
-  const components = componentsFor(path, sf)
+  const components = componentsFor(path, sf, true)
+
+  // ── flow: the screens this one links to, with `<Link href="/<designer>/<screen>">` ─────────────────
+  const designer = basename(folder)
+  const idOf = (file: string): string => `${designer}/${basename(file, '.tsx')}`
+  const folderScreens = (): string[] => readdirSync(folder).filter((f) => f.endsWith('.tsx')).map((f) => basename(f, '.tsx')).sort()
+  const read = new Map<string, ParsedScreen | undefined>()
+  const screenOf = (file: string): ParsedScreen | undefined => {
+    if (!read.has(file)) {
+      const t = file === path ? text : readFileSync(file, 'utf8')
+      const fsf = file === path ? sf : ts.createSourceFile(file, t, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
+      read.set(file, parseTsx(t, file, file === path ? components : componentsFor(file, fsf, false))[0])
+    }
+    return read.get(file)
+  }
+  /** The file a link of `file` opens, or why it cannot: a problem for the link's own screen only. */
+  const targetOf = (href: string, line: number, own: boolean): string | undefined => {
+    const m = /^\/([^/]+)\/([^/]+)$/.exec(href)
+    const names = folderScreens()
+    const fail = (message: string): undefined => (own ? void add('blueprint.dsl', `line ${line}: <Link href="${href}"> ${message}`, line) : undefined)
+    if (!m) return fail(`must be "/${designer}/<screen>" — a screen of this folder: ${names.join(', ')}`)
+    if (m[1] !== designer) return fail(`points into another designer's folder ("${m[1]}") — links stay inside "${designer}". Screens here: ${names.join(', ')}`)
+    const file = join(folder, `${m[2]}.tsx`)
+    if (!existsSync(file)) return fail(`points to a screen that does not exist ("${m[2]}") — screens in ${designer}/: ${names.join(', ')}. Fix the href or create ${designer}/${m[2]}.tsx`)
+    return file
+  }
+  const edges: LawReport['flow']['edges'] = []
+  /** The screens connected to this one through links, either way (the whole folder is read, read-only). */
+  const componentOf = (): string[] => {
+    const adj = new Map<string, Set<string>>()
+    const link = (a: string, b: string): void => void (adj.get(a) ?? adj.set(a, new Set()).get(a)!).add(b)
+    for (const name of folderScreens()) {
+      const file = join(folder, `${name}.tsx`)
+      for (const l of screenOf(file)?.links ?? []) {
+        const to = targetOf(l.href, l.line, false)
+        if (to) (link(file, to), link(to, file))
+      }
+    }
+    const seen = new Set([path])
+    for (const f of seen) for (const n of adj.get(f) ?? []) seen.add(n)
+    return [...seen].filter((f) => screenOf(f))
+  }
 
   if (!options.skipValidator) {
     const manifest = loadDtvManifest()
     const all = parseTsx(text, path, components)
     for (const parsed of all) {
+      // Links: read on this screen alone first; the flow rules need the connected screens (below).
+      for (const l of parsed.links) delete l.node.goTo
+      let doc: BlueprintDocument = parsed.doc
+      let multi = false
+      if (all.length === 1 && parsed.links.length > 0) {
+        const resolved = parsed.links.flatMap((l) => {
+          const to = targetOf(l.href, l.line, true)
+          if (to) edges.push({ from: idOf(path), to: idOf(to), line: l.line })
+          return to ? [{ l, to }] : []
+        })
+        const files = resolved.length > 0 ? componentOf() : [path]
+        if (files.length > MAX_SCREENS) {
+          const message = `the flow rules (flow.next-level, flow.link-roles, flow.rail-consistency) were not checked: the screens linked to this one number ${files.length}, more than the ${MAX_SCREENS} a flow holds`
+          notRead.push({ line: parsed.links[0].line, kind: 'other', message })
+          warnings.push(`${parsed.component}: line ${parsed.links[0].line}: ${message}`)
+        } else if (files.length > 1) {
+          multi = true
+          for (const { l, to } of resolved) l.node.goTo = idOf(to)
+          doc = {
+            ...parsed.doc,
+            id: idOf(path),
+            screens: files.filter((f) => f !== path).map((f) => {
+              const p = screenOf(f)!
+              return { id: idOf(f), name: p.component, screen: p.doc.screen, mode: 'exploratory' as const, root: p.doc.root }
+            }),
+          }
+        }
+      }
       reuses.push(...parsed.reuses)
       warnings.push(...parsed.warnings.map((w) => `${parsed.component}: ${w}`))
       notRead.push(...parsed.notRead)
@@ -378,9 +454,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
           line,
         })
       }
-      const result = validateBlueprintAgainstManifest(parsed.doc, manifest, 'exploratory')
+      const result = validateBlueprintAgainstManifest(doc, manifest, 'exploratory')
       if (result.ok) continue
       for (const issue of result.issues) {
+        // Another screen's own findings appear when that file is checked (flow issues are reported on the screen the link leaves).
+        if (multi && issue.path[0] === 'screens') continue
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
         if (issue.ruleId === 'primitives.reuse') {
@@ -396,8 +474,12 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
           issue.kind === 'unused-deviation' && ruleScope(issue.ruleId) === 'screen' && !/on the screen/.test(issue.message)
             ? " — this rule is about the whole screen: declare it once, in the component's JSDoc (or on the root element), not on the node that shows it"
             : ''
-        const tail = (issue.kind === 'unused-deviation' ? ` (declared for nothing${where})` : flexibility === 'pattern' ? ' (a pattern: fix it, or declare it with @deviation)' : '')
-        problems.push({ law: issue.ruleId, source: 'validator', message: `${issue.message}${tail}` })
+        const onLink = /^flow\.(next-level|link-roles)$/.test(issue.ruleId) && issue.kind !== 'unused-deviation' ? ' In TSX: write {/* @deviation <ruleId>: <why> */} right before the <Link> (not in the JSDoc).' : ''
+        const tail = onLink + (issue.kind === 'unused-deviation' ? ` (declared for nothing${where})` : flexibility === 'pattern' ? ' (a pattern: fix it, or declare it with @deviation)' : '')
+        // A flow issue sits on a link: say which `<Link>` line it is.
+        const at = issue.path.at(-1) === 'goTo' ? lineAt(parsed, issue.path.slice(0, -1)) : undefined
+        const linkLine = parsed.links.find((l) => parsed.lines.get(l.node) === at)?.line ?? at
+        problems.push({ law: issue.ruleId, source: 'validator', message: `${linkLine ? `line ${linkLine}: ` : ''}${issue.message}${tail}`, line: linkLine })
       }
     }
   }
@@ -406,7 +488,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
 
   coverage.notRead = notRead.length
-  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage, reuses, proposals }
+  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage, reuses, proposals, flow: { edges } }
 }
 
 /** Folds one render result into a report: blocking findings are problems, legibility findings advisories. */
