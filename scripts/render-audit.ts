@@ -56,7 +56,7 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
     configFile: false,
     root: ROOT,
     logLevel: 'silent',
-    resolve: { alias: { '@': resolve(ROOT, 'src'), 'next/link': resolve(ROOT, 'scripts/render-harness/next-link.tsx') } },
+    resolve: { alias: { '@': resolve(ROOT, 'src') } },
     plugins: [react()],
     server: { host: '127.0.0.1', port: 0 },
     optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'] },

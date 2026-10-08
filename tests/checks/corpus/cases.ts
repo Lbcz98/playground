@@ -88,53 +88,27 @@ const withLocal = (component: string): { files: Record<string, string>; entry: s
   })
 const FORMS = 'allowed forms are listed in the message'
 
-// ── flow across screens with <Link> (T04) ─────────────────────────────────────────────────────────
-// The designer folder of a case is its id, so a link is `/<case id>/<screen>`.
-const RAIL = ref('interactivity-buttons-right')
+// ── no links between screens: a flow is a folder with a flow.ts ───────────────────────────────────────────
 const BTN_HOME = '<InteractivityButton title="Opções de áudio" interactionState="default" />'
-const BTN_RAIL = '<InteractivityButton title="Opções de áudio" interactionState="selected" />'
-const linked = (code: string, btn: string, href: string, before = ''): string =>
-  code.replace("import { Stack }", "import Link from 'next/link'\nimport { Stack }").replace(btn, `${before}<Link href="${href}">${btn}</Link>`)
-const DEV_LINK = '{/* @deviation flow.next-level: the stats page opens straight from Home */}'
-const linkCase = (id: string, title: string, to: string, expect: CorpusCase['expect'], o: { code?: string; target?: string; before?: string; files?: Record<string, string> } = {}): CorpusCase => ({
-  id,
-  title,
-  files: { 'home.tsx': linked(o.code ?? HOME, BTN_HOME, to.replace('$', id), o.before), 'rail.tsx': o.target ?? RAIL, 'cards.tsx': CARDS, ...o.files },
-  entry: 'home.tsx',
-  expect,
-})
-const chain = (id: string, n: number): Record<string, string> =>
-  Object.fromEntries(
-    Array.from({ length: n }, (_, i) => {
-      const home = i % 2 === 0
-      const code = home ? HOME : RAIL
-      return [`s${i + 1}.tsx`, i === n - 1 ? code : linked(code, home ? BTN_HOME : BTN_RAIL, `/${id}/s${i + 2}`)]
-    }),
-  )
-
+const FLOW_FILE = `export default {
+  start: 'home',
+  transitions: [{ from: 'home', key: 'up', to: 'rail' }],
+}
+`
 const FLOW_CASES: CorpusCase[] = [
-  linkCase('link-home-to-rail', 'a link from Home (level 1) to the rail (level 2) is read as one edge', '/$/rail', { exit: 0, laws: [] }),
-  linkCase('link-skips-level', 'a link from level 1 to level 3 is flow.next-level', '/$/cards', { exit: 1, laws: ['flow.next-level'], messages: [/line \d+: .*goTo/] }),
-  linkCase('link-skips-level-declared', 'the same skip, declared on the node before the <Link>, passes', '/$/cards', { exit: 0, laws: [], deviations: ['flow.next-level'] }, { before: DEV_LINK }),
-  linkCase('link-skips-level-jsdoc', 'flow.next-level declared in the JSDoc is not honored: it names the node', '/$/cards', { exit: 1, laws: ['blueprint.dsl', 'flow.next-level'], deviations: ['flow.next-level'], messages: [/declared on that node/] }, {
-    code: HOME.replace('export function', '/** @deviation flow.next-level: opens the stats page */\nexport function'),
-  }),
-  linkCase('link-missing-screen', 'a link to a screen that does not exist lists the real ones', '/$/nope', { exit: 1, laws: ['blueprint.dsl'], messages: [/does not exist.*cards, home, rail/] }),
-  linkCase('link-cross-designer', "a link into another designer's folder is a problem", '/someone-else/rail', { exit: 1, laws: ['blueprint.dsl'], messages: [/another designer's folder/] }),
   {
-    id: 'link-href-computed',
-    title: 'a computed href is not read, not a problem',
-    ...one('home.tsx', HOME.replace("import { Stack }", "import Link from 'next/link'\nimport { Stack }").replace(BTN_HOME, `<Link href={\`/x/\${'rail'}\`}>${BTN_HOME}</Link>`)),
-    expect: { exit: 0, laws: [], notRead: 1 },
+    id: 'flow-folder-home-rail',
+    title: 'a flow folder: Home, the rail it opens, and the flow.ts that says so; each state is clean on its own',
+    files: { 'home.tsx': HOME, 'rail.tsx': ref('interactivity-buttons-right'), 'flow.ts': FLOW_FILE },
+    entry: 'home.tsx',
+    expect: { exit: 0, laws: [] },
   },
   {
-    id: 'link-wraps-two',
-    title: 'a <Link> around two kit elements is not read, not a problem',
-    ...one('home.tsx', HOME.replace("import { Stack }", "import Link from 'next/link'\nimport { Stack }").replace(BTN_HOME, `<Link href="/link-wraps-two/rail">${BTN_HOME}${BTN_HOME}</Link>`)),
-    expect: { exit: 0, laws: [], notRead: 1 },
+    id: 'link-forbidden',
+    title: 'a next/link around a kit element is a forbidden import: the way to another state is flow.ts',
+    ...one('home.tsx', HOME.replace("import { Stack }", "import Link from 'next/link'\nimport { Stack }").replace(BTN_HOME, `<Link href="/link-forbidden/rail">${BTN_HOME}</Link>`)),
+    expect: { exit: 1, laws: ['component.api'], messages: [/imports "next\/link".*flow\.ts/] },
   },
-  { id: 'folder-eight-screens', title: 'a chain of 8 valid screens: flow not checked as one, no error', files: chain('folder-eight-screens', 8), entry: 's1.tsx', expect: { exit: 0, laws: [], notRead: 1 } },
-  { id: 'folder-chain-six', title: 'a chain of 6 valid screens is checked whole', files: chain('folder-chain-six', 6), entry: 's1.tsx', expect: { exit: 0, laws: [] } },
 ]
 
 export const CASES: CorpusCase[] = [

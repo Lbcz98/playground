@@ -3,7 +3,7 @@
  * Pure: the same JSON gives the same bytes, whatever the order of the reports or of what is inside them.
  */
 import { readFileSync } from 'node:fs'
-import type { LawReport } from './check-laws'
+import type { FlowReport, LawReport } from './check-laws'
 
 export const MARKER = '<!-- protos-report -->'
 export const MAX_CHARS = 60_000
@@ -11,6 +11,8 @@ export const MAX_CHARS = 60_000
 export interface LawsJson {
   schemaVersion: number
   reports: LawReport[]
+  /** Flow folders (`flow.ts`) checked in the run. Absent in a report with no flow. */
+  flows?: FlowReport[]
 }
 
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
@@ -26,7 +28,7 @@ export function renderReport(json: LawsJson, root = process.cwd()): string {
   const deviations: string[] = []
   const prims: string[] = []
   const notRead: string[] = []
-  const edges: string[] = []
+  const flows: string[] = []
   let read = 0
   let unread = 0
   for (const r of reports) {
@@ -37,9 +39,13 @@ export function renderReport(json: LawsJson, root = process.cwd()): string {
     for (const u of r.reuses) prims.push(`- reuse \`${f}:${u.line}\` — \`${u.primitive}\` considered \`${u.considered}\`: ${oneLine(u.why)}`)
     for (const p of r.proposals) prims.push(`- proposal \`${rel(p.file)}\` — \`${p.name}\`: ${oneLine(p.why)} (API: ${Object.keys(p.api).sort().join(', ') || 'none'})`)
     for (const n of r.notRead) notRead.push(`- \`${f}:${n.line}\` [${n.kind}] ${oneLine(n.message)}`)
-    for (const e of r.flow.edges) edges.push(`- \`${rel(e.from)}\` → \`${rel(e.to)}\` (line ${e.line})`)
     read += r.coverage.read
     unread += r.coverage.notRead
+  }
+  for (const f of json.flows ?? []) {
+    const name = `${rel(f.dir)}/flow.ts`
+    for (const p of f.problems) blocking.push(`- \`${name}\` [${p.law}] ${oneLine(p.message)}`)
+    flows.push(`- \`${name}\` — ${f.states.length} states: ${f.states.join(', ')}`)
   }
   const reuses = prims.filter((p) => p.startsWith('- reuse')).length
   const section = (title: string, items: string[]): string[] => [`### ${title} (${items.length})`, '', ...(items.length ? [...items].sort(cmp) : ['None.']), '']
@@ -54,7 +60,7 @@ export function renderReport(json: LawsJson, root = process.cwd()): string {
     ...section('Declared deviations', deviations),
     ...section('Primitives and proposals', prims),
     ...section('Not read', notRead),
-    ...section('Flow edges', edges),
+    ...section('Flows', flows),
   ]
   let out = lines.join('\n')
   if (out.length > MAX_CHARS) {

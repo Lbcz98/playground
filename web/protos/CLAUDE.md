@@ -13,7 +13,7 @@ Pronto quando o arquivo existe e cada seção que se aplica de [`CODING_STANDARD
 - Antes da primeira linha: "Imports e escrita".
 - Quebrar um padrão, ou importar dados e arquivos próprios: "`@deviation`".
 - `Box`/`Text` ou componente local: "`@reuse` e `@proposal`".
-- `<Link>` ou `flow.ts`: [`standards/flow.md`](standards/flow.md).
+- Fluxo (`flow.ts`): [`standards/flow.md`](standards/flow.md).
 
 ## 3. Confira
 Pronto quando sai sem **bloqueio** (CI também; conserte ou declare `@deviation`). **Aviso** (legibilidade) pode ficar.

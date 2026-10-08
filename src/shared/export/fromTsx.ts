@@ -34,8 +34,6 @@ export interface ParsedScreen {
   read: number
   /** Every `@reuse` read on a primitive. */
   reuses: { line: number; primitive: string; considered: string; why: string }[]
-  /** Every `<Link href="/designer/screen">` that wraps exactly one kit element: `goTo` is set on `node`. `href` is the raw string. */
-  links: { line: number; href: string; node: BlueprintNode }[]
   /** The source line of each blueprint node, for messages about the validator's issues. */
   lines: WeakMap<object, number>
 }
@@ -122,18 +120,11 @@ export function parseTsx(source: string, fileName = 'screen.tsx', components: Lo
   }
   walk(sf)
 
-  /** The local name of `next/link`'s default import, if the file has one. */
-  let linkName = ''
-  for (const st of sf.statements) {
-    if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier) && st.moduleSpecifier.text === 'next/link' && st.importClause?.name) linkName = st.importClause.name.text
-  }
-
   for (const { el, fn, name } of found) {
     const warnings: string[] = []
     const notRead: NotRead[] = []
     let read = 0
     const reuses: ParsedScreen['reuses'] = []
-    const links: ParsedScreen['links'] = []
     const lines = new WeakMap<object, number>()
     const warn = (node: ts.Node, message: string, kind: NotReadKind = 'other'): void => {
       const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
@@ -202,16 +193,6 @@ export function parseTsx(source: string, fileName = 'screen.tsx', components: Lo
             pendingReuse = undefined
             continue
           }
-          // `next/link` is navigation, not a kit element: its one kit child carries the `goTo`.
-          const wrapped = tag === linkName ? linkOf(child) : undefined
-          if (wrapped) {
-            if (wrapped.length > 0 && pending.length > 0) {
-              wrapped[0].deviation = pending[0]
-              pending = []
-            }
-            out.push(...wrapped)
-            continue
-          }
           const node = nodeOf(child)
           if (pendingReuse) {
             if (PRIMITIVE_TAGS.has(tag)) {
@@ -229,21 +210,6 @@ export function parseTsx(source: string, fileName = 'screen.tsx', components: Lo
         }
       }
       return out
-    }
-
-    /** The nodes inside a `<Link>`; the single one gets `goTo`. Anything the checker cannot follow is "not read", never a problem. */
-    function linkOf(link: JsxElementLike): BlueprintNode[] {
-      const href = openingOf(link).attributes.properties.find((a): a is ts.JsxAttribute => ts.isJsxAttribute(a) && a.name.getText() === 'href')
-      const init = href?.initializer
-      const value = init && ts.isStringLiteral(init) ? init.text : init && ts.isJsxExpression(init) && init.expression ? literal(init.expression)?.value : undefined
-      const inner = ts.isJsxElement(link) ? nodesOf(link.children) : []
-      if (typeof value !== 'string') warn(link, href ? '<Link href={…}> is not a string literal — the link is not followed' : '<Link> has no href — the link is not followed', 'computed-prop')
-      else if (inner.length !== 1) warn(link, `<Link> wraps ${inner.length} kit elements — the link is not followed (wrap exactly one)`)
-      else {
-        inner[0].goTo = value.replace(/^\//, '')
-        links.push({ line: sf.getLineAndCharacterOfPosition(link.getStart(sf)).line + 1, href: value, node: inner[0] })
-      }
-      return inner
     }
 
     function nodeOf(element: JsxElementLike): BlueprintNode {
@@ -318,7 +284,7 @@ export function parseTsx(source: string, fileName = 'screen.tsx', components: Lo
       mode: 'exploratory',
       root,
     }
-    results.push({ component: name, doc, warnings, notRead, read, reuses, links, lines })
+    results.push({ component: name, doc, warnings, notRead, read, reuses, lines })
   }
   return results
 }
