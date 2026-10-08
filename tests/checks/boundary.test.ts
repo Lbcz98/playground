@@ -5,7 +5,7 @@ import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 /**
- * R7 boundary: the TSX path (check-laws, render-check, deploy, the exporter, web/) must not
+ * R7 boundary: the TSX path (check-laws, deploy, the exporter, web/) must not
  * reach ScreenFlow modules. Existing offenders live in ALLOWED and that list may only shrink.
  */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -20,10 +20,7 @@ const FORBIDDEN = [
 ]
 
 /** forbidden module -> chain (entry -> ... -> forbidden) that reaches it today. Remove entries as they are fixed. */
-const ALLOWED: Record<string, string> = {
-  // scripts/render-check.ts -> electron/ai/ai-orchestrator.ts (type-only: `import type { RenderCheck }`; erased at runtime)
-  'electron/ai/ai-orchestrator.ts': 'scripts/render-check.ts',
-}
+const ALLOWED: Record<string, string> = {}
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const n of readdirSync(dir)) {
@@ -51,7 +48,6 @@ function importsOf(file: string): string[] {
 
 const ENTRIES = [
   join(ROOT, 'scripts/check-laws.ts'),
-  join(ROOT, 'scripts/render-check.ts'),
   join(ROOT, 'scripts/deploy.ts'),
   ...walk(join(ROOT, 'src/shared/export')).filter((f) => /\.ts$/.test(f) && !/\.test\./.test(f)),
   ...walk(join(ROOT, 'web')),

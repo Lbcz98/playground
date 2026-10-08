@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 const ROOT = join(__dirname, '..')
 const yml = readFileSync(join(ROOT, '.github/workflows/protos.yml'), 'utf8')
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
+const webPkg = JSON.parse(readFileSync(join(ROOT, 'web/package.json'), 'utf8')) as { scripts: Record<string, string> }
 
 const kitJob = yml.slice(yml.indexOf('\n  kit:'), yml.indexOf('\n  protos:'))
 const protosJob = yml.slice(yml.indexOf('\n  protos:'))
@@ -37,7 +38,8 @@ describe('.github/workflows/protos.yml', () => {
     expect(yml.match(/uses: actions\/checkout@v4/g)?.length).toBe(yml.match(/persist-credentials: false/g)?.length)
   })
   it('only runs npm scripts and files that exist', () => {
-    for (const m of yml.matchAll(/npm run ([\w:.-]+)/g)) expect(pkg.scripts, `npm run ${m[1]}`).toHaveProperty(m[1].replace(/ .*/, ''))
+    // `--prefix web` runs a script of web/package.json, anything else one of the root's.
+    for (const m of yml.matchAll(/npm run ([\w:.-]+)([^\n]*)/g)) expect(/--prefix web\b/.test(m[2]) ? webPkg.scripts : pkg.scripts, `npm run ${m[0]}`).toHaveProperty(m[1])
     for (const script of ['check:laws', 'pr:report', 'pr:comment']) {
       expect(yml).toContain(`npm run ${script}`)
       expect(existsSync(join(ROOT, pkg.scripts[script].match(/scripts\/[\w-]+\.ts/)![0])), script).toBe(true)
