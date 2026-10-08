@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -36,17 +38,23 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    # The author's text reaches the shell as data, never pasted into a script.
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+      BASE_REF: ${{ github.base_ref }}
     steps:
+      # The job runs the pull request's own code (render harness, next build): no token is left on disk for it.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # Branches the /deploy command opens (proto/<designer>/…) may change one folder and nothing else.
       - name: Only web/protos/<designer>/
         if: startsWith(github.head_ref, 'proto/')
         run: |
-          designer=$(echo "${{ github.head_ref }}" | cut -d/ -f2)
-          outside=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -v "^web/protos/${designer}/" || true)
+          designer=$(printf '%s' "$HEAD_REF" | cut -d/ -f2)
+          outside=$(git diff --name-only "origin/$BASE_REF...HEAD" | awk -v p="web/protos/${designer}/" 'index($0, p) != 1')
           if [ -n "$outside" ]; then
             echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
           fi
@@ -64,7 +72,7 @@ jobs:
       - name: Laws, on every screen and flow the pull request touches
         id: laws
         run: |
-          screens=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
+          screens=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
           echo '{"schemaVersion":1,"reports":[],"flows":[]}' > report.json
           code=0
           if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > report.json || code=$?; fi

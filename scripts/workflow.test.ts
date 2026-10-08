@@ -28,6 +28,14 @@ describe('.github/workflows/protos.yml', () => {
     expect(protosJob).toMatch(/^    permissions:\n      contents: read\n      pull-requests: write$/m)
     expect(kitJob).not.toContain('pull-requests: write')
   })
+  it('never pastes pull request text into a shell, and leaves no token behind for the code it runs', () => {
+    // A branch name is the author's text: inside `run:` it would be executed. It arrives through `env:` instead.
+    const scripts = [...yml.matchAll(/^ +run: (\|\n(?: {10,}.*\n|\n)+|.*\n)/gm)].map((m) => m[1]).join('')
+    expect(scripts).not.toContain('${{')
+    expect(protosJob).toMatch(/HEAD_REF: \$\{\{ github\.head_ref \}\}/)
+    // The jobs run the pull request's own code (render harness, next build): checkout must not keep the token on disk.
+    expect(yml.match(/uses: actions\/checkout@v4/g)?.length).toBe(yml.match(/persist-credentials: false/g)?.length)
+  })
   it('only runs npm scripts and files that exist', () => {
     for (const m of yml.matchAll(/npm run ([\w:.-]+)/g)) expect(pkg.scripts, `npm run ${m[1]}`).toHaveProperty(m[1].replace(/ .*/, ''))
     for (const script of ['check:laws', 'pr:report', 'pr:comment']) {
