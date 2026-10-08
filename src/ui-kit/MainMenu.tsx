@@ -287,7 +287,7 @@ export function MainMenu({
 
         <button
           type="button"
-          className="sfs-motion"
+          className="sfs-motion sfs-focusable"
           aria-label="Interactive content"
           data-focus-item="channel-bug"
           data-focused={focused === 'channel-bug' ? '' : undefined}

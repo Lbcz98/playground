@@ -40,6 +40,8 @@ const root: CSSProperties = {
   height: size('round-button'),
   padding: 0,
   border: 'none',
+  // So the keyboard-focus outline follows the circle.
+  borderRadius: token('--dimension-radius-semantic-pill'),
   background: 'none',
   cursor: 'pointer',
   display: 'grid',
@@ -73,7 +75,7 @@ export function RoundButtonShell({
     (interactionState ?? 'default') === 'focus'
 
   return (
-    <button type="button" className="sfs-motion" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
+    <button type="button" className="sfs-motion sfs-focusable" aria-label={label} data-focus-item={focusItem} onClick={onClick} style={root}>
       <span style={focus ? circle : restCircle}>
         {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>

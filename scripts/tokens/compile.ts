@@ -305,10 +305,20 @@ function renderCss(
 
   if (classes.length) {
     lines.push('', comment('===== Typography · Utility Classes ====='))
+    // Declarations every class repeats (the font family) are written once, on a grouped selector.
+    const shared =
+      classes.length > 1
+        ? classes[0].declarations.filter((d) => classes.every((c) => c.declarations.includes(d)))
+        : []
+    if (shared.length) {
+      lines.push('', `${classes.map((c) => `.${c.name}`).join(',\n')} {`, ...shared.map((d) => `  ${d}`), '}')
+    }
     for (const { token, name, declarations } of classes) {
+      const own = declarations.filter((d) => !shared.includes(d))
+      if (!own.length) continue
       lines.push('')
       if (token.description) lines.push(comment(token.description))
-      lines.push(`.${name} {`, ...declarations.map((d) => `  ${d}`), '}')
+      lines.push(`.${name} {`, ...own.map((d) => `  ${d}`), '}')
     }
   }
   return lines.join('\n') + '\n'

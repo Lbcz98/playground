@@ -66,7 +66,7 @@ export default {
         DEFAULT: '2px',
       },
       ringColor: {
-        DEFAULT: palette.blue[500],
+        DEFAULT: 'var(--color-semantic-focus-outline)',
       },
       // The canvas stage's master frame (app chrome, not user content).
       width: {
