@@ -10,19 +10,12 @@
  * padding box, so this uses flow layout instead.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import {
-  FocusRing,
-  RestingBorder,
-  size,
-  spacing,
-  Text,
-  token,
-  type InteractionState,
-} from '@/primitives'
+import type { ReactNode } from 'react'
+import { FocusRing, RestingBorder, Text, token, vars, type InteractionState } from '@/primitives'
 import type { TextStyle } from '@/styles/global-tokens'
 import checkIcon from './icons/check.svg'
 import { LabelVideo } from './LabelVideo'
+import './ui-kit.css'
 
 export type InteractivityButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
 
@@ -48,45 +41,6 @@ export interface InteractivityButtonProps {
 
 const isLarge = (state: InteractivityButtonState): boolean => state !== 'default'
 
-function cardRadius(state: InteractivityButtonState): string {
-  return token(isLarge(state) ? '--dimension-radius-semantic-card-expanded' : '--dimension-radius-semantic-card')
-}
-
-function rootFor(state: InteractivityButtonState): CSSProperties {
-  const large = isLarge(state)
-  return {
-    position: 'relative',
-    width: size(large ? 'card-expanded-width' : 'card-width'),
-    height: size(large ? 'card-expanded-height' : 'card-height'),
-    padding: token(
-      large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset',
-    ),
-    border: 'none',
-    background: 'none',
-    borderRadius: cardRadius(state),
-    cursor: 'pointer',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    textAlign: 'start',
-  }
-}
-
-/** Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
-function cardFill(state: InteractivityButtonState): CSSProperties {
-  return {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: cardRadius(state),
-    backgroundColor: token('--color-semantic-functional-background-translucent'),
-  }
-}
-
-const layer: CSSProperties = { position: 'relative' }
-
-/** Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
-const luminosity: CSSProperties = { display: 'flex', mixBlendMode: 'luminosity' }
-
 /** One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge. */
 export function InteractivityButton({
   interactionState,
@@ -99,60 +53,48 @@ export function InteractivityButton({
   thumbnail,
   onClick,
 }: InteractivityButtonProps): ReactNode {
-  const state = (interactionState ?? 'focus')
+  const state = interactionState ?? 'focus'
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
 
   return (
-    <button type="button" className="sfs-motion" onClick={onClick} style={rootFor(state)}>
+    <button
+      type="button"
+      className="sfs-interactivity-button sfs-motion sfs-focusable"
+      data-state={state}
+      onClick={onClick}
+      style={vars({
+        '--_inset': token(
+          large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset',
+        ),
+      })}
+    >
       {state === 'focus' ? (
         <FocusRing shape="card-expanded" />
       ) : (
         <>
-          <span style={cardFill(state)} />
+          <span className="sfs-interactivity-button-fill" />
           <RestingBorder shape={large ? 'card-expanded' : 'card'} width="card" />
         </>
       )}
 
-      <span
-        style={{
-          ...layer,
-          display: 'flex',
-          alignItems: 'start',
-          justifyContent: 'space-between',
-          gap: spacing('2xs'),
-        }}
-      >
+      <span className="sfs-interactivity-button-header">
         {live ? (
-          <span style={layer}>
+          <span className="sfs-interactivity-button-live">
             <LabelVideo kind="live" interactionState="focus" mini />
           </span>
         ) : (
           <span />
         )}
-        {check && (
-          <img
-            src={checkIcon}
-            alt=""
-            style={{ width: size('icon-lg'), height: size('icon-lg'), display: 'block' }}
-          />
-        )}
+        {check && <img src={checkIcon} alt="" className="sfs-interactivity-button-check" />}
       </span>
 
-      {thumbnail && <span style={layer}>{thumbnail}</span>}
+      {thumbnail && <span className="sfs-interactivity-button-thumbnail">{thumbnail}</span>}
 
-      <span
-        style={{
-          ...layer,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: spacing('3xs'),
-          opacity: state === 'focus' ? undefined : token('--opacity-semantic-content-muted'),
-        }}
-      >
+      <span className="sfs-interactivity-button-body">
         {overline && (
-          <span style={luminosity}>
+          <span className="sfs-interactivity-button-supporting">
             <Text variant={secondary} color="muted">
               {overline}
             </Text>
@@ -160,21 +102,21 @@ export function InteractivityButton({
         )}
         <Text variant={titleStyle}>{title}</Text>
         {subtitle && (
-          <span style={luminosity}>
+          <span className="sfs-interactivity-button-supporting">
             <Text variant={secondary} color="muted">
               {subtitle}
             </Text>
           </span>
         )}
         {advertising && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs') }}>
-            <span style={luminosity}>
+          <span className="sfs-interactivity-button-advertising">
+            <span className="sfs-interactivity-button-supporting">
               <Text variant={secondary} color="muted">
                 {advertising.label}
               </Text>
             </span>
             {advertising.logoSrc ? (
-              <img src={advertising.logoSrc} alt="" style={{ height: size('icon-lg'), display: 'block' }} />
+              <img src={advertising.logoSrc} alt="" className="sfs-interactivity-button-logo" />
             ) : null}
           </span>
         )}

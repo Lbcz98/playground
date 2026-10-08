@@ -94,3 +94,289 @@
   width: var(--dimension-size-semantic-icon-sm);
   height: var(--dimension-size-semantic-icon-sm);
 }
+
+/*
+ * AlertBug: the hit target is the transmission bug's edge, so neither style
+ * shifts the layout. `data-style` is whose mark it is; `data-state` is the focus
+ * it draws (only the interface bug takes it), which also sets the mark's edge.
+ */
+.sfs-alert-bug {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-alert-bug-transmission);
+  height: var(--dimension-size-semantic-alert-bug-transmission);
+  padding: 0;
+  border: none;
+  /* So the keyboard-focus outline follows the bug's shape. */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-alert-bug-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-alert-bug);
+  height: var(--dimension-size-semantic-alert-bug);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-alert-bug-mark {
+  display: block;
+  width: var(--dimension-size-semantic-alert-bug);
+  height: var(--dimension-size-semantic-alert-bug);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-alert-bug-mark:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-alert-bug-mark[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+.sfs-alert-bug[data-state='focus'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-state='focus'] .sfs-alert-bug-mark {
+  width: var(--dimension-size-semantic-alert-bug-focus);
+  height: var(--dimension-size-semantic-alert-bug-focus);
+}
+
+.sfs-alert-bug[data-style='transmission'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-style='transmission'] .sfs-alert-bug-mark {
+  width: var(--dimension-size-semantic-alert-bug-transmission);
+  height: var(--dimension-size-semantic-alert-bug-transmission);
+}
+
+/*
+ * WideButton: the pill call to action. `data-state` is the TV focus the prop
+ * carries; the cursor says what a press will do. The (0,2,0) cursor rules beat
+ * preflight's `:disabled` (0,1,0), which would otherwise tie with the base.
+ */
+.sfs-wide-button {
+  position: relative;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-wide-button-width);
+  height: var(--dimension-size-semantic-control-height);
+  padding: 0;
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-wide-button[data-state='disabled'] {
+  cursor: not-allowed;
+}
+
+.sfs-wide-button[data-state='loading'] {
+  cursor: progress;
+}
+
+.sfs-wide-button-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+/* Focused, the ring paints its own fill; every other state paints the pill. */
+.sfs-wide-button:not([data-state='focus']) > .sfs-wide-button-content {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-wide-button-icon {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-icon-sm);
+  height: var(--dimension-size-semantic-icon-sm);
+}
+
+/*
+ * InteractivityButton: the 10-foot card. `data-state` is the TV focus the prop
+ * carries: `default` is the small card, `focus` and `selected` the expanded one
+ * (`selected` dims its content). The inset is the one value set inline, as
+ * `--_inset`: it is a token Figma draws off the grid, and the visual probe
+ * (scripts/visual/regression.mjs) excuses it by finding that token in the style.
+ */
+.sfs-interactivity-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  padding: var(--_inset);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-card-expanded);
+  background: none;
+  cursor: pointer;
+  text-align: start;
+}
+
+.sfs-interactivity-button[data-state='default'] {
+  width: var(--dimension-size-semantic-card-width);
+  height: var(--dimension-size-semantic-card-height);
+  border-radius: var(--dimension-radius-semantic-card);
+}
+
+/* Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
+.sfs-interactivity-button-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--dimension-radius-semantic-card-expanded);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-interactivity-button[data-state='default'] > .sfs-interactivity-button-fill {
+  border-radius: var(--dimension-radius-semantic-card);
+}
+
+.sfs-interactivity-button-header {
+  position: relative;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-interactivity-button-live,
+.sfs-interactivity-button-thumbnail {
+  position: relative;
+}
+
+.sfs-interactivity-button-check {
+  display: block;
+  width: var(--dimension-size-semantic-icon-lg);
+  height: var(--dimension-size-semantic-icon-lg);
+}
+
+.sfs-interactivity-button-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-interactivity-button:not([data-state='focus']) > .sfs-interactivity-button-body {
+  opacity: var(--opacity-semantic-content-muted);
+}
+
+/* Supporting text blends by luminosity over the card, as in Figma. A flex wrapper keeps the line box exact. */
+.sfs-interactivity-button-supporting {
+  display: flex;
+  mix-blend-mode: luminosity;
+}
+
+.sfs-interactivity-button-advertising {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-interactivity-button-logo {
+  display: block;
+  height: var(--dimension-size-semantic-icon-lg);
+}
+
+/*
+ * InteractivityMenu: the rail scrolls horizontally, so it stays a plain element
+ * rather than a Stack. `data-align` is the edge the cards sit on.
+ */
+.sfs-interactivity-menu-rail {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: var(--dimension-spacing-core-2xs);
+  overflow-x: auto;
+}
+
+.sfs-interactivity-menu-rail[data-align='end'] {
+  justify-content: flex-end;
+}
+
+.sfs-interactivity-menu-item {
+  flex-shrink: 0;
+}
+
+/*
+ * Notification: `round-button` (the hit target) around `round-button-circle`
+ * (the visible pill), as RoundButtonShell builds it. `data-kind` is `message`
+ * or `rounded` (the pill closed up around the logo); `data-state` the TV focus.
+ */
+.sfs-notification {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: var(--dimension-size-semantic-round-button);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.sfs-notification[data-kind='rounded'] {
+  width: var(--dimension-size-semantic-round-button);
+}
+
+.sfs-notification-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-xs);
+  height: var(--dimension-size-semantic-round-button-circle);
+  padding-inline: var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+/* At rest the pill paints itself; focused, the ring paints its own fill. */
+.sfs-notification[data-state='default'] > .sfs-notification-pill {
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-notification[data-kind='rounded'] > .sfs-notification-pill {
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  padding-inline: 0;
+}
+
+/* Positioned, so it paints above the FocusRing: unpositioned, it would go under the ring's fill. */
+.sfs-notification-logo {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+
+.sfs-notification-logo:not([data-empty]) {
+  object-fit: cover;
+}
+
+.sfs-notification-logo[data-empty] {
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+/*
+ * The column the message is laid out to, so one line and two give the pill the
+ * same shape. `white-space` is inherited, so this is also what lets the title
+ * break; and being a flex column it blockifies the `<Text>` span, which puts the
+ * line box on the text's own line height. It hugs that text; the pill centres it.
+ */
+.sfs-notification-title {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-notification-text-width);
+  white-space: pre-line;
+}

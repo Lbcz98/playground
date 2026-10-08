@@ -16,13 +16,9 @@
  * motion spec, not a state, and is left to the app.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import {
-  FocusRing,
-  size,
-  token,
-  type InteractionState,
-} from '@/primitives'
+import type { ReactNode } from 'react'
+import { FocusRing, type InteractionState } from '@/primitives'
+import './ui-kit.css'
 
 export type AlertBugStyle = 'interface' | 'transmission'
 export type AlertBugState = Extract<InteractionState, 'default' | 'focus'>
@@ -39,29 +35,6 @@ export interface AlertBugProps {
   onClick?: () => void
 }
 
-const PILL = token('--dimension-radius-semantic-pill')
-
-/** The hit target is the transmission bug's edge, so neither style shifts the layout. */
-const root: CSSProperties = {
-  position: 'relative',
-  width: size('alert-bug-transmission'),
-  height: size('alert-bug-transmission'),
-  padding: 0,
-  border: 'none',
-  // So the keyboard-focus outline follows the bug's shape.
-  borderRadius: PILL,
-  background: 'none',
-  cursor: 'pointer',
-  display: 'grid',
-  placeItems: 'center',
-  flexShrink: 0,
-}
-
-function edgeFor(bugStyle: AlertBugStyle, focus: boolean): string {
-  if (bugStyle === 'transmission') return size('alert-bug-transmission')
-  return focus ? size('alert-bug-focus') : size('alert-bug')
-}
-
 /** The corner bug that says an interactivity is waiting — the kit’s own (`interface`, focusable) or the broadcaster’s (`transmission`). */
 export function AlertBug({
   bugStyle = 'interface',
@@ -70,35 +43,23 @@ export function AlertBug({
   label = 'Conteúdo interativo',
   onClick,
 }: AlertBugProps): ReactNode {
-  const state = (interactionState ?? 'default')
-  const focus = state === 'focus' && bugStyle === 'interface'
-  const edge = edgeFor(bugStyle, focus)
-  const circle: CSSProperties = {
-    position: 'relative',
-    width: edge,
-    height: edge,
-    borderRadius: PILL,
-    overflow: 'hidden',
-    display: 'grid',
-    placeItems: 'center',
-  }
+  const focus = (interactionState ?? 'default') === 'focus' && bugStyle === 'interface'
 
   return (
-    <button type="button" className="sfs-motion sfs-focusable" aria-label={label} onClick={onClick} style={root}>
-      <span style={circle}>
+    <button
+      type="button"
+      className="sfs-alert-bug sfs-motion sfs-focusable"
+      data-style={bugStyle}
+      data-state={focus ? 'focus' : 'default'}
+      aria-label={label}
+      onClick={onClick}
+    >
+      <span className="sfs-alert-bug-circle">
         {focus ? <FocusRing shape="pill" /> : null}
         {src ? (
-          <img src={src} alt="" style={{ width: edge, height: edge, borderRadius: PILL, objectFit: 'cover', display: 'block' }} />
+          <img src={src} alt="" className="sfs-alert-bug-mark" />
         ) : (
-          <span
-            style={{
-              width: edge,
-              height: edge,
-              borderRadius: PILL,
-              backgroundColor: token('--color-semantic-functional-background-elevated'),
-              display: 'block',
-            }}
-          />
+          <span className="sfs-alert-bug-mark" data-empty="" />
         )}
       </span>
     </button>
