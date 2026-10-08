@@ -81,6 +81,26 @@ describe('compileTokens', () => {
     expect(ts).toContain("'--typography-font-size-sm',")
   })
 
+  it('writes declarations every .text-* class shares once, on a grouped selector', () => {
+    const style = (fontSize: string) => ({
+      $type: 'typography',
+      $value: { fontFamily: '{typography.fontFamily.base}', fontSize },
+    })
+    const { css } = compileTokens({
+      typography: {
+        fontFamily: { base: { $value: 'Inter', $type: 'fontFamily' } },
+        fontSize: {
+          sm: { $value: '12px', $type: 'dimension' },
+          md: { $value: '16px', $type: 'dimension' },
+        },
+        body: { sm: style('{typography.fontSize.sm}'), md: style('{typography.fontSize.md}') },
+      },
+    })
+    expect(css).toContain('.text-body-sm,\n.text-body-md {\n  font-family: var(--typography-font-family-base);\n}')
+    expect(css).toContain('.text-body-sm {\n  font-size: var(--typography-font-size-sm);\n}')
+    expect(css).not.toMatch(/\{\n\}/)
+  })
+
   describe('rejects a broken contract', () => {
     it.each([
       ['an alias that points at no token', { a: { b: color('{a.missing}') } }, /points at no token/],
