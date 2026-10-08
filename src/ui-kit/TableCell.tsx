@@ -21,10 +21,9 @@
  * Its text spends three sizes (14, 12, 10) and two weights, in the kit's one face.
  */
 
-import type { CSSProperties, ReactNode } from 'react'
-import { size, spacing, Text, token } from '@/primitives'
-
-const DIVIDER = `${token('--dimension-border-width-semantic-divider')} solid ${token('--color-semantic-functional-border-subtle')}`
+import type { ReactNode } from 'react'
+import { Text, token } from '@/primitives'
+import './ui-kit.css'
 
 interface TableCellBase {
   /** The rule under the row. Default off — a table draws it under a heading, not every row. */
@@ -113,17 +112,16 @@ const MAX_STATS = 4
  */
 export const BODY_GAP = token('--dimension-spacing-semantic-table-row-gap')
 
+type RowType = 'team' | 'athlete' | 'scout'
+
 function Row({
-  height,
+  type,
   divider,
-  below,
   flush,
   children,
 }: {
-  height: string
+  type: RowType
   divider?: boolean
-  /** Space under the content, above the divider (Figma's athlete row: a 16 line, 8 under it). */
-  below?: string
   /**
    * Scout rows sit flush, as in Figma's Estatísticas card: primitives.css cancels
    * the body's gap above every scout row that follows another.
@@ -131,42 +129,35 @@ function Row({
   flush?: boolean
   children: ReactNode
 }): ReactNode {
-  const style: CSSProperties = {
-    boxSizing: 'border-box',
-    height,
-    paddingBottom: below,
-    // A row keeps its height: in a body too short for it, it is cut off (and the
-    // render check reports it) rather than every row squeezed — scout rows were
-    // rendering at 30 of their 40.
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing('2xs'),
-    borderBottom: divider ? DIVIDER : undefined,
-  }
+  // Each row keeps its height (ui-kit.css): in a body too short for it, it is cut
+  // off (and the render check reports it) rather than every row squeezed.
   return (
-    <div data-flush-row={flush ? '' : undefined} style={style}>
+    <div
+      className="sfs-table-cell"
+      data-type={type}
+      data-divider={divider ? '' : undefined}
+      data-flush-row={flush ? '' : undefined}
+    >
       {children}
     </div>
   )
 }
 
+type MarkKind = 'card-warning' | 'card-error' | 'ball' | 'substitution' | 'heart'
+
 /** A mark that sits in the text, so it takes its size from the row's type. */
-function Mark({ color, children }: { color: string; children: ReactNode }): ReactNode {
+function Mark({ kind, children }: { kind: MarkKind; children: ReactNode }): ReactNode {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', color, flexShrink: 0 }} aria-hidden>
+    <span className="sfs-table-cell-mark" data-mark={kind} aria-hidden>
       {children}
     </span>
   )
 }
 
-const markSize: CSSProperties = { height: '1em', width: 'auto', display: 'block' }
-
-function Card({ color }: { color: string }): ReactNode {
+function Card({ kind }: { kind: 'card-warning' | 'card-error' }): ReactNode {
   return (
-    <Mark color={color}>
-      <svg viewBox="0 0 6 8" style={markSize} fill="none">
+    <Mark kind={kind}>
+      <svg className="sfs-table-cell-glyph" viewBox="0 0 6 8" fill="none">
         <rect width="6" height="8" rx="1" fill="currentColor" />
       </svg>
     </Mark>
@@ -175,8 +166,8 @@ function Card({ color }: { color: string }): ReactNode {
 
 function Ball(): ReactNode {
   return (
-    <Mark color={token('--color-semantic-functional-text-primary')}>
-      <svg viewBox="0 0 10 10" style={markSize} fill="none">
+    <Mark kind="ball">
+      <svg className="sfs-table-cell-glyph" viewBox="0 0 10 10" fill="none">
         <circle cx="5" cy="5" r="4.5" fill="currentColor" />
         <path d="M5 2.4 6.9 3.8 6.2 6.1H3.8L3.1 3.8Z" fill={token('--color-semantic-functional-background-primary')} />
       </svg>
@@ -186,8 +177,8 @@ function Ball(): ReactNode {
 
 function SubstitutionArrow(): ReactNode {
   return (
-    <Mark color={token('--color-semantic-functional-status-error')}>
-      <svg viewBox="0 0 8 8" style={markSize} fill="none">
+    <Mark kind="substitution">
+      <svg className="sfs-table-cell-glyph" viewBox="0 0 8 8" fill="none">
         <path d="M0 1h8L4 7Z" fill="currentColor" />
       </svg>
     </Mark>
@@ -196,8 +187,8 @@ function SubstitutionArrow(): ReactNode {
 
 function Heart(): ReactNode {
   return (
-    <Mark color={token('--color-semantic-functional-status-error')}>
-      <svg viewBox="0 0 12 11" style={markSize} fill="none">
+    <Mark kind="heart">
+      <svg className="sfs-table-cell-glyph" viewBox="0 0 12 11" fill="none">
         <path
           d="M6 10.5 1.2 5.9A2.9 2.9 0 0 1 6 2.4a2.9 2.9 0 0 1 4.8 3.5Z"
           fill="currentColor"
@@ -209,9 +200,9 @@ function Heart(): ReactNode {
 
 function Stats({ stats }: { stats: readonly string[] }): ReactNode {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs'), flexShrink: 0 }}>
+    <div className="sfs-table-cell-stats">
       {stats.slice(0, MAX_STATS).map((stat, i) => (
-        <span key={i} style={{ display: 'block', width: size('table-stat-column') }}>
+        <span key={i} className="sfs-table-cell-stat">
           <Text
             as="span"
             variant={i === 0 ? 'body-sm-bold' : 'body-sm-medium'}
@@ -228,15 +219,15 @@ function Stats({ stats }: { stats: readonly string[] }): ReactNode {
 
 function TeamCell({ position, shield, name, favorite, stats, divider }: TeamCellProps): ReactNode {
   return (
-    <Row height={size('table-cell-md')} divider={divider}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing('2xs'), minWidth: 0 }}>
+    <Row type="team" divider={divider}>
+      <div className="sfs-table-cell-group">
         {position ? (
           <Text as="span" variant="footnote-medium">
             {position}
           </Text>
         ) : null}
         {shield ? (
-          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{shield}</span>
+          <span className="sfs-table-cell-shield">{shield}</span>
         ) : null}
         <Text as="span" variant="body-sm-medium" truncate>
           {name}
@@ -258,8 +249,8 @@ function AthleteCell({
   divider,
 }: AthleteCellProps): ReactNode {
   return (
-    <Row height={size('table-cell-md')} below={spacing('2xs')} divider={divider}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing('3xs'), minWidth: 0 }}>
+    <Row type="athlete" divider={divider}>
+      <div className="sfs-table-cell-group">
         {number ? (
           <Text as="span" variant="footnote-bold" color="secondary">
             {number}
@@ -268,8 +259,8 @@ function AthleteCell({
         <Text as="span" variant="footnote-bold" truncate>
           {name}
         </Text>
-        {yellowCard ? <Card color={token('--color-semantic-functional-status-warning')} /> : null}
-        {redCard ? <Card color={token('--color-semantic-functional-status-error')} /> : null}
+        {yellowCard ? <Card kind="card-warning" /> : null}
+        {redCard ? <Card kind="card-error" /> : null}
         {goals ? (
           <>
             <Ball />
@@ -280,7 +271,7 @@ function AthleteCell({
         ) : null}
       </div>
       {substitute ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing('3xs'), minWidth: 0 }}>
+        <div className="sfs-table-cell-group">
           <SubstitutionArrow />
           <Text as="span" variant="footnote-medium" truncate>
             {substitute}
@@ -292,23 +283,22 @@ function AthleteCell({
 }
 
 function ScoutCell({ label, values, divider }: ScoutCellProps): ReactNode {
-  const column: CSSProperties = { width: size('table-value-column'), flexShrink: 0 }
   return (
-    <Row height={size('table-cell-lg')} divider={divider} flush>
+    <Row type="scout" divider={divider} flush>
       {values ? (
-        <span style={column}>
+        <span className="sfs-table-cell-value">
           <Text as="span" variant="footnote-bold" align="start">
             {values[0]}
           </Text>
         </span>
       ) : null}
-      <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+      <span className="sfs-table-cell-label">
         <Text as="span" variant="body-sm-medium" align="center" truncate>
           {label}
         </Text>
       </span>
       {values ? (
-        <span style={column}>
+        <span className="sfs-table-cell-value">
           <Text as="span" variant="footnote-bold" align="end">
             {values[1]}
           </Text>

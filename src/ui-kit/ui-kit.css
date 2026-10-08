@@ -380,3 +380,208 @@
   width: var(--dimension-size-semantic-notification-text-width);
   white-space: pre-line;
 }
+
+/*
+ * Overlay: fills its positioned parent and never takes pointer events. The
+ * direction (`data-overlay`) picks the shade; every direction but the
+ * notification's `top-right` lays the scrim under it (a background colour
+ * paints under the background image). `base` is the scrim alone.
+ */
+.sfs-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-overlay:not([data-overlay='top-right']) {
+  background-color: var(--color-semantic-overlay-scrim);
+}
+
+.sfs-overlay[data-overlay='bottom'],
+.sfs-screen-overlay-shade[data-shade='bottom'] {
+  background-image: var(--gradient-semantic-overlay-bottom);
+}
+
+.sfs-overlay[data-overlay='left'],
+.sfs-screen-overlay-shade[data-shade='left'] {
+  background-image: var(--gradient-semantic-overlay-left);
+}
+
+.sfs-overlay[data-overlay='right'],
+.sfs-screen-overlay-shade[data-shade='right'] {
+  background-image: var(--gradient-semantic-overlay-right);
+}
+
+.sfs-overlay[data-overlay='bottom-right'],
+.sfs-screen-overlay-shade[data-shade='bottom-right'] {
+  background-image: var(--gradient-semantic-overlay-bottom-right);
+}
+
+.sfs-overlay[data-overlay='bottom-left'],
+.sfs-screen-overlay-shade[data-shade='bottom-left'] {
+  background-image: var(--gradient-semantic-overlay-bottom-left);
+}
+
+.sfs-overlay[data-overlay='top-right'],
+.sfs-screen-overlay-shade[data-shade='top-right'] {
+  background-image: var(--gradient-semantic-overlay-top-right);
+}
+
+/* ScreenOverlay: one layer per shade of the model, bottom to top. The scrim is a colour, every other shade a gradient. */
+.sfs-screen-overlay,
+.sfs-screen-overlay-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-screen-overlay-shade[data-shade='scrim'] {
+  background-color: var(--color-semantic-overlay-scrim);
+}
+
+/*
+ * Screen: the DTV frame. `--_width` and `--_height` are the 1280×720 base
+ * (frameSpec, in TypeScript); `--_scale` shows it larger without re-laying it
+ * out, and only applies when `data-scaled` is on the root.
+ */
+.sfs-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--_width);
+  height: var(--_height);
+  padding: var(--dimension-spacing-core-xl);
+  overflow: hidden;
+}
+
+.sfs-screen[data-scaled] {
+  transform-origin: top left;
+  transform: scale(var(--_scale));
+}
+
+/* The video and the overlay layers: the frame's full size, out of the flow. */
+.sfs-screen-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sfs-screen-content {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.sfs-screen-anchor {
+  position: relative;
+  display: flex;
+  gap: var(--dimension-spacing-core-sm);
+}
+
+.sfs-screen-anchor[data-anchor-zone='bottom-left'] {
+  justify-content: flex-start;
+}
+
+.sfs-screen-anchor[data-anchor-zone='bottom-right'] {
+  justify-content: flex-end;
+}
+
+/*
+ * TableCell: one row (`data-type`: team, athlete, scout), each with its own
+ * height token. A row keeps its height: in a body too short for it, it is cut
+ * off rather than every row squeezed.
+ */
+.sfs-table-cell {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-table-cell[data-type='team'],
+.sfs-table-cell[data-type='athlete'] {
+  height: var(--dimension-size-semantic-table-cell-md);
+}
+
+.sfs-table-cell[data-type='scout'] {
+  height: var(--dimension-size-semantic-table-cell-lg);
+}
+
+/* Figma's athlete row: a 16 line, 8 under it. */
+.sfs-table-cell[data-type='athlete'] {
+  padding-bottom: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-table-cell[data-divider] {
+  border-bottom: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+}
+
+.sfs-table-cell-group {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+
+.sfs-table-cell[data-type='athlete'] .sfs-table-cell-group {
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+.sfs-table-cell-shield {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-mark {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-mark[data-mark='card-warning'] {
+  color: var(--color-semantic-functional-status-warning);
+}
+
+.sfs-table-cell-mark[data-mark='card-error'],
+.sfs-table-cell-mark[data-mark='substitution'],
+.sfs-table-cell-mark[data-mark='heart'] {
+  color: var(--color-semantic-functional-status-error);
+}
+
+.sfs-table-cell-mark[data-mark='ball'] {
+  color: var(--color-semantic-functional-text-primary);
+}
+
+.sfs-table-cell-glyph {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+
+.sfs-table-cell-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-stat {
+  display: block;
+  width: var(--dimension-size-semantic-table-stat-column);
+}
+
+.sfs-table-cell-value {
+  width: var(--dimension-size-semantic-table-value-column);
+  flex-shrink: 0;
+}
+
+.sfs-table-cell-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
