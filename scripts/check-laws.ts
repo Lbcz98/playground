@@ -591,9 +591,15 @@ async function main(): Promise<void> {
     process.exit(2)
   }
   const flowDirs = [...new Set(args.map(flowFolderOf).filter((d): d is string => d !== undefined))]
+  // A file that is not a screen (a local component, which CI hands over when a PR touches one) is checked
+  // through the screens of its designer folder: its focus and size show on the screens that use it.
+  const isScreenFile = (f: string): boolean => /<Screen[\s>]/.test(readFileSync(f, 'utf8'))
+  const screensUnder = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? screensUnder(join(dir, e.name)) : e.name.endsWith('.tsx') && isScreenFile(join(dir, e.name)) ? [join(dir, e.name)] : []))
+  const tsxArgs = args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a))
   const files = [
     ...new Set([
-      ...args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a)),
+      ...tsxArgs.flatMap((f) => (!existsSync(f) || isScreenFile(f) ? [f] : screensUnder(basename(dirname(f)) === 'components' ? dirname(dirname(f)) : designerFolder(f)))),
       ...flowDirs.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.tsx')).map((f) => join(d, f))),
     ]),
   ]
