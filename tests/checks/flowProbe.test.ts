@@ -211,7 +211,7 @@ describe('level.initial-focus: check:flow accepts the declaration only where che
       const laws = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', `${DIR}/decl-${where.replace(/\W+/g, '-')}/rail.tsx`, '--no-render'], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
       // The state file alone: this WRONG_RAIL has no rail buttons, so flow.ts has its own (unrelated) finding under check:laws.
       const lawsBlock = /^\S+\/rail\.tsx  \[/m.test(laws.stdout)
-      expect({ laws: lawsBlock ? 1 : 0, flow: r.code }, laws.stdout).toEqual(accepted.includes(where) ? { laws: 0, flow: 0 } : { laws: 1, flow: 1 })
+      expect({ laws: lawsBlock ? 1 : 0, flow: r.code }, `${laws.stdout}\n${r.stdout}${r.stderr}`).toEqual(accepted.includes(where) ? { laws: 0, flow: 0 } : { laws: 1, flow: 1 })
       if (!accepted.includes(where)) expect(r.stdout).toMatch(/only on the component's comment/)
     }, 180_000)
   }
