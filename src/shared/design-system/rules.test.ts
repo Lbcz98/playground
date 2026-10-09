@@ -65,3 +65,13 @@ describe('the rules book', () => {
     expect(manifestZodSchema.safeParse(bad).success).toBe(false)
   })
 })
+
+describe('real-app navigation rules', () => {
+  it('carries the flow rules with the right flexibility', () => {
+    const want = { 'flow.level-keys': 'law', 'flow.no-wrap': 'law', 'flow.back-steps': 'law', 'flow.focus-memory': 'law', 'flow.rail-side': 'convention', 'level.initial-focus': 'pattern' }
+    for (const [id, flex] of Object.entries(want)) expect(ruleById(SCREENFLOW_MANIFEST, id)?.flexibility, id).toBe(flex)
+  })
+  it('states the bug as level 1 initial focus', () => {
+    expect(ruleById(SCREENFLOW_MANIFEST, 'level.initial-focus')!.statement).toMatch(/bug/)
+  })
+})

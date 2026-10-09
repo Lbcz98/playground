@@ -61,7 +61,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       allowsAnchor: true,
       initialFocus: {
         on: ['MainMenu'],
-        hint: 'Focus starts on the main menu — on the program button by default; when the Home rail sits on the left, on the left button that owns it (miscellaneous, schedule or login). A focus on an interactivity button would already be the second level.',
+        hint: 'Focus starts on the bug, the rightmost item of the Home bar (in the menu model: the program button by default); when the Home rail sits on the left, on the left button that owns it (miscellaneous, schedule or login). A focus on an interactivity button would already be the second level.',
       },
     },
     {
@@ -74,7 +74,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       initialFocus: {
         on: ['InteractivityButton'],
         required: true,
-        hint: 'Focus is on one of the interactivity buttons — that is what makes this the second level, a page of its own; the main menu is not on screen.',
+        hint: 'Focus is on one of the interactivity buttons — that is what makes this the second level, a page of its own; the main menu is not on screen. It starts on the card nearest the owning icon: the leftmost card of a left rail, the rightmost of a right rail.',
       },
     },
     {
@@ -88,7 +88,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
         anchored: true,
         on: ['CloseButton', 'RoundedButton'],
         required: true,
-        hint: 'Focus starts on the rounded button (the anchored close/back control), not on the interactivity itself. The content card is focusable — the viewer moves the focus onto it from the rounded button.',
+        hint: 'Focus starts on the rounded button (the anchored back/close control, the back button) when the content has nothing focusable (empty or error states), and on the content card when it has one.',
       },
     },
   ],
@@ -477,7 +477,7 @@ export function auditScreenLayerIssues(doc: unknown, manifest: DesignSystemManif
   if (level?.level === 1) {
     const check = menuFocusCheck(manifest, root)
     const roles = layers.menu
-    if (check && roles && !check.allowed.includes(String(check.found))) {
+    if (check && roles && !check.accepted.includes(String(check.found))) {
       const where = check.railSide === 'left' ? 'the Home rail is on the left, so the focus is on the left button that owns it' : 'the focus starts on the program button (its rail, the programme\'s context, is on the right)'
       add(
         'level.initial-focus',
@@ -553,13 +553,13 @@ function walkNodes(root: RoleNode, visit: (node: RoleNode, parent: RoleNode | nu
 
 /**
  * On a Home screen: the menu button that should hold the focus, given the rail
- * the screen shows — the program button when the rail is on the right (or there
- * is none), a left button when it is on the left. `found` is what the screen has.
+ * the screen shows — the bug (Home just opened) or the program button when the rail
+ * is on the right (or there is none), a left button when it is on the left. `found` is what the screen has.
  */
 export function menuFocusCheck(
   manifest: DesignSystemManifest,
   root: RoleNode,
-): { menu: RoleNode; found: unknown; railSide: ScreenSide | null; allowed: string[] } | null {
+): { menu: RoleNode; found: unknown; railSide: ScreenSide | null; allowed: string[]; accepted: string[] } | null {
   const layers = screenLayersOf(manifest)
   const menuRoles = layers.menu
   if (!menuRoles || !manifest.components[menuRoles.component]) return null
@@ -579,7 +579,9 @@ export function menuFocusCheck(
     railSide === 'left'
       ? menuRoles.roles.filter((r) => r.side === 'left').map((r) => r.item)
       : [menuRoles.initial]
-  return { menu, found, railSide, allowed }
+  // The bug is where the Home opens (rail closed), so it is accepted next to the program button; `allowed` stays the one value a repair writes.
+  const accepted = railSide === 'left' ? allowed : [...allowed, 'channel-bug']
+  return { menu, found, railSide, allowed, accepted }
 }
 
 /** A one-line description of a screen's layers, for status lines. */

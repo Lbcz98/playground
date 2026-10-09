@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectLinks, flowProblems, focusEntersLevel, focusLeavesLevel, levelJumpProblem, linkRoleProblem, type PlayScreen } from './flow'
+import { collectLinks, flowProblems, focusEntersLevel, focusLeavesLevel, levelJumpProblem, levelKeyProblem, railSideProblem, initialFocusExpectation, linkRoleProblem, type PlayScreen } from './flow'
 import { SCREENFLOW_MANIFEST as S } from './screenflow-manifest'
 import { moduleContentSide } from './screen-layers'
 
@@ -164,5 +164,34 @@ describe('the rail keeps its cards when entered', () => {
   it('rejects a rail that grew or shrank on the way in', () => {
     const [p] = flowProblems([screen('home', 'home', 1, 1), screen('rail', 'interactivity-buttons-right', 2, 4)], S)
     expect(p).toMatch(/rail shows 4 .* Home rail .* shows 1/)
+  })
+})
+
+describe('real-app navigation helpers', () => {
+  it('levelKeyProblem: up/down/enter/back between levels', () => {
+    expect(levelKeyProblem(1, 2, 'up')).toBeNull()
+    expect(levelKeyProblem(1, 2, 'enter')).toMatch(/"up"/)
+    expect(levelKeyProblem(2, 1, 'down')).toBeNull()
+    expect(levelKeyProblem(2, 3, 'enter')).toBeNull()
+    expect(levelKeyProblem(2, 3, 'up')).toMatch(/"enter"/)
+    expect(levelKeyProblem(3, 2, 'back')).toBeNull()
+    expect(levelKeyProblem(2, 2, 'left')).toBeNull()
+    expect(levelKeyProblem(undefined, 2, 'up')).toBeNull()
+  })
+
+  it('railSideProblem: persistents left, program right', () => {
+    expect(railSideProblem('left', 'persistents')).toBeNull()
+    expect(railSideProblem('right', 'program')).toBeNull()
+    expect(railSideProblem('right', 'persistents')).toMatch(/left/)
+    expect(railSideProblem('left', 'program')).toMatch(/right/)
+    expect(railSideProblem(undefined, 'program')).toBeNull()
+  })
+
+  it('initialFocusExpectation: per level and side', () => {
+    expect(initialFocusExpectation(1).note).toMatch(/bug/)
+    expect(initialFocusExpectation(2, 'left').note).toMatch(/leftmost card/)
+    expect(initialFocusExpectation(2, 'right').note).toMatch(/rightmost card/)
+    expect(initialFocusExpectation(3).on).toEqual(['CloseButton', 'RoundedButton'])
+    expect(initialFocusExpectation(0).on).toEqual([])
   })
 })

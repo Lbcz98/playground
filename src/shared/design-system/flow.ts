@@ -60,6 +60,36 @@ export function levelJumpProblem(from: number | undefined, to: number | undefine
   return `it jumps from level ${from} to level ${to} — a link opens the next level (${from + 1}) or goes back up, never skips one`
 }
 
+export type FlowKeyName = 'up' | 'down' | 'left' | 'right' | 'enter' | 'back'
+
+const LEVEL_KEY: Record<string, FlowKeyName> = { '1>2': 'up', '2>1': 'down', '2>3': 'enter', '3>2': 'back' }
+
+/** Why this key can't cross from one level to another (flow.level-keys), or null. Unknown levels and same-level moves pass. */
+export function levelKeyProblem(fromLevel: number | undefined, toLevel: number | undefined, key: FlowKeyName): string | null {
+  if (fromLevel === undefined || toLevel === undefined || fromLevel === toLevel) return null
+  const want = LEVEL_KEY[`${fromLevel}>${toLevel}`]
+  if (!want) return null // other jumps are levelJumpProblem's job; back-steps to 0/1 are declared, not keyed
+  return key === want ? null : `going from level ${fromLevel} to level ${toLevel} takes "${want}", not "${key}" — use "${want}" on that transition`
+}
+
+/** Why this rail side doesn't match its owner (flow.rail-side), or null: persistents are left, program is right. */
+export function railSideProblem(side: 'left' | 'right' | undefined, owner: 'persistents' | 'program' | undefined): string | null {
+  if (!side || !owner) return null
+  const want = owner === 'persistents' ? 'left' : 'right'
+  return side === want ? null : `the ${owner} rail sits on the ${want}, not the ${side} — put the rail and its back button on the ${want}`
+}
+
+/** Where focus starts on a level (level.initial-focus): component names and a one-line note. */
+export function initialFocusExpectation(level: number, side?: 'left' | 'right'): { on: string[]; note: string } {
+  if (level === 1) return { on: ['MainMenu'], note: 'focus starts on the bug, the rightmost item of the Home bar, not the first item' }
+  if (level === 2) {
+    const card = side === 'left' ? 'leftmost card' : side === 'right' ? 'rightmost card' : 'card nearest the owning icon'
+    return { on: ['InteractivityButton'], note: `focus starts on the ${card} (left rail: leftmost, right rail: rightmost)` }
+  }
+  if (level === 3) return { on: ['CloseButton', 'RoundedButton'], note: 'focus starts on the back button when the content has nothing focusable, else on the content' }
+  return { on: [], note: 'level 0 shows only the video; nothing holds focus' }
+}
+
 /**
  * Why a link on this component breaks its role, or null: the main menu carries
  * no link, a back control goes up exactly one level, a close control closes

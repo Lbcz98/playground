@@ -565,7 +565,7 @@ function repairMenuFocus(
   const layers = screenLayersOf(manifest)
   if (!screen || modelOfScreen(layers, screen)?.level !== 1 || !layers.menu) return
   const check = menuFocusCheck(manifest, root)
-  if (!check || check.allowed.includes(String(check.found)) || check.allowed.length !== 1) return
+  if (!check || check.accepted.includes(String(check.found)) || check.allowed.length !== 1) return
   const menu = check.menu as CanvasNode
   const value = check.allowed[0]
   menu.props = { ...menu.props, [layers.menu.prop]: value }

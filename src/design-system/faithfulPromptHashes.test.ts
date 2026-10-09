@@ -8,6 +8,8 @@
  * por um cartao") was removed because it pulled English requests' notes into Portuguese. The planner hash did not move.
  * Oct 3: both moved on purpose (planner 2e0c1f852d -> 168a7c19bb, generator b010c5cf46 -> 4a55df4278): the MainMenu
  * summary no longer says it is anchored, the kernel states its laws without capitals, and the planner has no line cap.
+ * Oct 9: the planner hash moved 168a7c19bb -> c5e8493a6e on purpose: the navigation rules and the per-level focus hints
+ * now follow the real app (Home focus starts on the bug; level keys, no wrap, back steps). The generator hash moved 4a55df4278 -> ee81bad023 for the same reason.
  */
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
@@ -18,8 +20,8 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 
 describe('the Faithful prompts', () => {
   it('are pinned by hash (the same hashes the eval stamps)', () => {
-    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('168a7c19bb')
-    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('4a55df4278')
+    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('c5e8493a6e')
+    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('ee81bad023')
   })
 
   it('never carry the Exploratory Proposal wording', () => {

@@ -5,7 +5,7 @@ import { Stage } from '../../Stage'
 
 interface FlowData {
   start: string
-  transitions: { from: string; key: 'up' | 'down' | 'left' | 'right' | 'enter'; to: string }[]
+  transitions: { from: string; key: 'up' | 'down' | 'left' | 'right' | 'enter' | 'back'; to: string }[]
 }
 
 const KEYS: Record<string, FlowData['transitions'][number]['key']> = {
@@ -16,10 +16,14 @@ const KEYS: Record<string, FlowData['transitions'][number]['key']> = {
   Enter: 'enter',
 }
 
+const BACK_KEYS = ['Escape', 'Backspace', 'GoBack', 'BrowserBack', 'Back']
+const BACK_CODES = [4, 8, 27, 461, 10009]
+
 /**
  * Plays a flow folder with the keyboard, as a TV remote: arrows and Enter follow the transitions
- * of `flow.ts`; Backspace or Esc go back along the states visited (a link to a state already
- * behind returns to it, like the player of the canvas); R restarts.
+ * of `flow.ts` and never wrap (no transition, nothing happens). Back (Esc, Backspace, GoBack,
+ * BrowserBack, key codes 4/8/27/461/10009) retraces the states visited, unless the state declares a
+ * `back` transition. `hidden` is level 0: any arrow returns to `start`. R restarts.
  */
 export function FlowPlayer({ designer, flow }: { designer: string; flow: string }) {
   const [data, setData] = useState<FlowData | null>(null)
@@ -42,9 +46,12 @@ export function FlowPlayer({ designer, flow }: { designer: string; flow: string 
       if (!data) return
       setTrail((t) => {
         const current = t[t.length - 1]
-        if (key === 'back') return t.length > 1 ? t.slice(0, -1) : t
         if (key === 'restart') return [data.start]
+        // `hidden` is level 0 (video only): any arrow brings the flow back to its start.
+        if (current === 'hidden') return key === 'enter' || key === 'back' ? t : [data.start]
+        // Back retraces to the previous state (focus memory) unless the state declares its own `back`.
         const hop = data.transitions.find((x) => x.from === current && x.key === key)
+        if (key === 'back' && !hop) return t.length > 1 ? t.slice(0, -1) : t
         if (!hop) return t
         const behind = t.lastIndexOf(hop.to)
         return behind >= 0 ? t.slice(0, behind + 1) : [...t, hop.to]
@@ -55,7 +62,8 @@ export function FlowPlayer({ designer, flow }: { designer: string; flow: string 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const key = KEYS[e.key] ?? (e.key === 'Backspace' || e.key === 'Escape' ? 'back' : e.key === 'r' ? 'restart' : null)
+      const isBack = BACK_KEYS.includes(e.key) || BACK_CODES.includes(e.keyCode)
+      const key = KEYS[e.key] ?? (isBack ? 'back' : e.key === 'r' ? 'restart' : null)
       if (!key) return
       e.preventDefault()
       press(key)
