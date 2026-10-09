@@ -70,7 +70,6 @@ they are the fixtures the validator's own tests are written against:
 - `src/interpreter/` (Blueprint → canvas tree, with repairs) and `src/model/nodeTree.ts`
 - `src/shared/design-system/screenflow-manifest.ts`, `src/design-system/catalog.ts`, `registry.tsx` (the built-in ScreenFlow catalog)
 - `src/shared/templates/` (reference screens written against that catalog)
-- `src/design-system/promptSpec.ts` (the prompts of the retired orchestrator)
 - `src/canvas/ScreenFrame.tsx` and `ScreenTemplates.stories.tsx` (the reference screens in Storybook)
 
 `docs/plan-AI-Orchestration.md` and `docs/rules-checks/` describe the work that led here; they are history.
