@@ -385,6 +385,28 @@ export const CASES: CorpusCase[] = [
     expect: { exit: 0, laws: [], proposals: 1, note: 'the validator reads <Pick> as a Proposal and finds nothing focused among the buttons it sees; the static pass saw the focus inside it' },
   },
   {
+    id: 'local-component-focus-wrong-level',
+    title: 'the one focus drawn inside a local component, on a component the level does not start on, is level.initial-focus',
+    files: {
+      's.tsx': RAIL.replace('<InteractivityButton title="Vote no Craque do Jogo" interactionState="focus" />', '<Pick />').replace("import { Screen }", "import { Pick } from './components/Pick'\nimport { Screen }"),
+      'components/Pick.tsx': `import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'\n${PROPOSAL()}\nexport function Pick() {\n  return (\n    <ContentCard interactionState="focus">\n      <ContentCardHeader title="Vote" />\n    </ContentCard>\n  )\n}\n`,
+    },
+    entry: 's.tsx',
+    expect: { exit: 1, laws: ['level.initial-focus'], proposals: 1, messages: [/Level 2 \(Trilho focado\): nothing is focused/], note: 'the validator, blind inside <Pick>, says nothing is focused; the source reading (a card, not a rail button) keeps its finding' },
+  },
+  {
+    id: 'focus-wrong-level',
+    title: 'the focus on a component its level does not start on is level.initial-focus',
+    ...one('s.tsx', RAIL.replace('model="interactivity-buttons-right" level={2}', 'model="interactivity-cards-right" level={3}')),
+    expect: { exit: 1, laws: ['level.initial-focus'], messages: [/Level 3 \(Interatividade única\): focus is on .*<InteractivityButton>/] },
+  },
+  {
+    id: 'focus-wrong-level-declared',
+    title: 'the same focus, declared, passes: level.initial-focus is a pattern',
+    ...one('s.tsx', RAIL.replace('model="interactivity-buttons-right" level={2}', 'model="interactivity-cards-right" level={3}').replace('export function', '/** @deviation level.initial-focus: the rail opens on its card */\nexport function')),
+    expect: { exit: 0, laws: [], deviations: ['level.initial-focus'] },
+  },
+  {
     id: 'stack-is-a-container',
     title: 'Stack from @/primitives stays the kit container: no @reuse, not a primitive',
     ...one('s.tsx', screen('<MainMenu />')),

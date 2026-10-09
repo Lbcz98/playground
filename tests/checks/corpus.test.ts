@@ -40,6 +40,38 @@ describe('focus.single reads every kit component that can hold the focus', () =>
   })
 })
 
+/**
+ * check:laws reads the focus twice: in the source (`static`, which sees into local components) and in the blueprint read
+ * back from it (`validator`). Both ask the same rule (src/shared/layout/focus-rule.ts); this is which answer the designer
+ * gets. (check:flow has one reader, the page: tests/checks/flowProbe.test.ts.)
+ */
+describe('the focus rules: which reader check:laws reports', () => {
+  const cases: [id: string, problems: [law: string, source: string][]][] = [
+    // Nothing focused: the source says focus.single; the blueprint says which menu button starts the focus (the Home
+    // menu check, screen-layers.ts: only the blueprint knows the rail side), and that nothing is focused.
+    ['focus-zero', [['focus.single', 'static'], ['level.initial-focus', 'validator'], ['level.initial-focus', 'validator']]],
+    // Two focused: the source says focus.single (the blueprint's own is dropped: it says it in blueprint paths); the
+    // blueprint says one of them is not where the level starts.
+    ['focus-two', [['focus.single', 'static'], ['level.initial-focus', 'validator']]],
+    ['local-component-second-focus', [['focus.single', 'static']]],
+    // Focus on the wrong component: the blueprint, in its words; declared, nothing (a pattern).
+    ['focus-wrong-level', [['level.initial-focus', 'validator']]],
+    ['focus-wrong-level-declared', []],
+    // Focus forwarded into a local component: the blueprint cannot see it and says nothing is focused; the source reading
+    // decides — dropped where the level takes that focus, kept where it does not.
+    ['local-component-holds-focus', []],
+    ['local-component-focus-wrong-level', [['level.initial-focus', 'validator']]],
+  ]
+  for (const [id, problems] of cases) {
+    it(id, async () => {
+      const { checkLaws } = await import('../../scripts/check-laws')
+      const { writeCase } = await import('./run')
+      const r = checkLaws(writeCase(CASES.find((c) => c.id === id)!))
+      expect(r.problems.filter((p) => /^(focus\.single|level\.initial-focus)$/.test(p.law)).map((p) => [p.law, p.source ?? 'static'])).toEqual(problems)
+    }, 120_000)
+  }
+})
+
 describe('structured not-read and coverage', () => {
   it('reports kind, line and coverage; warnings stay human-readable', async () => {
     const c = CASES.find((x) => x.id === 'logic-map-clean')!
