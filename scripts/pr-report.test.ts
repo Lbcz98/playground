@@ -4,7 +4,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { CASES } from '../tests/checks/corpus/cases'
-import { renderReport, MARKER, MAX_CHARS, type LawsJson } from './pr-report'
+import { MARKER } from './findings'
+import { renderReport, MAX_CHARS, type LawsJson } from './pr-report'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 // Own git-ignored folder inside the repo (so `@/…` resolves). Its name is the designer folder links point into.
@@ -33,7 +34,7 @@ function buildFolder(): string[] {
 }
 
 const laws = (entries: string[], env: Record<string, string> = {}) => {
-  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', '--json', '--require-render', ...entries], {
+  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', '--json', '--require-render', ...entries], {
     cwd: ROOT,
     encoding: 'utf8',
     env: { ...process.env, VITEST: '', ...env },
@@ -62,11 +63,24 @@ describe('pr-report on a real check:laws --json run (needs Chromium)', () => {
     expect(renderReport(r.json, ROOT)).toMatch(/### Blocking problems \(\d+\)\n\n- `.checks-corpus-pr\/blocking.tsx/)
   }, 180_000)
 
+  it('a flow.ts that sends a key to a state that does not exist exits 1 and the comment lists it', () => {
+    const dir = join(DIR, 'broken-flow')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'home.tsx'), files('clean-home')['s.tsx'])
+    writeFileSync(join(dir, 'flow.ts'), "export default { start: 'home', transitions: [{ from: 'home', key: 'up', to: 'nowhere' }] }\n")
+    const r = laws([dir, '--no-render'])
+    expect(r.code).toBe(1)
+    expect(renderReport(r.json, ROOT)).toMatch(/### Blocking problems \(1\)\n\n- `.checks-corpus-pr\/broken-flow\/flow.ts` \[[\w.-]+\] .*nowhere/)
+  }, 180_000)
+
   it('with CHROMIUM_PATH=/nonexistent the laws step exits 1', () => {
     const entry = join(DIR, 'norender.tsx')
     mkdirSync(DIR, { recursive: true })
     writeFileSync(entry, files('clean-home')['s.tsx'])
-    expect(laws([entry], { CHROMIUM_PATH: '/nonexistent' }).code).toBe(1)
+    const r = laws([entry], { CHROMIUM_PATH: '/nonexistent' })
+    expect(r.code).toBe(1)
+    // A render audit that did not run, when it was required, blocks: the comment has to say so too.
+    expect(renderReport(r.json, ROOT)).toMatch(/### Blocking problems \(1\)\n\n- `.checks-corpus-pr\/norender.tsx` \[render.not-run\] .*Chromium could not start/)
   }, 180_000)
 })
 
@@ -74,16 +88,35 @@ describe('renderReport — pure', () => {
   const rep = (file: string, over: object = {}) => ({
     file: `${ROOT}${file}`, problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 3, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] }, ...over,
   })
-  const json = (reports: object[]) => ({ schemaVersion: 1, reports }) as unknown as LawsJson
-  const a = rep('web/protos/x/a.tsx', { deviations: [{ ruleId: 'r.a', why: 'because' }, { ruleId: 'r.b', why: 'also' }] })
+  const json = (reports: object[]) => ({ schemaVersion: 1, reports, findings: [] }) as unknown as LawsJson
+  const a = rep('web/protos/x/a.tsx', { deviations: [{ ruleId: 'r.a', why: 'because', line: 7 }, { ruleId: 'r.b', why: 'also', line: 9 }] })
   const b = rep('web/protos/x/b.tsx', { advisories: [{ law: 'render.legibility', message: 'texts overlap' }] })
 
   it('is byte-identical across runs and independent of input order', () => {
     const one = renderReport(json([a, b]), ROOT)
     expect(renderReport(json([b, a]), ROOT)).toBe(one)
     expect(renderReport(json([a, { ...b }]), ROOT)).toBe(one)
-    expect(one).toContain('- `r.a` — because (`web/protos/x/a.tsx`)')
+    expect(one).toContain('- `r.a` — because (`web/protos/x/a.tsx:7`)')
   })
+  it('lists a finding of a flow among the blocking problems, with its rule id, file and line, and counts it', () => {
+    const finding = { rule: 'flow.next-level', file: `${ROOT}web/protos/x/flow.ts`, line: 4, message: 'home —enter→ detail\nskips a level' }
+    const md = renderReport({ schemaVersion: 1, reports: [], findings: [finding] }, ROOT)
+    expect(md).toContain('### Blocking problems (1)\n\n- `web/protos/x/flow.ts:4` [flow.next-level] home —enter→ detail skips a level')
+    expect(md).toContain('1 blocking problems')
+  })
+  it('the CLI reads every .json of a folder, and an empty folder is an empty report', () => {
+    const dir = join(DIR, 'findings')
+    rmSync(dir, { recursive: true, force: true })
+    mkdirSync(dir, { recursive: true })
+    const cli = () => spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/pr-report.ts', '--', dir], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, VITEST: '' } })
+    expect(cli().stdout).toContain('0 screens checked · 0 blocking problems')
+    const finding = (rule: string) => ({ schemaVersion: 1, reports: [], findings: [{ rule, file: `${ROOT}web/protos/x/flow.ts`, message: 'm' }] })
+    writeFileSync(join(dir, 'laws.json'), JSON.stringify(finding('flow.next-level')))
+    writeFileSync(join(dir, 'flow-1.json'), JSON.stringify(finding('focus.single')))
+    expect(cli().stdout).toContain('### Blocking problems (2)')
+    writeFileSync(join(dir, 'flow-2.json'), '') // a step that crashed leaves an empty file: the report is not built
+    expect(cli().status).not.toBe(0)
+  }, 60_000)
   it('rejects another schema version, naming it', () => {
     expect(() => renderReport({ schemaVersion: 2, reports: [] } as unknown as LawsJson)).toThrow(/schemaVersion 2/)
   })

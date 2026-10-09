@@ -45,6 +45,11 @@ describe('.github/workflows/protos.yml', () => {
       expect(existsSync(join(ROOT, pkg.scripts[script].match(/scripts\/[\w-]+\.ts/)![0])), script).toBe(true)
     }
   })
+  it('does not spell out the report schema: every step writes its own findings file, and pr:report reads the folder', () => {
+    expect(yml).not.toContain('schemaVersion')
+    expect(yml).toMatch(/npm run check:flow [^\n]*--json/)
+    expect(yml).toMatch(/npm run pr:report --silent -- findings\b/)
+  })
   it('runs the laws with --json and --require-render, and fails the job last', () => {
     expect(yml).toMatch(/npm run check:laws [^\n]*--json[^\n]*--require-render|npm run check:laws [^\n]*--require-render[^\n]*--json/)
     expect(yml.lastIndexOf('Fail when the laws failed')).toBeGreaterThan(yml.indexOf('npm run pr:comment'))

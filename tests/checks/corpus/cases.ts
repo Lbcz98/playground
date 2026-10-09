@@ -165,9 +165,9 @@ export const CASES: CorpusCase[] = [
   },
   {
     id: 'no-screen',
-    title: 'a file with no <Screen> is layers.stack',
+    title: 'a file with no <Screen> is a local file: checked through the screens of its folder, and there is none',
     ...one('s.tsx', 'export default function S() { return null }\n'),
-    expect: { exit: 1, laws: ['layers.stack'] },
+    expect: { exit: 0, laws: [], note: 'the real run: nothing is checked, nothing is said. `checkLaws` on the file itself is layers.stack (src/shared/export/checkLaws.test.ts), but the run never hands it over' },
   },
   { id: 'unknown-model', title: 'an unknown layer model is layers.stack', ...one('s.tsx', screen('<MainMenu />', { model: 'nope' })), expect: { exit: 1, laws: ['blueprint.dsl', 'layers.overlay-model', 'layers.stack'], note: 'one mistake is reported three times: the static pass and two validator rules' } },
   {
@@ -206,7 +206,7 @@ export const CASES: CorpusCase[] = [
     id: 'render-covering-fill',
     title: 'a container painting a background over the frame is layers.stack (render)',
     ...one('s.tsx', HOME.replace('<Stack direction="column"', '<Stack background="primary" direction="column"')),
-    expect: { exit: 1, laws: ['render'], render: true, note: 'layers.stack render finding blocks; reported as law "render"' },
+    expect: { exit: 1, laws: ['layers.stack'], render: true, note: 'layers.stack render finding blocks, under its own rule id' },
   },
   {
     id: 'render-clean',
@@ -218,7 +218,7 @@ export const CASES: CorpusCase[] = [
     id: 'render-clipped',
     title: 'more rows than the card holds is cut off (render)',
     ...one('s.tsx', CARDS.replace(/<TableCell type="team" name="ARG"[^>]*\/>/, (row) => row.repeat(12))),
-    expect: { exit: 1, laws: ['render'], render: true, note: 'cut-off content blocks; reported as law "render"' },
+    expect: { exit: 1, laws: ['frame.layout'], render: true, note: 'cut-off content blocks, under its own rule id' },
   },
   {
     id: 'render-text-overlap',
@@ -236,7 +236,7 @@ export const CASES: CorpusCase[] = [
     id: 'logic-map-clipped',
     title: 'a .map that makes too many rows for the card is cut off (render)',
     ...one('s.tsx', withRows(12)),
-    expect: { exit: 1, laws: ['render'], render: true, notRead: 1, note: 'the render audit still runs on a screen with logic' },
+    expect: { exit: 1, laws: ['frame.layout'], render: true, notRead: 1, note: 'the render audit still runs on a screen with logic' },
   },
   {
     id: 'import-own-data',
@@ -296,13 +296,13 @@ export const CASES: CorpusCase[] = [
     id: 'primitive-box-without-reuse',
     title: 'a Box with no @reuse is primitives.reuse',
     ...withPrims('<Box />'),
-    expect: { exit: 1, laws: ['primitives.reuse'], messages: [/line \d+: .*@reuse <KitComponent>: <why/] },
+    expect: { exit: 1, laws: ['primitives.reuse'], messages: [/line \d+: .* In TSX: write \{\/\* @reuse <KitComponent>: <why no kit component would do> \*\/\} right before the primitive\.$/] },
   },
   {
     id: 'reuse-unknown-component',
     title: 'a @reuse naming something that is not a kit component is primitives.reuse',
     ...withPrims(box('', '{/* @reuse FancyCard: nothing like it */}')),
-    expect: { exit: 1, laws: ['primitives.reuse'], reuses: 1, messages: [/FancyCard/] },
+    expect: { exit: 1, laws: ['primitives.reuse'], reuses: 1, messages: [/FancyCard.* In TSX: fix the component name in \{\/\* @reuse <KitComponent>: <why> \*\/\} right before the primitive\.$/] },
   },
   {
     id: 'primitive-text-words',
@@ -373,6 +373,16 @@ export const CASES: CorpusCase[] = [
       `import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'\n${PROPOSAL()}\nexport function Stepper() {\n  return (\n    <ContentCard interactionState="default">\n      <ContentCardHeader title="São Paulo" />\n    </ContentCard>\n  )\n}\n`,
     ),
     expect: { exit: 0, laws: [], proposals: 1 },
+  },
+  {
+    id: 'local-component-holds-focus',
+    title: 'the one focus of a rail drawn inside a local component is the focus the level asks for',
+    files: {
+      's.tsx': RAIL.replace('<InteractivityButton title="Vote no Craque do Jogo" interactionState="focus" />', '<Pick />').replace("import { Screen }", "import { Pick } from './components/Pick'\nimport { Screen }"),
+      'components/Pick.tsx': `import { InteractivityButton } from '@/ui-kit/InteractivityButton'\n${PROPOSAL()}\nexport function Pick() {\n  return <InteractivityButton title="Vote" interactionState="focus" />\n}\n`,
+    },
+    entry: 's.tsx',
+    expect: { exit: 0, laws: [], proposals: 1, note: 'the validator reads <Pick> as a Proposal and finds nothing focused among the buttons it sees; the static pass saw the focus inside it' },
   },
   {
     id: 'stack-is-a-container',

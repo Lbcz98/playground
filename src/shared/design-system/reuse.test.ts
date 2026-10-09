@@ -54,6 +54,11 @@ describe('the validator', () => {
     expect(found?.message).toMatch(message)
   })
 
+  it('says, as data, when the reuse is missing rather than wrong', () => {
+    expect(reuseIssue(withPrimitive(undefined))?.code).toBe('reuse-missing')
+    expect(reuseIssue(withPrimitive({ considered: 'Scoreboard', why: 'x' }))?.code).toBeUndefined()
+  })
+
   it('checks every primitive type', () => {
     for (const type of ['primitive:Box', 'primitive:Stack', 'primitive:Text']) expect(reuseIssue(withPrimitive(undefined, 'exploratory', type)), type).toBeDefined()
   })

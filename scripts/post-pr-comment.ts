@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { MARKER } from './pr-report'
+import { MARKER } from './findings'
 
 export interface PostOptions {
   repo: string

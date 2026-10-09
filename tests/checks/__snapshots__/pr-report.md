@@ -13,7 +13,7 @@ None.
 
 ### Declared deviations (1)
 
-- `layout.root-align` — the card sits at the end (`.checks-corpus-pr/deviation.tsx`)
+- `layout.root-align` — the card sits at the end (`.checks-corpus-pr/deviation.tsx:12`)
 
 ### Primitives and proposals (2)
 

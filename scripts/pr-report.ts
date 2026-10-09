@@ -1,23 +1,30 @@
 /**
- * `npm run pr:report -- report.json` — the markdown a pull request shows for `check:laws --json`.
+ * `npm run pr:report -- <report.json | folder>` — the markdown a pull request shows for `check:laws --json` and `check:flow --json`.
  * Pure: the same JSON gives the same bytes, whatever the order of the reports or of what is inside them.
  */
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import type { LawReport } from './check-laws'
+import { MARKER, SCHEMA_VERSION, type Finding } from './findings'
 
-export const MARKER = '<!-- protos-report -->'
 export const MAX_CHARS = 60_000
 
 export interface LawsJson {
   schemaVersion: number
   reports: LawReport[]
+  findings: Finding[]
 }
 
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 const oneLine = (s: string): string => s.replace(/\s+/g, ' ').trim()
 
-export function renderReport(json: LawsJson, root = process.cwd()): string {
-  if (json?.schemaVersion !== 1 || !Array.isArray(json.reports)) throw new Error(`pr-report: expected { schemaVersion: 1, reports } from check:laws --json, got schemaVersion ${json?.schemaVersion}`)
+/** One or several `--json` outputs (check:laws, one check:flow per flow folder), read as one. */
+export function renderReport(input: LawsJson | LawsJson[], root = process.cwd()): string {
+  const parts = [input].flat()
+  for (const json of parts)
+    if (json?.schemaVersion !== SCHEMA_VERSION || !Array.isArray(json.reports) || !Array.isArray(json.findings))
+      throw new Error(`pr-report: expected { schemaVersion: ${SCHEMA_VERSION}, reports, findings } from check:laws or check:flow --json, got schemaVersion ${json?.schemaVersion}`)
+  const json = { reports: parts.flatMap((p) => p.reports), findings: parts.flatMap((p) => p.findings) }
   root = root.replace(/\/$/, '')
   const rel = (f: string): string => (f.startsWith(root + '/') ? f.slice(root.length + 1) : f)
   const reports = [...json.reports].sort((a, b) => cmp(rel(a.file), rel(b.file)))
@@ -29,11 +36,12 @@ export function renderReport(json: LawsJson, root = process.cwd()): string {
   const edges: string[] = []
   let read = 0
   let unread = 0
+  for (const f of json.findings) blocking.push(`- \`${rel(f.file)}${f.line ? `:${f.line}` : ''}\` [${f.rule}] ${oneLine(f.message)}`)
   for (const r of reports) {
     const f = rel(r.file)
     for (const p of r.problems) blocking.push(`- \`${p.file ? rel(p.file) : f}${p.line ? `:${p.line}` : ''}\` [${p.law}] ${oneLine(p.message)}`)
     for (const a of r.advisories) legibility.push(`- \`${f}\` [${a.law}] ${oneLine(a.message)}`)
-    for (const d of r.deviations) deviations.push(`- \`${d.ruleId}\` — ${oneLine(d.why)} (\`${f}\`)`)
+    for (const d of r.deviations) deviations.push(`- \`${d.ruleId}\` — ${oneLine(d.why)} (\`${f}:${d.line}\`)`)
     for (const u of r.reuses) prims.push(`- reuse \`${f}:${u.line}\` — \`${u.primitive}\` considered \`${u.considered}\`: ${oneLine(u.why)}`)
     for (const p of r.proposals) prims.push(`- proposal \`${rel(p.file)}\` — \`${p.name}\`: ${oneLine(p.why)} (API: ${Object.keys(p.api).sort().join(', ') || 'none'})`)
     for (const n of r.notRead) notRead.push(`- \`${f}:${n.line}\` [${n.kind}] ${oneLine(n.message)}`)
@@ -66,11 +74,12 @@ export function renderReport(json: LawsJson, root = process.cwd()): string {
   return out + '\n'
 }
 
-if (!process.env.VITEST && process.argv.some((a) => a.endsWith('pr-report.ts'))) {
-  const file = process.argv.slice(2).find((a) => a !== '--')
-  if (!file) {
-    console.error('usage: npm run pr:report -- report.json')
+if (!process.env.VITEST) {
+  const path = process.argv.slice(2).find((a) => a !== '--')
+  if (!path) {
+    console.error('usage: npm run pr:report -- <report.json | folder of them>')
     process.exit(2)
   }
-  process.stdout.write(renderReport(JSON.parse(readFileSync(file, 'utf8'))))
+  const files = statSync(path).isDirectory() ? readdirSync(path).filter((f) => f.endsWith('.json')).sort().map((f) => join(path, f)) : [path]
+  process.stdout.write(renderReport(files.map((f) => JSON.parse(readFileSync(f, 'utf8')))))
 }

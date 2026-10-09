@@ -77,7 +77,7 @@ describe('Exploratory: a pattern may break, declared', () => {
     doc.root.deviation = dev('layout.root-align')
     const [issue, ...rest] = issuesOf(doc)
     expect(rest).toEqual([])
-    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['root', 'deviation'] })
+    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['root', 'deviation'], declared: { ruleId: 'layout.root-align', scope: 'node' } })
     expect(issue.message).toMatch(/nothing under it breaks that rule/)
   })
 
@@ -171,7 +171,7 @@ describe('the screen’s own deviation list', () => {
     const doc = home()
     doc.screen.deviation = [dev('layout.root-align')]
     const [issue] = issuesOf(doc)
-    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['screen', 'deviation', 0] })
+    expect(issue).toMatchObject({ kind: 'unused-deviation', path: ['screen', 'deviation', 0], declared: { ruleId: 'layout.root-align', scope: 'screen' } })
   })
 })
 

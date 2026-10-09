@@ -1,8 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { addRenderResult, checkLaws } from '../../scripts/check-laws'
-import { renderAuditFiles, RenderAuditUnavailable } from '../../scripts/render-audit'
+import { runChecks, type LawReport } from '../../scripts/check-laws'
 import type { CorpusCase } from './corpus/cases'
 
 /**
@@ -36,31 +35,22 @@ export function writeCase(c: CorpusCase): string {
 }
 export const cleanCorpus = (): void => rmSync(OUT, { recursive: true, force: true })
 
-/** What `npm run check:laws -- <entry>` decides, as data: static + validator, then the render audit when asked. */
+/** What `npm run check:laws -- <entry>` decides, as data: the real run (`runChecks`) and its verdict. */
 export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResult> {
-  const entry = writeCase(c)
-  const report = checkLaws(entry)
-  let skipped: string | undefined
-  if (render) {
-    try {
-      const [r] = await renderAuditFiles([entry])
-      addRenderResult(report, r)
-    } catch (e) {
-      if (!(e instanceof RenderAuditUnavailable)) throw e
-      skipped = e.message
-    }
-  }
+  const run = await runChecks([writeCase(c)], { render })
+  const all = <K extends 'problems' | 'advisories' | 'warnings' | 'deviations' | 'reuses' | 'proposals'>(k: K): LawReport[K] => run.reports.flatMap((r) => r[k] as never[]) as LawReport[K]
   return {
-    exit: report.problems.length > 0 ? 1 : 0,
-    laws: [...new Set(report.problems.map((p) => p.law))].sort(),
-    notRead: report.warnings.length,
-    deviations: report.deviations.map((d) => d.ruleId),
-    problems: report.problems.map((p) => `[${p.law}] ${p.message}`),
-    advisories: report.advisories.map((p) => `[${p.law}] ${p.message}`),
-    advisoryLaws: [...new Set(report.advisories.map((p) => p.law))].sort(),
-    reuses: report.reuses.length,
-    proposals: report.proposals.length,
-    problemFiles: report.problems.flatMap((p) => (p.file ? [p.file] : [])),
-    skipped,
+    exit: run.exitCode,
+    laws: [...new Set(all('problems').map((p) => p.law))].sort(),
+    notRead: all('warnings').length,
+    deviations: all('deviations').map((d) => d.ruleId),
+    problems: all('problems').map((p) => `[${p.law}] ${p.message}`),
+    advisories: all('advisories').map((p) => `[${p.law}] ${p.message}`),
+    advisoryLaws: [...new Set(all('advisories').map((p) => p.law))].sort(),
+    reuses: all('reuses').length,
+    proposals: all('proposals').length,
+    problemFiles: all('problems').flatMap((p) => (p.file ? [p.file] : [])),
+    // Without a browser the run says so in its notes: the case skips itself.
+    skipped: run.notes[0],
   }
 }

@@ -29,30 +29,31 @@
  * state file as above, then the transitions between them (a state that does not exist, a key bound twice,
  * a state nothing leads to, a jump past the next level, the rail rule across states).
  * Exit code 1 when a law is broken.
+ *
+ * The whole run is `runChecks`; the command line that prints it is scripts/check-laws-cli.ts.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { validateBlueprintAgainstManifest } from '../src/shared/design-system/manifest-zod'
 import type { BlueprintDocument, BlueprintNode } from '../src/shared/blueprint'
 import { budgetProblems } from '../src/shared/design-system/primitives'
+import { checkTargets, designerFolder, diskTree, isLocalComponent, tsxNames } from '../src/shared/protoFolders'
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
-import { parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
+import { DEVIATION, parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
 import { MAX_SCREENS } from '../src/shared/blueprint'
 import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
 import { flowFileIssues, parseFlowFile, type FlowStateScreen } from '../src/shared/export/flowFile'
 import { loadDtvManifest } from './dtv-manifest'
+import type { Finding } from './findings'
 import { renderAuditFiles, RenderAuditUnavailable, type RenderResult } from './render-audit'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 /** Types `next/link` for the root tsc, which has no `next` (the render harness and web/ resolve their own). */
 const NEXT_SHIM = resolve(ROOT, 'scripts/render-harness/next-shim.d.ts')
-
-/** The shape of `--json`: `{ schemaVersion, reports: LawReport[], flows: FlowReport[] }`. Bump on a breaking change (scripts/pr-report.ts reads it). */
-export const SCHEMA_VERSION = 1
 
 export interface LawProblem {
   /** The rule id the message is about (a law, or a pattern broken without being declared). */
@@ -70,7 +71,7 @@ export interface LawReport {
   problems: LawProblem[]
   /** Advisory (render.legibility): printed, never fails the run. */
   advisories: LawProblem[]
-  deviations: { ruleId: string; why: string }[]
+  deviations: { ruleId: string; why: string; line: number }[]
   /** What the JSX has that the blueprint cannot carry: a computed prop, a `.map`, text — where the validator is blind. */
   warnings: string[]
   /** `warnings`, structured (line, kind, message). */
@@ -124,12 +125,6 @@ function literalProp(el: ts.JsxOpeningLikeElement, name: string): string | undef
     return null
   }
   return undefined
-}
-
-/** `web/protos/<name>/` when the file is inside one; otherwise the file's own directory (corpus, tests). */
-export function designerFolder(path: string): string {
-  const m = path.split(sep).join('/').match(/^(.*\/web\/protos\/[^/]+)\//)
-  return m ? m[1].split('/').join(sep) : dirname(path)
 }
 
 const LOCAL_EXT = ['', '.ts', '.tsx', '.json', '/index.ts', '/index.tsx']
@@ -303,8 +298,8 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
   /** Kit components drawn focused inside a local component: the validator reads that component as a Proposal and cannot see them. */
   const focusedInLocal: string[] = []
-  /** Kit holders a local component draws with a computed `interactionState`: it forwards the prop, so the screen decides. */
-  const forwarded = new Set<string>()
+  /** The kit holder each local component draws with a computed `interactionState`: it forwards the prop, so the screen decides. */
+  const forwarded = new Map<ts.Node, string>()
   for (const { el, scope } of screens) {
     const model = literalProp(el, 'model')
     const line = LINE(sf, el)
@@ -328,12 +323,13 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
           count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
         }
         // `<Local interactionState="focus" />`: the screen sets the focus the component forwards to its kit holder.
-        const [holderTag] = forwarded
-        if (holderTag && literalProp(n, 'interactionState') === 'focus') {
+        const holderTag = forwarded.get(local.node)
+        const given = holderTag ? literalProp(n, 'interactionState') : undefined
+        if (holderTag && given === 'focus') {
           focused++
           holders.push(`${tag} -> ${holderTag} (${at})`)
           focusedInLocal.push(holderTag)
-        }
+        } else if (holderTag && given === null && file !== path) forwarded.set(root, holderTag) // handed on from the component around it
         return
       }
       if (tag === MENU) {
@@ -349,7 +345,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       const holder = FOCUS_HOLDERS[tag]
       if (!holder) return
       const state = literalProp(n, 'interactionState')
-      if (state === null && file !== path) forwarded.add(tag)
+      if (state === null && file !== path) forwarded.set(root, tag)
       const isFocused = state === 'focus' || (state === undefined && holder.defaultFocused)
       if (isFocused) {
         focused++
@@ -385,7 +381,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
     fsf.forEachChild((node) => {
       if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier) || !node.moduleSpecifier.text.startsWith('.')) return
       const hit = resolveLocal(file, node.moduleSpecifier.text)
-      if (!hit || !hit.endsWith('.tsx') || relative(folder, hit).split(sep)[0] !== 'components') return
+      if (!hit || !isLocalComponent(folder, hit)) return
       const exported = componentExports(locals.get(hit)?.sf ?? ts.createSourceFile(hit, report ? '' : readFileSync(hit, 'utf8'), ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX))
       const clause = node.importClause
       const wanted: { local: string; name: string }[] = []
@@ -417,7 +413,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   // ── flow: the screens this one links to, with `<Link href="/<designer>/<screen>">` ─────────────────
   const designer = basename(folder)
   const idOf = (file: string): string => `${designer}/${basename(file, '.tsx')}`
-  const folderScreens = (): string[] => readdirSync(folder).filter((f) => f.endsWith('.tsx')).map((f) => basename(f, '.tsx')).sort()
+  const folderScreens = (): string[] => tsxNames(folder, diskTree)
   const read = new Map<string, ParsedScreen | undefined>()
   const screenOf = (file: string): ParsedScreen | undefined => {
     if (!read.has(file)) {
@@ -511,13 +507,13 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
         // "Nothing is focused" is the validator not seeing into a local component: the focus is there, on a component the level takes it on.
-        if (issue.ruleId === 'level.initial-focus' && /nothing is focused/.test(issue.message)) {
+        if (issue.code === 'nothing-focused') {
           const start = DTV_SCREEN_LAYERS.levels.find((l) => l.level === screenModel(DTV_SCREEN_LAYERS, parsed.doc.screen?.model ?? '')?.level)?.initialFocus
           if (focusedInLocal.length > 0 && focusedInLocal.every((t) => start?.on.includes(t) || start?.accepts?.includes(t))) continue
         }
         if (issue.ruleId === 'primitives.reuse') {
           const line = lineAt(parsed, issue.path)
-          const fix = /has no "reuse"|"reuse" must be|is not an object/.test(issue.message)
+          const fix = issue.code === 'reuse-missing'
             ? ' In TSX: write {/* @reuse <KitComponent>: <why no kit component would do> */} right before the primitive.'
             : ' In TSX: fix the component name in {/* @reuse <KitComponent>: <why> */} right before the primitive.'
           problems.push({ law: issue.ruleId, source: 'validator', message: `${line ? `line ${line}: ` : ''}${issue.message}${fix}`, line })
@@ -525,7 +521,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         }
         const flexibility = ruleById(manifest, issue.ruleId)?.flexibility ?? 'law'
         const where =
-          issue.kind === 'unused-deviation' && ruleScope(issue.ruleId) === 'screen' && !/on the screen/.test(issue.message)
+          issue.declared?.scope === 'node' && ruleScope(issue.declared.ruleId) === 'screen'
             ? " — this rule is about the whole screen: declare it once, in the component's JSDoc (or on the root element), not on the node that shows it"
             : ''
         const onLink = /^flow\.(next-level|link-roles)$/.test(issue.ruleId) && issue.kind !== 'unused-deviation' ? ' In TSX: write {/* @deviation <ruleId>: <why> */} right before the <Link> (not in the JSDoc).' : ''
@@ -539,7 +535,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   }
 
   // ── declared deviations (patterns), as the exporter writes them ─────────────
-  const deviations = [...text.matchAll(/@deviation\s+([\w.-]+)\s*:\s*([^\n*]*)/g)].map((m) => ({ ruleId: m[1], why: m[2].trim() }))
+  const deviations = [...text.matchAll(DEVIATION)].map((m) => ({ ruleId: m[1], why: m[2], line: text.slice(0, m.index).split('\n').length }))
 
   coverage.notRead = notRead.length
   return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage, reuses, proposals, flow: { edges } }
@@ -550,7 +546,7 @@ export function addRenderResult(report: LawReport, r: Pick<RenderResult, 'issues
   if (r.error) report.warnings.push(`render check did not run: ${r.error}`)
   for (const i of r.issues) {
     if (i.severity === 'warn') report.advisories.push({ law: i.ruleId, source: 'render', message: i.message })
-    else report.problems.push({ law: 'render', source: 'render', message: i.message })
+    else report.problems.push({ law: i.ruleId, source: 'render', message: i.message })
   }
 }
 
@@ -566,10 +562,7 @@ export function checkFlow(dir: string): FlowReport {
   const folder = resolve(dir)
   const problems: LawProblem[] = []
   const add = (law: string, message: string): void => void problems.push({ law, message })
-  const states = readdirSync(folder)
-    .filter((f) => f.endsWith('.tsx'))
-    .map((f) => f.replace(/\.tsx$/, ''))
-    .sort()
+  const states = tsxNames(folder, diskTree)
   const parsed = parseFlowFile(readFileSync(join(folder, 'flow.ts'), 'utf8'))
   for (const message of parsed.problems) add('blueprint.dsl', message)
   if (!parsed.flow) return { dir: folder, states, problems }
@@ -588,73 +581,67 @@ export function checkFlow(dir: string): FlowReport {
   return { dir: folder, states, problems }
 }
 
-/** A flow folder, from a path to it, to its flow.ts, or to a state file inside it. */
-function flowFolderOf(arg: string): string | undefined {
-  const path = resolve(arg)
-  const dir = existsSync(path) && statSync(path).isDirectory() ? path : dirname(path)
-  return existsSync(join(dir, 'flow.ts')) ? dir : undefined
+export interface CheckRun {
+  reports: LawReport[]
+  flows: FlowReport[]
+  /** What blocks outside a screen's own problems: the flow.ts problems, and a render audit that was required and did not run. */
+  findings: Finding[]
+  /** What the run says beside its reports (a render audit that did not run), for stderr. */
+  notes: string[]
+  /** 1 when a report has a problem or there is a finding. The PR comment is read off the same two lists. */
+  exitCode: 0 | 1
 }
 
-async function main(): Promise<void> {
-  const args = process.argv.slice(2).filter((a) => a !== '--' && !a.startsWith('--'))
-  const json = process.argv.includes('--json')
-  if (args.length === 0) {
-    console.error('usage: npm run check:laws -- <file.tsx | flow-folder> [...] [--json]')
-    process.exit(2)
-  }
-  const flowDirs = [...new Set(args.map(flowFolderOf).filter((d): d is string => d !== undefined))]
+/**
+ * The whole check, as `check:laws`, the edit hook and CI run it: the targets expanded to screens and flows, the laws
+ * on each screen, the render audit, the transitions of each flow. Prints nothing and never exits.
+ */
+export async function runChecks(targets: string[], options: { render?: boolean; requireRender?: boolean } = {}): Promise<CheckRun> {
+  const { render = true, requireRender = false } = options
   // A file that is not a screen (a local component, which CI hands over when a PR touches one) is checked
   // through the screens of its designer folder: its focus and size show on the screens that use it.
-  const isScreenFile = (f: string): boolean => /<Screen[\s>]/.test(readFileSync(f, 'utf8'))
-  const screensUnder = (dir: string): string[] =>
-    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? screensUnder(join(dir, e.name)) : e.name.endsWith('.tsx') && isScreenFile(join(dir, e.name)) ? [join(dir, e.name)] : []))
-  const tsxArgs = args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a))
-  const files = [
-    ...new Set([
-      ...tsxArgs.flatMap((f) => (!existsSync(f) || isScreenFile(f) ? [f] : screensUnder(basename(dirname(f)) === 'components' ? dirname(dirname(f)) : designerFolder(f)))),
-      ...flowDirs.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.tsx')).map((f) => join(d, f))),
-    ]),
-  ]
+  const { files, flows: flowDirs } = checkTargets(targets.map((a) => resolve(a)), diskTree)
   const flows = flowDirs.map(checkFlow)
   const reports = files.map((f) => checkLaws(f))
-  const requireRender = process.argv.includes('--require-render')
-  let renderFailed = false
-  if (!process.argv.includes('--no-render')) {
-    const didNotRun = (cause: string): void => {
-      for (const r of reports) r.warnings.push(`render check did not run: ${cause}`)
-      if (requireRender) renderFailed = true
-      console.error(`${cause}${requireRender ? ' — --require-render: failing' : ''}`)
-    }
+  const findings: Finding[] = flows.flatMap((f) => f.problems.map((p) => ({ rule: p.law, file: join(f.dir, 'flow.ts'), message: p.message })))
+  const notes: string[] = []
+  if (render) {
     try {
       const rendered = await renderAuditFiles(files)
       for (const r of rendered) {
         addRenderResult(reports.find((x) => x.file === resolve(r.file))!, r)
         if (r.error && requireRender) {
-          renderFailed = true
-          console.error(`${r.file}: render check did not run (${r.error}) — --require-render: failing`)
+          findings.push({ rule: 'render.not-run', file: resolve(r.file), message: r.error })
+          notes.push(`${r.file}: render check did not run (${r.error}) — --require-render: failing`)
         }
       }
     } catch (e) {
       if (!(e instanceof RenderAuditUnavailable)) throw e
-      didNotRun(e.message)
+      for (const r of reports) {
+        r.warnings.push(`render check did not run: ${e.message}`)
+        if (requireRender) findings.push({ rule: 'render.not-run', file: r.file, message: e.message })
+      }
+      notes.push(`${e.message}${requireRender ? ' — --require-render: failing' : ''}`)
     }
   }
-  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports, flows }, null, 1))
-  else {
-    for (const f of flows) {
-      const name = `${f.dir.replace(ROOT, '')}/flow.ts`
-      for (const p of f.problems) console.log(`${name}  [${p.law}] ${p.message}`)
-      if (f.problems.length === 0) console.log(`${name}  flow holds (${f.states.length} states, keys bound once, every state reached, no level skipped)`)
-    }
-    for (const r of reports) {
-      for (const p of r.problems) console.log(`${r.file.replace(ROOT, '')}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
-      for (const a of r.advisories) console.log(`${r.file.replace(ROOT, '')}  advisory [${a.law}] ${a.message}`)
-      for (const w of r.warnings) console.log(`${r.file.replace(ROOT, '')}  not read: ${w}`)
-      for (const d of r.deviations) console.log(`${r.file.replace(ROOT, '')}  declared ${d.ruleId}: ${d.why}`)
-      if (r.problems.length === 0) console.log(`${r.file.replace(ROOT, '')}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
-    }
-  }
-  process.exit(renderFailed || reports.some((r) => r.problems.length > 0) || flows.some((f) => f.problems.length > 0) ? 1 : 0)
+  return { reports, flows, findings, notes, exitCode: findings.length > 0 || reports.some((r) => r.problems.length > 0) ? 1 : 0 }
 }
 
-if (!process.env.VITEST) void main()
+/** The run as `check:laws` prints it without `--json`: one line per flow problem, screen problem, advisory, thing not read and deviation. */
+export function reportLines({ flows, reports }: CheckRun): string[] {
+  const out: string[] = []
+  for (const f of flows) {
+    const name = `${f.dir.replace(ROOT, '')}/flow.ts`
+    for (const p of f.problems) out.push(`${name}  [${p.law}] ${p.message}`)
+    if (f.problems.length === 0) out.push(`${name}  flow holds (${f.states.length} states, keys bound once, every state reached, no level skipped)`)
+  }
+  for (const r of reports) {
+    const name = r.file.replace(ROOT, '')
+    for (const p of r.problems) out.push(`${name}${p.line ? `:${p.line}` : ''}  [${p.law}] ${p.message}`)
+    for (const a of r.advisories) out.push(`${name}  advisory [${a.law}] ${a.message}`)
+    for (const w of r.warnings) out.push(`${name}  not read: ${w}`)
+    for (const d of r.deviations) out.push(`${name}  declared ${d.ruleId}: ${d.why}`)
+    if (r.problems.length === 0) out.push(`${name}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
+  }
+  return out
+}

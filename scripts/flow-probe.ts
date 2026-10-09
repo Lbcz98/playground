@@ -21,8 +21,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { HIDDEN_STATE } from '../src/shared/export/flowFile'
+import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
 import { RenderAuditUnavailable, withHarness, type Page } from './render-audit'
+import { SCHEMA_VERSION, type Finding } from './findings'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const PLAYER = 'web/app/[designer]/[screen]/FlowPlayer.tsx'
@@ -50,7 +52,7 @@ export interface FlowProblem {
   transition?: string
   message: string
 }
-export interface FlowReport {
+export interface ProbeReport {
   flow: string
   start: string
   states: string[]
@@ -93,7 +95,7 @@ export function focusProblems(state: string, read: FocusReading, source: string,
 
 class Reloaded extends Error {}
 
-async function walk(page: Page, url: string, dir: string, data: FlowData): Promise<FlowReport> {
+async function walk(page: Page, url: string, dir: string, data: FlowData): Promise<ProbeReport> {
   const problems: FlowProblem[] = []
   let presses = 0
   // The dev server reloads the page when it finds new dependencies on a cold cache: the walk starts over.
@@ -222,9 +224,9 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
 }
 
 /** Plays the flow folder and returns what it found. Throws `RenderAuditUnavailable` when there is no Chromium. */
-export async function probeFlow(folder: string): Promise<FlowReport> {
+export async function probeFlow(folder: string): Promise<ProbeReport> {
   const dir = resolve(folder)
-  if (!existsSync(join(dir, 'flow.ts'))) throw new Error(`${folder} is not a flow folder: it has no flow.ts`)
+  if (!isFlowFolder(dir, diskTree)) throw new Error(`${folder} is not a flow folder: it has no flow.ts`)
   if (relative(ROOT, dir).startsWith('..')) throw new Error(`${folder} is outside the repo: the harness only serves files inside ${ROOT}`)
   const data = ((await import(/* @vite-ignore */ pathToFileURL(join(dir, 'flow.ts')).href)) as { default: FlowData }).default
   const url = `/scripts/render-harness/index.html?flow=/${relative(ROOT, dir)}`
@@ -243,6 +245,11 @@ export async function probeFlow(folder: string): Promise<FlowReport> {
   })
 }
 
+/** The problems of a probe as the findings `pr:report` lists: each on the file of its state, the key press in front of the message. */
+export function findingsOf(report: ProbeReport): Finding[] {
+  return report.problems.map((p) => ({ rule: p.rule, file: `${report.flow}/${p.state}.tsx`, message: p.transition ? `${p.transition}: ${p.message}` : p.message }))
+}
+
 async function main(): Promise<void> {
   const folders = process.argv.slice(2).filter((a) => !a.startsWith('--'))
   const json = process.argv.includes('--json')
@@ -250,15 +257,18 @@ async function main(): Promise<void> {
     console.error('usage: npm run check:flow -- <flow folder> [--json]')
     process.exit(1)
   }
-  let report: FlowReport
+  let report: ProbeReport
   try {
     report = await probeFlow(folders[0])
   } catch (e) {
     const none = e instanceof RenderAuditUnavailable
-    console.error(`check:flow: ${none ? e.message.replace(/ — the render check was skipped\.$/, '') : String(e)}${none ? ' — the flow was NOT played, so it did not pass (npm run browsers:install).' : ''}`)
+    const message = `${none ? e.message.replace(/ — the render check was skipped\.$/, '') : String(e)}${none ? ' — the flow was NOT played, so it did not pass (npm run browsers:install).' : ''}`
+    console.error(`check:flow: ${message}`)
+    // A flow that was not played blocks, and the comment has to say so.
+    if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: [], findings: [{ rule: 'flow.not-played', file: join(resolve(folders[0]), 'flow.ts'), message }] }, null, 2))
     process.exit(1)
   }
-  if (json) console.log(JSON.stringify(report, null, 2))
+  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: [], findings: findingsOf(report), ...report }, null, 2))
   else {
     console.log(`${report.flow}: ${report.states.length} states from "${report.start}" (${report.states.join(', ')}), ${report.presses} key presses`)
     for (const p of report.problems) console.log(`  [${p.rule}] ${p.transition ?? p.state}: ${p.message}`)

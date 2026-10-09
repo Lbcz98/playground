@@ -726,7 +726,7 @@ function levelFocusIssues(
   if (on.length === 0) return []
 
   const where = `Level ${level.level} (${level.name})`
-  const issue = (message: string): RuleProblem[] => [{ ruleId: 'level.initial-focus', path: ['root'], message }]
+  const issue = (message: string, code?: RuleProblem['code']): RuleProblem[] => [{ ruleId: 'level.initial-focus', path: ['root'], message, ...(code ? { code } : {}) }]
   const right = (f: (typeof focused)[number]): boolean =>
     rule.accepts?.includes(f.component.id) || (on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value))
   const wrong = focused.filter((f) => !right(f))
@@ -734,7 +734,7 @@ function levelFocusIssues(
     return issue(`${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`)
   }
   if (focused.length === 0 && on.some((id) => seen.has(id))) {
-    return issue(`${where}: nothing is focused — ${rule.hint}`)
+    return issue(`${where}: nothing is focused — ${rule.hint}`, 'nothing-focused')
   }
   if (rule.required && !on.some((id) => seen.has(id))) {
     return issue(`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`)

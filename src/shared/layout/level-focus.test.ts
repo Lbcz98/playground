@@ -82,6 +82,9 @@ describe('page 2 · focus on the interactivity buttons', () => {
     }
     rest(d.root)
     expect(errors(d).join()).toMatch(/Level 2 \(Trilho focado\): nothing is focused/)
+    // As data too: check:laws reads this one apart from a focus in the wrong place.
+    const r = validateBlueprintAgainstManifest(d, S)
+    expect(!r.ok && r.issues.map((i) => [i.ruleId, i.code])).toEqual([['level.initial-focus', 'nothing-focused']])
   })
 })
 

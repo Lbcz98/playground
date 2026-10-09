@@ -69,9 +69,33 @@ describe('check:laws', () => {
     expect(lawsOf(write('l0.tsx', clean))).toEqual([])
   })
 
-  it('lists declared deviations without judging them', () => {
+  it('a local component given interactionState="focus" is focused only through a holder of its own', () => {
+    mkdirSync(join(OUT, 'fw'), { recursive: true })
+    // Forwards the prop to a kit holder: the screen decides its focus.
+    write('fw/Forward.tsx', `import { InteractivityButton } from '@/ui-kit/InteractivityButton'\nexport function Forward(p: { interactionState: 'default' | 'focus' }) {\n  return <InteractivityButton title="a" interactionState={p.interactionState} />\n}\n`)
+    // Takes a prop of the same name and draws no holder at all.
+    write('fw/Plain.tsx', `import { Stack } from '@/primitives'\nexport function Plain(_: { interactionState: 'default' | 'focus' }) {\n  return <Stack gap="sm" />\n}\n`)
+    const imports = "import { Forward } from './Forward'\nimport { Plain } from './Plain'\n"
+    const file = write('fw/s.tsx', imports + screen('<MainMenu /><Forward interactionState="default" /><Plain interactionState="focus" />'))
+    expect(checkLaws(file, STATIC).problems.filter((p) => p.law === 'focus.single')).toEqual([])
+    const both = write('fw/both.tsx', imports + screen('<MainMenu /><Forward interactionState="focus" /><Plain interactionState="default" />'))
+    expect(lawsOf(both)).toContain('focus.single')
+  })
+
+  it('a local component that hands the prop on to another one forwards it too', () => {
+    write('fw/Outer.tsx', `import { Forward } from './Forward'\nexport function Outer(p: { interactionState: 'default' | 'focus' }) {\n  return <Forward interactionState={p.interactionState} />\n}\n`)
+    const file = write('fw/nested.tsx', "import { Outer } from './Outer'\n" + screen('<MainMenu focusedItem={null} /><Outer interactionState="focus" />'))
+    expect(checkLaws(file, STATIC).problems.filter((p) => p.law === 'focus.single')).toEqual([])
+  })
+
+  it('lists declared deviations, with their line, without judging them', () => {
     const file = write('dev.tsx', `/** @deviation layout.no-static-center: asked for */\n${screen('<MainMenu />')}`)
-    expect(checkLaws(file, STATIC).deviations).toEqual([{ ruleId: 'layout.no-static-center', why: 'asked for' }])
+    expect(checkLaws(file, STATIC).deviations).toEqual([{ ruleId: 'layout.no-static-center', why: 'asked for', line: 1 }])
+  })
+
+  it('reads a deviation as the screen reader does (one grammar): the why runs to the end of the comment', () => {
+    const file = write('dev-star.tsx', `// a line\n/** @deviation layout.no-static-center: 2 * 3 cards, asked for */\n${screen('<MainMenu />')}`)
+    expect(checkLaws(file, STATIC).deviations).toEqual([{ ruleId: 'layout.no-static-center', why: '2 * 3 cards, asked for', line: 2 }])
   })
 })
 
@@ -96,6 +120,14 @@ describe('check:laws — the rules book, on the screen read back as a blueprint'
   it('reports a deviation declared for a rule nothing breaks', () => {
     const forNothing = base.replace('export function', '/** @deviation layout.root-align: not broken */\nexport function')
     const problems = checkLaws(write('nothing.tsx', forNothing)).problems
-    expect(problems.map((p) => p.message).join('\n')).toMatch(/declared for nothing/)
+    expect(problems.map((p) => p.message).join('\n')).toMatch(/declared for nothing\)$/)
+  }, 120_000)
+
+  const onNode = (ruleId: string): string => checkLaws(write(`node-${ruleId}.tsx`, base.replace('<ContentCard ', `{/* @deviation ${ruleId}: not broken */}\n          <ContentCard `))).problems.map((p) => p.message).join('\n')
+  it('says where a screen-wide rule is declared when it was declared, for nothing, on a node', () => {
+    expect(onNode('layout.root-align')).toMatch(/declared for nothing — this rule is about the whole screen: declare it once, in the component's JSDoc/)
+  }, 120_000)
+  it('does not say that of a rule that is declared on its node', () => {
+    expect(onNode('layout.slots')).toMatch(/declared for nothing\)$/)
   }, 120_000)
 })

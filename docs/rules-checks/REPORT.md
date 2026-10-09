@@ -7,7 +7,6 @@ Branch `feat/rules-and-checks`, 7 Oct 2026. Nothing was pushed. Commands below w
 - Nothing was pushed. The CI workflow (`.github/workflows/protos.yml`) has never run against real GitHub. It was checked by a YAML parse and regex only (actionlint is not installed).
 - The PR comment poster (`pr:comment`) was tested only against a fake `gh`. The `gh api` argument shape, `--jq` marker selection, `--paginate`, the PATCH path and fork detection are unverified. The first real PR is the test (Q18, owned by the user).
 - There is no squeezed-text corpus case: about 15 variants were tried and no kit component collapses text below 4 px. Squeezed text is covered at the measurement level only.
-- "Declared deviations" in the PR report show the file but no line number: `LawReport.deviations` carries no line. Needs a later `check-laws` change.
 - Intake agent text for `@proposal`: the user wants a conversational intake (4 questions: what is it / how does it behave / why new / Figma link) that compiles the structured `@proposal` block. It is described briefly, in Portuguese, in `web/protos/CLAUDE.md` ("Primitivos e componentes locais"). It is not a separate agent or command, and nothing enforces that the agent follows it.
 - AC6 (fresh subagent writing two linked screens from the guide only) was **not run** by the T08 implementer; the orchestrator handles it. Rounds needed: not run.
 
@@ -39,8 +38,7 @@ Branch `feat/rules-and-checks`, 7 Oct 2026. Nothing was pushed. Commands below w
 ## Open follow-ups
 
 - The exporter (`toTsx`) still writes no `<Link>` for `goTo`; exported TSX has no navigation.
-- `--json` consumers: only `pr-report` reads it; `schemaVersion: 1` is the contract.
-- Line numbers for declared deviations in the PR report.
+- `--json` consumers: only `pr-report` reads it. `check:laws --json` and `check:flow --json` both write `{ schemaVersion: 1, reports, findings }` (`scripts/findings.ts`); `pr:report` reads one file or a folder of them. Declared deviations carry `file:line`.
 - `<a><button>` nested interactive content and the focus ring were not checked in a browser; the web `<a>` is inline while the harness uses `display: contents` (T04).
 - T06 saw one unexplained failure in a parallel probe run, not seen again.
 - First real PR: the workflow, the poster and fork detection are untested.
