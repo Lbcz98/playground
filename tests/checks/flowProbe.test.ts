@@ -231,6 +231,10 @@ describe('focusProblems', () => {
     expect(rules('interactivity-buttons-right', declared, 'ContentCard')).toEqual([])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard', 'InteractivityButton')).toEqual(['focus.single'])
   })
+  it('reads the declaration in the grammar check:laws reads: `@deviation <ruleId>: <why>`, the colon included', () => {
+    expect(rules('interactivity-buttons-right', '// @deviation level.initial-focus the card opens focused', 'ContentCard')).toEqual(['level.initial-focus'])
+    expect(rules('interactivity-buttons-right', '// @deviation level.initial-focus-x: another rule', 'ContentCard')).toEqual(['level.initial-focus'])
+  })
   it('level 3 is entered on the back button; moving inside it may put the focus on the content card', () => {
     const moved = (...components: string[]) => focusProblems('s', read('interactivity-cards-right', ...components), '', false).map((p) => p.rule)
     expect(rules('interactivity-cards-right', '', 'RoundedButton')).toEqual([])
