@@ -36,18 +36,19 @@ beforeAll(async () => {
 afterAll(() => rmSync(OUT, { recursive: true, force: true }))
 
 describe('the render check on screens written as TSX', () => {
+  const messages = (r: RenderResult): string[] => r.issues.map((i) => i.message)
   const run = (name: string, check: (r: RenderResult) => void) => (): void => {
     if (!results) return void console.warn(`skipped: ${unavailable}`)
     check(results.get(name)!)
   }
 
-  it('is silent on the exported reference screens', run('ok.tsx', (r) => expect(r.problems).toEqual([])))
-  it('is silent on the home', run('ok-home.tsx', (r) => expect(r.problems).toEqual([])))
+  it('is silent on the exported reference screens', run('ok.tsx', (r) => expect(r.issues).toEqual([])))
+  it('is silent on the home', run('ok-home.tsx', (r) => expect(r.issues).toEqual([])))
   it(
     'names a container that covers the frame with a background',
-    run('fill.tsx', (r) => expect(r.problems.join('\n')).toMatch(/paints a background over the whole frame/)),
+    run('fill.tsx', (r) => expect(messages(r).join('\n')).toMatch(/paints a background over the whole frame/)),
   )
-  it('counts what a card cuts off', run('cut.tsx', (r) => expect(r.problems.join('\n')).toMatch(/cuts off/)))
+  it('counts what a card cuts off', run('cut.tsx', (r) => expect(messages(r).join('\n')).toMatch(/cuts off/)))
 
   // The kit moves (a 3s carousel in the menu, a 12s focus cycle): a measurement taken mid-motion depends on when it was taken.
   it('measures with motion off, and only once the screen has stopped changing', run('ok-home.tsx', (r) => {

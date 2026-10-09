@@ -42,7 +42,6 @@ function loadPlaywright(): Playwright {
 export type RenderResult =
   | {
       file: string
-      problems: string[]
       issues: RenderIssue[]
       measured?: RenderMeasurement
       /** What the page reported for `prefers-reduced-motion`: the audit asks for `reduced`. */
@@ -51,7 +50,7 @@ export type RenderResult =
       settledAfter?: number
       error?: undefined
     }
-  | { file: string; problems: []; issues: []; measured?: undefined; motion?: undefined; settledAfter?: undefined; error: string }
+  | { file: string; issues: []; measured?: undefined; motion?: undefined; settledAfter?: undefined; error: string }
 
 /**
  * The render harness served (Vite) and a headless Chromium, for as long as `use` runs; `newPage` opens a page on it.
@@ -102,17 +101,17 @@ export function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
       try {
         const failed = await page.open({ file: relative(ROOT, resolve(file)) })
         if (failed) {
-          results.push({ file, problems: [], issues: [], error: failed })
+          results.push({ file, issues: [], error: failed })
           continue
         }
         const got = await page.measure()
-        if ('error' in got) results.push({ file, problems: [], issues: [], error: got.error })
+        if ('error' in got) results.push({ file, issues: [], error: got.error })
         else {
           const issues = auditRenderIssues(got.measured)
-          results.push({ file, problems: issues.map((i) => i.message), issues, measured: got.measured, motion: got.motion, settledAfter: got.settledAfter })
+          results.push({ file, issues, measured: got.measured, motion: got.motion, settledAfter: got.settledAfter })
         }
       } catch (e) {
-        results.push({ file, problems: [], issues: [], error: String(e).split('\n')[0] })
+        results.push({ file, issues: [], error: String(e).split('\n')[0] })
       } finally {
         await page.close()
       }
