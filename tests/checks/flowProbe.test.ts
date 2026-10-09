@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
-import { findingsOf, focusProblems, type ProbeReport } from '../../scripts/flow-probe'
+import { advisoriesOf, findingsOf, focusProblems, railSideProblems, type ProbeReport } from '../../scripts/flow-probe'
 import { DTV_TEMPLATES } from '../../scripts/storybook/dtv-templates'
 import type { BlueprintDocument } from '../../src/shared/blueprint'
 import { exportBlueprintToTsx } from '../../src/shared/export/toTsx'
@@ -31,6 +31,9 @@ const FLOW = `export default {
 `
 const BACK_FOCUSED = '<RoundedButton label="Voltar" interactionState="focus" />'
 const CARD_RESTING = '<ContentCard interactionState="default"'
+
+/** Level 2 with the focus on a content card, not on a rail button: the break `@deviation level.initial-focus` declares. */
+const WRONG_RAIL = swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')).replace(BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')).replace('model="interactivity-cards-right"', 'model="interactivity-buttons-right"').replace('level={3}', 'level={2}')
 
 const probe = (name: string, changed: Record<string, string>, ...flags: string[]) => {
   const dir = `${DIR}/${name}`
@@ -96,7 +99,7 @@ describe('check:flow plays a flow folder', () => {
   }, 120_000)
 
   it('level.initial-focus: level 2 with the focus on a content card, not on a rail button', () => {
-    const r = probe('wrong-start', { 'rail.tsx': swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')).replace(BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')).replace('model="interactivity-cards-right"', 'model="interactivity-buttons-right"').replace('level={3}', 'level={2}') }, '--json')
+    const r = probe('wrong-start', { 'rail.tsx': WRONG_RAIL }, '--json')
     if (r.skipped) return
     expect(r.rules).toEqual(['level.initial-focus'])
     expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'rail' })
@@ -190,6 +193,69 @@ export default State`
   }, 120_000)
 })
 
+// A declaration counts where check:laws reads it: on the component's comment (and the root element), nowhere else in the file.
+describe('level.initial-focus: check:flow accepts the declaration only where check:laws does', () => {
+  const D = '@deviation level.initial-focus: the card opens focused'
+  const placements: Record<string, string> = {
+    'in the component JSDoc': swap(WRONG_RAIL, ' * ScreenView —', ` * ${D}\n * ScreenView —`),
+    'above the imports': `// ${D}\n\n${WRONG_RAIL}`,
+    'as a // line inside the body': swap(WRONG_RAIL, '  return (', `  // ${D}\n  return (`),
+    'as a /* */ block inside the body': swap(WRONG_RAIL, '  return (', `  /* ${D} */\n  return (`),
+    'before an element below the root': swap(WRONG_RAIL, '        <Stack direction="row"', `        {/* ${D} */}\n        <Stack direction="row"`),
+  }
+  const accepted = ['in the component JSDoc', 'as a // line inside the body']
+  for (const [where, rail] of Object.entries(placements)) {
+    it(`${where}: check:laws and check:flow agree`, () => {
+      const r = probe(`decl-${where.replace(/\W+/g, '-')}`, { 'rail.tsx': rail })
+      if (r.skipped) return
+      const laws = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', `${DIR}/decl-${where.replace(/\W+/g, '-')}/rail.tsx`, '--no-render'], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
+      // The state file alone: this WRONG_RAIL has no rail buttons, so flow.ts has its own (unrelated) finding under check:laws.
+      const lawsBlock = /^\S+\/rail\.tsx  \[/m.test(laws.stdout)
+      expect({ laws: lawsBlock ? 1 : 0, flow: r.code }, `${laws.stdout}\n${r.stdout}${r.stderr}`).toEqual(accepted.includes(where) ? { laws: 0, flow: 0 } : { laws: 1, flow: 1 })
+      if (!accepted.includes(where)) expect(r.stdout).toMatch(/only on the component's comment/)
+    }, 180_000)
+  }
+})
+
+describe('flow.rail-side: a warning that reaches the designer without blocking', () => {
+  // Level 3 on the left rail's model, but the Screen keeps the default focusSide: the back button is drawn on the right.
+  const MISMATCH = swap(DETAIL, 'model="interactivity-cards-right"', 'model="interactivity-cards-left"')
+  const DECLARED = swap(MISMATCH, ' * ScreenView —', ' * @deviation flow.rail-side: the back button stays where the thumb is\n * ScreenView —')
+
+  it('--json: a warning on the state, in advisories next to findings; nothing blocks, exit 0', () => {
+    const r = probe('rail-side', { 'detail.tsx': MISMATCH }, '--json')
+    if (r.skipped) return
+    expect(r.report?.problems).toEqual([])
+    expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side', state: 'detail' }])
+    const json = JSON.parse(r.stdout)
+    expect(json.findings).toEqual([])
+    expect(json.advisories).toEqual([{ rule: 'flow.rail-side', file: `${DIR}/rail-side/detail.tsx`.replace(`${ROOT}`, ''), message: expect.stringContaining('back button is drawn on the right') }])
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('text: marked as a warning, the flow still passes', () => {
+    const r = probe('rail-side-text', { 'detail.tsx': MISMATCH })
+    if (r.skipped) return
+    expect(r.stdout).toMatch(/\[flow\.rail-side\] \(warning\) detail: "interactivity-cards-left" puts the persistents rail on the left/)
+    expect(r.stdout).toMatch(/ok — .*\n.*1 warning/)
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('a convention is not declarable (deviations.ts: it needs no declaration), so @deviation does not silence it', () => {
+    const r = probe('rail-side-declared', { 'detail.tsx': DECLARED }, '--json')
+    if (r.skipped) return
+    expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side' }])
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('the sides agreeing is silent', () => {
+    const r = probe('rail-side-ok', { 'detail.tsx': swap(MISMATCH, 'level={3}', 'level={3} focusSide="left"') }, '--json')
+    if (r.skipped) return
+    expect(r.report?.warnings).toEqual([])
+    expect(r.code).toBe(0)
+  }, 120_000)
+})
+
 describe('check:flow --json findings, the shape pr:report reads', () => {
   it('a problem is a finding on its state file, naming the key press when it has one', () => {
     const report: ProbeReport = {
@@ -198,7 +264,9 @@ describe('check:flow --json findings, the shape pr:report reads', () => {
         { rule: 'flow.transition', state: 'rail', transition: 'home —up→ rail', message: 'up on "home" did not show "rail"' },
         { rule: 'focus.single', state: 'home', message: 'nothing is drawn focused' },
       ],
+      warnings: [{ rule: 'flow.rail-side', state: 'rail', message: 'the back button is on the other side' }],
     }
+    expect(advisoriesOf(report)).toEqual([{ rule: 'flow.rail-side', file: 'web/protos/x/rail.tsx', message: 'the back button is on the other side' }])
     expect(findingsOf(report)).toEqual([
       { rule: 'flow.transition', file: 'web/protos/x/rail.tsx', message: 'home —up→ rail: up on "home" did not show "rail"' },
       { rule: 'focus.single', file: 'web/protos/x/home.tsx', message: 'nothing is drawn focused' },
@@ -217,7 +285,7 @@ describe('check:flow --json findings, the shape pr:report reads', () => {
 })
 
 describe('focusProblems', () => {
-  const read = (model: string, ...components: string[]) => ({ model, level: null, focused: components.map((component) => ({ component, text: '' })) })
+  const read = (model: string, ...components: string[]) => ({ model, level: null, back: null, focused: components.map((component) => ({ component, text: '' })) })
   const rules = (model: string, source: string, ...components: string[]) => focusProblems('s', read(model, ...components), source).map((p) => p.rule)
 
   it('allows no focus only on level 0', () => {
@@ -226,7 +294,8 @@ describe('focusProblems', () => {
     expect(rules('home', '', 'MainMenu')).toEqual([])
   })
   it('a declared deviation covers the pattern, never the law', () => {
-    const declared = '/** @deviation level.initial-focus: the card opens focused */'
+    // The declaration counts on a component that returns a <Screen>, as check:laws reads it.
+    const declared = '/** @deviation level.initial-focus: the card opens focused */\nexport const S = () => <Screen model="m" level={2}><Box /></Screen>\n'
     expect(rules('interactivity-buttons-right', '', 'ContentCard')).toEqual(['level.initial-focus'])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard')).toEqual([])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard', 'InteractivityButton')).toEqual(['focus.single'])
@@ -242,5 +311,22 @@ describe('focusProblems', () => {
     expect(moved('ContentCard')).toEqual([])
     expect(moved('ContentCard', 'RoundedButton')).toEqual(['focus.single'])
     expect(rules('interactivity-cards-right', '', 'InteractivityButton')).toEqual(['level.initial-focus'])
+  })
+})
+
+describe('railSideProblems (flow.rail-side, a convention: it warns, it never blocks)', () => {
+  const read = (model: string, back: 'left' | 'right' | null) => ({ model, level: null, focused: [], back })
+  it('warns when the rail of the layer model is on one side and the back button is drawn on the other', () => {
+    const [warning, ...rest] = railSideProblems('detail', read('interactivity-cards-left', 'right'))
+    expect(rest).toEqual([])
+    expect(warning).toMatchObject({ rule: 'flow.rail-side', state: 'detail' })
+    expect(warning.message).toMatch(/interactivity-cards-left.*rail on the left.*back button.*right.*focusSide="left"/)
+    expect(railSideProblems('detail', read('interactivity-cards-right', 'left'))[0].message).toMatch(/focusSide="right"/)
+  })
+  it('is silent when the sides agree, when there is no back button, or when the model has no side', () => {
+    expect(railSideProblems('detail', read('interactivity-cards-left', 'left'))).toEqual([])
+    expect(railSideProblems('detail', read('interactivity-cards-right', 'right'))).toEqual([])
+    expect(railSideProblems('rail', read('interactivity-buttons-left', null))).toEqual([])
+    expect(railSideProblems('home', read('home', 'right'))).toEqual([])
   })
 })

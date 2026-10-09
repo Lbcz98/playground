@@ -13,6 +13,8 @@ export interface LawsJson {
   schemaVersion: number
   reports: LawReport[]
   findings: Finding[]
+  /** What `check:flow --json` warns about (the conventions of a flow); absent from `check:laws --json`. Never blocks. */
+  advisories?: Finding[]
 }
 
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
@@ -24,18 +26,20 @@ export function renderReport(input: LawsJson | LawsJson[], root = process.cwd())
   for (const json of parts)
     if (json?.schemaVersion !== SCHEMA_VERSION || !Array.isArray(json.reports) || !Array.isArray(json.findings))
       throw new Error(`pr-report: expected { schemaVersion: ${SCHEMA_VERSION}, reports, findings } from check:laws or check:flow --json, got schemaVersion ${json?.schemaVersion}`)
-  const json = { reports: parts.flatMap((p) => p.reports), findings: parts.flatMap((p) => p.findings) }
+  const json = { reports: parts.flatMap((p) => p.reports), findings: parts.flatMap((p) => p.findings), advisories: parts.flatMap((p) => p.advisories ?? []) }
   root = root.replace(/\/$/, '')
   const rel = (f: string): string => (f.startsWith(root + '/') ? f.slice(root.length + 1) : f)
   const reports = [...json.reports].sort((a, b) => cmp(rel(a.file), rel(b.file)))
   const blocking: string[] = []
   const legibility: string[] = []
+  const flowWarnings: string[] = []
   const deviations: string[] = []
   const prims: string[] = []
   const notRead: string[] = []
   const edges: string[] = []
   let read = 0
   let unread = 0
+  for (const f of json.advisories) flowWarnings.push(`- \`${rel(f.file)}${f.line ? `:${f.line}` : ''}\` [${f.rule}] ${oneLine(f.message)}`)
   for (const f of json.findings) blocking.push(`- \`${rel(f.file)}${f.line ? `:${f.line}` : ''}\` [${f.rule}] ${oneLine(f.message)}`)
   for (const r of reports) {
     const f = rel(r.file)
@@ -55,10 +59,11 @@ export function renderReport(input: LawsJson | LawsJson[], root = process.cwd())
     MARKER,
     `## Protos laws`,
     '',
-    `${reports.length} screens checked · ${blocking.length} blocking problems · ${legibility.length} advisories · ${deviations.length} deviations · ${reuses} reuses · ${prims.length - reuses} proposals · ${unread} constructs not read (${read} read, ${read + unread ? Math.round((100 * read) / (read + unread)) : 100}% coverage)`,
+    `${reports.length} screens checked · ${blocking.length} blocking problems · ${legibility.length + flowWarnings.length} advisories · ${deviations.length} deviations · ${reuses} reuses · ${prims.length - reuses} proposals · ${unread} constructs not read (${read} read, ${read + unread ? Math.round((100 * read) / (read + unread)) : 100}% coverage)`,
     '',
     ...section('Blocking problems', blocking),
     ...section('Legibility warnings', legibility),
+    ...section('Flow warnings', flowWarnings),
     ...section('Declared deviations', deviations),
     ...section('Primitives and proposals', prims),
     ...section('Not read', notRead),

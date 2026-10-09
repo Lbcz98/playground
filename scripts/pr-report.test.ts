@@ -47,7 +47,7 @@ describe('pr-report on a real check:laws --json run (needs Chromium)', () => {
     const r = laws(buildFolder())
     expect(r.code).toBe(0) // legibility and declared deviations do not block
     const md = renderReport(r.json, ROOT)
-    for (const s of ['Blocking problems', 'Legibility warnings', 'Declared deviations', 'Primitives and proposals', 'Not read', 'Flow edges']) expect(md).toContain(`### ${s}`)
+    for (const s of ['Blocking problems', 'Legibility warnings', 'Flow warnings', 'Declared deviations', 'Primitives and proposals', 'Not read', 'Flow edges']) expect(md).toContain(`### ${s}`)
     expect(md.startsWith(MARKER)).toBe(true)
     expect(md).toContain('render.legibility')
     expect(md).toContain('layout.root-align')
@@ -103,6 +103,14 @@ describe('renderReport — pure', () => {
     const md = renderReport({ schemaVersion: 1, reports: [], findings: [finding] }, ROOT)
     expect(md).toContain('### Blocking problems (1)\n\n- `web/protos/x/flow.ts:4` [flow.next-level] home —enter→ detail skips a level')
     expect(md).toContain('1 blocking problems')
+  })
+  it('lists the advisories of a flow (check:flow --json, a convention) in a section of their own, counted as advisories, and not as blocking', () => {
+    const advisory = { rule: 'flow.rail-side', file: `${ROOT}web/protos/x/detail.tsx`, message: '"interactivity-cards-left" puts the persistents rail\non the left' }
+    const md = renderReport({ schemaVersion: 1, reports: [], findings: [], advisories: [advisory] } as LawsJson, ROOT)
+    expect(md).toContain('### Flow warnings (1)\n\n- `web/protos/x/detail.tsx` [flow.rail-side] "interactivity-cards-left" puts the persistents rail on the left')
+    expect(md).toContain('0 blocking problems · 1 advisories')
+    expect(md).toContain('### Blocking problems (0)')
+    expect(renderReport(json([a, b]), ROOT)).toContain('### Flow warnings (0)\n\nNone.')
   })
   it('the CLI reads every .json of a folder, and an empty folder is an empty report', () => {
     const dir = join(DIR, 'findings')

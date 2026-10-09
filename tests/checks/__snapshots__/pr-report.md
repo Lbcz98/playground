@@ -11,6 +11,10 @@ None.
 
 - `.checks-corpus-pr/legibility.tsx` [render.legibility] "11111111" overlaps "55555555" — two pieces of text land on top of each other.
 
+### Flow warnings (0)
+
+None.
+
 ### Declared deviations (1)
 
 - `layout.root-align` — the card sits at the end (`.checks-corpus-pr/deviation.tsx:12`)

@@ -15,6 +15,7 @@ import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import * as primitives from '@/primitives'
 import { DTV_KIT } from '@/shared/export/kit'
+import { BACK_CONTROL } from '@/shared/flowPlay'
 import { measureFrame, type NodeRef } from '@/shared/layout/measureDom'
 import { FRAME, targetOf, type HarnessWindow } from './protocol'
 
@@ -98,12 +99,16 @@ harness.__measure = () => {
 
 /**
  * What is drawn focused, read off the DOM: the kit's one `<FocusRing>` (`data-focus-ring`) and the
- * outside ring of the main menu's channel bug (`data-focused`) — each named by the kit component around it.
+ * outside ring of the main menu's channel bug (`data-focused`) — each named by the kit component around it —
+ * and the side of the frame the back control is drawn on.
  */
 harness.__focus = () => {
   const frame = document.querySelector<HTMLElement>(FRAME)
   if (!frame) return { error: 'no <Screen> rendered' }
+  const back = frame.querySelector(BACK_CONTROL)?.getBoundingClientRect()
+  const middle = frame.getBoundingClientRect()
   return {
+    back: back ? (back.left + back.width / 2 < middle.left + middle.width / 2 ? 'left' : 'right') : null,
     model: frame.querySelector('[data-screen-model]')?.getAttribute('data-screen-model') ?? null,
     level: frame.getAttribute('data-screen-level'),
     focused: Array.from(frame.querySelectorAll('[data-focus-ring], [data-focused]')).map((el) => ({
