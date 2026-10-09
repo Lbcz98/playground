@@ -9,7 +9,8 @@ import { exportBlueprintToTsx } from '../../src/shared/export/toTsx'
 
 // Throwaway flow folders (git-ignored, inside the repo so `@/…` resolves), played by the real CLI.
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const DIR = `${ROOT}.checks-flow`
+// One folder per process: two runs of this file at once (an agent and a person, two worktrees sharing node_modules) would delete each other's flows.
+const DIR = `${ROOT}.checks-flow/p${process.pid}`
 afterAll(() => rmSync(DIR, { recursive: true, force: true }))
 
 const ref = (id: string): string => exportBlueprintToTsx(DTV_TEMPLATES.find((t) => t.id === id)!.blueprint as BlueprintDocument).code
