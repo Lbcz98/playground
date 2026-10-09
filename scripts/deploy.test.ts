@@ -1,9 +1,11 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { afterAll, describe, expect, it } from 'vitest'
-import { branchName, changedPaths, classify, deploy, slugify, type Options } from './deploy'
+import { branchName, changedPaths, classify, defaultChecks, deploy, slugify, type Options } from './deploy'
+import { CASES } from '../tests/checks/corpus/cases'
+import { cleanCorpus, writeCase } from '../tests/checks/run'
 
 describe('deploy — the pure parts', () => {
   it('reads porcelain -z, counting both ends of a rename', () => {
@@ -90,10 +92,10 @@ const write = (work: string, path: string, body = 'export default 2\n') => {
 }
 
 describe('deploy — against a real repository', () => {
-  it('puts the designer’s screen on its own branch, pushes it and opens a PR', () => {
+  it('puts the designer’s screen on its own branch, pushes it and opens a PR', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/home.tsx')
-    const out = deploy(f.options({ message: 'Tela de início' }))
+    const out = await deploy(f.options({ message: 'Tela de início' }))
     expect(out).toMatchObject({ ok: true, created: true, ci: 'passed', pr: 'https://github.com/o/r/pull/7', branch: 'proto/ana/tela-de-inicio-20261005-1230' })
     // pushed, with exactly the screen, and main untouched
     expect(run(f.remote, 'git', 'branch', '--list')).toContain('proto/ana/tela-de-inicio-20261005-1230')
@@ -102,62 +104,81 @@ describe('deploy — against a real repository', () => {
     expect(readFileSync(f.calls, 'utf8')).toMatch(/pr create --base main --head proto\/ana\/tela-de-inicio-20261005-1230/)
   })
 
-  it('stops, before any branch, on a change outside the designer’s folder', () => {
+  it('stops, before any branch, on a change outside the designer’s folder', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/home.tsx')
     write(f.work, 'src/kit.ts', 'export const x = 1\n')
-    const out = deploy(f.options())
+    const out = await deploy(f.options())
     expect(out).toMatchObject({ ok: false, stage: 'changes' })
     expect(out.ok === false && out.reason).toContain('src/kit.ts')
     expect(run(f.work, 'git', 'rev-parse', '--abbrev-ref', 'HEAD')).toBe('main')
   })
 
-  it('refuses two designers at once, and a name that is not the one that changed', () => {
+  it('refuses two designers at once, and a name that is not the one that changed', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/a.tsx')
     write(f.work, 'web/protos/bia/b.tsx')
-    expect(deploy(f.options())).toMatchObject({ ok: false, stage: 'changes' })
+    expect(await deploy(f.options())).toMatchObject({ ok: false, stage: 'changes' })
     rmSync(join(f.work, 'web/protos/bia'), { recursive: true })
-    expect(deploy(f.options({ designer: 'bia' }))).toMatchObject({ ok: false, stage: 'changes' })
+    expect(await deploy(f.options({ designer: 'bia' }))).toMatchObject({ ok: false, stage: 'changes' })
   })
 
-  it('does not commit when the laws fail, and says what failed', () => {
+  it('does not commit when the laws fail, and says what failed', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/home.tsx')
-    const out = deploy(f.options({ checks: () => ({ ok: false, output: 'home.tsx  focus.single: two focused' }) }))
+    const out = await deploy(f.options({ checks: () => ({ ok: false, output: 'home.tsx  focus.single: two focused' }) }))
     expect(out).toMatchObject({ ok: false, stage: 'checks', reason: 'home.tsx  focus.single: two focused' })
     expect(run(f.work, 'git', 'rev-parse', '--abbrev-ref', 'HEAD')).toBe('main')
     expect(run(f.work, 'git', 'log', '--format=%s')).toBe('init')
   })
 
-  it('says there is nothing to publish', () => {
+  it('says there is nothing to publish', async () => {
     const f = fixture()
-    expect(deploy(f.options())).toMatchObject({ ok: false, stage: 'changes', reason: 'Não há nada para publicar.' })
+    expect(await deploy(f.options())).toMatchObject({ ok: false, stage: 'changes', reason: 'Não há nada para publicar.' })
   })
 
-  it('a second deploy from the designer’s branch updates the same PR', () => {
+  it('a second deploy from the designer’s branch updates the same PR', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/home.tsx')
-    const first = deploy(f.options({ message: 'home' }))
+    const first = await deploy(f.options({ message: 'home' }))
     expect(first.ok && first.created).toBe(true)
     write(f.work, 'web/protos/ana/home.tsx', 'export default 3\n')
-    const second = deploy(f.options({ message: 'ajuste' }))
+    const second = await deploy(f.options({ message: 'ajuste' }))
     expect(second).toMatchObject({ ok: true, created: false, branch: first.ok ? first.branch : '' })
     expect(readFileSync(f.calls, 'utf8').match(/pr create/g)).toHaveLength(1)
   })
 
-  it('reports a failing CI with the check that failed', () => {
+  it('reports a failing CI with the check that failed', async () => {
     const f = fixture('[{"name":"protos","state":"FAILURE","link":"http://ci/9"}]')
     write(f.work, 'web/protos/ana/home.tsx')
-    const out = deploy(f.options())
+    const out = await deploy(f.options())
     expect(out).toMatchObject({ ok: true, ci: 'failed' })
     expect(out.ok && out.ciDetail).toContain('http://ci/9')
   })
 
-  it('does not wait for CI with --no-wait', () => {
+  it('does not wait for CI with --no-wait', async () => {
     const f = fixture()
     write(f.work, 'web/protos/ana/home.tsx')
-    expect(deploy(f.options({ wait: false }))).toMatchObject({ ok: true, ci: 'skipped' })
+    expect(await deploy(f.options({ wait: false }))).toMatchObject({ ok: true, ci: 'skipped' })
     expect(existsSync(f.calls)).toBe(true)
   })
+})
+
+describe('deploy — the real gate (check:laws on the changed screens)', () => {
+  afterAll(cleanCorpus)
+  // The paths come from the status of the repository, relative to its root, whatever the folder the command was run from.
+  const gate = async (id: string) => {
+    const root = join(__dirname, '..')
+    return defaultChecks([relative(root, writeCase(CASES.find((c) => c.id === id)!))], root)
+  }
+
+  it('lets a screen that holds its laws through', async () => {
+    expect(await gate('clean-home')).toMatchObject({ ok: true })
+  }, 120_000)
+
+  it('stops a broken screen and says which law, as check:laws prints it', async () => {
+    const r = await gate('focus-two')
+    expect(r.ok).toBe(false)
+    expect(r.output).toMatch(/s\.tsx:\d+  \[focus\.single\] 2 focused elements/)
+  }, 120_000)
 })
