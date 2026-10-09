@@ -23,7 +23,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { HIDDEN_STATE } from '../src/shared/export/flowFile'
 import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
-import { RenderAuditUnavailable, withHarness, type Page } from './render-audit'
+import { Reloaded, RELOADS, type HarnessPage } from './harness-page'
+import { RenderAuditUnavailable, withHarness } from './render-audit'
+import type { FocusReading } from './render-harness/protocol'
 import { SCHEMA_VERSION, type Finding } from './findings'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -34,15 +36,6 @@ type Key = keyof typeof PRESS
 interface FlowData {
   start: string
   transitions: { from: string; key: Key; to: string }[]
-}
-interface FocusReading {
-  model: string | null
-  level: string | null
-  focused: { component: string; text: string }[]
-}
-interface Watched {
-  blank: boolean
-  rebuilt: string[]
 }
 
 export interface FlowProblem {
@@ -93,36 +86,16 @@ export function focusProblems(state: string, read: FocusReading, source: string,
   return out
 }
 
-class Reloaded extends Error {}
-
-async function walk(page: Page, url: string, dir: string, data: FlowData): Promise<ProbeReport> {
+async function walk(page: HarnessPage, dir: string, data: FlowData): Promise<ProbeReport> {
   const problems: FlowProblem[] = []
   let presses = 0
-  // The dev server reloads the page when it finds new dependencies on a cold cache: the walk starts over.
-  const onPage = <T,>(run: () => Promise<T>): Promise<T> =>
-    run().catch((e: unknown) => {
-      throw /Execution context was destroyed|navigation|is not a function/.test(String(e)) ? new Reloaded(String(e)) : e
-    })
-  const evaluate = <T,>(js: string): Promise<T> => onPage(() => page.evaluate<T>(js))
-  const shown = (): Promise<string | null> => evaluate("document.querySelector('[data-flow-state]')?.getAttribute('data-flow-state') ?? null")
-  /** Whether `state` came on screen, with a <Screen> in it. */
-  const arrives = (state: string): Promise<boolean> =>
-    page
-      .waitForFunction(`!!document.querySelector('[data-flow-state=${JSON.stringify(state)}]') && !!document.querySelector('[data-screen-layer="video"]')`, null, { timeout: 10_000 })
-      .then(
-        () => true,
-        (e: unknown) => {
-          if (/Timeout/.test(String(e))) return false
-          throw new Reloaded(String(e))
-        },
-      )
   /** One key, watched: whether `to` came on screen, and what the press did to the frame. */
   const press = async (key: string, to: string, state: string, transition: string): Promise<boolean> => {
-    await evaluate('window.__watch()')
-    await onPage(() => page.keyboard.press(key))
+    await page.watch()
+    await page.press(key)
     presses++
-    if (!(await arrives(to))) return false
-    const seen = await evaluate<Watched>('window.__watched()')
+    if (!(await page.arrives(to))) return false
+    const seen = await page.watched()
     if (seen.blank)
       problems.push({
         rule: 'flow.blank-frame',
@@ -140,16 +113,14 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
     return true
   }
 
-  await onPage(() => page.goto(url))
-  await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
-  const failed = await evaluate<string | undefined>('window.__error')
+  const failed = await page.open({ flow: relative(ROOT, dir) })
   if (failed) throw new Error(`the flow could not be loaded: ${failed}`)
-  if (!(await arrives(data.start))) throw new Error(`the start state "${data.start}" never came on screen — is there a ${data.start}.tsx that returns a <Screen>?`)
+  if (!(await page.arrives(data.start))) throw new Error(`the start state "${data.start}" never came on screen — is there a ${data.start}.tsx that returns a <Screen>?`)
 
   /** The level of each state read, so a state can tell whether the viewer entered it from another level or moved inside one. */
   const levels = new Map<string, number | undefined>()
   const focus = async (state: string, from?: string): Promise<string[]> => {
-    const read = await evaluate<FocusReading | { error: string }>('window.__focus()')
+    const read = await page.focus()
     if ('error' in read) return void problems.push({ rule: 'flow.transition', state, message: read.error }), []
     const level = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)?.level ?? (read.level === null ? undefined : Number(read.level))
     levels.set(state, level)
@@ -166,13 +137,13 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
     for (const hop of data.transitions.filter((t) => t.from === from)) {
       const transition = `${from} —${hop.key}→ ${hop.to}`
       // Back to the start, then along the route to `from`: every hop is pressed from a known trail.
-      await onPage(() => page.keyboard.press('r'))
-      let at = (await arrives(data.start)) ? data.start : null
+      await page.press('r')
+      let at = (await page.arrives(data.start)) ? data.start : null
       for (const key of route.get(from)!) {
         if (!at) break
         const next = data.transitions.find((t) => t.from === at && t.key === key)!.to
-        await onPage(() => page.keyboard.press(PRESS[key]))
-        at = (await arrives(next)) ? next : null
+        await page.press(PRESS[key])
+        at = (await page.arrives(next)) ? next : null
       }
       if (at !== from) {
         problems.push({ rule: 'flow.transition', state: from, transition, message: `"${from}" could not be reached again from "${data.start}" to press ${hop.key} on it.` })
@@ -183,7 +154,7 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
           rule: 'flow.transition',
           state: hop.to,
           transition,
-          message: `${hop.key} on "${from}" did not show "${hop.to}" (the screen stayed on "${await shown()}"). Check that ${hop.to}.tsx exists, loads without an error and returns a <Screen>.`,
+          message: `${hop.key} on "${from}" did not show "${hop.to}" (the screen stayed on "${await page.shown()}"). Check that ${hop.to}.tsx exists, loads without an error and returns a <Screen>.`,
         })
         continue
       }
@@ -200,21 +171,21 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
           rule: hop.key === 'enter' ? 'flow.focus-memory' : 'flow.back-steps',
           state: hop.to,
           transition: back,
-          message: `Back on "${hop.to}" showed "${await shown()}", not "${from}", the state it came from. Going back is the player's (${PLAYER}): a state does not handle keys or keep a history of its own.`,
+          message: `Back on "${hop.to}" showed "${await page.shown()}", not "${from}", the state it came from. Going back is the player's (${PLAYER}): a state does not handle keys or keep a history of its own.`,
         })
       // The back control (the anchored rounded button) is Back too, by Enter while it is focused and by a click.
       if (focusedOn.includes('RoundedButton')) {
         for (const how of ['Enter', 'click'] as const) {
           if (!(await press(PRESS[hop.key], hop.to, hop.to, transition))) break
-          await evaluate('window.__watch()')
-          if (how === 'Enter') await onPage(() => page.keyboard.press('Enter'))
-          else await evaluate("document.querySelector('.sfs-round-button:not([data-focus-item])').click()")
-          if (!(await arrives(from)))
+          await page.watch()
+          if (how === 'Enter') await page.press('Enter')
+          else await page.click('.sfs-round-button:not([data-focus-item])')
+          if (!(await page.arrives(from)))
             problems.push({
               rule: hop.key === 'enter' ? 'flow.focus-memory' : 'flow.back-steps',
               state: hop.to,
               transition: `${hop.to} —${how === 'Enter' ? 'Enter on' : 'click on'} the back button→ ${from}`,
-              message: `${how === 'Enter' ? 'Enter on' : 'A click on'} the back button of "${hop.to}" showed "${await shown()}", not "${from}". The back control is Back: the player (${PLAYER}) answers it, so a state has nothing to wire.`,
+              message: `${how === 'Enter' ? 'Enter on' : 'A click on'} the back button of "${hop.to}" showed "${await page.shown()}", not "${from}". The back control is Back: the player (${PLAYER}) answers it, so a state has nothing to wire.`,
             })
         }
       }
@@ -229,15 +200,13 @@ export async function probeFlow(folder: string): Promise<ProbeReport> {
   if (!isFlowFolder(dir, diskTree)) throw new Error(`${folder} is not a flow folder: it has no flow.ts`)
   if (relative(ROOT, dir).startsWith('..')) throw new Error(`${folder} is outside the repo: the harness only serves files inside ${ROOT}`)
   const data = ((await import(/* @vite-ignore */ pathToFileURL(join(dir, 'flow.ts')).href)) as { default: FlowData }).default
-  const url = `/scripts/render-harness/index.html?flow=/${relative(ROOT, dir)}`
-  return withHarness(async (browser, origin) => {
+  return withHarness(async (newPage) => {
     for (let attempt = 0; ; attempt++) {
-      // Motion off, as in the render audit: what is read is the resting screen.
-      const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' })
+      const page = await newPage()
       try {
-        return await walk(page, origin + url, dir, data)
+        return await walk(page, dir, data)
       } catch (e) {
-        if (!(e instanceof Reloaded) || attempt >= 5) throw e
+        if (!(e instanceof Reloaded) || attempt >= RELOADS) throw e
       } finally {
         await page.close()
       }

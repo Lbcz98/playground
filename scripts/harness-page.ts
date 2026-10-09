@@ -4,7 +4,7 @@
  * that reloads while it is read are here and nowhere else; `render-audit.ts` and `flow-probe.ts` call these.
  */
 import type { RenderMeasurement } from '../src/shared/layout/renderAudit'
-import { harnessUrl, type HarnessWindow, type Target } from './render-harness/protocol'
+import { FRAME, harnessUrl, type FocusReading, type HarnessWindow, type Target, type Watched } from './render-harness/protocol'
 
 export type Page = {
   keyboard: { press(key: string): Promise<void> }
@@ -19,12 +19,17 @@ export type Page = {
 /** The page was reloaded under a read or a key press (the dev server re-optimizing dependencies on a cold cache, which is every CI run). */
 export class Reloaded extends Error {}
 
-/** Reloads of the page tolerated while reading it. */
-const RELOADS = 5
+/** Set by the flow player (`web/app/[designer]/[screen]/FlowPlayer.tsx`) on the state it shows. */
+const FLOW_STATE = 'data-flow-state'
+
+/** Reloads of the page tolerated while reading it (or, for a flow, walking it). */
+export const RELOADS = 5
 /** Between two measurements, ms. */
 const SETTLE_STEP = 100
 /** Measurements before giving up on a screen that keeps changing (about 3s). */
 const SETTLE_TRIES = 30
+
+export type HarnessPage = ReturnType<typeof harnessPage>
 
 export function harnessPage(page: Page, origin: string) {
   const ready = (): Promise<unknown> => page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
@@ -64,6 +69,24 @@ export function harnessPage(page: Page, origin: string) {
       await ready()
       return retrying(() => evaluate<string | undefined>('window.__error'))
     },
+    /** Whether `state` of the flow came on screen, with a <Screen> in it. */
+    arrives: (state: string): Promise<boolean> =>
+      page
+        .waitForFunction(`!!document.querySelector('[${FLOW_STATE}=${JSON.stringify(state)}]') && !!document.querySelector(${JSON.stringify(FRAME)})`, null, { timeout: 10_000 })
+        .then(
+          () => true,
+          (e: unknown) => {
+            if (/Timeout/.test(String(e))) return false
+            throw new Reloaded(String(e))
+          },
+        ),
+    shown: (): Promise<string | null> => evaluate(`document.querySelector('[${FLOW_STATE}]')?.getAttribute('${FLOW_STATE}') ?? null`),
+    focus: (): Promise<FocusReading | { error: string }> => evaluate('window.__focus()'),
+    /** Starts watching the frame; `watched()` says what a key press did to it. */
+    watch: (): Promise<void> => evaluate('window.__watch()'),
+    watched: (): Promise<Watched> => evaluate('window.__watched()'),
+    press: (key: string): Promise<void> => onPage(page.keyboard.press(key)),
+    click: (selector: string): Promise<void> => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`),
     /** The frame read into rectangles once two readings in a row are equal; `error`: what stopped it. */
     async measure(): Promise<{ measured: RenderMeasurement; motion: 'reduced' | 'full'; settledAfter: number } | { error: string }> {
       const read = (): Promise<RenderMeasurement | { error: string }> => retrying(() => ask('measure'))

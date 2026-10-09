@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { harnessPage, type Page } from './harness-page'
+import { harnessPage, Reloaded, type Page } from './harness-page'
 
 const ORIGIN = 'http://harness'
 
 /** A page that answers `evaluate` from a script (an Error in it is thrown) and counts how often it was waited on. */
-function fakePage(script: unknown[], motion = true) {
+function fakePage(script: unknown[], motion = true, waiting?: Error) {
   const calls = { waitedReady: 0, expressions: [] as string[], opened: [] as string[] }
   const page = {
     evaluate: async (expression: string) => {
@@ -15,7 +15,10 @@ function fakePage(script: unknown[], motion = true) {
       return next
     },
     goto: async (url: string) => void calls.opened.push(url),
-    waitForFunction: async () => void calls.waitedReady++,
+    waitForFunction: async () => {
+      calls.waitedReady++
+      if (waiting) throw waiting
+    },
     waitForTimeout: async () => {},
   } as unknown as Page
   return { page, calls }
@@ -72,5 +75,13 @@ describe('opening a screen or a flow', () => {
     expect(await harnessPage(page, ORIGIN).open({ flow: 'web/protos/x/flow' })).toBeUndefined()
     expect(calls.opened).toEqual(['http://harness/scripts/render-harness/index.html?flow=/web/protos/x/flow'])
     expect(calls.waitedReady).toBe(2)
+  })
+})
+
+describe('playing a flow', () => {
+  it('says whether a state came on screen: not within the time is no, a page that went away is a reload', async () => {
+    expect(await harnessPage(fakePage([]).page, ORIGIN).arrives('rail')).toBe(true)
+    expect(await harnessPage(fakePage([], true, new Error('page.waitForFunction: Timeout 10000ms exceeded.')).page, ORIGIN).arrives('rail')).toBe(false)
+    await expect(harnessPage(fakePage([], true, new Error('page.waitForFunction: Target closed')).page, ORIGIN).arrives('rail')).rejects.toBeInstanceOf(Reloaded)
   })
 })
