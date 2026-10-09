@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { afterAll, describe, expect, it } from 'vitest'
-import { MARKER } from './pr-report'
+import { MARKER } from './findings'
 import { postComment } from './post-pr-comment'
 
 // A `gh` that keeps the comments of one pull request in a file, as GitHub would. READONLY=1 answers 403 to writes.

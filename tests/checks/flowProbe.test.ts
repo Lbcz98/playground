@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
-import { focusProblems, type FlowReport } from '../../scripts/flow-probe'
+import { findingsOf, focusProblems, type ProbeReport } from '../../scripts/flow-probe'
 import { DTV_TEMPLATES } from '../../scripts/storybook/dtv-templates'
 import type { BlueprintDocument } from '../../src/shared/blueprint'
 import { exportBlueprintToTsx } from '../../src/shared/export/toTsx'
@@ -43,7 +43,7 @@ const probe = (name: string, changed: Record<string, string>, ...flags: string[]
     expect(r.status, 'a flow that was not played does not pass').toBe(1)
     console.warn('flow probe: no Chromium, skipped')
   }
-  const report = !noBrowser && flags.includes('--json') ? (JSON.parse(r.stdout) as FlowReport) : null
+  const report = !noBrowser && flags.includes('--json') ? (JSON.parse(r.stdout) as ProbeReport) : null
   return { skipped: noBrowser, code: r.status, stdout: r.stdout, stderr: r.stderr, report, rules: [...new Set(report?.problems.map((p) => p.rule))].sort() }
 }
 
@@ -188,6 +188,32 @@ export default State`
     expect(r.report?.problems[0].message).toMatch(/Back on "detail" showed "detail", not "rail"/)
     expect(r.code).toBe(1)
   }, 120_000)
+})
+
+describe('check:flow --json findings, the shape pr:report reads', () => {
+  it('a problem is a finding on its state file, naming the key press when it has one', () => {
+    const report: ProbeReport = {
+      flow: 'web/protos/x', start: 'home', states: ['home', 'rail'], presses: 3,
+      problems: [
+        { rule: 'flow.transition', state: 'rail', transition: 'home —up→ rail', message: 'up on "home" did not show "rail"' },
+        { rule: 'focus.single', state: 'home', message: 'nothing is drawn focused' },
+      ],
+    }
+    expect(findingsOf(report)).toEqual([
+      { rule: 'flow.transition', file: 'web/protos/x/rail.tsx', message: 'home —up→ rail: up on "home" did not show "rail"' },
+      { rule: 'focus.single', file: 'web/protos/x/home.tsx', message: 'nothing is drawn focused' },
+    ])
+  })
+
+  it('a flow that could not be played is a finding too, and the exit is 1: the comment cannot say nothing blocks', () => {
+    const dir = `${DIR}/not-a-flow`
+    mkdirSync(dir, { recursive: true })
+    const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/flow-probe.ts', '--', dir, '--json'], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
+    expect(r.status).toBe(1)
+    const json = JSON.parse(r.stdout)
+    expect(json).toMatchObject({ schemaVersion: 1, reports: [] })
+    expect(json.findings).toEqual([{ rule: 'flow.not-played', file: `${dir}/flow.ts`, message: expect.stringContaining('no flow.ts') }])
+  }, 60_000)
 })
 
 describe('focusProblems', () => {

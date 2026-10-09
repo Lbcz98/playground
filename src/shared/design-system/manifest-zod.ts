@@ -270,6 +270,9 @@ export interface ValidationIssue {
   path: IssuePath
   /** Set on a composition choice (an undeclared or unused deviation), which the orchestrator sends back to the planner. */
   kind?: IssueKind
+  /** What the message says, as data, for a reader that words it its own way (`check:laws`). */
+  code?: RuleProblem['code']
+  declared?: RuleProblem['declared']
 }
 
 export type BlueprintValidation = { ok: true } | { ok: false; issues: ValidationIssue[] }
@@ -295,8 +298,8 @@ export function validateBlueprintAgainstManifest(
   if (!isObject(input)) return invalid([{ ruleId: 'blueprint.dsl', path: [], message: 'Blueprint must be a JSON object.' }])
 
   const issues: ValidationIssue[] = []
-  const add = (ruleId: RuleId, path: IssuePath, message: string, kind?: IssueKind): void => {
-    issues.push({ ruleId, message, path, ...(kind ? { kind } : {}) })
+  const add = (ruleId: RuleId, path: IssuePath, message: string, kind?: IssueKind, more: Pick<RuleProblem, 'code' | 'declared'> = {}): void => {
+    issues.push({ ruleId, message, path, ...(kind ? { kind } : {}), ...(more.code ? { code: more.code } : {}), ...(more.declared ? { declared: more.declared } : {}) })
   }
   for (const key of Object.keys(input)) {
     if (!BLUEPRINT_DOCUMENT_KEYS.includes(key)) {
@@ -368,7 +371,7 @@ export function validateBlueprintAgainstManifest(
 
   const many = screens.length > 1
   const emit = (i: number, found: RuleProblem): void =>
-    add(found.ruleId, [...bases[i], ...found.path], many ? `Screen "${screens[i].id}": ${found.message}` : found.message, found.kind)
+    add(found.ruleId, [...bases[i], ...found.path], many ? `Screen "${screens[i].id}": ${found.message}` : found.message, found.kind, found)
   const flow = flowIssues(screens, manifest)
   screens.forEach((s, i) => {
     const found = validateScreen({ version: SUPPORTED_VERSION, screen: s.screen, root: s.root }, manifest, modes[i])
@@ -542,7 +545,7 @@ function validateNode(
   // A primitive says which components it considered and why none would do; without it, it is a composition choice nobody made.
   if (ctx.policy === 'exploratory' && isPrimitive(type)) {
     const problem = reuseProblem(ctx.manifest, raw[REUSE_KEY])
-    if (problem) issues.push({ ruleId: 'primitives.reuse', kind: 'invalid-reuse', path: [...at, REUSE_KEY], message: `${path} <${type}>: ${problem}` })
+    if (problem) issues.push({ ruleId: 'primitives.reuse', kind: 'invalid-reuse', path: [...at, REUSE_KEY], message: `${path} <${type}>: ${problem}`, ...(raw[REUSE_KEY] === undefined ? { code: 'reuse-missing' as const } : {}) })
   }
   if (ctx.policy === 'exploratory' && raw[DEVIATION_KEY] !== undefined) {
     const problem = declarationProblem(ctx.manifest, raw[DEVIATION_KEY])

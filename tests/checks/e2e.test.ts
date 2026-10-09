@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -7,9 +6,11 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { DTV_TEMPLATES } from '../../scripts/storybook/dtv-templates'
 import type { BlueprintDocument } from '../../src/shared/blueprint'
 import { exportBlueprintToTsx } from '../../src/shared/export/toTsx'
-import { renderReport } from '../../scripts/pr-report'
+import { runChecks } from '../../scripts/check-laws'
+import { SCHEMA_VERSION } from '../../scripts/findings'
+import { renderReport, type LawsJson } from '../../scripts/pr-report'
 
-// A realistic designer folder (git-ignored, inside the repo so `@/…` resolves), run through the real CLIs.
+// A realistic designer folder (git-ignored, inside the repo so `@/…` resolves), run through the real check run.
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DIR = `${ROOT}.checks-corpus-e2e`
 afterAll(() => rmSync(DIR, { recursive: true, force: true }))
@@ -49,27 +50,24 @@ const DETAIL = OVERLAP.replace("import { Stack } from '@/primitives'", "import {
   .replace('<ContentCard ', '<Stepper />\n          <ContentCard ')
 const FOLDER = (detail: string): Record<string, string> => ({ 'home.tsx': HOME, 'rail.tsx': RAIL, 'detail.tsx': detail, 'components/Stepper.tsx': STEPPER })
 
-const laws = (name: string, detail: string) => {
+const laws = async (name: string, detail: string) => {
   const dir = `${DIR}/${name}/ana`
   for (const [f, code] of Object.entries(FOLDER(detail))) {
     mkdirSync(dirname(`${dir}/${f}`), { recursive: true })
     writeFileSync(`${dir}/${f}`, code)
   }
-  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', ...['home', 'rail', 'detail'].map((s) => `${dir}/${s}.tsx`), '--json', '--require-render'], {
-    encoding: 'utf8',
-    cwd: ROOT,
-    env: { ...process.env, VITEST: '' },
-    maxBuffer: 1 << 26,
-  })
-  return { code: r.status, stdout: r.stdout, stderr: r.stderr, json: r.stdout ? JSON.parse(r.stdout) : null }
+  // The run CI makes (`check:laws --json --require-render`), in-process; `json` is what it writes for pr:report, as read back.
+  const run = await runChecks(['home', 'rail', 'detail'].map((s) => `${dir}/${s}.tsx`), { requireRender: true })
+  const json: LawsJson = JSON.parse(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: run.reports, findings: run.findings }))
+  return { code: run.exitCode, notes: run.notes.join('\n'), json }
 }
 
 describe('a realistic designer folder, end to end', () => {
-  it('passes check:laws, and the PR report has every section', () => {
-    const r = laws('ok', DETAIL)
-    if (/Chromium could not start/.test(r.stderr)) return console.warn('e2e: no Chromium, skipped')
-    expect(r.stderr + JSON.stringify(r.json?.reports.map((x: { problems: unknown }) => x.problems))).toBe(r.stderr + '[[],[],[]]')
-    expect(r.code, r.stderr).toBe(0)
+  it('passes check:laws, and the PR report has every section', async () => {
+    const r = await laws('ok', DETAIL)
+    if (/Chromium could not start/.test(r.notes)) return console.warn('e2e: no Chromium, skipped')
+    expect(r.notes + JSON.stringify(r.json.reports.map((x) => x.problems))).toBe('[[],[],[]]')
+    expect(r.code).toBe(0)
     const md = renderReport(r.json, ROOT)
     for (const h of ['Blocking problems (0)', 'Legibility warnings (', 'Declared deviations (1)', 'Primitives and proposals (2)', 'Not read (', 'Flow edges (2)'])
       expect(md).toContain(h)
@@ -79,12 +77,12 @@ describe('a realistic designer folder, end to end', () => {
     expect(md).toContain('proposal `.checks-corpus-e2e/ok/ana/components/Stepper.tsx`')
   }, 300_000)
 
-  it('exits 1 when one law is broken', () => {
-    const r = laws('broken', DETAIL.replace(DEVIATION, 'export function'))
-    if (/Chromium could not start/.test(r.stderr)) return console.warn('e2e: no Chromium, skipped')
+  it('exits 1 when one law is broken', async () => {
+    const r = await laws('broken', DETAIL.replace(DEVIATION, 'export function'))
+    if (/Chromium could not start/.test(r.notes)) return console.warn('e2e: no Chromium, skipped')
     expect(r.code).toBe(1)
     expect(renderReport(r.json, ROOT)).toMatch(/Blocking problems \([1-9]/)
-    expect(r.stdout).toContain('layout.root-align')
+    expect(JSON.stringify(r.json)).toContain('layout.root-align')
   }, 300_000)
 })
 

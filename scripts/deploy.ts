@@ -12,6 +12,7 @@
  * Needs `git` with an `origin`, and the GitHub CLI (`gh`) signed in.
  */
 import { spawnSync } from 'node:child_process'
+import { inDesigner, isCheckable } from '../src/shared/protoFolders'
 
 const PROTOS = 'web/protos'
 
@@ -44,13 +45,13 @@ export function classify(paths: string[]): Classified {
   const outside: string[] = []
   const designers = new Set<string>()
   for (const p of paths) {
-    const m = p.match(/^web\/protos\/([^/]+)\/(.+)$/)
-    if (m) {
+    const d = inDesigner(p)
+    if (d) {
       inside.push(p)
-      designers.add(m[1])
+      designers.add(d.designer)
     } else outside.push(p)
   }
-  return { designers: [...designers].sort(), screens: inside.filter((p) => p.endsWith('.tsx') || p.endsWith('/flow.ts')), inside, outside }
+  return { designers: [...designers].sort(), screens: inside.filter(isCheckable), inside, outside }
 }
 
 /** The name a screen goes by: its file, or for a flow's `flow.ts` the folder. */

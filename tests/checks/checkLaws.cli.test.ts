@@ -17,67 +17,32 @@ const run = (args: string[], env: Record<string, string> = {}, id = 'clean-home'
     mkdirSync(dirname(`${DIR}/${name}`), { recursive: true })
     writeFileSync(`${DIR}/${name}`, code)
   }
-  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', entry, ...args], {
+  const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', entry, ...args], {
     encoding: 'utf8',
     env: { ...process.env, VITEST: '', ...env },
   })
   return { code: r.status, out: r.stdout + r.stderr, stdout: r.stdout }
 }
 
-describe('check:laws on a file that is not a screen', () => {
-  it('a local component is checked through the screens of its folder, not rendered as a screen', () => {
-    const r = run(['--json', '--no-render'], {}, 'local-component-with-proposal')
-    // `run` wrote the screen; point the CLI at the component beside it instead.
-    const c = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', `${DIR}/components/Stepper.tsx`, '--json', '--no-render'], {
-      encoding: 'utf8',
-      env: { ...process.env, VITEST: '' },
-    })
-    expect(r.code).toBe(0)
-    const files = (JSON.parse(c.stdout).reports as { file: string }[]).map((x) => x.file.replace(/^.*\//, ''))
-    expect(files).toEqual(['s.tsx'])
-  }, 120_000)
-})
-
-describe('check:laws --require-render', () => {
-  it('without Chromium and without the flag: exit 0, and says the render check did not run', () => {
-    const r = run([], { CHROMIUM_PATH: '/nonexistent' })
-    expect(r.code).toBe(0)
-    expect(r.out).toMatch(/render check did not run/)
-  }, 120_000)
-  it('without Chromium and with the flag: exit 1, naming the cause', () => {
-    const r = run(['--require-render'], { CHROMIUM_PATH: '/nonexistent' })
-    expect(r.code).toBe(1)
-    expect(r.out).toMatch(/Chromium could not start/)
-  }, 120_000)
-  it('--json carries notRead and coverage for every file', () => {
-    const r = run(['--json', '--no-render'], {}, 'logic-map-clean')
-    const j = JSON.parse(r.stdout).reports[0]
-    expect(j.notRead.length).toBeGreaterThanOrEqual(1)
-    expect(j.coverage.notRead).toBe(j.notRead.length)
-    expect(j.coverage.read).toBeGreaterThan(0)
-  }, 120_000)
-  it('--json prints problems and advisories apart', () => {
+// The command line itself: reading the arguments, printing, the exit status. What the run decides is locked
+// in-process (checkRun.test.ts, the corpus), through the same `runChecks` this command calls.
+describe('check:laws, the command', () => {
+  it('--json prints { schemaVersion, reports, findings } on stdout and exits 0 on a clean screen', () => {
     const r = run(['--json', '--no-render'])
     expect(r.code).toBe(0)
-    expect(JSON.parse(r.stdout).reports[0]).toMatchObject({ problems: [], advisories: [] })
+    expect(JSON.parse(r.stdout)).toMatchObject({ schemaVersion: 1, reports: [{ problems: [], advisories: [], notRead: [], coverage: { notRead: 0 } }], findings: [] })
+  }, 120_000)
+  it('prints one line per problem and exits 1 on a broken screen', () => {
+    const r = run(['--no-render'], {}, 'focus-two')
+    expect(r.code).toBe(1)
+    expect(r.stdout).toMatch(/^\.checks-corpus-cli\/s\.tsx:\d+  \[focus\.single\] 2 focused elements/m)
+  }, 120_000)
+  it('says how to call it and exits 2 with no file', () => {
+    const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', '--json'], { encoding: 'utf8', env: { ...process.env, VITEST: '' } })
+    expect({ code: r.status, stdout: r.stdout }).toEqual({ code: 2, stdout: '' })
+    expect(r.stderr).toMatch(/^usage: npm run check:laws -- /m)
   }, 120_000)
 })
-
-describe('check:laws on a real advisory screen', () => {
-  it('exit 0 and a non-empty advisories array when only legibility is found', () => {
-    const r = run(['--json'], {}, 'render-text-overlap')
-    const rep = JSON.parse(r.stdout).reports[0]
-    expect(r.code).toBe(0)
-    expect(rep.problems).toEqual([])
-    expect(rep.advisories.length).toBeGreaterThan(0)
-    expect(rep.advisories[0].law).toBe('render.legibility')
-  }, 180_000)
-})
-
-it('--json wraps the reports with a schemaVersion', () => {
-  const r = run(['--json', '--no-render'])
-  expect(JSON.parse(r.stdout)).toMatchObject({ schemaVersion: 1, reports: [{ problems: [] }] })
-}, 120_000)
 
 describe('addRenderResult — severity routing', () => {
   it('puts warn findings in advisories and block findings in problems', () => {
@@ -89,6 +54,6 @@ describe('addRenderResult — severity routing', () => {
       ],
     })
     expect(rep.advisories.map((a: { law: string }) => a.law)).toEqual(['render.legibility'])
-    expect(rep.problems.map((a: { law: string }) => a.law)).toEqual(['render'])
+    expect(rep.problems.map((a: { law: string }) => a.law)).toEqual(['frame.layout'])
   })
 })

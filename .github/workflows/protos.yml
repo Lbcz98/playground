@@ -73,13 +73,14 @@ jobs:
         id: laws
         run: |
           screens=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
-          echo '{"schemaVersion":1,"reports":[],"flows":[]}' > report.json
+          mkdir findings
           code=0
-          if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > report.json || code=$?; fi
+          if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > findings/laws.json || code=$?; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       # The flows of every designer folder the pull request touches are played in a browser: one focus per state,
       # where focus starts on each level, Back, and no blank or rebuilt frame. A failing flow fails the job last.
+      # Each flow writes its findings next to the laws', and the report reads the folder.
       - name: Flows, played
         id: flows
         run: |
@@ -87,7 +88,7 @@ jobs:
           designers=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/*/**' | cut -d/ -f3 | sort -u)
           for designer in $designers; do
             for flow in $(find "web/protos/$designer" -name flow.ts -exec dirname {} \;); do
-              npm run check:flow --silent -- "$flow" || code=1
+              npm run check:flow --silent -- "$flow" --json > "findings/flow-$(printf '%s' "$flow" | tr / _).json" || code=1
             done
           done
           echo "code=$code" >> "$GITHUB_OUTPUT"
@@ -97,7 +98,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          npm run pr:report --silent -- report.json > report.md || { echo "The laws report could not be built."; cat report.json; exit 1; }
+          npm run pr:report --silent -- findings > report.md || { echo "The report could not be built."; cat findings/*.json; exit 1; }
           npm run pr:comment --silent -- report.md
 
       - name: Fail when the laws failed

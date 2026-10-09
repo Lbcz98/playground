@@ -203,6 +203,7 @@ export function auditDeclared(
       ruleId: 'blueprint.dsl',
       kind: 'unused-deviation',
       path: d.at,
+      declared: { ruleId: d.ruleId, scope: d.scope },
       message: `A deviation from "${d.ruleId}"${rule ? ` (${rule.title})` : ''} is declared ${d.scope === 'screen' ? 'on the screen' : 'here'}, but nothing ${d.scope === 'screen' ? 'on it' : 'under it'} breaks that rule — remove the declaration, or make the break it describes.`,
     })
   }

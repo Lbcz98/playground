@@ -346,7 +346,17 @@ export interface RuleProblem {
   message: string
   path: IssuePath
   kind?: IssueKind
+  /** Which of a rule's messages this is, where a reader (`check:laws`) acts on the difference. */
+  code?: IssueCode
+  /** On an `unused-deviation`: the rule that was declared, and where the declaration sits. */
+  declared?: { ruleId: string; scope: 'node' | 'screen' }
 }
+
+/**
+ * `reuse-missing`: a primitive with no "reuse" at all (any other `primitives.reuse` issue is a reuse that is wrong).
+ * `nothing-focused`: `level.initial-focus` because no element is focused (not because the focus is in the wrong place).
+ */
+export type IssueCode = 'reuse-missing' | 'nothing-focused'
 
 /** The book the active design system follows: its own, or the built-in one. */
 export function rulesOf(manifest: DesignSystemManifest): readonly PatternRule[] {
