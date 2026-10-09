@@ -33,13 +33,14 @@ import { frameSpec } from '@/design-system/primitives'
 import type {
   DesignSystemManifest,
   ManifestComponent,
+  ManifestNavigationLevel,
   ManifestProp,
 } from '@/shared/design-system/manifest'
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { auditScreenLayerIssues, modelOfScreen, navigationLevel, screenLayersOf } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
 import { coveredBy, declaresRule, type Declaration } from '@/shared/design-system/deviations'
-import { FOCUS_LOOK_ONLY } from './focus-rule'
+import { FOCUS_LOOK_ONLY, focusFindings, type Holder } from './focus-rule'
 import type { ScreenMode } from '@/shared/blueprint'
 
 export const FRAME = {
@@ -441,7 +442,7 @@ function auditFrameIssues(
   const focus: RuleProblem[] = []
   const problem = (ruleId: RuleProblem['ruleId'], path: IssuePath, message: string): RuleProblem => ({ ruleId, message, path })
   /** Every node whose props put it in a focus state — a TV screen allows one. */
-  const focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[] = []
+  const focused: BlueprintHolder[] = []
   const seen = new Set<string>()
 
   for (const [name, px] of [
@@ -477,7 +478,7 @@ function auditFrameIssues(
 
     const focusProp = FOCUS_LOOK_ONLY.includes(component.id) ? undefined : focusedBy(node, component)
     if (focusProp) {
-      focused.push({ path, component, prop: focusProp, value: propValue(node, focusProp) })
+      focused.push({ path, component: component.id, prop: focusProp, value: propValue(node, focusProp) })
     }
 
     for (const prop of Object.values(component.props)) {
@@ -579,23 +580,31 @@ function auditFrameIssues(
       )
     }
 
-    if (focused.length > 1) {
-      const list = focused
-        .map((f) => `${f.path} <${f.component.id}>: ${f.prop.name} ${JSON.stringify(f.value)}`)
-        .join('; ')
-      const resting = focused
-        .slice(1)
-        .map((f) => `${f.prop.name} ${JSON.stringify(unfocusedValue(f.prop))}`)
-        .join(' / ')
+  }
+
+  const level = focusLevelOf(manifest, screenOf(d))
+  const start = level?.initialFocus
+  const levelFocus: RuleProblem[] = []
+  for (const finding of focusFindings(focused, level, { present: seen })) {
+    const issue = (message: string, code?: RuleProblem['code']): void =>
+      void levelFocus.push({ ruleId: 'level.initial-focus', path: ['root'], message: `Level ${level!.level} (${level!.name}): ${message}`, ...(code ? { code } : {}) })
+    if (finding.ruleId === 'focus.single') {
+      // Nothing focused is not said here: a blueprint may have nothing focusable (a design system without focus
+      // states, a screen of text). Where a level starts the focus, `level.initial-focus` says it (nothing-focused).
+      if (finding.focused.length < 2) continue
+      const list = finding.focused.map((f) => `${f.path} <${f.component}>: ${f.prop.name} ${JSON.stringify(f.value)}`).join('; ')
+      const resting = finding.focused.slice(1).map((f) => `${f.prop.name} ${JSON.stringify(unfocusedValue(f.prop))}`).join(' / ')
       focus.push(
         problem(
           'focus.single',
           ['root'],
-          `${focused.length} elements are focused (${list}) — a TV screen has exactly one: the one the viewer is on. ` +
+          `${finding.focused.length} elements are focused (${list}) — a TV screen has exactly one: the one the viewer is on. ` +
             `Keep the one the screen is about and rest the others (${resting}).`,
         ),
       )
-    }
+    } else if (finding.code === 'wrong') issue(`focus is on ${finding.wrong.map((f) => `${f.path} <${f.component}>`).join(', ')} — ${start!.hint}`)
+    else if (finding.code === 'nothing-focused') issue(`nothing is focused — ${start!.hint}`, 'nothing-focused')
+    else issue(`the screen has no ${start!.on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${start!.hint}`)
   }
 
   const check = (id: FrameCheckId, label: string, issues: RuleProblem[]) => ({ id, label, issues })
@@ -612,7 +621,7 @@ function auditFrameIssues(
     check('focus', 'Focus — no static centering, one focused element, one anchored group', focus),
     check('layers', 'Layer rule (Camadas) — layer model, navigation level, content side, where focus starts', [
       ...auditScreenLayerIssues(d, manifest),
-      ...levelFocusIssues(manifest, screenOf(d), focused, seen),
+      ...levelFocus,
       ...levelRootIssues(manifest, screenOf(d), isObject(d.root) ? d.root : undefined),
     ]),
   ]
@@ -697,50 +706,22 @@ function screenOf(doc: Record<string, unknown>): unknown {
   return doc.screen ?? root?.screen
 }
 
-/**
- * Where the TV focus starts is what tells the pages apart: the channel button on
- * Home, an interactivity button on the second level, the rounded button on the
- * third. A screen whose level says where focus starts is held to it — an element
- * focused anywhere else, or the named component present with nothing focused.
- */
-export function levelFocusProblems(
-  manifest: DesignSystemManifest,
-  screen: unknown,
-  focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[],
-  seen: ReadonlySet<string>,
-): string[] {
-  return levelFocusIssues(manifest, screen, focused, seen).map((issue) => issue.message)
+/** A node the blueprint focuses, as the focus rule (`focus-rule.ts`) reads it. */
+interface BlueprintHolder extends Holder {
+  path: string
+  prop: ManifestProp
 }
 
-function levelFocusIssues(
-  manifest: DesignSystemManifest,
-  screen: unknown,
-  focused: { path: string; component: ManifestComponent; prop: ManifestProp; value: unknown }[],
-  seen: ReadonlySet<string>,
-): RuleProblem[] {
+/**
+ * The navigation level of a screen, its start components narrowed to the ones this
+ * manifest has (a level whose start components it has none of says nothing of where focus starts).
+ */
+function focusLevelOf(manifest: DesignSystemManifest, screen: unknown): ManifestNavigationLevel | undefined {
   const layers = screenLayersOf(manifest)
   const model = modelOfScreen(layers, screen)
   const level = model ? navigationLevel(layers, model.level) : undefined
-  const rule = level?.initialFocus
-  if (!level || !rule) return []
-  const on = rule.on.filter((id) => manifest.components[id])
-  if (on.length === 0) return []
-
-  const where = `Level ${level.level} (${level.name})`
-  const issue = (message: string, code?: RuleProblem['code']): RuleProblem[] => [{ ruleId: 'level.initial-focus', path: ['root'], message, ...(code ? { code } : {}) }]
-  const right = (f: (typeof focused)[number]): boolean =>
-    rule.accepts?.includes(f.component.id) || (on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value))
-  const wrong = focused.filter((f) => !right(f))
-  if (wrong.length > 0) {
-    return issue(`${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`)
-  }
-  if (focused.length === 0 && on.some((id) => seen.has(id))) {
-    return issue(`${where}: nothing is focused — ${rule.hint}`, 'nothing-focused')
-  }
-  if (rule.required && !on.some((id) => seen.has(id))) {
-    return issue(`${where}: the screen has no ${on.map((id) => `<${id}>`).join(' or ')} — add one and focus it. ${rule.hint}`)
-  }
-  return []
+  const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
+  return level && { ...level, initialFocus: on.length > 0 ? { ...level.initialFocus!, on } : undefined }
 }
 
 /**
