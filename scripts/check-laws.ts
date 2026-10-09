@@ -43,6 +43,9 @@ import { checkTargets, designerFolder, diskTree, isLocalComponent, tsxNames } fr
 import { ruleScope } from '../src/shared/design-system/deviations'
 import { ruleById } from '../src/shared/design-system/rules'
 import { DTV_SCREEN_LAYERS, screenModel } from '../src/shared/design-system/screen-layers'
+import { defaultForProp, type ManifestNavigationLevel } from '../src/shared/design-system/manifest'
+import { focusedBy, focusPropsFor } from '../src/shared/layout/frame'
+import { FOCUS_LOOK_ONLY, focusFindings, type Holder } from '../src/shared/layout/focus-rule'
 import { DEVIATION, parseProposal, type ParsedProposal } from '../src/shared/export/commentGrammar'
 import { MAX_SCREENS } from '../src/shared/blueprint'
 import { parseTsx, type NotRead, type ParsedScreen } from '../src/shared/export/fromTsx'
@@ -86,21 +89,13 @@ export interface LawReport {
   flow: { edges: { from: string; to: string; line: number }[] }
 }
 
-/** Components that hold the focus, and whether leaving `interactionState` out means focused. */
-const FOCUS_HOLDERS: Record<string, { defaultFocused: boolean }> = {
-  InteractivityButton: { defaultFocused: true },
-  CloseButton: { defaultFocused: true },
-  RoundedButton: { defaultFocused: true },
-  WideButton: { defaultFocused: true },
-  AlertBug: { defaultFocused: false },
-  Notification: { defaultFocused: false },
-  ContentCard: { defaultFocused: false },
+/** A kit element the source focuses, named as the message shows it (`Forward -> InteractivityButton (line 9)`). */
+interface SourceHolder extends Holder {
+  label: string
 }
-/** Kit components whose `"focus"` value is a look, not the TV focus (a label drawn inside a focused button). */
-export const FOCUS_LOOK_ONLY = ['LabelVideo']
-export const FOCUS_HOLDER_IDS = [...Object.keys(FOCUS_HOLDERS), 'MainMenu']
-/** The main menu holds one focus (`focusedItem`, default `program`) unless `focusedItem={null}`. */
-const MENU = 'MainMenu'
+/** The navigation level a layer model sits on. */
+const levelOfModel = (model: string): ManifestNavigationLevel | undefined =>
+  DTV_SCREEN_LAYERS.levels.find((l) => l.level === screenModel(DTV_SCREEN_LAYERS, model)?.level)
 
 const RAW: [string, RegExp][] = [
   ['raw hex color', /#[0-9a-fA-F]{3,8}\b/],
@@ -126,6 +121,10 @@ function literalProp(el: ts.JsxOpeningLikeElement, name: string): string | undef
   }
   return undefined
 }
+
+/** `name={null}`, written as such. */
+const isNullProp = (el: ts.JsxOpeningLikeElement, name: string): boolean =>
+  el.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText() === name && !!a.initializer && /^\{\s*null\s*\}$/.test(a.initializer.getText()))
 
 const LOCAL_EXT = ['', '.ts', '.tsx', '.json', '/index.ts', '/index.tsx']
 const NOT_CODE = /\.(svg|png|jpe?g|gif|webp|avif|ico|css|scss)$/i
@@ -181,6 +180,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
   const add = (law: string, message: string, line?: number, file?: string): void => void problems.push({ law, message, line, ...(file ? { file } : {}) })
+  const manifest = loadDtvManifest()
 
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
   const folder = designerFolder(path)
@@ -296,8 +296,8 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
   if (screens.length === 0) add('layers.stack', 'no <Screen> — every screen is the three layers, video, overlay, content (use <Screen model level>)')
 
-  /** Kit components drawn focused inside a local component: the validator reads that component as a Proposal and cannot see them. */
-  const focusedInLocal: string[] = []
+  /** Every element the source focuses, on every screen of the file (inside local components too, where the validator is blind). */
+  const sourceFocus: SourceHolder[] = []
   /** The kit holder each local component draws with a computed `interactionState`: it forwards the prop, so the screen decides. */
   const forwarded = new Map<ts.Node, string>()
   for (const { el, scope } of screens) {
@@ -309,8 +309,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       add('layers.stack', `"${model}" is not a layer model (${DTV_SCREEN_LAYERS.models.map((m) => m.id).join(', ')})`, line)
     }
 
-    let focused = 0
-    const holders: string[] = []
+    const focused: SourceHolder[] = []
     // A local component is part of the screen: the focus it draws inside counts too.
     const count = (root: ts.Node, fsf: ts.SourceFile, file: string, via: string, seen: Set<ts.Node>): void => visit(root, (n) => {
       if (!ts.isJsxOpeningElement(n) && !ts.isJsxSelfClosingElement(n)) return
@@ -325,43 +324,34 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         // `<Local interactionState="focus" />`: the screen sets the focus the component forwards to its kit holder.
         const holderTag = forwarded.get(local.node)
         const given = holderTag ? literalProp(n, 'interactionState') : undefined
-        if (holderTag && given === 'focus') {
-          focused++
-          holders.push(`${tag} -> ${holderTag} (${at})`)
-          focusedInLocal.push(holderTag)
-        } else if (holderTag && given === null && file !== path) forwarded.set(root, holderTag) // handed on from the component around it
+        if (holderTag && given === 'focus') focused.push({ component: holderTag, label: `${tag} -> ${holderTag} (${at})` })
+        else if (holderTag && given === null && file !== path) forwarded.set(root, holderTag) // handed on from the component around it
         return
       }
-      if (tag === MENU) {
-        // `focusedItem={null}` hands the focus to something else (a rail card): the menu then holds none.
-        const none = n.attributes.properties.some(
-          (a) => ts.isJsxAttribute(a) && a.name.getText() === 'focusedItem' && a.initializer && /^\{\s*null\s*\}$/.test(a.initializer.getText()),
-        )
-        if (none) return
-        focused++
-        holders.push(`${MENU} (${at})`)
-        return
+      // The kit components that hold the focus, and how, are the manifest's — as the blueprint reader reads them (frame.ts).
+      const kit = manifest.components[tag]
+      const props = kit && !FOCUS_LOOK_ONLY.includes(tag) ? focusPropsFor(kit) : []
+      if (props.length === 0) return
+      // What the element sets: a literal; `{null}`, which rests it (the menu's `focusedItem={null}` hands the focus to a
+      // rail card). A computed state is the caller's (forwarded below); a computed menu item still focuses (its default).
+      const set: Record<string, unknown> = {}
+      for (const p of props) {
+        const v = literalProp(n, p.name)
+        if (v !== undefined && v !== null) set[p.name] = v
+        else if (v === null && (p.options?.includes('focus') || isNullProp(n, p.name))) set[p.name] = null
       }
-      const holder = FOCUS_HOLDERS[tag]
-      if (!holder) return
-      const state = literalProp(n, 'interactionState')
-      if (state === null && file !== path) forwarded.set(root, tag)
-      const isFocused = state === 'focus' || (state === undefined && holder.defaultFocused)
-      if (isFocused) {
-        focused++
-        holders.push(`${tag} (${at})`)
-        if (file !== path) focusedInLocal.push(tag)
-      }
+      if (file !== path && props.some((p) => p.options?.includes('focus') && literalProp(n, p.name) === null)) forwarded.set(root, tag)
+      const by = focusedBy({ props: set }, kit)
+      if (by) focused.push({ component: tag, value: by.name in set ? set[by.name] : defaultForProp(by), label: `${tag} (${at})` })
     })
     count(scope, sf, path, '', new Set())
-    // Level 0 is the clean broadcast: the viewer is on nothing, so no focus is allowed (one at most).
-    const level0 = typeof model === 'string' && screenModel(DTV_SCREEN_LAYERS, model)?.level === 0
-    if (level0 ? focused > 1 : focused !== 1) {
+    sourceFocus.push(...focused)
+    if (focusFindings(focused, typeof model === 'string' ? levelOfModel(model) : undefined).some((f) => f.ruleId === 'focus.single')) {
       add(
         'focus.single',
-        focused === 0
+        focused.length === 0
           ? 'no focused element — a TV screen has exactly one'
-          : `${focused} focused elements: ${holders.join(', ')} — exactly one. Note: InteractivityButton, CloseButton, RoundedButton and WideButton are focused unless interactionState says otherwise`,
+          : `${focused.length} focused elements: ${focused.map((f) => f.label).join(', ')} — exactly one. Note: InteractivityButton, CloseButton, RoundedButton and WideButton are focused unless interactionState says otherwise`,
         line,
       )
     }
@@ -452,7 +442,6 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   }
 
   if (!options.skipValidator) {
-    const manifest = loadDtvManifest()
     const all = parseTsx(text, path, components)
     for (const parsed of all) {
       // Links: read on this screen alone first; the flow rules need the connected screens (below).
@@ -506,10 +495,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         if (multi && issue.path[0] === 'screens') continue
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
-        // "Nothing is focused" is the validator not seeing into a local component: the focus is there, on a component the level takes it on.
-        if (issue.code === 'nothing-focused') {
-          const start = DTV_SCREEN_LAYERS.levels.find((l) => l.level === screenModel(DTV_SCREEN_LAYERS, parsed.doc.screen?.model ?? '')?.level)?.initialFocus
-          if (focusedInLocal.length > 0 && focusedInLocal.every((t) => start?.on.includes(t) || start?.accepts?.includes(t))) continue
+        // "Nothing is focused" where the source found the focus is the validator not seeing into a local component: the
+        // same rule, asked on the source reading, decides whether the level holds.
+        if (issue.code === 'nothing-focused' && sourceFocus.length > 0) {
+          const level = levelOfModel(parsed.doc.screen?.model ?? '')
+          if (!focusFindings(sourceFocus, level).some((f) => f.ruleId === 'level.initial-focus')) continue
         }
         if (issue.ruleId === 'primitives.reuse') {
           const line = lineAt(parsed, issue.path)

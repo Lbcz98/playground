@@ -29,17 +29,6 @@ describe('conformance corpus (static + validator)', () => {
   }
 })
 
-describe('focus.single reads every kit component that can hold the focus', () => {
-  it('classifies each component of the manifest with a focus prop as a holder or as a look', async () => {
-    const { FOCUS_HOLDER_IDS, FOCUS_LOOK_ONLY } = await import('../../scripts/check-laws')
-    const { loadDtvManifest } = await import('../../scripts/dtv-manifest')
-    const { focusPropsFor } = await import('../../src/shared/layout/frame')
-    const focusable = Object.values(loadDtvManifest().components).filter((c) => focusPropsFor(c).length > 0).map((c) => c.id)
-    // A new kit component with a focus state fails here until it is added to one of the two lists in check-laws.ts.
-    expect(focusable.sort()).toEqual([...FOCUS_HOLDER_IDS, ...FOCUS_LOOK_ONLY].sort())
-  })
-})
-
 /**
  * check:laws reads the focus twice: in the source (`static`, which sees into local components) and in the blueprint read
  * back from it (`validator`). Both ask the same rule (src/shared/layout/focus-rule.ts); this is which answer the designer
