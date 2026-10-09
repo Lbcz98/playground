@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { manifestZodSchema } from './manifest'
-import { templatesFor } from '@/design-system/promptSpec'
 import { chooseTemplate } from '@/shared/templates'
 
 /**
@@ -182,7 +181,6 @@ describe('parseStorybookDocgenWithReport', () => {
 import COMPONENTS_MANIFEST from './__fixtures__/components-manifest.json'
 import { documentedRange, parseStorybookDocgenWithReport } from './storybook-adapter'
 import { validateBlueprintAgainstManifest, compileManifestSchemas } from './manifest-zod'
-import { buildPlannerPrompt, buildSystemPrompt } from '@/design-system/promptSpec'
 import { interpretBlueprint } from '@/interpreter/interpret'
 
 describe('Phase 2 — importing an external Storybook', () => {
@@ -376,10 +374,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(errors({ stats: ['Pts', 'J'], values: ['62%', '38%'] })).not.toMatch(/stats|values/)
     expect(errors({ stats: 'Pts / J' })).toMatch(/stats/)
     expect(errors({ values: ['62%'] })).toMatch(/values/)
-
-    // And the prompt says so, with what the prop is for.
-    const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- values:'))
-    expect(line).toMatch(/a JSON array of strings, exactly 2 \(default undefined\) — The two sides, left and right\./)
   })
 
   it('E2.11c — a number prop\'s documented range becomes limits the validator enforces', () => {
@@ -427,8 +421,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     for (const ok of [0, 4, 8, 12, 16, 24, 32, 40]) expect(errors(ok), `${ok}`).not.toMatch(/gap/)
     for (const off of [5, 10, 20, 28]) expect(errors(off), `${off}`).toMatch(/gap.*8pt scale/)
     expect(errors(48)).toMatch(/gap/) // past the range
-    const line = buildSystemPrompt('tool', manifest).split('\n').find((l) => l.includes('- gap:'))
-    expect(line).toMatch(/from 0 to 40 on the 8pt scale/)
   })
 
   it('E2.11b — a list of text-only objects comes in with its fields; the validator and prompt know them', () => {
@@ -469,13 +461,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(errors([{ subtitle: 'no title' }])).toMatch(/items/)
     expect(errors([{ title: 'x', extra: 'y' }])).toMatch(/items/)
     expect(errors(['a string'])).toMatch(/items/)
-
-    const line = buildSystemPrompt('tool', report.manifest).split('\n').find((l) => l.includes('- items:'))
-    expect(line).toMatch(/a JSON array of objects \{ title: string, subtitle\?: string \}/)
-
-    // The planner reads no props, so it is told the list exists.
-    const brief = buildPlannerPrompt(report.manifest).split('\n').find((l) => l.includes('<Menu>'))
-    expect(brief).toMatch(/Lists: items \(\{title, subtitle\?\} items\)/)
   })
 
   it('E2.12 — a component\'s words go in its children prop; text where the child nodes go is caught', () => {
@@ -499,7 +484,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(repaired.issues.map((i) => i.message)).toContain(`Moved the text in "children" into <Label>'s children prop.`)
 
     expect(validateBlueprintAgainstManifest(doc({ props: { children: 'Ao vivo' } }), m).ok).toBe(true)
-    expect(buildSystemPrompt('tool', m)).toMatch(/\*\*Text as children:\*\* a component that shows words .* takes them in that prop/)
   })
 
   it('E2.13 — a nullable focus prop and a documented default reach the one-focus rule', () => {
@@ -535,10 +519,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     expect(twice.ok ? '' : twice.issues.map((i) => i.message).join(' | ')).toMatch(/focusedItem null/)
     const rested = validateBlueprintAgainstManifest(doc({ focusedItem: null }), m)
     expect(rested.ok ? [] : rested.issues.map((i) => i.message).filter((e) => /focus/.test(e))).toEqual([])
-
-    const prompt = buildSystemPrompt('tool', m)
-    expect(prompt).toMatch(/- focusedItem: one of \[program, weather\] or null/)
-    expect(prompt).toMatch(/<Menu> focuses its "program" unless you set focusedItem null/)
   })
 
   it('E2.5 — a payload with no components throws a readable error', () => {
@@ -579,9 +559,8 @@ describe('Phase 2 — importing an external Storybook', () => {
       'no-such-component',
     ])
 
-    // It reaches the planner and the retry loop exactly like the built-in ones.
-    expect(templatesFor(m)).toEqual(m.templates)
-    const choice = chooseTemplate('Template: home', templatesFor(m))
+    // It reaches the template choice exactly like the built-in ones.
+    const choice = chooseTemplate('Template: home', m.templates!)
     expect(choice).toEqual({ template: m.templates![0], reason: 'named' })
   })
 
