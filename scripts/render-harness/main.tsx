@@ -16,6 +16,7 @@ import { createRoot } from 'react-dom/client'
 import * as primitives from '@/primitives'
 import { DTV_KIT } from '@/shared/export/kit'
 import { measureFrame, type NodeRef } from '@/shared/layout/measureDom'
+import { FRAME, targetOf, type HarnessWindow } from './protocol'
 
 type Fiber = { type?: unknown; return?: Fiber | null; child?: Fiber | null; tag: number }
 const HOST = 5
@@ -65,9 +66,11 @@ const refFor = (type: string, el: Element): NodeRef => {
   return { id: `${type}#${n}`, type }
 }
 
-;(window as unknown as { __measure: () => unknown }).__measure = () => {
+const harness = window as unknown as HarnessWindow
+
+harness.__measure = () => {
   ids.clear()
-  const frame = document.querySelector<HTMLElement>('[data-screen-layer="video"]')
+  const frame = document.querySelector<HTMLElement>(FRAME)
   if (!frame) return { error: 'no <Screen> rendered' }
   const owners = new WeakMap<Element, NodeRef>()
   const ownerRef = (el: Element): NodeRef | undefined => {
@@ -97,8 +100,8 @@ const refFor = (type: string, el: Element): NodeRef => {
  * What is drawn focused, read off the DOM: the kit's one `<FocusRing>` (`data-focus-ring`) and the
  * outside ring of the main menu's channel bug (`data-focused`) — each named by the kit component around it.
  */
-;(window as unknown as { __focus: () => unknown }).__focus = () => {
-  const frame = document.querySelector<HTMLElement>('[data-screen-layer="video"]')
+harness.__focus = () => {
+  const frame = document.querySelector<HTMLElement>(FRAME)
   if (!frame) return { error: 'no <Screen> rendered' }
   return {
     model: frame.querySelector('[data-screen-model]')?.getAttribute('data-screen-model') ?? null,
@@ -117,33 +120,32 @@ const refFor = (type: string, el: Element): NodeRef => {
  * paint what changed, so no painted frame is missed. `rebuilt`: the parts of the frame that were on screen
  * before the key and are not in the document after it — React replaced them instead of updating them.
  */
-const FRAME_PARTS = ['[data-screen-layer="video"]', '[data-screen-layer="overlay"]', '[data-screen-layer="content"]']
+const FRAME_PARTS = [FRAME, '[data-screen-layer="overlay"]', '[data-screen-layer="content"]']
 let watch: { parts: [string, Element | null][]; blank: boolean; observer: MutationObserver } | undefined
 const hasScreen = (): boolean => !!document.querySelector(FRAME_PARTS[0])
-;(window as unknown as { __watch: () => void }).__watch = () => {
+harness.__watch = () => {
   const now = { parts: FRAME_PARTS.map((q): [string, Element | null] => [q, document.querySelector(q)]), blank: !hasScreen(), observer: new MutationObserver(() => (now.blank ||= !hasScreen())) }
   now.observer.observe(document.getElementById('root')!, { childList: true, subtree: true })
   watch = now
 }
-;(window as unknown as { __watched: () => unknown }).__watched = () => {
+harness.__watched = () => {
   if (!watch) return { error: '__watch() was not called' }
   watch.observer.disconnect()
   return { blank: watch.blank || !hasScreen(), rebuilt: watch.parts.filter(([, el]) => !el?.isConnected).map(([q]) => q) }
 }
 
 // `?file=/…/screen.tsx` renders that screen; `?flow=/…/folder` plays that flow folder in the app's own player.
-const params = new URLSearchParams(location.search)
-const file = params.get('file')
-const flow = params.get('flow')
-if (!file && !flow) throw new Error('?file=/src/…/screen.tsx (or ?flow=/…/folder) is required')
-const element = flow
-  ? import('../../web/app/[designer]/[screen]/FlowPlayer').then(({ Flow }) =>
-      createElement(Flow, {
-        flow: () => import(/* @vite-ignore */ `${flow}/flow.ts`),
-        state: (name: string) => import(/* @vite-ignore */ `${flow}/${name}.tsx`),
-      }),
-    )
-  : import(/* @vite-ignore */ file!).then((mod: { default: ComponentType }) => createElement(mod.default))
+const target = targetOf(location.search)
+if (!target) throw new Error('?file=/src/…/screen.tsx (or ?flow=/…/folder) is required')
+const element =
+  'flow' in target
+    ? import('../../web/app/[designer]/[screen]/FlowPlayer').then(({ Flow }) =>
+        createElement(Flow, {
+          flow: () => import(/* @vite-ignore */ `/${target.flow}/flow.ts`),
+          state: (name: string) => import(/* @vite-ignore */ `/${target.flow}/${name}.tsx`),
+        }),
+      )
+    : import(/* @vite-ignore */ `/${target.file}`).then((mod: { default: ComponentType }) => createElement(mod.default))
 element
   .then((el) => {
     // Committed before `__ready` is set: a render left to React's scheduler can lose the race to `document.fonts.ready`.
@@ -151,8 +153,8 @@ element
     return document.fonts.ready
   })
   .then(() => {
-    ;(window as unknown as { __ready: boolean }).__ready = true
+    harness.__ready = true
   })
   .catch((error: unknown) => {
-    ;(window as unknown as { __error: string }).__error = String(error)
+    harness.__error = String(error)
   })
