@@ -190,6 +190,8 @@ export interface ManifestNavigationLevel {
 export interface ManifestInitialFocus {
   /** The components that may hold the focus (any one of them). */
   on: string[]
+  /** Content that takes the starting focus when the screen has it (the third level's content card); `on` stays what a repair writes. */
+  accepts?: string[]
   /** The value its focus prop must have, when the component has several focusable parts (a menu's `focusedItem`). */
   value?: string
   /** The rule, as the agents read it. */
@@ -501,6 +503,7 @@ const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
             initialFocus: z
               .object({
                 on: z.array(idSchema).min(1).max(8),
+                accepts: z.array(idSchema).max(8).optional(),
                 value: shortStr.optional(),
                 hint: z.string().max(MAX_STR),
                 required: z.boolean().optional(),

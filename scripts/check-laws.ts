@@ -93,7 +93,11 @@ const FOCUS_HOLDERS: Record<string, { defaultFocused: boolean }> = {
   WideButton: { defaultFocused: true },
   AlertBug: { defaultFocused: false },
   Notification: { defaultFocused: false },
+  ContentCard: { defaultFocused: false },
 }
+/** Kit components whose `"focus"` value is a look, not the TV focus (a label drawn inside a focused button). */
+export const FOCUS_LOOK_ONLY = ['LabelVideo']
+export const FOCUS_HOLDER_IDS = [...Object.keys(FOCUS_HOLDERS), 'MainMenu']
 /** The main menu holds one focus (`focusedItem`, default `program`) unless `focusedItem={null}`. */
 const MENU = 'MainMenu'
 
@@ -245,6 +249,27 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   for (const [f, l] of locals) if (f.endsWith('.tsx') && hasJsx(l.sf)) scan(l.text, `${rel(f)}: `, f)
 
   // ── per screen: layers.stack and focus.single ───────────────────────────────
+  /** The local component a tag of `file` names (imported from this designer's folder), as the function that renders it. */
+  const localComponent = (file: string, fsf: ts.SourceFile, tag: string): { file: string; sf: ts.SourceFile; node: ts.Node } | undefined => {
+    for (const stmt of fsf.statements) {
+      if (!ts.isImportDeclaration(stmt) || !ts.isStringLiteral(stmt.moduleSpecifier) || !stmt.moduleSpecifier.text.startsWith('.')) continue
+      const clause = stmt.importClause
+      const named = clause?.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.find((e) => e.name.text === tag) : undefined
+      const name = clause?.name?.text === tag ? 'default' : named ? (named.propertyName ?? named.name).text : undefined
+      if (!name) continue
+      const hit = resolveLocal(file, stmt.moduleSpecifier.text)
+      const lsf = hit && hit.endsWith('.tsx') ? locals.get(hit)?.sf : undefined
+      if (!hit || !lsf) return undefined
+      const isDefault = (s: ts.FunctionDeclaration): boolean => (ts.getCombinedModifierFlags(s) & ts.ModifierFlags.Default) !== 0
+      const node = lsf.statements.find(
+        (s) =>
+          (ts.isFunctionDeclaration(s) && (name === 'default' ? isDefault(s) : s.name?.text === name)) ||
+          (ts.isVariableStatement(s) && s.declarationList.declarations.some((d) => ts.isIdentifier(d.name) && d.name.text === name)),
+      )
+      return { file: hit, sf: lsf, node: node ?? lsf }
+    }
+    return undefined
+  }
   const visit = (node: ts.Node, visitor: (n: ts.Node) => void): void => {
     visitor(node)
     node.forEachChild((c) => visit(c, visitor))
@@ -276,6 +301,8 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
   if (screens.length === 0) add('layers.stack', 'no <Screen> — every screen is the three layers, video, overlay, content (use <Screen model level>)')
 
+  /** Kit components drawn focused inside a local component: the validator reads that component as a Proposal and cannot see them. */
+  const focusedInLocal: string[] = []
   for (const { el, scope } of screens) {
     const model = literalProp(el, 'model')
     const line = LINE(sf, el)
@@ -287,9 +314,17 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
     let focused = 0
     const holders: string[] = []
-    visit(scope, (n) => {
+    // A local component is part of the screen: the focus it draws inside counts too.
+    const count = (root: ts.Node, fsf: ts.SourceFile, file: string, via: string, seen: Set<ts.Node>): void => visit(root, (n) => {
       if (!ts.isJsxOpeningElement(n) && !ts.isJsxSelfClosingElement(n)) return
       const tag = n.tagName.getText()
+      const at = file === path ? `line ${LINE(fsf, n)}` : `${rel(file)} line ${LINE(fsf, n)}, inside ${via}`
+      const local = localComponent(file, fsf, tag)
+      if (local && !seen.has(local.node)) {
+        seen.add(local.node)
+        count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
+        return
+      }
       if (tag === MENU) {
         // `focusedItem={null}` hands the focus to something else (a rail card): the menu then holds none.
         const none = n.attributes.properties.some(
@@ -297,7 +332,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         )
         if (none) return
         focused++
-        holders.push(`${MENU} (line ${LINE(sf, n)})`)
+        holders.push(`${MENU} (${at})`)
         return
       }
       const holder = FOCUS_HOLDERS[tag]
@@ -306,9 +341,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       const isFocused = state === 'focus' || (state === undefined && holder.defaultFocused)
       if (isFocused) {
         focused++
-        holders.push(`${tag} (line ${LINE(sf, n)})`)
+        holders.push(`${tag} (${at})`)
+        if (file !== path) focusedInLocal.push(tag)
       }
     })
+    count(scope, sf, path, '', new Set())
     // Level 0 is the clean broadcast: the viewer is on nothing, so no focus is allowed (one at most).
     const level0 = typeof model === 'string' && screenModel(DTV_SCREEN_LAYERS, model)?.level === 0
     if (level0 ? focused > 1 : focused !== 1) {
@@ -461,6 +498,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
         if (multi && issue.path[0] === 'screens') continue
         // The static pass already says these in terms of the source.
         if (issue.ruleId === 'focus.single' || issue.ruleId === 'layers.stack') continue
+        // "Nothing is focused" is the validator not seeing into a local component: the focus is there, on a component the level takes it on.
+        if (issue.ruleId === 'level.initial-focus' && /nothing is focused/.test(issue.message)) {
+          const start = DTV_SCREEN_LAYERS.levels.find((l) => l.level === screenModel(DTV_SCREEN_LAYERS, parsed.doc.screen?.model ?? '')?.level)?.initialFocus
+          if (focusedInLocal.length > 0 && focusedInLocal.every((t) => start?.on.includes(t) || start?.accepts?.includes(t))) continue
+        }
         if (issue.ruleId === 'primitives.reuse') {
           const line = lineAt(parsed, issue.path)
           const fix = /has no "reuse"|"reuse" must be|is not an object/.test(issue.message)
@@ -549,9 +591,15 @@ async function main(): Promise<void> {
     process.exit(2)
   }
   const flowDirs = [...new Set(args.map(flowFolderOf).filter((d): d is string => d !== undefined))]
+  // A file that is not a screen (a local component, which CI hands over when a PR touches one) is checked
+  // through the screens of its designer folder: its focus and size show on the screens that use it.
+  const isScreenFile = (f: string): boolean => /<Screen[\s>]/.test(readFileSync(f, 'utf8'))
+  const screensUnder = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? screensUnder(join(dir, e.name)) : e.name.endsWith('.tsx') && isScreenFile(join(dir, e.name)) ? [join(dir, e.name)] : []))
+  const tsxArgs = args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a))
   const files = [
     ...new Set([
-      ...args.filter((a) => a.endsWith('.tsx')).map((a) => resolve(a)),
+      ...tsxArgs.flatMap((f) => (!existsSync(f) || isScreenFile(f) ? [f] : screensUnder(basename(dirname(f)) === 'components' ? dirname(dirname(f)) : designerFolder(f)))),
       ...flowDirs.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.tsx')).map((f) => join(d, f))),
     ]),
   ]

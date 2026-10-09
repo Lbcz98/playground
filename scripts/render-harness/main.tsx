@@ -1,6 +1,7 @@
 /**
  * Renders one screen file (`?file=/src/…/screen.tsx`, its default export) and exposes
  * `window.__measure()`: the frame read into the rectangles `auditRender` takes.
+ * With `?flow=/…/folder` it plays that flow in the app's player instead (`scripts/flow-probe.ts`).
  *
  * A screen written as TSX has no `data-node-id`, so the nodes are found through React:
  * a kit component's node is its first host element, named by the component's function.
@@ -12,6 +13,7 @@ import '@/index.css'
 import { createElement, type ComponentType } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
+import * as primitives from '@/primitives'
 import { DTV_KIT } from '@/shared/export/kit'
 import { measureFrame, type NodeRef } from '@/shared/layout/measureDom'
 
@@ -45,11 +47,11 @@ function ownerAtTop(el: Element): string | undefined {
   }
   return undefined
 }
-/** The nearest kit component around an element, at any depth. */
-function ownerAbove(el: Element): string | undefined {
+/** The nearest kit component around an element, at any depth (`skip`: names to look past). */
+function ownerAbove(el: Element, skip?: object): string | undefined {
   for (let f = fiberOf(el); f; f = f.return ?? null) {
     const name = nameOf(f)
-    if (name && KIT.has(name)) return name
+    if (name && KIT.has(name) && !(skip && name in skip)) return name
   }
   return undefined
 }
@@ -91,12 +93,61 @@ const refFor = (type: string, el: Element): NodeRef => {
   })
 }
 
-const file = new URLSearchParams(location.search).get('file')
-if (!file) throw new Error('?file=/src/…/screen.tsx is required')
-import(/* @vite-ignore */ file)
-  .then((mod: { default: ComponentType }) => {
+/**
+ * What is drawn focused, read off the DOM: the kit's one `<FocusRing>` (`data-focus-ring`) and the
+ * outside ring of the main menu's channel bug (`data-focused`) — each named by the kit component around it.
+ */
+;(window as unknown as { __focus: () => unknown }).__focus = () => {
+  const frame = document.querySelector<HTMLElement>('[data-screen-layer="video"]')
+  if (!frame) return { error: 'no <Screen> rendered' }
+  return {
+    model: frame.querySelector('[data-screen-model]')?.getAttribute('data-screen-model') ?? null,
+    level: frame.getAttribute('data-screen-level'),
+    focused: Array.from(frame.querySelectorAll('[data-focus-ring], [data-focused]')).map((el) => ({
+      // Past the primitives a component is built from (the main menu's ring sits in a Stack of its own).
+      component: ownerAbove(el, primitives) ?? el.tagName.toLowerCase(),
+      text: (el.closest('.sfs-focusable') ?? el).textContent?.trim().slice(0, 40) ?? '',
+    })),
+  }
+}
+
+/**
+ * A key press, watched (`?flow=`): `__watch()` before it, `__watched()` once the next state is on screen.
+ * `blank`: at some point the document had no `<Screen>`. A MutationObserver runs before the browser can
+ * paint what changed, so no painted frame is missed. `rebuilt`: the parts of the frame that were on screen
+ * before the key and are not in the document after it — React replaced them instead of updating them.
+ */
+const FRAME_PARTS = ['[data-screen-layer="video"]', '[data-screen-layer="overlay"]', '[data-screen-layer="content"]']
+let watch: { parts: [string, Element | null][]; blank: boolean; observer: MutationObserver } | undefined
+const hasScreen = (): boolean => !!document.querySelector(FRAME_PARTS[0])
+;(window as unknown as { __watch: () => void }).__watch = () => {
+  const now = { parts: FRAME_PARTS.map((q): [string, Element | null] => [q, document.querySelector(q)]), blank: !hasScreen(), observer: new MutationObserver(() => (now.blank ||= !hasScreen())) }
+  now.observer.observe(document.getElementById('root')!, { childList: true, subtree: true })
+  watch = now
+}
+;(window as unknown as { __watched: () => unknown }).__watched = () => {
+  if (!watch) return { error: '__watch() was not called' }
+  watch.observer.disconnect()
+  return { blank: watch.blank || !hasScreen(), rebuilt: watch.parts.filter(([, el]) => !el?.isConnected).map(([q]) => q) }
+}
+
+// `?file=/…/screen.tsx` renders that screen; `?flow=/…/folder` plays that flow folder in the app's own player.
+const params = new URLSearchParams(location.search)
+const file = params.get('file')
+const flow = params.get('flow')
+if (!file && !flow) throw new Error('?file=/src/…/screen.tsx (or ?flow=/…/folder) is required')
+const element = flow
+  ? import('../../web/app/[designer]/[screen]/FlowPlayer').then(({ Flow }) =>
+      createElement(Flow, {
+        flow: () => import(/* @vite-ignore */ `${flow}/flow.ts`),
+        state: (name: string) => import(/* @vite-ignore */ `${flow}/${name}.tsx`),
+      }),
+    )
+  : import(/* @vite-ignore */ file!).then((mod: { default: ComponentType }) => createElement(mod.default))
+element
+  .then((el) => {
     // Committed before `__ready` is set: a render left to React's scheduler can lose the race to `document.fonts.ready`.
-    flushSync(() => createRoot(document.getElementById('root')!).render(createElement(mod.default)))
+    flushSync(() => createRoot(document.getElementById('root')!).render(el))
     return document.fonts.ready
   })
   .then(() => {

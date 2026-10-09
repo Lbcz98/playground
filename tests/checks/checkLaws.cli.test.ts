@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { afterAll, describe, expect, it } from 'vitest'
 import { addRenderResult } from '../../scripts/check-laws'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CASES } from './corpus/cases'
 
@@ -12,13 +13,30 @@ afterAll(() => rmSync(DIR, { recursive: true, force: true }))
 const run = (args: string[], env: Record<string, string> = {}, id = 'clean-home') => {
   const entry = `${DIR}/s.tsx`
   mkdirSync(DIR, { recursive: true })
-  writeFileSync(entry, CASES.find((c) => c.id === id)!.files['s.tsx'])
+  for (const [name, code] of Object.entries(CASES.find((c) => c.id === id)!.files)) {
+    mkdirSync(dirname(`${DIR}/${name}`), { recursive: true })
+    writeFileSync(`${DIR}/${name}`, code)
+  }
   const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', entry, ...args], {
     encoding: 'utf8',
     env: { ...process.env, VITEST: '', ...env },
   })
   return { code: r.status, out: r.stdout + r.stderr, stdout: r.stdout }
 }
+
+describe('check:laws on a file that is not a screen', () => {
+  it('a local component is checked through the screens of its folder, not rendered as a screen', () => {
+    const r = run(['--json', '--no-render'], {}, 'local-component-with-proposal')
+    // `run` wrote the screen; point the CLI at the component beside it instead.
+    const c = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws.ts', '--', `${DIR}/components/Stepper.tsx`, '--json', '--no-render'], {
+      encoding: 'utf8',
+      env: { ...process.env, VITEST: '' },
+    })
+    expect(r.code).toBe(0)
+    const files = (JSON.parse(c.stdout).reports as { file: string }[]).map((x) => x.file.replace(/^.*\//, ''))
+    expect(files).toEqual(['s.tsx'])
+  }, 120_000)
+})
 
 describe('check:laws --require-render', () => {
   it('without Chromium and without the flag: exit 0, and says the render check did not run', () => {

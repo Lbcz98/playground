@@ -526,7 +526,9 @@ function repairLevelFocus(
   }
   const candidates = all.filter((node) => rule.on.includes(node.type) && manifest.components[node.type])
   if (candidates.length === 0) return
-  const target = candidates.find(isTarget) ?? candidates[0]
+  // Content the level accepts the focus on (a content card on the third level) keeps it when it has it.
+  const content = all.find((node) => rule.accepts?.includes(node.type) && manifest.components[node.type] && focusedBy(node, manifest.components[node.type]))
+  const target = content ?? candidates.find(isTarget) ?? candidates[0]
 
   for (const node of all) {
     const component = manifest.components[node.type]
@@ -541,7 +543,7 @@ function repairLevelFocus(
     })
   }
 
-  if (!isTarget(target)) {
+  if (target !== content && !isTarget(target)) {
     const component = manifest.components[target.type]
     const prop = focusPropsFor(component).find((p) => rule.value === undefined ? p.options?.includes('focus') : true)
     if (!prop) return
