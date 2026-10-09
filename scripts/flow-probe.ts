@@ -20,7 +20,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { HIDDEN_STATE } from '../src/shared/export/flowFile'
+import { BACK_CONTROL, HIDDEN_STATE, PRESS, playStep } from '../src/shared/flowPlay'
+import type { FlowFile, FlowKey } from '../src/shared/export/flowFile'
 import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
 import { Reloaded, RELOADS, type HarnessPage } from './harness-page'
@@ -30,13 +31,6 @@ import { SCHEMA_VERSION, type Finding } from './findings'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const PLAYER = 'web/app/[designer]/[screen]/FlowPlayer.tsx'
-const PRESS = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', enter: 'Enter', back: 'Escape' } as const
-
-type Key = keyof typeof PRESS
-interface FlowData {
-  start: string
-  transitions: { from: string; key: Key; to: string }[]
-}
 
 export interface FlowProblem {
   rule: string
@@ -86,7 +80,7 @@ export function focusProblems(state: string, read: FocusReading, source: string,
   return out
 }
 
-async function walk(page: HarnessPage, dir: string, data: FlowData): Promise<ProbeReport> {
+async function walk(page: HarnessPage, dir: string, data: FlowFile): Promise<ProbeReport> {
   const problems: FlowProblem[] = []
   let presses = 0
   /** One key, watched: whether `to` came on screen, and what the press did to the frame. */
@@ -130,18 +124,20 @@ async function walk(page: HarnessPage, dir: string, data: FlowData): Promise<Pro
   }
 
   // Breadth first from `start`: the keys that lead to each state, the shortest way.
-  const route = new Map<string, Key[]>([[data.start, []]])
+  const route = new Map<string, FlowKey[]>([[data.start, []]])
   const order = [data.start]
   await focus(data.start)
   for (const from of order) {
     for (const hop of data.transitions.filter((t) => t.from === from)) {
       const transition = `${from} —${hop.key}→ ${hop.to}`
       // Back to the start, then along the route to `from`: every hop is pressed from a known trail.
-      await page.press('r')
+      await page.press(PRESS.restart)
+      let trail = [data.start]
       let at = (await page.arrives(data.start)) ? data.start : null
       for (const key of route.get(from)!) {
         if (!at) break
-        const next = data.transitions.find((t) => t.from === at && t.key === key)!.to
+        trail = playStep(data, trail, key)
+        const next = trail[trail.length - 1]
         await page.press(PRESS[key])
         at = (await page.arrives(next)) ? next : null
       }
@@ -166,7 +162,7 @@ async function walk(page: HarnessPage, dir: string, data: FlowData): Promise<Pro
       // is walked as that transition, and `hidden` is the app closed: Back does nothing there.
       if (hop.to === HIDDEN_STATE || data.transitions.some((t) => t.from === hop.to && t.key === 'back')) continue
       const back = `${hop.to} —back→ ${from}`
-      if (!(await press('Escape', from, hop.to, back)))
+      if (!(await press(PRESS.back, from, hop.to, back)))
         problems.push({
           rule: hop.key === 'enter' ? 'flow.focus-memory' : 'flow.back-steps',
           state: hop.to,
@@ -178,8 +174,8 @@ async function walk(page: HarnessPage, dir: string, data: FlowData): Promise<Pro
         for (const how of ['Enter', 'click'] as const) {
           if (!(await press(PRESS[hop.key], hop.to, hop.to, transition))) break
           await page.watch()
-          if (how === 'Enter') await page.press('Enter')
-          else await page.click('.sfs-round-button:not([data-focus-item])')
+          if (how === 'Enter') await page.press(PRESS.enter)
+          else await page.click(BACK_CONTROL)
           if (!(await page.arrives(from)))
             problems.push({
               rule: hop.key === 'enter' ? 'flow.focus-memory' : 'flow.back-steps',
@@ -199,7 +195,7 @@ export async function probeFlow(folder: string): Promise<ProbeReport> {
   const dir = resolve(folder)
   if (!isFlowFolder(dir, diskTree)) throw new Error(`${folder} is not a flow folder: it has no flow.ts`)
   if (relative(ROOT, dir).startsWith('..')) throw new Error(`${folder} is outside the repo: the harness only serves files inside ${ROOT}`)
-  const data = ((await import(/* @vite-ignore */ pathToFileURL(join(dir, 'flow.ts')).href)) as { default: FlowData }).default
+  const data = ((await import(/* @vite-ignore */ pathToFileURL(join(dir, 'flow.ts')).href)) as { default: FlowFile }).default
   return withHarness(async (newPage) => {
     for (let attempt = 0; ; attempt++) {
       const page = await newPage()
