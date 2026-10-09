@@ -93,13 +93,21 @@ describe('the command', () => {
       env: { ...process.env, VITEST: '' },
     })
 
-  it('reads the changed paths on stdin and prints the answer, one per line', () => {
+  it('reads NUL-separated paths (git diff -z) and prints screens and flows NUL-terminated, so spaces and accents survive', () => {
     mkdirSync(join(dir, 'web/protos/ana/buy'), { recursive: true })
     writeFileSync(join(dir, 'web/protos/ana/buy/flow.ts'), '')
-    const paths = 'src/a.ts\nweb/protos/ana/buy/cart.tsx\nweb/protos/ana/data.ts\n'
+    const paths = 'web/protos/ana/ação final.tsx\0src/é.ts\0'
+    expect(run(['screens'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/ação final.tsx\0' })
+    expect(run(['outside', 'ana'], paths)).toMatchObject({ status: 0, stdout: 'src/é.ts\n' })
+    expect(run(['flows'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/buy\0' })
+  }, 60_000)
+  it('reads the changed paths on stdin and prints the answer', () => {
+    mkdirSync(join(dir, 'web/protos/ana/buy'), { recursive: true })
+    writeFileSync(join(dir, 'web/protos/ana/buy/flow.ts'), '')
+    const paths = 'src/a.ts\0web/protos/ana/buy/cart.tsx\0web/protos/ana/data.ts\0'
     expect(run(['outside', 'ana'], paths)).toMatchObject({ status: 0, stdout: 'src/a.ts\n' })
-    expect(run(['screens'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/buy/cart.tsx\n' })
-    expect(run(['flows'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/buy\n' })
+    expect(run(['screens'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/buy/cart.tsx\0' })
+    expect(run(['flows'], paths)).toMatchObject({ status: 0, stdout: 'web/protos/ana/buy\0' })
     expect(run(['screens'], '')).toMatchObject({ status: 0, stdout: '' })
   }, 60_000)
   it('says how to call it and exits 2 when the mode is not one of the three', () => {

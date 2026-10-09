@@ -51,6 +51,14 @@ describe('.github/workflows/protos.yml', () => {
     // The script runs from node_modules, so the install comes before the first step that uses it.
     expect(protosJob.indexOf('run: npm ci\n')).toBeLessThan(protosJob.indexOf('npm run ci:protos'))
   })
+  it('hands paths around NUL-separated, so a name with a space or an accent is one path: git diff -z, then xargs -0 or read -d', () => {
+    const diffs = [...protosJob.matchAll(/git diff [^|\n]*/g)].map((m) => m[0])
+    expect(diffs.length).toBeGreaterThan(0)
+    for (const d of diffs) expect(d, d).toMatch(/ -z /)
+    expect(protosJob).not.toMatch(/\$screens|\$flows/)
+    expect(protosJob).toMatch(/xargs -0/)
+    expect(protosJob).toMatch(/read -r -d ''/)
+  })
   it('does not spell out the report schema: every step writes its own findings file, and pr:report reads the folder', () => {
     expect(yml).not.toContain('schemaVersion')
     expect(yml).toMatch(/npm run check:flow [^\n]*--json/)

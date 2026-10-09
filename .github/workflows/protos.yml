@@ -62,7 +62,7 @@ jobs:
         if: startsWith(github.head_ref, 'proto/')
         run: |
           designer=$(printf '%s' "$HEAD_REF" | cut -d/ -f2)
-          outside=$(git diff --name-only "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- outside "$designer")
+          outside=$(git diff -z --name-only "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- outside "$designer")
           if [ -n "$outside" ]; then
             echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
           fi
@@ -74,10 +74,11 @@ jobs:
       - name: Laws, on every screen and flow the pull request touches
         id: laws
         run: |
-          screens=$(set -o pipefail; git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- screens)
+          set -o pipefail
+          git diff -z --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- screens > screens.list
           mkdir findings
           code=0
-          if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > findings/laws.json || code=$?; fi
+          if [ -s screens.list ]; then xargs -0 npm run check:laws --silent -- --json --require-render < screens.list > findings/laws.json || code=$?; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       # The flows of every designer folder the pull request touches are played in a browser: one focus per state,
@@ -86,11 +87,12 @@ jobs:
       - name: Flows, played
         id: flows
         run: |
+          set -o pipefail
           code=0
-          flows=$(set -o pipefail; git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- flows)
-          for flow in $flows; do
+          git diff -z --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- flows > flows.list
+          while IFS= read -r -d '' flow; do
             npm run check:flow --silent -- "$flow" --json > "findings/flow-$(printf '%s' "$flow" | tr / _).json" || code=1
-          done
+          done < flows.list
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Report, comment and summary

@@ -1,7 +1,9 @@
 /**
  * `npm run ci:protos -- outside <designer> | screens | flows`: what .github/workflows/protos.yml asks of the paths a
- * pull request changed (`git diff --name-only`, one per line on stdin), answered by the folder model
- * (src/shared/protoFolders.ts) instead of shell patterns. One path per line out.
+ * pull request changed (`git diff -z --name-only`, NUL-separated on stdin: git prints accents and quotes
+ * in a name escaped otherwise, and a space splits it), answered by the folder model (src/shared/protoFolders.ts)
+ * instead of shell patterns. `outside` prints one path per line, to be read; `screens` and `flows` print each path
+ * NUL-terminated, for `xargs -0` and `read -d ''`.
  *
  *   outside <designer>  the paths that are not under web/protos/<designer>/ (the folder lock)
  *   screens             the .tsx and flow.ts of a designer folder (what the laws run on)
@@ -24,13 +26,13 @@ export const flowsOf = (paths: string[], tree: Tree): string[] =>
 
 function main(): void {
   const [mode, designer] = process.argv.slice(2).filter((a) => a !== '--')
-  const paths = readFileSync(0, 'utf8').split('\n').filter(Boolean)
+  const paths = readFileSync(0, 'utf8').split('\0').filter(Boolean)
   const out = mode === 'outside' && designer !== undefined ? outsideOf(designer, paths) : mode === 'screens' ? screensOf(paths) : mode === 'flows' ? flowsOf(paths, diskTree) : undefined
   if (!out) {
     console.error('usage: npm run ci:protos -- outside <designer> | screens | flows   (changed paths on stdin)')
     process.exit(2)
   }
-  if (out.length > 0) console.log(out.join('\n'))
+  if (out.length > 0) process.stdout.write(mode === 'outside' ? out.join('\n') + '\n' : out.map((p) => p + '\0').join(''))
 }
 
 if (!process.env.VITEST) main()
