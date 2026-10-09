@@ -39,6 +39,7 @@ import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-sys
 import { auditScreenLayerIssues, modelOfScreen, navigationLevel, screenLayersOf } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
 import { coveredBy, declaresRule, type Declaration } from '@/shared/design-system/deviations'
+import { FOCUS_LOOK_ONLY } from './focus-rule'
 import type { ScreenMode } from '@/shared/blueprint'
 
 export const FRAME = {
@@ -474,7 +475,7 @@ function auditFrameIssues(
     if (!component) return
     seen.add(component.id)
 
-    const focusProp = focusedBy(node, component)
+    const focusProp = FOCUS_LOOK_ONLY.includes(component.id) ? undefined : focusedBy(node, component)
     if (focusProp) {
       focused.push({ path, component, prop: focusProp, value: propValue(node, focusProp) })
     }

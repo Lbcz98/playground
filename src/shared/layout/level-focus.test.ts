@@ -86,6 +86,12 @@ describe('page 2 · focus on the interactivity buttons', () => {
     const r = validateBlueprintAgainstManifest(d, S)
     expect(!r.ok && r.issues.map((i) => [i.ruleId, i.code])).toEqual([['level.initial-focus', 'nothing-focused']])
   })
+
+  it('a LabelVideo drawn "focus" is a look, not the TV focus: the kit draws no focus ring for it', () => {
+    const d = doc('interactivity-buttons-right')
+    d.root.children!.push({ type: 'LabelVideo', props: { kind: 'live', interactionState: 'focus' } })
+    expect(errors(d).join('\n')).not.toMatch(/LabelVideo|elements are focused/)
+  })
 })
 
 describe('page 3 · focus starts on the rounded button, or on the content card when the screen has one', () => {
