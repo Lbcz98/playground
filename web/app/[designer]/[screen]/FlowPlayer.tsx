@@ -1,32 +1,14 @@
 'use client'
 import { createElement, useCallback, useEffect, useState, type ComponentType, type ReactNode } from 'react'
+import type { FlowFile } from '@/shared/export/flowFile'
+import { BACK_CONTROL, HIDDEN_STATE, playStep, remoteKey, type PlayKey } from '@/shared/flowPlay'
 import { Screen } from '@/ui-kit/Screen'
 import { Stage } from '../../Stage'
-
-interface FlowData {
-  start: string
-  transitions: { from: string; key: 'up' | 'down' | 'left' | 'right' | 'enter' | 'back'; to: string }[]
-}
-
-const KEYS: Record<string, FlowData['transitions'][number]['key']> = {
-  ArrowUp: 'up',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  ArrowRight: 'right',
-  Enter: 'enter',
-}
-
-const BACK_KEYS = ['Escape', 'Backspace', 'GoBack', 'BrowserBack', 'Back']
-const BACK_CODES = [4, 8, 27, 461, 10009]
 
 /** `hidden` needs no file (standards/flow.md): level 0, the video alone. A `hidden.tsx` in the folder replaces this. */
 const Hidden = (): ReactNode => <Screen model="alert" level={0} />
 
-/**
- * The back control of a level-3 screen: the kit's round button drawn in the anchored group (the main menu's
- * round buttons carry `data-focus-item`). A click on it, or Enter while it is the focused element, is Back.
- */
-const BACK_CONTROL = '.sfs-round-button:not([data-focus-item])'
+/** The back control of a level-3 screen: a click on it, or Enter while it is the focused element, is Back. */
 const backControlFocused = (): boolean => !!document.querySelector(`${BACK_CONTROL}[data-state="focus"]`)
 
 /** Where a flow's files come from: the bundler of the app here, the render harness in `npm run check:flow`. */
@@ -64,7 +46,7 @@ function StateView({ state }: { state: unknown }): ReactNode {
  * on screen: a key press never shows an empty frame.
  */
 export function Flow({ flow, state }: FlowSource) {
-  const [data, setData] = useState<FlowData | null>(null)
+  const [data, setData] = useState<FlowFile | null>(null)
   const [trail, setTrail] = useState<string[]>([])
   const [states, setStates] = useState<Record<string, unknown>>({})
 
@@ -72,13 +54,13 @@ export function Flow({ flow, state }: FlowSource) {
     let live = true
     flow().then((m) => {
       if (!live) return
-      const loaded = m.default as FlowData
+      const loaded = m.default as FlowFile
       setData(loaded)
       setTrail([loaded.start])
       for (const name of new Set([loaded.start, ...loaded.transitions.flatMap((t) => [t.from, t.to])]))
         state(name)
           .catch((e: unknown) => {
-            if (name !== 'hidden') throw e
+            if (name !== HIDDEN_STATE) throw e
             return { default: Hidden }
           })
           .then((s) => live && setStates((all) => ({ ...all, [name]: s.default })))
@@ -89,28 +71,15 @@ export function Flow({ flow, state }: FlowSource) {
   }, [flow, state])
 
   const press = useCallback(
-    (key: string) => {
-      if (!data) return
-      setTrail((t) => {
-        const current = t[t.length - 1]
-        if (key === 'restart') return [data.start]
-        // `hidden` is level 0 (video only): any arrow brings the flow back to its start.
-        if (current === 'hidden') return key === 'enter' || key === 'back' ? t : [data.start]
-        // Back retraces to the previous state (focus memory) unless the state declares its own `back`.
-        const hop = data.transitions.find((x) => x.from === current && x.key === key)
-        if (key === 'back' && !hop) return t.length > 1 ? t.slice(0, -1) : t
-        if (!hop) return t
-        const behind = t.lastIndexOf(hop.to)
-        return behind >= 0 ? t.slice(0, behind + 1) : [...t, hop.to]
-      })
+    (key: PlayKey) => {
+      if (data) setTrail((t) => playStep(data, t, key))
     },
     [data],
   )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isBack = BACK_KEYS.includes(e.key) || BACK_CODES.includes(e.keyCode)
-      let key = KEYS[e.key] ?? (isBack ? 'back' : e.key === 'r' ? 'restart' : null)
+      let key = remoteKey(e)
       if (key === 'enter' && backControlFocused()) key = 'back'
       if (!key) return
       e.preventDefault()

@@ -24,6 +24,12 @@ export function remoteKey(e: { key: string; keyCode: number }): PlayKey | null {
   return KEY_OF.get(e.key) ?? (BACK_CODES.includes(e.keyCode) ? 'back' : null)
 }
 
+/**
+ * The back control of a level-3 screen, as the player and the probe find it in the page: the kit's round button
+ * drawn in the anchored group (the main menu's round buttons carry `data-focus-item`).
+ */
+export const BACK_CONTROL = '.sfs-round-button:not([data-focus-item])'
+
 /** The level-0 state a Back from the bug leads to; it has no file. */
 export const HIDDEN_STATE = 'hidden'
 
