@@ -11,7 +11,7 @@
  * generate → validate → retry loop that produces it.
  */
 
-import type { DesignSystemManifest, RuleDeviation, RuleFlexibility, ScreenSpec } from './design-system/manifest'
+import type { RuleDeviation, ScreenSpec } from './design-system/manifest'
 
 export type { RuleDeviation } from './design-system/manifest'
 
@@ -133,31 +133,6 @@ export function unknownBlueprintKeyReason(key: string): string {
     : 'the Blueprint DSL has no such key'
 }
 
-// ---------------------------------------------------------------------------
-// IPC contract
-// ---------------------------------------------------------------------------
-
-export const IPC = {
-  /** renderer -> main : ipcRenderer.invoke(IPC.generateUI, GenerateUIRequest) */
-  generateUI: 'ai:generateUI',
-} as const
-
-/** The name of the single tool the Generator agent is allowed to call. */
-export const RENDER_TOOL_NAME = 'render_ui'
-
-/** A prior turn in the conversation, sent so follow-up prompts have context. */
-export interface ChatTurn {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-/**
- * The mode a request asks for (phase 9C). `auto` lets the router decide; `both`
- * only ever comes from a button. Omitted: Faithful, with no router call.
- */
-export const REQUESTED_MODES = ['auto', 'faithful', 'exploratory', 'both'] as const
-export type RequestedMode = (typeof REQUESTED_MODES)[number]
-
 /** The mode a screen was actually generated in. */
 export const SCREEN_MODES = ['faithful', 'exploratory'] as const
 export type ScreenMode = (typeof SCREEN_MODES)[number]
@@ -171,118 +146,4 @@ export type ScreenMode = (typeof SCREEN_MODES)[number]
 export function screenMode(entry: unknown, fallback: ScreenMode = 'faithful'): ScreenMode {
   const mode = typeof entry === 'object' && entry !== null ? (entry as { mode?: unknown }).mode : undefined
   return SCREEN_MODES.find((m) => m === mode) ?? fallback
-}
-
-/** Per-request overrides chosen in the AI Agent panel. */
-export interface GenerateOptions {
-  /** Full model id (see `@/shared/models`). Falls back to env / default. */
-  model?: string
-  /** 'low' | 'medium' | 'high' | 'xhigh' | 'max'. */
-  effort?: string
-  mode?: RequestedMode
-}
-
-/**
- * What the router asks instead of generating: a request that leaves the patterns
- * without saying so, or one a law rules out in every mode. Each choice re-sends
- * the same request with that mode.
- */
-export interface RouterQuestion {
-  kind: 'conflict' | 'law'
-  text: string
-  /** The classifier's reason for the first conflict, when it gave one. */
-  why?: string
-  rules: { id: string; title: string; flexibility: RuleFlexibility }[]
-  choices: Exclude<RequestedMode, 'auto'>[]
-  /** The request rephrased to stay inside the rules. */
-  faithfulAlternative?: string
-}
-
-export interface GenerateUIRequest {
-  prompt: string
-  history?: ChatTurn[]
-  options?: GenerateOptions
-  /**
-   * The active Design System Manifest. The orchestrator compiles the Planner /
-   * Generator prompts and the strict Zod validator from this — never a hardcoded
-   * schema. Omitted → the built-in ScreenFlow manifest.
-   */
-  manifest?: DesignSystemManifest
-}
-
-/** Token / cost accounting for one generation. */
-export interface GenerateUsage {
-  inputTokens?: number
-  outputTokens?: number
-  /** For claude-cli this is the real reported cost; for api-key it's an estimate. */
-  costUsd?: number
-  /** True when costUsd is estimated from token counts rather than reported. */
-  costEstimated?: boolean
-  /** Prompt tokens read from the cache (not in inputTokens) — what tells a warm call from a cold one. */
-  cacheReadTokens?: number
-  /** Prompt tokens written to the cache (not in inputTokens). */
-  cacheWriteTokens?: number
-}
-
-/** One provider call of a run, with its usage: which step made it, on which "Os dois" branch, on which attempt. */
-export interface CallUsage extends GenerateUsage {
-  step: 'router' | 'planner' | 'generator'
-  branch?: 'F' | 'E'
-  /** The generator attempt (1, 2…); the plan index (0, 1… for replans) for a planner call. */
-  attempt?: number
-}
-
-/** Where the response came from. */
-export type GenerateUISource = 'dummy' | 'llm' | 'web-fallback'
-
-/** One failed generation attempt, structured: what the validator said, and — when it sent the run back to the planner — why. */
-export interface AttemptLog {
-  /** 0 for the first plan, 1 for the first replan… */
-  plan: number
-  attempt: number
-  issues: { ruleId: string; kind?: string; path: (string | number)[]; message: string }[]
-  /** Set on the attempt whose failure sent the run back to the planner. */
-  trigger?: string
-  /** "Os dois": the branch the attempt belongs to. */
-  branch?: 'F' | 'E'
-  /** Node-level breaks on a node that already declares another node-level rule (one declaration per node) — a 9G signal. */
-  nodeDeclarationConflicts?: { path: (string | number)[]; declared: string; broken: string }[]
-}
-
-export interface GenerateUIMeta {
-  source: GenerateUISource
-  /** Which backend produced it: 'api-key' | 'claude-cli' (undefined for the fixture). */
-  provider?: string
-  /** Model id actually used. */
-  model?: string
-  usage?: GenerateUsage
-  /** ms spent in the orchestrator. */
-  durationMs: number
-  /** Free-form trace of the orchestrator steps (planner, generator, retries…). */
-  steps: string[]
-  /** The mode the screens were generated in — never one the pipeline didn't run; 'both' for "Os dois" (each screen carries its own). */
-  mode?: ScreenMode | 'both'
-  /** Every provider call of the run with its own usage, cache tokens included — where the cost went. */
-  calls?: CallUsage[]
-  /** How many generations the result took: 2 for "Os dois" with both branches run, else absent (one). */
-  branches?: number
-  /** What the pipeline itself tells the user (the router, a mode fallback), shown under the reply. */
-  notices?: string[]
-  /** Every failed attempt of the run with its structured issues — for evaluation; absent when the first attempt was valid. */
-  trace?: AttemptLog[]
-}
-
-export type GenerateUIResponse =
-  | { ok: true; blueprint: BlueprintDocument; meta: GenerateUIMeta }
-  | { ok: false; error: string; stage: string; meta: GenerateUIMeta; question?: undefined }
-  /**
-   * The router asks before generating (Auto mode). Not a failure, but nothing was
-   * generated; `error` repeats the question's text for a client that can't ask.
-   */
-  | { ok: false; error: string; stage: 'router'; meta: GenerateUIMeta; question: RouterQuestion }
-
-export function isBlueprintDocument(value: unknown): value is BlueprintDocument {
-  if (typeof value !== 'object' || value === null) return false
-  const doc = value as Record<string, unknown>
-  return doc.version === 1 && typeof doc.root === 'object' && doc.root !== null
 }

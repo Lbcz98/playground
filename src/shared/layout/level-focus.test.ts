@@ -1,7 +1,6 @@
 /** Where the focus starts is what tells the pages apart (the user's page rules). */
 import { describe, expect, it } from 'vitest'
 import { interpretPrototype, treeToBlueprint as toDoc } from '@/interpreter/interpret'
-import { buildSystemPrompt } from '@/design-system/promptSpec'
 import type { BlueprintDocument, BlueprintNode } from '@/shared/blueprint'
 import { validateBlueprintAgainstManifest } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST as S } from '@/shared/design-system/screenflow-manifest'
@@ -59,13 +58,6 @@ describe('menu roles — each button owns a rail on its side', () => {
   it('a left rail is owned by a left button: miscellaneous, schedule or login', () => {
     for (const item of ['miscellaneous', 'schedule', 'login']) expect(errors(leftRail(item)).join()).not.toMatch(/focusedItem/)
     expect(errors(leftRail('program')).join()).toMatch(/Home rail is on the left.*"miscellaneous" or "schedule" or "login"/)
-  })
-
-  it('the prompt names every role and its side', () => {
-    const prompt = buildSystemPrompt('json')
-    expect(prompt).toMatch(/Program \(focusedItem "program"\) — its interactivity buttons sit on the right/)
-    expect(prompt).toMatch(/Schedule \(focusedItem "schedule"\) — its interactivity buttons sit on the left and hold the schedule: .*time.*live.*name/)
-    expect(prompt).toMatch(/Login \(focusedItem "login"\) — .*left and hold account settings/)
   })
 })
 

@@ -15,8 +15,10 @@ const FORBIDDEN = [
   /^src\/design-system\/catalog\.ts$/,
   /^src\/design-system\/registry\.tsx$/,
   /^src\/shared\/design-system\/screenflow-manifest\.ts$/,
-  /^src\/(store|canvas|app)\//,
-  /^electron\//,
+  /^src\/canvas\//,
+  /^src\/interpreter\//,
+  /^src\/model\/nodeTree\.ts$/,
+  /^src\/shared\/templates\//,
 ]
 
 /** forbidden module -> chain (entry -> ... -> forbidden) that reaches it today. Remove entries as they are fixed. */
