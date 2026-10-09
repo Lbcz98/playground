@@ -67,11 +67,23 @@ describe('check:flow plays a flow folder', () => {
     expect(r.code).toBe(1)
   }, 120_000)
 
-  it('level 3 focused on the content card, the back button at rest, passes: the card is focusable content', () => {
+  it('level.initial-focus: level 3 entered with the focus already on the card (the audited case)', () => {
     const detail = swap(swap(DETAIL, BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')), CARD_RESTING, CARD_RESTING.replace('default', 'focus'))
     const r = probe('card-start', { 'detail.tsx': detail }, '--json')
     if (r.skipped) return
+    expect(r.rules).toEqual(['level.initial-focus'])
+    expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'detail' })
+    expect(r.report?.problems[0].message).toMatch(/focus is on <ContentCard>, not on <CloseButton> or <RoundedButton>/)
+    expect(r.code).toBe(1)
+  }, 120_000)
+
+  it('level 3: the back button first, then a key moves the focus onto the card, and back again', () => {
+    const card = swap(swap(DETAIL, BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')), CARD_RESTING, CARD_RESTING.replace('default', 'focus'))
+    const flow = FLOW.replace("    { from: 'rail', key: 'down', to: 'home' },", "    { from: 'rail', key: 'down', to: 'home' },\n    { from: 'detail', key: 'up', to: 'card' },\n    { from: 'card', key: 'down', to: 'detail' },")
+    const r = probe('card-after', { 'flow.ts': flow, 'card.tsx': card }, '--json')
+    if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
+    expect(r.report?.states).toEqual(['home', 'rail', 'detail', 'card'])
     expect(r.code).toBe(0)
   }, 120_000)
 
@@ -106,7 +118,7 @@ describe('check:flow plays a flow folder', () => {
     const r = probe('card-and-button', { 'detail.tsx': swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')) })
     if (r.skipped) return
     expect(r.stdout).toMatch(/\[focus\.single\] detail: 2 elements/)
-    expect(r.stdout).not.toMatch(/level\.initial-focus/)
+    expect(r.stdout).toMatch(/\[level\.initial-focus\] detail: level 3/)
     expect(r.code).toBe(1)
   }, 120_000)
 
@@ -185,9 +197,12 @@ describe('focusProblems', () => {
     expect(rules('interactivity-buttons-right', declared, 'ContentCard')).toEqual([])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard', 'InteractivityButton')).toEqual(['focus.single'])
   })
-  it('level 3 takes the focus on the back button or on the content card', () => {
+  it('level 3 is entered on the back button; moving inside it may put the focus on the content card', () => {
+    const moved = (...components: string[]) => focusProblems('s', read('interactivity-cards-right', ...components), '', false).map((p) => p.rule)
     expect(rules('interactivity-cards-right', '', 'RoundedButton')).toEqual([])
-    expect(rules('interactivity-cards-right', '', 'ContentCard')).toEqual([])
+    expect(rules('interactivity-cards-right', '', 'ContentCard')).toEqual(['level.initial-focus'])
+    expect(moved('ContentCard')).toEqual([])
+    expect(moved('ContentCard', 'RoundedButton')).toEqual(['focus.single'])
     expect(rules('interactivity-cards-right', '', 'InteractivityButton')).toEqual(['level.initial-focus'])
   })
 })

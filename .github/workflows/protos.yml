@@ -78,6 +78,20 @@ jobs:
           if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > report.json || code=$?; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
+      # The flows of every designer folder the pull request touches are played in a browser: one focus per state,
+      # where focus starts on each level, Back, and no blank or rebuilt frame. A failing flow fails the job last.
+      - name: Flows, played
+        id: flows
+        run: |
+          code=0
+          designers=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/*/**' | cut -d/ -f3 | sort -u)
+          for designer in $designers; do
+            for flow in $(find "web/protos/$designer" -name flow.ts -exec dirname {} \;); do
+              npm run check:flow --silent -- "$flow" || code=1
+            done
+          done
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
       - name: Report, comment and summary
         if: always()
         env:
@@ -87,7 +101,7 @@ jobs:
           npm run pr:comment --silent -- report.md
 
       - name: Fail when the laws failed
-        if: steps.laws.outputs.code != '0'
+        if: steps.laws.outputs.code != '0' || steps.flows.outputs.code != '0'
         run: exit 1
       - name: Build
         run: npm run build --prefix web

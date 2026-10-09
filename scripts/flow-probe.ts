@@ -60,7 +60,7 @@ export interface FlowReport {
 }
 
 /** The two focus rules on one state, from what the page drew. */
-export function focusProblems(state: string, read: FocusReading, source: string): FlowProblem[] {
+export function focusProblems(state: string, read: FocusReading, source: string, entered = true): FlowProblem[] {
   const out: FlowProblem[] = []
   const model = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)
   const level = DTV_SCREEN_LAYERS.levels.find((l) => l.level === (model?.level ?? (read.level === null ? undefined : Number(read.level))))
@@ -70,7 +70,7 @@ export function focusProblems(state: string, read: FocusReading, source: string)
   const n = read.focused.length
 
   if (n > 1) {
-    const keep = start ? `Keep it on ${[...start.on, ...(start.accepts ?? [])].map((c) => `<${c}>`).join(' or ')}` : 'Keep one'
+    const keep = start ? `Keep it on ${(entered ? start.on : [...start.on, ...(start.accepts ?? [])]).map((c) => `<${c}>`).join(' or ')}` : 'Keep one'
     out.push({
       rule: 'focus.single',
       state,
@@ -80,7 +80,7 @@ export function focusProblems(state: string, read: FocusReading, source: string)
     out.push({ rule: 'focus.single', state, message: `nothing is drawn focused on ${where} — a screen has exactly one focused element. ${start?.hint ?? 'Focus one.'}` })
   }
 
-  const wrong = start ? read.focused.filter((f) => !start.on.includes(f.component) && !start.accepts?.includes(f.component)) : []
+  const wrong = start ? read.focused.filter((f) => !start.on.includes(f.component) && !(!entered && start.accepts?.includes(f.component))) : []
   if (start && wrong.length > 0 && !/@deviation\s+level\.initial-focus\b/.test(source)) {
     out.push({
       rule: 'level.initial-focus',
@@ -144,10 +144,15 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
   if (failed) throw new Error(`the flow could not be loaded: ${failed}`)
   if (!(await arrives(data.start))) throw new Error(`the start state "${data.start}" never came on screen — is there a ${data.start}.tsx that returns a <Screen>?`)
 
-  const focus = async (state: string): Promise<void> => {
+  /** The level of each state read, so a state can tell whether the viewer entered it from another level or moved inside one. */
+  const levels = new Map<string, number | undefined>()
+  const focus = async (state: string, from?: string): Promise<void> => {
     const read = await evaluate<FocusReading | { error: string }>('window.__focus()')
-    if ('error' in read) problems.push({ rule: 'flow.transition', state, message: read.error })
-    else problems.push(...focusProblems(state, read, existsSync(join(dir, `${state}.tsx`)) ? readFileSync(join(dir, `${state}.tsx`), 'utf8') : ''))
+    if ('error' in read) return void problems.push({ rule: 'flow.transition', state, message: read.error })
+    const level = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)?.level ?? (read.level === null ? undefined : Number(read.level))
+    levels.set(state, level)
+    const entered = from === undefined || levels.get(from) !== level
+    problems.push(...focusProblems(state, read, existsSync(join(dir, `${state}.tsx`)) ? readFileSync(join(dir, `${state}.tsx`), 'utf8') : '', entered))
   }
 
   // Breadth first from `start`: the keys that lead to each state, the shortest way.
@@ -182,7 +187,7 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
       if (route.has(hop.to)) continue // seen before: its focus was read then, and Esc from a state already behind is another trail
       route.set(hop.to, [...route.get(from)!, hop.key])
       order.push(hop.to)
-      await focus(hop.to)
+      await focus(hop.to, from)
       // Back by itself retraces to the state before. A state that declares its own `back` (the Home bar's two-step)
       // is walked as that transition, and `hidden` is the app closed: Back does nothing there.
       if (hop.to === HIDDEN_STATE || data.transitions.some((t) => t.from === hop.to && t.key === 'back')) continue

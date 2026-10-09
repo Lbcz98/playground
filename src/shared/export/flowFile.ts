@@ -162,7 +162,9 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
   for (const s of states) {
     if (s.id === flow.start || levelOfScreen(manifest, s.screen) !== 3) continue
     const into = flow.transitions.filter((t) => t.to === s.id && ids.has(t.from))
-    const opened = into.some((t) => t.key === 'enter' && levelOfScreen(manifest, states.find((x) => x.id === t.from)?.screen) === 2)
+    const fromLevel = (t: FlowTransition): number | undefined => levelOfScreen(manifest, states.find((x) => x.id === t.from)?.screen)
+    // Moving the focus inside the interactivity (back button to card) opens no new page: the state it leaves is checked on its own.
+    const opened = into.some((t) => (t.key === 'enter' && fromLevel(t) === 2) || fromLevel(t) === 3)
     if (into.length > 0 && !opened) add(`State "${s.id}" is never opened by Enter from a rail card, so Back has no card to return the focus to.`, 'flow.focus-memory')
   }
 

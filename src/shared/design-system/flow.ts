@@ -86,7 +86,7 @@ export function initialFocusExpectation(level: number, side?: 'left' | 'right'):
     const card = side === 'left' ? 'leftmost card' : side === 'right' ? 'rightmost card' : 'card nearest the owning icon'
     return { on: ['InteractivityButton'], note: `focus starts on the ${card} (left rail: leftmost, right rail: rightmost)` }
   }
-  if (level === 3) return { on: ['CloseButton', 'RoundedButton'], note: 'focus starts on the back button when the content has nothing focusable, else on the content' }
+  if (level === 3) return { on: ['CloseButton', 'RoundedButton'], note: 'focus starts on the back button; the viewer then moves it onto the content card, a state of its own' }
   return { on: [], note: 'level 0 shows only the video; nothing holds focus' }
 }
 

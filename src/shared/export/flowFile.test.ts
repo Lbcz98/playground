@@ -171,6 +171,11 @@ describe('checkFlow', () => {
     expect(m).toMatch(/flow\.back-steps: .*home-program —back→ rail-program/)
   })
 
+  it('flow.focus-memory: moving the focus inside a level-3 page is not a new page to return from', () => {
+    const dir = files('inside', [T('detail', 'up', 'detail-card'), T('detail-card', 'down', 'detail')], (f) => (f['detail-card.tsx'] = f['detail.tsx']))
+    expect(messages(dir).join('\n')).not.toMatch(/focus-memory/)
+  })
+
   it('flow.focus-memory: a page not opened by Enter from a rail has no card to return to', () => {
     const dir = files('memory', [], (f) => (f['flow.ts'] = f['flow.ts'].replace(T('rail-program', 'enter', 'detail'), T('home-bug', 'enter', 'detail'))))
     expect(messages(dir).join('\n')).toMatch(/flow\.focus-memory: State "detail"/)

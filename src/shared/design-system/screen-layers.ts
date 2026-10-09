@@ -89,7 +89,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
         on: ['CloseButton', 'RoundedButton'],
         accepts: ['ContentCard'],
         required: true,
-        hint: 'Focus starts on the rounded button (the anchored back/close control, the back button) when the content has nothing focusable (empty or error states), and on the content card when it has one.',
+        hint: 'Focus starts on the rounded button (the anchored back/close control, the back button); the viewer then moves the focus onto the content card, which is focusable even when it has no interaction. That move is a state of its own, never the state the viewer enters.',
       },
     },
   ],
