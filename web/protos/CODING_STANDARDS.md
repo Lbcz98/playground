@@ -17,7 +17,8 @@ import { Screen } from '@/ui-kit/Screen'
 - Vários componentes nascem focados; deixe um só focado e confira o padrão no `docs-show`.
 
 ## `@deviation`
-Declara um padrão que você quebra de propósito. Lei não se declara; corrija-a.
+Declara um padrão que o usuário pediu para quebrar. Lei não se declara; corrija-a.
+Só declare quando o pedido veio do usuário, em palavras, e cite-o: `@deviation <ruleId>: pedido: "<frase do usuário>". <por quê>`. Sem pedido, siga o padrão; na dúvida, pergunte antes de escrever.
 Dados e arquivos próprios: importe de dentro da sua pasta (`./dados`, `./components/Etapa`). Arquivo sem JSX não passa pelo filtro de valores brutos; o que o checador não lê aparece como "não lido" e a medição renderizada continua valendo.
 
 ## `@reuse` e `@proposal`

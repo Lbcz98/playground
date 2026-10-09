@@ -5,7 +5,7 @@ import { ClimaCard } from '../components/ClimaCard'
 
 export default function Detail() {
   return (
-    <Screen model="interactivity-cards-right" level={3} focusSide="right" anchored={<RoundedButton label="Voltar" interactionState="focus" />}>
+    <Screen model="interactivity-cards-right" level={3} focusSide="right" anchored={<RoundedButton label="Voltar" interactionState="default" />}>
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <Stack direction="row" justify="end" align="end" gap="sm">
           <ClimaCard

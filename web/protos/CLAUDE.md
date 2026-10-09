@@ -20,9 +20,12 @@ Pronto quando sai sem **bloqueio** (CI também; conserte ou declare `@deviation`
 
 ```
 npm run check:laws -- web/protos/<seu-nome>/<tela>.tsx   # fluxo: a pasta
+npm run check:flow -- web/protos/<seu-nome>/<fluxo>      # só fluxo: joga as teclas no navegador
 ```
 
 Chromium que não sobe é bloqueio no CI; local: `npm run browsers:install`.
+
+A checagem também roda sozinha a cada arquivo escrito aqui (hook); o que ela devolve é bloqueio, não sugestão. Antes de mostrar a tela ao usuário ou publicar, chame o agente `proto-reviewer` com o caminho (fluxo: a pasta) e conserte até o veredito sair `PASS`.
 
 ## 4. Veja e publique
 Pronto quando `/<seu-nome>/<tela>` abre após `cd web && npm run dev` (fluxo: setas e Enter; Esc/Backspace voltam; R reinicia). Publicar: `/deploy`.
