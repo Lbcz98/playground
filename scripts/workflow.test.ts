@@ -45,6 +45,12 @@ describe('.github/workflows/protos.yml', () => {
       expect(existsSync(join(ROOT, pkg.scripts[script].match(/scripts\/[\w-]+\.ts/)![0])), script).toBe(true)
     }
   })
+  it('asks the folder model (ci:protos) which paths are the designer’s, which are screens and which are flows; no awk, find or glob of its own', () => {
+    for (const mode of ['outside "$designer"', 'screens', 'flows']) expect(protosJob).toMatch(new RegExp(`npm run ci:protos --silent -- ${mode.replace('$', '\\$')}`))
+    expect(protosJob).not.toMatch(/\bawk\b|\bfind\b|'web\/protos/)
+    // The script runs from node_modules, so the install comes before the first step that uses it.
+    expect(protosJob.indexOf('run: npm ci\n')).toBeLessThan(protosJob.indexOf('npm run ci:protos'))
+  })
   it('does not spell out the report schema: every step writes its own findings file, and pr:report reads the folder', () => {
     expect(yml).not.toContain('schemaVersion')
     expect(yml).toMatch(/npm run check:flow [^\n]*--json/)

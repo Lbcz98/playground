@@ -49,22 +49,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Branches the /deploy command opens (proto/<designer>/…) may change one folder and nothing else.
-      - name: Only web/protos/<designer>/
-        if: startsWith(github.head_ref, 'proto/')
-        run: |
-          designer=$(printf '%s' "$HEAD_REF" | cut -d/ -f2)
-          outside=$(git diff --name-only "origin/$BASE_REF...HEAD" | awk -v p="web/protos/${designer}/" 'index($0, p) != 1')
-          if [ -n "$outside" ]; then
-            echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
-          fi
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+
+      # Branches the /deploy command opens (proto/<designer>/…) may change one folder and nothing else.
+      # What is a designer's, a screen and a flow is asked of the folder model (npm run ci:protos), never a pattern here.
+      - name: Only web/protos/<designer>/
+        if: startsWith(github.head_ref, 'proto/')
+        run: |
+          designer=$(printf '%s' "$HEAD_REF" | cut -d/ -f2)
+          outside=$(git diff --name-only "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- outside "$designer")
+          if [ -n "$outside" ]; then
+            echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
+          fi
+
       - run: npm ci --prefix web
       - run: npx playwright install --with-deps chromium
 
@@ -72,7 +74,7 @@ jobs:
       - name: Laws, on every screen and flow the pull request touches
         id: laws
         run: |
-          screens=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/**/*.tsx' 'web/protos/**/flow.ts')
+          screens=$(set -o pipefail; git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- screens)
           mkdir findings
           code=0
           if [ -n "$screens" ]; then npm run check:laws --silent -- --json --require-render $screens > findings/laws.json || code=$?; fi
@@ -85,11 +87,9 @@ jobs:
         id: flows
         run: |
           code=0
-          designers=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- 'web/protos/*/**' | cut -d/ -f3 | sort -u)
-          for designer in $designers; do
-            for flow in $(find "web/protos/$designer" -name flow.ts -exec dirname {} \;); do
-              npm run check:flow --silent -- "$flow" --json > "findings/flow-$(printf '%s' "$flow" | tr / _).json" || code=1
-            done
+          flows=$(set -o pipefail; git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- flows)
+          for flow in $flows; do
+            npm run check:flow --silent -- "$flow" --json > "findings/flow-$(printf '%s' "$flow" | tr / _).json" || code=1
           done
           echo "code=$code" >> "$GITHUB_OUTPUT"
 

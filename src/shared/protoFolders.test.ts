@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { designerFolder, inDesigner, isCheckable, checkTargets, flowFolderOf, isLocalComponent, isScreen, listProtos, tsxNames, type Tree } from './protoFolders'
+import { designerFolder, inDesigner, isCheckable, checkTargets, flowFolderOf, flowFoldersUnder, isLocalComponent, isScreen, listProtos, tsxNames, type Tree } from './protoFolders'
 
 /** A folder of strings: the rules run on these, with no disk. */
 const treeOf = (files: Record<string, string>): Tree => ({
@@ -46,6 +46,11 @@ describe('a flow folder', () => {
   it('is the folder that holds a flow.ts; it is reached from the folder, the flow.ts or a state in it', () => {
     expect(['p/buy', 'p/buy/flow.ts', 'p/buy/cart.tsx'].map((a) => flowFolderOf(a, tree))).toEqual(['p/buy', 'p/buy', 'p/buy'])
     expect(['p/misc', 'p/misc/x.tsx', 'p/home.tsx', 'p/nowhere'].map((a) => flowFolderOf(a, tree))).toEqual([undefined, undefined, undefined, undefined])
+  })
+  it('is found at any depth under a folder, the folder itself included', () => {
+    const all = treeOf({ 'p/flow.ts': '', 'p/buy/flow.ts': '', 'p/a/b/flow.ts': '', 'p/a/b/s.tsx': SCREEN, 'p/misc/x.tsx': SCREEN, 'p/xflow.ts': '' })
+    expect(flowFoldersUnder('p', all)).toEqual(['p', 'p/a/b', 'p/buy'])
+    expect(flowFoldersUnder('p/misc', all)).toEqual([])
   })
 })
 

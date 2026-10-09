@@ -63,7 +63,17 @@ export function flowFolderOf(path: string, tree: Tree): string | undefined {
   return isFlowFolder(dir, tree) ? dir : undefined
 }
 
-const screensUnder = (dir: string, tree: Tree): string[] =>
+/** Every flow folder at or below `dir`, at any depth, `dir` first. */
+export const flowFoldersUnder = (dir: string, tree: Tree): string[] => [
+  ...(isFlowFolder(dir, tree) ? [dir] : []),
+  ...tree
+    .list(dir)
+    .filter((e) => e.endsWith('/'))
+    .sort()
+    .flatMap((e) => flowFoldersUnder(`${dir}/${e.slice(0, -1)}`, tree)),
+]
+
+const screensUnder =(dir: string, tree: Tree): string[] =>
   tree
     .list(dir)
     .sort()
