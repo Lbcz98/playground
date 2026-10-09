@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
-import { findingsOf, focusProblems, type ProbeReport } from '../../scripts/flow-probe'
+import { advisoriesOf, findingsOf, focusProblems, railSideProblems, type ProbeReport } from '../../scripts/flow-probe'
 import { DTV_TEMPLATES } from '../../scripts/storybook/dtv-templates'
 import type { BlueprintDocument } from '../../src/shared/blueprint'
 import { exportBlueprintToTsx } from '../../src/shared/export/toTsx'
@@ -217,6 +217,45 @@ describe('level.initial-focus: check:flow accepts the declaration only where che
   }
 })
 
+describe('flow.rail-side: a warning that reaches the designer without blocking', () => {
+  // Level 3 on the left rail's model, but the Screen keeps the default focusSide: the back button is drawn on the right.
+  const MISMATCH = swap(DETAIL, 'model="interactivity-cards-right"', 'model="interactivity-cards-left"')
+  const DECLARED = swap(MISMATCH, ' * ScreenView —', ' * @deviation flow.rail-side: the back button stays where the thumb is\n * ScreenView —')
+
+  it('--json: a warning on the state, in advisories next to findings; nothing blocks, exit 0', () => {
+    const r = probe('rail-side', { 'detail.tsx': MISMATCH }, '--json')
+    if (r.skipped) return
+    expect(r.report?.problems).toEqual([])
+    expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side', state: 'detail' }])
+    const json = JSON.parse(r.stdout)
+    expect(json.findings).toEqual([])
+    expect(json.advisories).toEqual([{ rule: 'flow.rail-side', file: `${DIR}/rail-side/detail.tsx`.replace(`${ROOT}`, ''), message: expect.stringContaining('back button is drawn on the right') }])
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('text: marked as a warning, the flow still passes', () => {
+    const r = probe('rail-side-text', { 'detail.tsx': MISMATCH })
+    if (r.skipped) return
+    expect(r.stdout).toMatch(/\[flow\.rail-side\] \(warning\) detail: "interactivity-cards-left" puts the persistents rail on the left/)
+    expect(r.stdout).toMatch(/ok — .*\n.*1 warning/)
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('a convention is not declarable (deviations.ts: it needs no declaration), so @deviation does not silence it', () => {
+    const r = probe('rail-side-declared', { 'detail.tsx': DECLARED }, '--json')
+    if (r.skipped) return
+    expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side' }])
+    expect(r.code).toBe(0)
+  }, 120_000)
+
+  it('the sides agreeing is silent', () => {
+    const r = probe('rail-side-ok', { 'detail.tsx': swap(MISMATCH, 'level={3}', 'level={3} focusSide="left"') }, '--json')
+    if (r.skipped) return
+    expect(r.report?.warnings).toEqual([])
+    expect(r.code).toBe(0)
+  }, 120_000)
+})
+
 describe('check:flow --json findings, the shape pr:report reads', () => {
   it('a problem is a finding on its state file, naming the key press when it has one', () => {
     const report: ProbeReport = {
@@ -225,7 +264,9 @@ describe('check:flow --json findings, the shape pr:report reads', () => {
         { rule: 'flow.transition', state: 'rail', transition: 'home —up→ rail', message: 'up on "home" did not show "rail"' },
         { rule: 'focus.single', state: 'home', message: 'nothing is drawn focused' },
       ],
+      warnings: [{ rule: 'flow.rail-side', state: 'rail', message: 'the back button is on the other side' }],
     }
+    expect(advisoriesOf(report)).toEqual([{ rule: 'flow.rail-side', file: 'web/protos/x/rail.tsx', message: 'the back button is on the other side' }])
     expect(findingsOf(report)).toEqual([
       { rule: 'flow.transition', file: 'web/protos/x/rail.tsx', message: 'home —up→ rail: up on "home" did not show "rail"' },
       { rule: 'focus.single', file: 'web/protos/x/home.tsx', message: 'nothing is drawn focused' },
@@ -244,7 +285,7 @@ describe('check:flow --json findings, the shape pr:report reads', () => {
 })
 
 describe('focusProblems', () => {
-  const read = (model: string, ...components: string[]) => ({ model, level: null, focused: components.map((component) => ({ component, text: '' })) })
+  const read = (model: string, ...components: string[]) => ({ model, level: null, back: null, focused: components.map((component) => ({ component, text: '' })) })
   const rules = (model: string, source: string, ...components: string[]) => focusProblems('s', read(model, ...components), source).map((p) => p.rule)
 
   it('allows no focus only on level 0', () => {
@@ -270,5 +311,22 @@ describe('focusProblems', () => {
     expect(moved('ContentCard')).toEqual([])
     expect(moved('ContentCard', 'RoundedButton')).toEqual(['focus.single'])
     expect(rules('interactivity-cards-right', '', 'InteractivityButton')).toEqual(['level.initial-focus'])
+  })
+})
+
+describe('railSideProblems (flow.rail-side, a convention: it warns, it never blocks)', () => {
+  const read = (model: string, back: 'left' | 'right' | null) => ({ model, level: null, focused: [], back })
+  it('warns when the rail of the layer model is on one side and the back button is drawn on the other', () => {
+    const [warning, ...rest] = railSideProblems('detail', read('interactivity-cards-left', 'right'))
+    expect(rest).toEqual([])
+    expect(warning).toMatchObject({ rule: 'flow.rail-side', state: 'detail' })
+    expect(warning.message).toMatch(/interactivity-cards-left.*rail on the left.*back button.*right.*focusSide="left"/)
+    expect(railSideProblems('detail', read('interactivity-cards-right', 'left'))[0].message).toMatch(/focusSide="right"/)
+  })
+  it('is silent when the sides agree, when there is no back button, or when the model has no side', () => {
+    expect(railSideProblems('detail', read('interactivity-cards-left', 'left'))).toEqual([])
+    expect(railSideProblems('detail', read('interactivity-cards-right', 'right'))).toEqual([])
+    expect(railSideProblems('rail', read('interactivity-buttons-left', null))).toEqual([])
+    expect(railSideProblems('home', read('home', 'right'))).toEqual([])
   })
 })

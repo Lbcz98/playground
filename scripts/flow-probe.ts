@@ -14,6 +14,7 @@
  *   flow.focus-memory     the same out of a state opened by Enter (the rail card that opened it is restored)
  *   flow.blank-frame      at no point of a key press is the stage without a <Screen>
  *   flow.remount          the frame (video, overlay and content layers) is updated in place, not rebuilt
+ *   flow.rail-side        (a convention: a warning, never a block) the back button is drawn on the side of the layer model's rail
  *
  * flow.transition, flow.blank-frame and flow.remount are this probe's own ids, about the player (the rules book has no entry for them yet).
  * Exit 1 on any problem, and when Chromium cannot start: a flow that was not played did not pass.
@@ -51,7 +52,10 @@ export interface ProbeReport {
   states: string[]
   /** Key presses played, forward and back. */
   presses: number
+  /** What blocks: exit 1. */
   problems: FlowProblem[]
+  /** What only warns (the conventions of the book): printed and listed in the report, never fail the run. */
+  warnings: FlowProblem[]
 }
 
 /** The two focus rules on one state: what the page drew focused, asked of the focus rule (src/shared/layout/focus-rule.ts). */
@@ -89,8 +93,27 @@ export function focusProblems(state: string, read: FocusReading, source: string,
   return out
 }
 
+/**
+ * `flow.rail-side` (a convention: a warning, never a block): the rail of the layer model (`left` = the persistents rail, `right`
+ * = the program rail) and the back control drawn on the same side. Both are read off the page: the model from the Screen, the
+ * control from where it is drawn. A screen without a back control, or a model without a side, has nothing to compare.
+ */
+export function railSideProblems(state: string, read: FocusReading): FlowProblem[] {
+  const model = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)
+  if (!model?.side || !read.back || read.back === model.side) return []
+  const rail = model.side === 'left' ? 'persistents' : 'program'
+  return [
+    {
+      rule: 'flow.rail-side',
+      state,
+      message: `"${model.id}" puts the ${rail} rail on the ${model.side}, but the back button is drawn on the ${read.back} — the rail and its back button share a side. Set focusSide="${model.side}" on the <Screen> (or use the model of the ${read.back} rail).`,
+    },
+  ]
+}
+
 async function walk(page: HarnessPage, dir: string, data: FlowFile): Promise<ProbeReport> {
   const problems: FlowProblem[] = []
+  const warnings: FlowProblem[] = []
   let presses = 0
   /** One key, watched: whether `to` came on screen, and what the press did to the frame. */
   const press = async (key: string, to: string, state: string, transition: string): Promise<boolean> => {
@@ -128,6 +151,7 @@ async function walk(page: HarnessPage, dir: string, data: FlowFile): Promise<Pro
     const level = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)?.level ?? (read.level === null ? undefined : Number(read.level))
     levels.set(state, level)
     const entered = from === undefined || levels.get(from) !== level
+    warnings.push(...railSideProblems(state, read))
     problems.push(...focusProblems(state, read, existsSync(join(dir, `${state}.tsx`)) ? readFileSync(join(dir, `${state}.tsx`), 'utf8') : '', entered))
     return read.focused.map((f) => f.component)
   }
@@ -196,7 +220,7 @@ async function walk(page: HarnessPage, dir: string, data: FlowFile): Promise<Pro
       }
     }
   }
-  return { flow: relative(ROOT, dir), start: data.start, states: order, presses, problems }
+  return { flow: relative(ROOT, dir), start: data.start, states: order, presses, problems, warnings }
 }
 
 /** Plays the flow folder and returns what it found. Throws `RenderAuditUnavailable` when there is no Chromium. */
@@ -220,8 +244,11 @@ export async function probeFlow(folder: string): Promise<ProbeReport> {
 }
 
 /** The problems of a probe as the findings `pr:report` lists: each on the file of its state, the key press in front of the message. */
-export function findingsOf(report: ProbeReport): Finding[] {
-  return report.problems.map((p) => ({ rule: p.rule, file: `${report.flow}/${p.state}.tsx`, message: p.transition ? `${p.transition}: ${p.message}` : p.message }))
+export const findingsOf = (report: ProbeReport): Finding[] => asFindings(report, report.problems)
+/** The same for the warnings: `advisories` next to `findings` in `--json`. */
+export const advisoriesOf = (report: ProbeReport): Finding[] => asFindings(report, report.warnings)
+function asFindings(report: ProbeReport, list: FlowProblem[]): Finding[] {
+  return list.map((p) => ({ rule: p.rule, file: `${report.flow}/${p.state}.tsx`, message: p.transition ? `${p.transition}: ${p.message}` : p.message }))
 }
 
 async function main(): Promise<void> {
@@ -242,11 +269,13 @@ async function main(): Promise<void> {
     if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: [], findings: [{ rule: 'flow.not-played', file: join(resolve(folders[0]), 'flow.ts'), message }] }, null, 2))
     process.exit(1)
   }
-  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: [], findings: findingsOf(report), ...report }, null, 2))
+  if (json) console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, reports: [], findings: findingsOf(report), advisories: advisoriesOf(report), ...report }, null, 2))
   else {
     console.log(`${report.flow}: ${report.states.length} states from "${report.start}" (${report.states.join(', ')}), ${report.presses} key presses`)
     for (const p of report.problems) console.log(`  [${p.rule}] ${p.transition ?? p.state}: ${p.message}`)
+    for (const p of report.warnings) console.log(`  [${p.rule}] (warning) ${p.transition ?? p.state}: ${p.message}`)
     console.log(report.problems.length === 0 ? '  ok — one focus per state, on the right component; back returns; no blank frame, no remount' : `  ${report.problems.length} problem(s)`)
+    if (report.warnings.length > 0) console.log(`  ${report.warnings.length} warning(s) — they do not fail the flow`)
   }
   process.exit(report.problems.length > 0 ? 1 : 0)
 }

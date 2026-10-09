@@ -31,6 +31,8 @@ export interface FocusReading {
   model: string | null
   level: string | null
   focused: { component: string; text: string }[]
+  /** The side of the frame the back control (BACK_CONTROL) is drawn on; null when the screen has none. */
+  back: 'left' | 'right' | null
 }
 export interface Watched {
   blank: boolean
