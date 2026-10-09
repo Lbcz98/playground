@@ -3,13 +3,13 @@ import { Screen } from '@/ui-kit/Screen'
 import { Stack } from '@/primitives'
 import { ClimaCard } from '../components/ClimaCard'
 
-export default function Detail() {
+export default function DetailCard() {
   return (
-    <Screen model="interactivity-cards-left" level={3} focusSide="left" anchored={<RoundedButton label="Voltar" interactionState="focus" />}>
+    <Screen model="interactivity-cards-left" level={3} focusSide="left" anchored={<RoundedButton label="Voltar" interactionState="default" />}>
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <Stack direction="row" justify="start" align="end" gap="sm">
           <ClimaCard
-            interactionState="default"
+            interactionState="focus"
             cidade="São Paulo"
             condicao="Chuva fraca"
             temperatura="22°"

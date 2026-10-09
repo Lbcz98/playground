@@ -110,7 +110,7 @@ Applies to: `ContentCard`, `ContentCardHeader`, `ContentCardBody`, `ContentCardF
 
 ### `level.initial-focus` Where focus starts
 
-Level 1 starts on the bug (the rightmost item of the Home bar), not the first item; level 2 on the card nearest the icon that owns the rail (left rail: the leftmost card, right rail: the rightmost); level 3 on the back button when the content has nothing focusable, else on the content.
+Level 1 starts on the bug (the rightmost item of the Home bar), not the first item; level 2 on the card nearest the icon that owns the rail (left rail: the leftmost card, right rail: the rightmost); level 3 on the back button, then the viewer moves the focus onto the content card, which is focusable even with no interaction.
 
 Applies to: `MainMenu`, `InteractivityButton`, `CloseButton`, `RoundedButton`
 

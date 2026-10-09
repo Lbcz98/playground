@@ -10,6 +10,8 @@
  * summary no longer says it is anchored, the kernel states its laws without capitals, and the planner has no line cap.
  * Oct 9: the planner hash moved 168a7c19bb -> c5e8493a6e on purpose: the navigation rules and the per-level focus hints
  * now follow the real app (Home focus starts on the bug; level keys, no wrap, back steps). The generator hash moved 4a55df4278 -> ee81bad023 for the same reason.
+ * Oct 9 (later): planner c5e8493a6e -> a7b4c05df7, generator ee81bad023 -> 8d8d6a2da1 on purpose: level 3 starts on the back button, and the
+ * viewer then moves the focus onto the content card (the previous wording let the content take it on entry).
  */
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
@@ -20,8 +22,8 @@ const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 
 
 describe('the Faithful prompts', () => {
   it('are pinned by hash (the same hashes the eval stamps)', () => {
-    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('c5e8493a6e')
-    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('ee81bad023')
+    expect(hash(buildPlannerPrompt(M, { prompt: '', mode: 'faithful' }))).toBe('a7b4c05df7')
+    expect(hash(buildSystemPrompt('json', M, 'faithful'))).toBe('8d8d6a2da1')
   })
 
   it('never carry the Exploratory Proposal wording', () => {

@@ -150,7 +150,7 @@ export const RULES = [
     id: 'level.initial-focus',
     title: 'Where focus starts',
     statement:
-      'Level 1 starts on the bug (the rightmost item of the Home bar), not the first item; level 2 on the card nearest the icon that owns the rail (left rail: the leftmost card, right rail: the rightmost); level 3 on the back button when the content has nothing focusable, else on the content.',
+      'Level 1 starts on the bug (the rightmost item of the Home bar), not the first item; level 2 on the card nearest the icon that owns the rail (left rail: the leftmost card, right rail: the rightmost); level 3 on the back button, then the viewer moves the focus onto the content card, which is focusable even with no interaction.',
     flexibility: 'pattern',
     category: 'level',
     source: 'frame.ts',

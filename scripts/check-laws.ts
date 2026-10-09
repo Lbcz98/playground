@@ -303,6 +303,8 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
 
   /** Kit components drawn focused inside a local component: the validator reads that component as a Proposal and cannot see them. */
   const focusedInLocal: string[] = []
+  /** Kit holders a local component draws with a computed `interactionState`: it forwards the prop, so the screen decides. */
+  const forwarded = new Set<string>()
   for (const { el, scope } of screens) {
     const model = literalProp(el, 'model')
     const line = LINE(sf, el)
@@ -320,9 +322,18 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       const tag = n.tagName.getText()
       const at = file === path ? `line ${LINE(fsf, n)}` : `${rel(file)} line ${LINE(fsf, n)}, inside ${via}`
       const local = localComponent(file, fsf, tag)
-      if (local && !seen.has(local.node)) {
-        seen.add(local.node)
-        count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
+      if (local) {
+        if (!seen.has(local.node)) {
+          seen.add(local.node)
+          count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
+        }
+        // `<Local interactionState="focus" />`: the screen sets the focus the component forwards to its kit holder.
+        const [holderTag] = forwarded
+        if (holderTag && literalProp(n, 'interactionState') === 'focus') {
+          focused++
+          holders.push(`${tag} -> ${holderTag} (${at})`)
+          focusedInLocal.push(holderTag)
+        }
         return
       }
       if (tag === MENU) {
@@ -338,6 +349,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
       const holder = FOCUS_HOLDERS[tag]
       if (!holder) return
       const state = literalProp(n, 'interactionState')
+      if (state === null && file !== path) forwarded.add(tag)
       const isFocused = state === 'focus' || (state === undefined && holder.defaultFocused)
       if (isFocused) {
         focused++

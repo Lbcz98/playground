@@ -3,6 +3,8 @@ import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } fr
 import { TableCell } from '@/ui-kit/TableCell'
 
 type Props = {
+  /** O cartão recebe o foco só depois que o espectador sai do botão Voltar. */
+  interactionState?: 'default' | 'focus'
   cidade: string
   condicao: string
   temperatura: string
@@ -15,9 +17,10 @@ type Props = {
 /**
  * @proposal
  * why: o kit não tem linha rótulo/valor com chip de status nem temperatura em destaque no card
- * description: ContentCard em zonas para clima — header (cidade, condição), temperatura em destaque, body (Máxima e Mínima, qualidade do ar em chip) e footer de atualização; estático, sempre focado
+ * description: ContentCard em zonas para clima — header (cidade, condição), temperatura em destaque, body (Máxima e Mínima, qualidade do ar em chip) e footer de atualização; sem interação; foca só quando o espectador sobe do botão Voltar
  * figma: n/a — origem em docs/explorations/weather-card (opção 02)
  * proposedApi:
+ *   interactionState: "'default' | 'focus'"
  *   cidade: "string"
  *   condicao: "string"
  *   temperatura: "string"
@@ -26,9 +29,9 @@ type Props = {
  *   ar: "{ valor: string, rotulo: string, status: 'success' | 'warning' | 'error' }"
  *   atualizado: "string"
  */
-export function ClimaCard({ cidade, condicao, temperatura, maxima, minima, ar, atualizado }: Props) {
+export function ClimaCard({ interactionState = 'default', cidade, condicao, temperatura, maxima, minima, ar, atualizado }: Props) {
   return (
-    <ContentCard interactionState="focus" height={240}>
+    <ContentCard interactionState={interactionState} height={240}>
       <ContentCardHeader title={cidade} subtitle={condicao} />
       <ContentCardBody>
         {/* @reuse ContentCard: temperatura grande não cabe no header do kit */}
