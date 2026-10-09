@@ -21,6 +21,7 @@
  * Pure: no files, no React; the folder walk lives in `scripts/check-laws.ts`.
  */
 import ts from 'typescript'
+import { HIDDEN_STATE } from '../flowPlay'
 import { flowIssues, levelJumpProblem, levelKeyProblem, levelOfScreen, type FlowKeyName, type FlowScreen } from '../design-system/flow'
 import type { DesignSystemManifest } from '../design-system/manifest'
 import type { RuleProblem } from '../design-system/rules'
@@ -29,9 +30,6 @@ import { literal } from './fromTsx'
 /** The keys a flow can bind. Back is automatic, except as the home bar's explicit two-step. */
 export const FLOW_KEYS = ['up', 'down', 'left', 'right', 'enter', 'back'] as const satisfies readonly FlowKeyName[]
 export type FlowKey = (typeof FLOW_KEYS)[number]
-
-/** The level-0 state a Back from the bug leads to; it has no file. */
-export const HIDDEN_STATE = 'hidden'
 
 export interface FlowTransition {
   from: string

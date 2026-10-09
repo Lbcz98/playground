@@ -20,7 +20,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { HIDDEN_STATE } from '../src/shared/export/flowFile'
+import { HIDDEN_STATE } from '../src/shared/flowPlay'
 import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
 import { Reloaded, RELOADS, type HarnessPage } from './harness-page'
