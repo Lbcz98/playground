@@ -10,6 +10,7 @@ import '@fontsource-variable/inter'
 import '@/styles/global.css'
 import '@/index.css'
 import { createElement, type ComponentType } from 'react'
+import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { DTV_KIT } from '@/shared/export/kit'
 import { measureFrame, type NodeRef } from '@/shared/layout/measureDom'
@@ -94,7 +95,8 @@ const file = new URLSearchParams(location.search).get('file')
 if (!file) throw new Error('?file=/src/…/screen.tsx is required')
 import(/* @vite-ignore */ file)
   .then((mod: { default: ComponentType }) => {
-    createRoot(document.getElementById('root')!).render(createElement(mod.default))
+    // Committed before `__ready` is set: a render left to React's scheduler can lose the race to `document.fonts.ready`.
+    flushSync(() => createRoot(document.getElementById('root')!).render(createElement(mod.default)))
     return document.fonts.ready
   })
   .then(() => {
