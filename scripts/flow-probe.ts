@@ -24,6 +24,8 @@ import { BACK_CONTROL, HIDDEN_STATE, PRESS, playStep } from '../src/shared/flowP
 import type { FlowFile, FlowKey } from '../src/shared/export/flowFile'
 import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
+import { DEVIATION } from '../src/shared/export/commentGrammar'
+import { focusFindings } from '../src/shared/layout/focus-rule'
 import { Reloaded, RELOADS, type HarnessPage } from './harness-page'
 import { RenderAuditUnavailable, withHarness } from './render-audit'
 import type { FocusReading } from './render-harness/protocol'
@@ -48,7 +50,7 @@ export interface ProbeReport {
   problems: FlowProblem[]
 }
 
-/** The two focus rules on one state, from what the page drew. */
+/** The two focus rules on one state: what the page drew focused, asked of the focus rule (src/shared/layout/focus-rule.ts). */
 export function focusProblems(state: string, read: FocusReading, source: string, entered = true): FlowProblem[] {
   const out: FlowProblem[] = []
   const model = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)
@@ -57,25 +59,25 @@ export function focusProblems(state: string, read: FocusReading, source: string,
   const names = read.focused.map((f) => `<${f.component}>${f.text ? ` "${f.text}"` : ''}`).join(', ')
   const start = level?.initialFocus
   const n = read.focused.length
+  const declared = [...source.matchAll(DEVIATION)].some((m) => m[1] === 'level.initial-focus')
 
-  if (n > 1) {
-    const keep = start ? `Keep it on ${(entered ? start.on : [...start.on, ...(start.accepts ?? [])]).map((c) => `<${c}>`).join(' or ')}` : 'Keep one'
-    out.push({
-      rule: 'focus.single',
-      state,
-      message: `${n} elements are drawn focused (${names}) — a screen has exactly one. ${keep} and rest the others (interactionState="default"); a kit component focused inside a local component counts.`,
-    })
-  } else if (n === 0 && level?.level !== 0) {
-    out.push({ rule: 'focus.single', state, message: `nothing is drawn focused on ${where} — a screen has exactly one focused element. ${start?.hint ?? 'Focus one.'}` })
-  }
-
-  const wrong = start ? read.focused.filter((f) => !start.on.includes(f.component) && !(!entered && start.accepts?.includes(f.component))) : []
-  if (start && wrong.length > 0 && !/@deviation\s+level\.initial-focus\b/.test(source)) {
-    out.push({
-      rule: 'level.initial-focus',
-      state,
-      message: `${where}: focus is on ${wrong.map((f) => `<${f.component}>`).join(', ')}, not on ${start.on.map((c) => `<${c}>`).join(' or ')} — ${start.hint}`,
-    })
+  for (const finding of focusFindings(read.focused, level, { entered, declared })) {
+    if (finding.ruleId === 'focus.single' && n > 1) {
+      const keep = start ? `Keep it on ${(entered ? start.on : [...start.on, ...(start.accepts ?? [])]).map((c) => `<${c}>`).join(' or ')}` : 'Keep one'
+      out.push({
+        rule: 'focus.single',
+        state,
+        message: `${n} elements are drawn focused (${names}) — a screen has exactly one. ${keep} and rest the others (interactionState="default"); a kit component focused inside a local component counts.`,
+      })
+    } else if (finding.ruleId === 'focus.single') {
+      out.push({ rule: 'focus.single', state, message: `nothing is drawn focused on ${where} — a screen has exactly one focused element. ${start?.hint ?? 'Focus one.'}` })
+    } else if (finding.code === 'wrong') {
+      out.push({
+        rule: 'level.initial-focus',
+        state,
+        message: `${where}: focus is on ${finding.wrong.map((f) => `<${f.component}>`).join(', ')}, not on ${start!.on.map((c) => `<${c}>`).join(' or ')} — ${start!.hint}`,
+      })
+    }
   }
   return out
 }
