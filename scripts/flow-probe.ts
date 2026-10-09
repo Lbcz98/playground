@@ -146,13 +146,14 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
 
   /** The level of each state read, so a state can tell whether the viewer entered it from another level or moved inside one. */
   const levels = new Map<string, number | undefined>()
-  const focus = async (state: string, from?: string): Promise<void> => {
+  const focus = async (state: string, from?: string): Promise<string[]> => {
     const read = await evaluate<FocusReading | { error: string }>('window.__focus()')
-    if ('error' in read) return void problems.push({ rule: 'flow.transition', state, message: read.error })
+    if ('error' in read) return void problems.push({ rule: 'flow.transition', state, message: read.error }), []
     const level = DTV_SCREEN_LAYERS.models.find((m) => m.id === read.model)?.level ?? (read.level === null ? undefined : Number(read.level))
     levels.set(state, level)
     const entered = from === undefined || levels.get(from) !== level
     problems.push(...focusProblems(state, read, existsSync(join(dir, `${state}.tsx`)) ? readFileSync(join(dir, `${state}.tsx`), 'utf8') : '', entered))
+    return read.focused.map((f) => f.component)
   }
 
   // Breadth first from `start`: the keys that lead to each state, the shortest way.
@@ -187,7 +188,7 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
       if (route.has(hop.to)) continue // seen before: its focus was read then, and Esc from a state already behind is another trail
       route.set(hop.to, [...route.get(from)!, hop.key])
       order.push(hop.to)
-      await focus(hop.to, from)
+      const focusedOn = await focus(hop.to, from)
       // Back by itself retraces to the state before. A state that declares its own `back` (the Home bar's two-step)
       // is walked as that transition, and `hidden` is the app closed: Back does nothing there.
       if (hop.to === HIDDEN_STATE || data.transitions.some((t) => t.from === hop.to && t.key === 'back')) continue
@@ -199,6 +200,22 @@ async function walk(page: Page, url: string, dir: string, data: FlowData): Promi
           transition: back,
           message: `Back on "${hop.to}" showed "${await shown()}", not "${from}", the state it came from. Going back is the player's (${PLAYER}): a state does not handle keys or keep a history of its own.`,
         })
+      // The back control (the anchored rounded button) is Back too, by Enter while it is focused and by a click.
+      if (focusedOn.includes('RoundedButton')) {
+        for (const how of ['Enter', 'click'] as const) {
+          if (!(await press(PRESS[hop.key], hop.to, hop.to, transition))) break
+          await evaluate('window.__watch()')
+          if (how === 'Enter') await onPage(() => page.keyboard.press('Enter'))
+          else await evaluate("document.querySelector('.sfs-round-button:not([data-focus-item])').click()")
+          if (!(await arrives(from)))
+            problems.push({
+              rule: hop.key === 'enter' ? 'flow.focus-memory' : 'flow.back-steps',
+              state: hop.to,
+              transition: `${hop.to} —${how === 'Enter' ? 'Enter on' : 'click on'} the back button→ ${from}`,
+              message: `${how === 'Enter' ? 'Enter on' : 'A click on'} the back button of "${hop.to}" showed "${await shown()}", not "${from}". The back control is Back: the player (${PLAYER}) answers it, so a state has nothing to wire.`,
+            })
+        }
+      }
     }
   }
   return { flow: relative(ROOT, dir), start: data.start, states: order, presses, problems }

@@ -22,6 +22,13 @@ const BACK_CODES = [4, 8, 27, 461, 10009]
 /** `hidden` needs no file (standards/flow.md): level 0, the video alone. A `hidden.tsx` in the folder replaces this. */
 const Hidden = (): ReactNode => <Screen model="alert" level={0} />
 
+/**
+ * The back control of a level-3 screen: the kit's round button drawn in the anchored group (the main menu's
+ * round buttons carry `data-focus-item`). A click on it, or Enter while it is the focused element, is Back.
+ */
+const BACK_CONTROL = '.sfs-round-button:not([data-focus-item])'
+const backControlFocused = (): boolean => !!document.querySelector(`${BACK_CONTROL}[data-state="focus"]`)
+
 /** Where a flow's files come from: the bundler of the app here, the render harness in `npm run check:flow`. */
 export interface FlowSource {
   flow: () => Promise<{ default: unknown }>
@@ -50,7 +57,8 @@ function StateView({ state }: { state: unknown }): ReactNode {
  * Plays a flow with the keyboard, as a TV remote: arrows and Enter follow the transitions
  * of `flow.ts` and never wrap (no transition, nothing happens). Back (Esc, Backspace, GoBack,
  * BrowserBack, key codes 4/8/27/461/10009) retraces the states visited, unless the state declares a
- * `back` transition. `hidden` is level 0: any arrow returns to `start`. R restarts.
+ * `back` transition. `hidden` is level 0: any arrow returns to `start`. R restarts. The back control of a
+ * level-3 screen (a click, or Enter while it is focused) is Back too.
  *
  * Every state is loaded when the flow opens, and a state still loading leaves the one before it
  * on screen: a key press never shows an empty frame.
@@ -102,7 +110,8 @@ export function Flow({ flow, state }: FlowSource) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isBack = BACK_KEYS.includes(e.key) || BACK_CODES.includes(e.keyCode)
-      const key = KEYS[e.key] ?? (isBack ? 'back' : e.key === 'r' ? 'restart' : null)
+      let key = KEYS[e.key] ?? (isBack ? 'back' : e.key === 'r' ? 'restart' : null)
+      if (key === 'enter' && backControlFocused()) key = 'back'
       if (!key) return
       e.preventDefault()
       press(key)
@@ -116,7 +125,10 @@ export function Flow({ flow, state }: FlowSource) {
 
   return (
     <>
-      <Stage>{shown ? <StateView state={states[shown]} /> : null}</Stage>
+      {/* `contents`: no box of its own, only the place to hear a click on the back control. */}
+      <div style={{ display: 'contents' }} onClick={(e) => (e.target as Element).closest(BACK_CONTROL) && press('back')}>
+        <Stage>{shown ? <StateView state={states[shown]} /> : null}</Stage>
+      </div>
       <div
         data-flow-state={shown}
         style={{

@@ -53,8 +53,8 @@ describe('check:flow plays a flow folder', () => {
     if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
     expect(r.report?.states).toEqual(['home', 'rail', 'detail'])
-    // up, esc, enter, esc, and down (back to a state already behind).
-    expect(r.report?.presses).toBe(5)
+    // up, esc, enter, esc, and down (back to a state already behind), plus the back button entered twice (Enter, click).
+    expect(r.report?.presses).toBe(7)
     expect(r.code).toBe(0)
   }, 120_000)
 
@@ -75,6 +75,14 @@ describe('check:flow plays a flow folder', () => {
     expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'detail' })
     expect(r.report?.problems[0].message).toMatch(/focus is on <ContentCard>, not on <CloseButton> or <RoundedButton>/)
     expect(r.code).toBe(1)
+  }, 120_000)
+
+  it('the back button of level 3 is Back: Enter while focused, and a click', () => {
+    const r = probe('back-button', {}, '--json')
+    if (r.skipped) return
+    expect(r.report?.problems, r.stderr).toEqual([])
+    // up, esc, then enter and back by Enter, enter and back by click, enter, esc, down.
+    expect(r.report?.presses).toBeGreaterThanOrEqual(7)
   }, 120_000)
 
   it('level 3: the back button first, then a key moves the focus onto the card, and back again', () => {
@@ -130,7 +138,7 @@ describe('check:flow plays a flow folder', () => {
     const r = probe('wrapped', { 'detail.tsx': swap(DETAIL, DEFAULT, 'const Wrapped = (): ReactNode => <ScreenView />\nexport default Wrapped') }, '--json')
     if (r.skipped) return
     expect(r.rules).toEqual(['flow.remount'])
-    expect(r.report?.problems.map((p) => p.transition)).toEqual(['rail —enter→ detail', 'detail —back→ rail'])
+    expect(new Set(r.report?.problems.map((p) => p.transition))).toEqual(new Set(['rail —enter→ detail', 'detail —back→ rail']))
     expect(r.code).toBe(1)
   }, 120_000)
 
