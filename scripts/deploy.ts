@@ -12,7 +12,9 @@
  * Needs `git` with an `origin`, and the GitHub CLI (`gh`) signed in.
  */
 import { spawnSync } from 'node:child_process'
+import { resolve } from 'node:path'
 import { inDesigner, isCheckable } from '../src/shared/protoFolders'
+import { reportLines, runChecks } from './check-laws'
 
 const PROTOS = 'web/protos'
 
@@ -80,6 +82,8 @@ export function branchName(designer: string, slug: string, now: Date): string {
 
 // ── The run ──────────────────────────────────────────────────────────────────
 
+type Gate = { ok: boolean; output: string }
+
 export interface Options {
   root: string
   message?: string
@@ -88,7 +92,7 @@ export interface Options {
   wait: boolean
   now?: Date
   /** The gate. Default: `check:laws` on the changed screens. */
-  checks?: (screens: string[], root: string) => { ok: boolean; output: string }
+  checks?: (screens: string[], root: string) => Gate | Promise<Gate>
   /** How long to wait for CI, ms. */
   ciTimeoutMs?: number
   ciPollMs?: number
@@ -106,12 +110,17 @@ function sh(cmd: string, args: string[], cwd: string): { ok: boolean; out: strin
   return { ok: r.status === 0, out: (r.stdout ?? '').trim(), err: ((r.stderr ?? '') || (r.error?.message ?? '')).trim() }
 }
 
-function defaultChecks(screens: string[], root: string): { ok: boolean; output: string } {
-  const r = spawnSync('npm', ['run', '--silent', 'check:laws', '--', ...screens], { cwd: root, encoding: 'utf8' })
-  return { ok: r.status === 0, output: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim() }
+/** The checks `npm run check:laws` runs, in this process; what it would print is what the designer is told. */
+export async function defaultChecks(screens: string[], root: string): Promise<Gate> {
+  try {
+    const run = await runChecks(screens.map((s) => resolve(root, s)))
+    return { ok: run.exitCode === 0, output: [...reportLines(run), ...run.notes].join('\n') }
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
 }
 
-export function deploy(options: Options): Outcome {
+export async function deploy(options: Options): Promise<Outcome> {
   const { root, base } = options
   const log = options.log ?? (() => undefined)
   const git = (...args: string[]) => sh('git', args, root)
@@ -138,7 +147,7 @@ export function deploy(options: Options): Outcome {
   }
 
   // 3. The gate: the laws, before anything is committed.
-  const gate = (options.checks ?? defaultChecks)(found.screens, root)
+  const gate = await (options.checks ?? defaultChecks)(found.screens, root)
   if (!gate.ok) return fail('checks', gate.output || 'check:laws falhou.')
   log(`checks: ${found.screens.length} tela(s) dentro das leis`)
 
@@ -210,14 +219,14 @@ export function deploy(options: Options): Outcome {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((a) => a !== '--')
   const value = (name: string): string | undefined => {
     const i = args.indexOf(`--${name}`)
     return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : undefined
   }
   const root = sh('git', ['rev-parse', '--show-toplevel'], process.cwd()).out || process.cwd()
-  const out = deploy({
+  const out = await deploy({
     root,
     message: value('message'),
     designer: value('designer'),
@@ -237,4 +246,4 @@ function main(): void {
   if (out.ci === 'failed') process.exit(2)
 }
 
-if (!process.env.VITEST) main()
+if (!process.env.VITEST) void main()

@@ -21,6 +21,7 @@
     "dtv:export": "vite-node --config vitest.config.ts scripts/storybook/export-dtv.ts",
     "deploy": "vite-node --config vitest.config.ts scripts/deploy.ts --",
     "check:laws": "vite-node --config vitest.config.ts scripts/check-laws-cli.ts --",
+    "ci:protos": "vite-node --config vitest.config.ts scripts/protos-ci.ts --",
     "check:flow": "vite-node --config vitest.config.ts scripts/flow-probe.ts --",
     "pr:report": "vite-node --config vitest.config.ts scripts/pr-report.ts --",
     "pr:comment": "vite-node --config vitest.config.ts scripts/post-pr-comment.ts --",
