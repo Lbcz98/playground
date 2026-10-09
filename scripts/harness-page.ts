@@ -55,7 +55,7 @@ export function harnessPage(page: Page, origin: string) {
    * What a `window.__…()` of the page answers, asked only of a page that says it is ready: a reloaded document
    * defines the functions before it has rendered anything, and would answer 'no <Screen> rendered'.
    */
-  const ask = async <K extends 'measure'>(name: K): Promise<ReturnType<HarnessWindow[`__${K}`]>> => {
+  const ask = async <K extends 'measure' | 'focus' | 'watched'>(name: K): Promise<ReturnType<HarnessWindow[`__${K}`]>> => {
     const got = await evaluate<ReturnType<HarnessWindow[`__${K}`]> | { notReady: true }>(`window.__ready === true ? window.__${name}() : { notReady: true }`)
     if ('notReady' in got) throw new Reloaded('navigation: the page is not ready yet')
     return got
@@ -81,10 +81,15 @@ export function harnessPage(page: Page, origin: string) {
           },
         ),
     shown: (): Promise<string | null> => evaluate(`document.querySelector('[${FLOW_STATE}]')?.getAttribute('${FLOW_STATE}') ?? null`),
-    focus: (): Promise<FocusReading | { error: string }> => evaluate('window.__focus()'),
+    focus: (): Promise<FocusReading | { error: string }> => ask('focus'),
     /** Starts watching the frame; `watched()` says what a key press did to it. */
     watch: (): Promise<void> => evaluate('window.__watch()'),
-    watched: (): Promise<Watched> => evaluate('window.__watched()'),
+    watched: async (): Promise<Watched> => {
+      const got = await ask('watched')
+      // The watch lives in the document that started it: another document is a reload.
+      if ('error' in got) throw new Reloaded(`navigation: ${got.error}`)
+      return got
+    },
     press: (key: string): Promise<void> => onPage(page.keyboard.press(key)),
     click: (selector: string): Promise<void> => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`),
     /** The frame read into rectangles once two readings in a row are equal; `error`: what stopped it. */

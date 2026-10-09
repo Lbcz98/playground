@@ -84,4 +84,17 @@ describe('playing a flow', () => {
     expect(await harnessPage(fakePage([], true, new Error('page.waitForFunction: Timeout 10000ms exceeded.')).page, ORIGIN).arrives('rail')).toBe(false)
     await expect(harnessPage(fakePage([], true, new Error('page.waitForFunction: Target closed')).page, ORIGIN).arrives('rail')).rejects.toBeInstanceOf(Reloaded)
   })
+
+  // A document the dev server reloaded under the walk is a new one: the harness answers {error} to what the old one knew
+  // ('no <Screen> rendered' before it has rendered, '__watch() was not called' for a watch it never started). Those are
+  // the walk starting over, not findings about the flow (the render audit has had this since 67c5378).
+  it('takes a document that has not rendered yet for a reload, not for a state without a <Screen>', async () => {
+    const { page } = fakePage([{ notReady: true }])
+    await expect(harnessPage(page, ORIGIN).focus()).rejects.toBeInstanceOf(Reloaded)
+  })
+
+  it('takes a watch the document never started for a reload', async () => {
+    const { page } = fakePage([{ error: '__watch() was not called' }])
+    await expect(harnessPage(page, ORIGIN).watched()).rejects.toBeInstanceOf(Reloaded)
+  })
 })
