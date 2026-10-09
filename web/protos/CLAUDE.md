@@ -13,16 +13,19 @@ Pronto quando o arquivo existe e cada seção que se aplica de [`CODING_STANDARD
 - Antes da primeira linha: "Imports e escrita".
 - Quebrar um padrão, ou importar dados e arquivos próprios: "`@deviation`".
 - `Box`/`Text` ou componente local: "`@reuse` e `@proposal`".
-- `<Link>` ou `flow.ts`: [`standards/flow.md`](standards/flow.md).
+- `<Link>` ou `flow.ts`: [`standards/flow.md`](standards/flow.md). Teclas de nível (`up` abre a trilha, `down` fecha, `enter` abre a interatividade), sem wrap, Voltar em dois passos na Home (item → bug → `hidden`) e o lado da trilha seguem esse arquivo.
 
 ## 3. Confira
 Pronto quando sai sem **bloqueio** (CI também; conserte ou declare `@deviation`). **Aviso** (legibilidade) pode ficar.
 
 ```
 npm run check:laws -- web/protos/<seu-nome>/<tela>.tsx   # fluxo: a pasta
+npm run check:flow -- web/protos/<seu-nome>/<fluxo>      # só fluxo: joga as teclas no navegador
 ```
 
 Chromium que não sobe é bloqueio no CI; local: `npm run browsers:install`.
 
+A checagem também roda sozinha a cada arquivo escrito aqui (hook); o que ela devolve é bloqueio, não sugestão. Antes de mostrar a tela ao usuário ou publicar, chame o agente `proto-reviewer` com o caminho (fluxo: a pasta) e conserte até o veredito sair `PASS`.
+
 ## 4. Veja e publique
-Pronto quando `/<seu-nome>/<tela>` abre após `cd web && npm run dev` (fluxo: setas e Enter; Esc volta; R reinicia). Publicar: `/deploy`.
+Pronto quando `/<seu-nome>/<tela>` abre após `cd web && npm run dev` (fluxo: setas e Enter; Esc/Backspace voltam; R reinicia). Publicar: `/deploy`.

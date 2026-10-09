@@ -11,7 +11,9 @@
  *     ],
  *   }
  *
- * Back is not declared: it retraces the states visited, like the remote's Back key.
+ * Back is not declared: it retraces the states visited, like the remote's Back key. The one
+ * exception is the home bar's two-step, declared with `key: 'back'`: an item goes to the bug,
+ * the bug goes to `hidden` (level 0, no file needed).
  *
  * Plain data on purpose, so this module can read it back from source (like `fromTsx` does for a
  * screen) and hold it to the layer rule — a link opens the next level or goes back up, never
@@ -19,14 +21,17 @@
  * Pure: no files, no React; the folder walk lives in `scripts/check-laws.ts`.
  */
 import ts from 'typescript'
-import { flowIssues, levelJumpProblem, levelOfScreen, type FlowScreen } from '../design-system/flow'
+import { flowIssues, levelJumpProblem, levelKeyProblem, levelOfScreen, type FlowKeyName, type FlowScreen } from '../design-system/flow'
 import type { DesignSystemManifest } from '../design-system/manifest'
 import type { RuleProblem } from '../design-system/rules'
 import { literal } from './fromTsx'
 
-/** The keys a flow can bind. Back is automatic. */
-export const FLOW_KEYS = ['up', 'down', 'left', 'right', 'enter'] as const
+/** The keys a flow can bind. Back is automatic, except as the home bar's explicit two-step. */
+export const FLOW_KEYS = ['up', 'down', 'left', 'right', 'enter', 'back'] as const satisfies readonly FlowKeyName[]
 export type FlowKey = (typeof FLOW_KEYS)[number]
+
+/** The level-0 state a Back from the bug leads to; it has no file. */
+export const HIDDEN_STATE = 'hidden'
 
 export interface FlowTransition {
   from: string
@@ -79,9 +84,6 @@ export function parseFlowFile(source: string): FlowParse {
     const { from, key, to, ...rest } = t as Record<string, unknown>
     for (const extra of Object.keys(rest)) problems.push(`${at}: unknown key "${extra}".`)
     if (typeof from !== 'string' || typeof to !== 'string') return void problems.push(`${at}: \`from\` and \`to\` must be state names (strings).`)
-    if (key === 'back') {
-      return void problems.push(`${at}: Back is automatic — it returns to the state before. Declare only ${FLOW_KEYS.join(', ')}.`)
-    }
     if (typeof key !== 'string' || !(FLOW_KEYS as readonly string[]).includes(key)) {
       return void problems.push(`${at}: key ${JSON.stringify(key)} is not one of ${FLOW_KEYS.join(', ')}.`)
     }
@@ -112,11 +114,12 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
   const bound = new Set<string>()
   for (const t of flow.transitions) {
     const where = `flow.ts: ${t.from} —${t.key}→ ${t.to}`
+    const hiddenBack = t.key === 'back' && t.to === HIDDEN_STATE
     if (!ids.has(t.from)) {
       add(`${where}: "${t.from}" is not a state of this folder. States: ${list}.`)
       continue
     }
-    if (!ids.has(t.to)) {
+    if (!ids.has(t.to) && !hiddenBack) {
       add(`${where}: "${t.to}" is not a state of this folder. States: ${list}.`)
       continue
     }
@@ -124,11 +127,45 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
     const slot = `${t.from}/${t.key}`
     if (bound.has(slot)) add(`flow.ts: "${t.from}" binds ${t.key} twice — one key, one destination.`)
     bound.add(slot)
-    const jump = levelJumpProblem(
-      levelOfScreen(manifest, states.find((s) => s.id === t.from)?.screen),
-      levelOfScreen(manifest, states.find((s) => s.id === t.to)?.screen),
-    )
+    const fromLevel = levelOfScreen(manifest, states.find((s) => s.id === t.from)?.screen)
+    const toLevel = levelOfScreen(manifest, states.find((s) => s.id === t.to)?.screen)
+    if (t.key === 'back') {
+      // Only the home bar's two-step is declared: an item to the bug, the bug to hidden.
+      if (fromLevel !== 1 || (!hiddenBack && toLevel !== 1)) {
+        add(`${where}: a declared Back is only the home bar's two-step (an item to the bug, the bug to "${HIDDEN_STATE}") — from any other level Back retraces by itself.`, 'flow.back-steps')
+      }
+      continue
+    }
+    const jump = levelJumpProblem(fromLevel, toLevel)
     if (jump) add(`${where}: ${jump}.`, 'flow.next-level')
+    const wrongKey = levelKeyProblem(fromLevel, toLevel, t.key)
+    if (wrongKey) add(`${where}: ${wrongKey}.`, 'flow.level-keys')
+  }
+
+  // A row never wraps: following only left (or only right) must never come back to where it began.
+  for (const key of ['left', 'right'] as const) {
+    const next = new Map(flow.transitions.filter((t) => t.key === key).map((t) => [t.from, t.to]))
+    const flagged = new Set<string>()
+    for (const start of next.keys()) {
+      if (flagged.has(start)) continue
+      const path = [start]
+      for (let at = next.get(start); at !== undefined && !path.includes(at); at = next.get(at)) path.push(at)
+      const last = path[path.length - 1]
+      if (next.get(last) === start) {
+        path.forEach((p) => flagged.add(p))
+        add(`flow.ts: ${path.join(` —${key}→ `)} —${key}→ ${start} wraps around — a row stops at its last item, so end ${key} there.`, 'flow.no-wrap')
+      }
+    }
+  }
+
+  // Back from an interactivity returns to the card that opened it, so a level-3 state must be opened by Enter from a rail.
+  for (const s of states) {
+    if (s.id === flow.start || levelOfScreen(manifest, s.screen) !== 3) continue
+    const into = flow.transitions.filter((t) => t.to === s.id && ids.has(t.from))
+    const fromLevel = (t: FlowTransition): number | undefined => levelOfScreen(manifest, states.find((x) => x.id === t.from)?.screen)
+    // Moving the focus inside the interactivity (back button to card) opens no new page: the state it leaves is checked on its own.
+    const opened = into.some((t) => (t.key === 'enter' && fromLevel(t) === 2) || fromLevel(t) === 3)
+    if (into.length > 0 && !opened) add(`State "${s.id}" is never opened by Enter from a rail card, so Back has no card to return the focus to.`, 'flow.focus-memory')
   }
 
   // Reachability: every state is somewhere the viewer can get to from `start` (Back included

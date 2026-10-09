@@ -16,8 +16,8 @@ describe('parseFlowFile', () => {
   it('sees through `satisfies`', () => {
     expect(parseFlowFile(`export default { start: 'a', transitions: [] } satisfies object`).flow?.start).toBe('a')
   })
-  it('says Back is automatic', () => {
-    expect(parseFlowFile(ok(`{ from: 'a', key: 'back', to: 'b' }`)).problems[0]).toMatch(/Back is automatic/)
+  it('accepts back as an explicit transition', () => {
+    expect(parseFlowFile(ok(`{ from: 'a', key: 'back', to: 'b' }`)).flow?.transitions[0].key).toBe('back')
   })
   it('refuses a key it does not know, an extra key, and a non-literal flow', () => {
     expect(parseFlowFile(ok(`{ from: 'a', key: 'ok', to: 'b' }`)).problems[0]).toMatch(/not one of/)
@@ -134,5 +134,50 @@ describe('checkFlow', () => {
       'flow.ts': flow('home', T('home', 'up', 'rail'), T('rail', 'down', 'home')),
     })
     expect(messages(dir).join('\n')).toMatch(/flow\.rail-consistency/)
+  })
+
+  const real = (...extra: string[]) => ({
+    'home-bug.tsx': home(3),
+    'home-program.tsx': home(3),
+    'rail-program.tsx': rail(3),
+    detail: detail,
+    'flow.ts': flow('home-bug', T('home-bug', 'left', 'home-program'), T('home-program', 'up', 'rail-program'), T('rail-program', 'down', 'home-program'), T('rail-program', 'enter', 'detail'), ...extra),
+  })
+  const files = (name: string, extra: string[] = [], swap?: (f: Record<string, string>) => void) => {
+    const { detail: d, ...f } = real(...extra) as Record<string, string>
+    f['detail.tsx'] = d
+    swap?.(f)
+    return flowOf(name, f)
+  }
+
+  it('passes the real-app sequence with the home-bar Back two-step', () => {
+    expect(messages(files('real', [T('home-program', 'back', 'home-bug'), T('home-bug', 'back', 'hidden')]))).toEqual([])
+  })
+
+  it('flow.level-keys: Enter from Home to the rail is refused', () => {
+    const dir = files('keys', [], (f) => (f['flow.ts'] = f['flow.ts'].replace("key: 'up'", "key: 'enter'")))
+    expect(messages(dir).join('\n')).toMatch(/flow\.level-keys: .*home-program —enter→ rail-program/)
+  })
+
+  it('flow.no-wrap: left/right that loops back to the first item is refused', () => {
+    const ring = [T('home-program', 'right', 'home-bug'), T('home-bug', 'right', 'home-program')]
+    expect(messages(files('wrap', ring)).join('\n')).toMatch(/flow\.no-wrap: .*wraps around/)
+    expect(messages(files('nowrap', [T('home-program', 'right', 'home-bug')])).join('\n')).not.toMatch(/no-wrap/)
+  })
+
+  it('flow.back-steps: a declared Back from the rail or into a rail is refused', () => {
+    const m = messages(files('back', [T('rail-program', 'back', 'home-program'), T('home-program', 'back', 'rail-program')])).join('\n')
+    expect(m).toMatch(/flow\.back-steps: .*rail-program —back→ home-program/)
+    expect(m).toMatch(/flow\.back-steps: .*home-program —back→ rail-program/)
+  })
+
+  it('flow.focus-memory: moving the focus inside a level-3 page is not a new page to return from', () => {
+    const dir = files('inside', [T('detail', 'up', 'detail-card'), T('detail-card', 'down', 'detail')], (f) => (f['detail-card.tsx'] = f['detail.tsx']))
+    expect(messages(dir).join('\n')).not.toMatch(/focus-memory/)
+  })
+
+  it('flow.focus-memory: a page not opened by Enter from a rail has no card to return to', () => {
+    const dir = files('memory', [], (f) => (f['flow.ts'] = f['flow.ts'].replace(T('rail-program', 'enter', 'detail'), T('home-bug', 'enter', 'detail'))))
+    expect(messages(dir).join('\n')).toMatch(/flow\.focus-memory: State "detail"/)
   })
 })

@@ -12,6 +12,22 @@ Only the keys the Blueprint DSL defines, version 1, at most 6 screens with uniqu
 
 Only real components, with their declared props and allowed values; children only on components that accept them, as a list of nodes.
 
+### `flow.back-steps` Back steps
+
+Back from a Home bar item goes to the bug, from the bug it hides the app (level 0); from a rail it goes to Home; from an interactivity it goes to the rail, restoring the card that opened it.
+
+### `flow.focus-memory` Focus memory
+
+Returning from an interactivity shows the rail state whose focused card opened it.
+
+### `flow.level-keys` Keys between levels
+
+From Home to a rail is up, from a rail back to Home is down, from a rail into an interactivity is enter, and from an interactivity back to the rail is back — no other key crosses a level.
+
+### `flow.no-wrap` Rows never wrap
+
+Left and right stop at the first and last item of a row; no transition goes from the last item to the first.
+
 ### `focus.single` One focus per screen
 
 A TV screen has exactly one focused element — the one the viewer is on.
@@ -94,7 +110,7 @@ Applies to: `ContentCard`, `ContentCardHeader`, `ContentCardBody`, `ContentCardF
 
 ### `level.initial-focus` Where focus starts
 
-Each level starts its focus on its own component: the main menu on Home, an interactivity button on level 2, the rounded or close button on level 3.
+Level 1 starts on the bug (the rightmost item of the Home bar), not the first item; level 2 on the card nearest the icon that owns the rail (left rail: the leftmost card, right rail: the rightmost); level 3 on the back button, then the viewer moves the focus onto the content card, which is focusable even with no interaction.
 
 Applies to: `MainMenu`, `InteractivityButton`, `CloseButton`, `RoundedButton`
 
@@ -119,6 +135,10 @@ Applies to: `primitive:Box`, `primitive:Stack`, `primitive:Text`, `Proposal`
 A button label names the action it performs.
 
 Applies to: `Button`, `WideButton`, `InteractivityButton`
+
+### `flow.rail-side` Rail side matches back-button side
+
+The persistents rail sits on the left with a left back button; the program (contextual) rail sits on the right with a right back button.
 
 ### `render.legibility` Legible text
 

@@ -9,6 +9,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hook-check-protos.mjs\"",
+            "timeout": 120
+          }
+        ]
+      }
     ]
   },
   "enabledMcpjsonServers": [

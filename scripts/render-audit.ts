@@ -22,8 +22,9 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 export class RenderAuditUnavailable extends Error {}
 
 type Playwright = { chromium: { launch(o?: Record<string, unknown>): Promise<Browser> } }
-type Browser = { newPage(o?: Record<string, unknown>): Promise<Page>; close(): Promise<void> }
-type Page = {
+export type Browser = { newPage(o?: Record<string, unknown>): Promise<Page>; close(): Promise<void> }
+export type Page = {
+  keyboard: { press(key: string): Promise<void> }
   goto(url: string): Promise<unknown>
   waitForFunction(fn: string, arg?: unknown, o?: Record<string, unknown>): Promise<unknown>
   waitForTimeout(ms: number): Promise<void>
@@ -66,14 +67,19 @@ const SETTLE_STEP = 100
 /** Measurements before giving up on a screen that keeps changing (about 3s). */
 const SETTLE_TRIES = 30
 
-export async function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
+/**
+ * The render harness served (Vite, on `origin`) and a headless Chromium, for as long as `use` runs.
+ * Throws `RenderAuditUnavailable` when Playwright or Chromium is missing.
+ */
+export async function withHarness<T>(use: (browser: Browser, origin: string) => Promise<T>): Promise<T> {
   const playwright = loadPlaywright()
   const executablePath = process.env.CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined)
   const server = await createServer({
     configFile: false,
     root: ROOT,
     logLevel: 'silent',
-    resolve: { alias: { '@': resolve(ROOT, 'src'), 'next/link': resolve(ROOT, 'scripts/render-harness/next-link.tsx') } },
+    // `dedupe`: the flow player lives in web/app, next to web/node_modules — it must get the same React as the kit.
+    resolve: { alias: { '@': resolve(ROOT, 'src'), 'next/link': resolve(ROOT, 'scripts/render-harness/next-link.tsx') }, dedupe: ['react', 'react-dom'] },
     plugins: [react()],
     server: { host: '127.0.0.1', port: 0 },
     optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'] },
@@ -86,6 +92,15 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
     browser = await playwright.chromium.launch({ executablePath, args: ['--no-sandbox'] }).catch((e: unknown) => {
       throw new RenderAuditUnavailable(`Chromium could not start (${String(e).split('\n')[0]}) — the render check was skipped.`)
     })
+    return await use(browser, `http://127.0.0.1:${port}`)
+  } finally {
+    await browser?.close()
+    await server.close()
+  }
+}
+
+export function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
+  return withHarness(async (browser, origin) => {
     const results: RenderResult[] = []
     for (const file of files) {
       // Motion off (the kit stops its animations and transitions under `prefers-reduced-motion`): what is measured is the resting screen.
@@ -108,7 +123,7 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
         }
       }
       try {
-        const url = `http://127.0.0.1:${port}/scripts/render-harness/index.html?file=/${relative(ROOT, resolve(file))}`
+        const url = `${origin}/scripts/render-harness/index.html?file=/${relative(ROOT, resolve(file))}`
         await page.goto(url)
         await page.waitForFunction('window.__ready === true || window.__error', null, { timeout: 60_000 })
         const failed = await onPage(() => page.evaluate<string | undefined>('window.__error'))
@@ -148,8 +163,5 @@ export async function renderAuditFiles(files: string[]): Promise<RenderResult[]>
       }
     }
     return results
-  } finally {
-    await browser?.close()
-    await server.close()
-  }
+  })
 }

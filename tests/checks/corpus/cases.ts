@@ -359,6 +359,22 @@ export const CASES: CorpusCase[] = [
     expect: { exit: 1, laws: ['component.api'], problemFile: 'components/Stepper.tsx', proposals: 1 },
   },
   {
+    id: 'local-component-second-focus',
+    title: 'a focused kit component inside a local component counts toward focus.single',
+    ...withLocal(
+      `import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'\n${PROPOSAL()}\nexport function Stepper() {\n  return (\n    <ContentCard interactionState="focus">\n      <ContentCardHeader title="São Paulo" />\n    </ContentCard>\n  )\n}\n`,
+    ),
+    expect: { exit: 1, laws: ['focus.single'], proposals: 1, messages: [/2 focused elements: MainMenu .*ContentCard \(.*components\/Stepper\.tsx line \d+, inside <Stepper>\)/] },
+  },
+  {
+    id: 'local-component-resting-card',
+    title: 'the same card at rest inside a local component leaves the screen its one focus',
+    ...withLocal(
+      `import { ContentCard, ContentCardHeader } from '@/ui-kit/ContentCard'\n${PROPOSAL()}\nexport function Stepper() {\n  return (\n    <ContentCard interactionState="default">\n      <ContentCardHeader title="São Paulo" />\n    </ContentCard>\n  )\n}\n`,
+    ),
+    expect: { exit: 0, laws: [], proposals: 1 },
+  },
+  {
     id: 'stack-is-a-container',
     title: 'Stack from @/primitives stays the kit container: no @reuse, not a primitive',
     ...one('s.tsx', screen('<MainMenu />')),

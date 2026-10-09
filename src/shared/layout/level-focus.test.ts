@@ -85,16 +85,22 @@ describe('page 2 · focus on the interactivity buttons', () => {
   })
 })
 
-describe('page 3 · focus starts on the rounded button', () => {
+describe('page 3 · focus starts on the rounded button, or on the content card when the screen has one', () => {
   it('the template does, and nothing else is focused', () => {
     expect(errors(doc('interactivity-cards-right'))).toEqual([])
   })
 
-  it('rejects focus on the card instead', () => {
+  it('accepts focus on the content card instead: the card is focusable content', () => {
     const d = doc('interactivity-cards-right')
     find(d.root, 'RoundedButton')!.props!.interactionState = 'default'
     find(d.root, 'ContentCard')!.props!.interactionState = 'focus'
-    expect(errors(d).join()).toMatch(/Level 3.*ContentCard.*rounded button/)
+    expect(errors(d)).toEqual([])
+  })
+
+  it('rejects the card and the button focused together', () => {
+    const d = doc('interactivity-cards-right')
+    find(d.root, 'ContentCard')!.props!.interactionState = 'focus'
+    expect(errors(d).join()).toMatch(/focus\.single|elements are focused/)
   })
 })
 

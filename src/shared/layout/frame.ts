@@ -728,7 +728,7 @@ function levelFocusIssues(
   const where = `Level ${level.level} (${level.name})`
   const issue = (message: string): RuleProblem[] => [{ ruleId: 'level.initial-focus', path: ['root'], message }]
   const right = (f: (typeof focused)[number]): boolean =>
-    on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value)
+    rule.accepts?.includes(f.component.id) || (on.includes(f.component.id) && (rule.value === undefined || f.value === rule.value))
   const wrong = focused.filter((f) => !right(f))
   if (wrong.length > 0) {
     return issue(`${where}: focus is on ${wrong.map((f) => `${f.path} <${f.component.id}>`).join(', ')} — ${rule.hint}`)
@@ -766,12 +766,13 @@ export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest, mod
     const model = modelOfScreen(layers, screen)
     const level = model ? navigationLevel(layers, model.level) : undefined
     const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
+    const accepts = level?.initialFocus?.accepts ?? []
     if (!level || on.length === 0 || !isObject(root)) continue
     // An Exploratory screen that declares where focus starts keeps the focus where it put it.
     if (mode === 'exploratory' && declaresRule(manifest, root, screen, 'level.initial-focus')) continue
     const visit = (node: Record<string, unknown>): void => {
       const component = typeof node.type === 'string' ? manifest.components[node.type] : undefined
-      const prop = component && !on.includes(component.id) ? focusedBy(node, component) : undefined
+      const prop = component && !on.includes(component.id) && !accepts.includes(component.id) ? focusedBy(node, component) : undefined
       if (prop) {
         const rest = unfocusedValue(prop)
         node.props = { ...(isObject(node.props) ? node.props : {}), [prop.name]: rest }
