@@ -7,7 +7,8 @@
  *
  *   focus.single          exactly one element drawn focused (none is allowed on level 0)
  *   level.initial-focus   the focused element is the component the level starts on (screen-layers.ts);
- *                         a pattern: `@deviation level.initial-focus: <why>` in the state file declares it
+ *                         a pattern: `@deviation level.initial-focus: <why>` on the state component's comment declares it,
+ *                         where check:laws reads it (fromTsx.ts + declaresRule), nowhere else in the file
  *   flow.transition       the key shows the state `flow.ts` names
  *   flow.back-steps       Back, where the state declares none, returns to the state the key was pressed on;
  *   flow.focus-memory     the same out of a state opened by Enter (the rail card that opened it is restored)
@@ -25,6 +26,9 @@ import type { FlowFile, FlowKey } from '../src/shared/export/flowFile'
 import { diskTree, isFlowFolder } from '../src/shared/protoFolders'
 import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
 import { DEVIATION } from '../src/shared/export/commentGrammar'
+import { parseTsx } from '../src/shared/export/fromTsx'
+import { declaresRule } from '../src/shared/design-system/deviations'
+import { loadDtvManifest } from './dtv-manifest'
 import { focusFindings } from '../src/shared/layout/focus-rule'
 import { Reloaded, RELOADS, type HarnessPage } from './harness-page'
 import { RenderAuditUnavailable, withHarness } from './render-audit'
@@ -59,7 +63,10 @@ export function focusProblems(state: string, read: FocusReading, source: string,
   const names = read.focused.map((f) => `<${f.component}>${f.text ? ` "${f.text}"` : ''}`).join(', ')
   const start = level?.initialFocus
   const n = read.focused.length
-  const declared = [...source.matchAll(DEVIATION)].some((m) => m[1] === 'level.initial-focus')
+  // Declared where the validator (check:laws) reads it: the screen read back from the source, on the component's comment or the root.
+  const manifest = loadDtvManifest()
+  const declared = parseTsx(source).some(({ doc }) => declaresRule(manifest, doc.root, doc.screen, 'level.initial-focus'))
+  const misplaced = !declared && [...source.matchAll(DEVIATION)].some((m) => m[1] === 'level.initial-focus')
 
   for (const finding of focusFindings(read.focused, level, { entered, declared })) {
     if (finding.ruleId === 'focus.single' && n > 1) {
@@ -75,7 +82,7 @@ export function focusProblems(state: string, read: FocusReading, source: string,
       out.push({
         rule: 'level.initial-focus',
         state,
-        message: `${where}: focus is on ${finding.wrong.map((f) => `<${f.component}>`).join(', ')}, not on ${start!.on.map((c) => `<${c}>`).join(' or ')} — ${start!.hint}`,
+        message: `${where}: focus is on ${finding.wrong.map((f) => `<${f.component}>`).join(', ')}, not on ${start!.on.map((c) => `<${c}>`).join(' or ')} — ${start!.hint}${misplaced ? " The @deviation level.initial-focus in this file is not read here: it counts only on the component's comment (the JSDoc above the component)." : ''}`,
       })
     }
   }

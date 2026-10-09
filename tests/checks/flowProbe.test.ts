@@ -32,6 +32,9 @@ const FLOW = `export default {
 const BACK_FOCUSED = '<RoundedButton label="Voltar" interactionState="focus" />'
 const CARD_RESTING = '<ContentCard interactionState="default"'
 
+/** Level 2 with the focus on a content card, not on a rail button: the break `@deviation level.initial-focus` declares. */
+const WRONG_RAIL = swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')).replace(BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')).replace('model="interactivity-cards-right"', 'model="interactivity-buttons-right"').replace('level={3}', 'level={2}')
+
 const probe = (name: string, changed: Record<string, string>, ...flags: string[]) => {
   const dir = `${DIR}/${name}`
   mkdirSync(dir, { recursive: true })
@@ -96,7 +99,7 @@ describe('check:flow plays a flow folder', () => {
   }, 120_000)
 
   it('level.initial-focus: level 2 with the focus on a content card, not on a rail button', () => {
-    const r = probe('wrong-start', { 'rail.tsx': swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')).replace(BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')).replace('model="interactivity-cards-right"', 'model="interactivity-buttons-right"').replace('level={3}', 'level={2}') }, '--json')
+    const r = probe('wrong-start', { 'rail.tsx': WRONG_RAIL }, '--json')
     if (r.skipped) return
     expect(r.rules).toEqual(['level.initial-focus'])
     expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'rail' })
@@ -190,6 +193,30 @@ export default State`
   }, 120_000)
 })
 
+// A declaration counts where check:laws reads it: on the component's comment (and the root element), nowhere else in the file.
+describe('level.initial-focus: check:flow accepts the declaration only where check:laws does', () => {
+  const D = '@deviation level.initial-focus: the card opens focused'
+  const placements: Record<string, string> = {
+    'in the component JSDoc': swap(WRONG_RAIL, ' * ScreenView —', ` * ${D}\n * ScreenView —`),
+    'above the imports': `// ${D}\n\n${WRONG_RAIL}`,
+    'as a // line inside the body': swap(WRONG_RAIL, '  return (', `  // ${D}\n  return (`),
+    'as a /* */ block inside the body': swap(WRONG_RAIL, '  return (', `  /* ${D} */\n  return (`),
+    'before an element below the root': swap(WRONG_RAIL, '        <Stack direction="row"', `        {/* ${D} */}\n        <Stack direction="row"`),
+  }
+  const accepted = ['in the component JSDoc', 'as a // line inside the body']
+  for (const [where, rail] of Object.entries(placements)) {
+    it(`${where}: check:laws and check:flow agree`, () => {
+      const r = probe(`decl-${where.replace(/\W+/g, '-')}`, { 'rail.tsx': rail })
+      if (r.skipped) return
+      const laws = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', `${DIR}/decl-${where.replace(/\W+/g, '-')}/rail.tsx`, '--no-render'], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
+      // The state file alone: this WRONG_RAIL has no rail buttons, so flow.ts has its own (unrelated) finding under check:laws.
+      const lawsBlock = /^\S+\/rail\.tsx  \[/m.test(laws.stdout)
+      expect({ laws: lawsBlock ? 1 : 0, flow: r.code }, laws.stdout).toEqual(accepted.includes(where) ? { laws: 0, flow: 0 } : { laws: 1, flow: 1 })
+      if (!accepted.includes(where)) expect(r.stdout).toMatch(/only on the component's comment/)
+    }, 180_000)
+  }
+})
+
 describe('check:flow --json findings, the shape pr:report reads', () => {
   it('a problem is a finding on its state file, naming the key press when it has one', () => {
     const report: ProbeReport = {
@@ -226,7 +253,8 @@ describe('focusProblems', () => {
     expect(rules('home', '', 'MainMenu')).toEqual([])
   })
   it('a declared deviation covers the pattern, never the law', () => {
-    const declared = '/** @deviation level.initial-focus: the card opens focused */'
+    // The declaration counts on a component that returns a <Screen>, as check:laws reads it.
+    const declared = '/** @deviation level.initial-focus: the card opens focused */\nexport const S = () => <Screen model="m" level={2}><Box /></Screen>\n'
     expect(rules('interactivity-buttons-right', '', 'ContentCard')).toEqual(['level.initial-focus'])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard')).toEqual([])
     expect(rules('interactivity-buttons-right', declared, 'ContentCard', 'InteractivityButton')).toEqual(['focus.single'])
