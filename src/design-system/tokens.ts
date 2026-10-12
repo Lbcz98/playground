@@ -13,45 +13,21 @@ import { spacingScale, radiusScale, shadowScale } from './primitives'
 // Scales (derived from primitives so they can never drift out of sync)
 // ---------------------------------------------------------------------------
 
-export type SpaceToken = keyof typeof spacingScale
+type SpaceToken = keyof typeof spacingScale
 export const SPACE_TOKENS = Object.keys(spacingScale) as [SpaceToken, ...SpaceToken[]]
 
-export type RadiusToken = keyof typeof radiusScale
+type RadiusToken = keyof typeof radiusScale
 export const RADIUS_TOKENS = Object.keys(radiusScale) as [RadiusToken, ...RadiusToken[]]
 
-export type ShadowToken = keyof typeof shadowScale
+type ShadowToken = keyof typeof shadowScale
 export const SHADOW_TOKENS = Object.keys(shadowScale) as [ShadowToken, ...ShadowToken[]]
-
-// ---------------------------------------------------------------------------
-// Semantic color roles
-// ---------------------------------------------------------------------------
-
-export const COLOR_ROLES = [
-  'page',
-  'surface',
-  'subtle',
-  'line',
-  'line-strong',
-  'ink',
-  'ink-muted',
-  'ink-inverse',
-  'brand',
-  'brand-hover',
-  'brand-subtle',
-  'brand-strong',
-  'danger',
-  'danger-hover',
-  'danger-subtle',
-  'success',
-  'success-subtle',
-] as const
 
 // ---------------------------------------------------------------------------
 // Higher-level presentation tokens used by components
 // ---------------------------------------------------------------------------
 
 export const SURFACE_TOKENS = ['none', 'surface', 'subtle', 'brand-subtle'] as const
-export type SurfaceToken = (typeof SURFACE_TOKENS)[number]
+type SurfaceToken = (typeof SURFACE_TOKENS)[number]
 
 export const TEXT_VARIANTS = ['display', 'title', 'heading', 'body', 'caption'] as const
 

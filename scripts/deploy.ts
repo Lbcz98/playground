@@ -32,7 +32,7 @@ export function changedPaths(porcelainZ: string): string[] {
   return out
 }
 
-export interface Classified {
+interface Classified {
   designers: string[]
   /** `web/protos/<designer>/…` files that are screens (`.tsx`) or a flow's transitions (`flow.ts`). */
   screens: string[]

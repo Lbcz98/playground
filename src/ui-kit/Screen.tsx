@@ -27,12 +27,12 @@ import { ScreenOverlay } from './Overlay'
 import './ui-kit.css'
 
 /** The navigation level of the screen (Camadas): 0 clean broadcast, 1 home, 2 rail, 3 one interactivity. */
-export type ScreenLevel = 0 | 1 | 2 | 3
+type ScreenLevel = 0 | 1 | 2 | 3
 
 /** The side of the frame the TV focus is on. It decides the anchored group's corner. */
-export type ScreenFocusSide = 'left' | 'right'
+type ScreenFocusSide = 'left' | 'right'
 
-export interface ScreenProps {
+interface ScreenProps {
   /** The layer model whose shades sit between the video and the content, e.g. `home`. */
   model: string
   /** The navigation level. Descriptive: the model fixes it, and checks read it off the screen. */

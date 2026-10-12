@@ -180,7 +180,7 @@ function screenflowComponents(): Record<string, ManifestComponent> {
 // ---------------------------------------------------------------------------
 
 /** Build a manifest from an arbitrary catalog-shaped map (kept generic for tests). */
-export function catalogToManifest(): DesignSystemManifest {
+function catalogToManifest(): DesignSystemManifest {
   const tokens = screenflowTokens()
   return {
     id: SCREENFLOW_MANIFEST_ID,

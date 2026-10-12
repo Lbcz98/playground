@@ -15,7 +15,7 @@ import './ui-kit.css'
 
 export type WideButtonStatus = Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>
 
-export interface WideButtonProps {
+interface WideButtonProps {
   /** Default `focus`. */
   interactionState?: WideButtonStatus
   /** The call to action, e.g. "Assistir". */

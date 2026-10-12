@@ -18,7 +18,7 @@ import closeRestIcon from './icons/close-rest.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 import './ui-kit.css'
 
-export interface CloseButtonProps {
+interface CloseButtonProps {
   /** Default `focus`. */
   interactionState?: RoundButtonState
   /** Accessible name — the control is icon-only. */

@@ -74,9 +74,9 @@ import { WideButton } from '@/ui-kit/WideButton'
 
 export type { Control, ComponentCategory } from './catalog'
 
-export type RenderFn = (props: Record<string, unknown>, children: ReactNode) => ReactElement
+type RenderFn = (props: Record<string, unknown>, children: ReactNode) => ReactElement
 
-export interface HydratedEntry {
+interface HydratedEntry {
   id: string
   label: string
   category: string
@@ -95,7 +95,7 @@ export interface HydratedEntry {
   live: boolean
 }
 
-export interface HydratedRegistry {
+interface HydratedRegistry {
   manifestId: string
   entries: Record<string, HydratedEntry>
   types: string[]
@@ -500,7 +500,7 @@ const hosted =
   (props, children) => <DecorationHost>{render(props, children)}</DecorationHost>
 
 /** Hand-written renderers for the built-in ScreenFlow design system. */
-export const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
+const SCREENFLOW_RENDERERS: Record<string, RenderFn> = {
   Stack: renderStack,
   Text: renderText,
   Button: renderButton,

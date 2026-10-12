@@ -21,9 +21,9 @@ import { FocusRing, type InteractionState } from '@/primitives'
 import './ui-kit.css'
 
 export type AlertBugStyle = 'interface' | 'transmission'
-export type AlertBugState = Extract<InteractionState, 'default' | 'focus'>
+type AlertBugState = Extract<InteractionState, 'default' | 'focus'>
 
-export interface AlertBugProps {
+interface AlertBugProps {
   /** Whose mark this is. Default `interface`. */
   bugStyle?: AlertBugStyle
   /** Only the interface bug takes focus. Default `default`. */

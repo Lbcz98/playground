@@ -39,7 +39,7 @@ import { SCHEMA_VERSION, type Finding } from './findings'
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const PLAYER = 'web/app/[designer]/[screen]/FlowPlayer.tsx'
 
-export interface FlowProblem {
+interface FlowProblem {
   rule: string
   state: string
   /** `home —enter→ rail`, when the problem is about a key press. */
@@ -224,7 +224,7 @@ async function walk(page: HarnessPage, dir: string, data: FlowFile): Promise<Pro
 }
 
 /** Plays the flow folder and returns what it found. Throws `RenderAuditUnavailable` when there is no Chromium. */
-export async function probeFlow(folder: string): Promise<ProbeReport> {
+async function probeFlow(folder: string): Promise<ProbeReport> {
   const dir = resolve(folder)
   if (!isFlowFolder(dir, diskTree)) throw new Error(`${folder} is not a flow folder: it has no flow.ts`)
   if (relative(ROOT, dir).startsWith('..')) throw new Error(`${folder} is outside the repo: the harness only serves files inside ${ROOT}`)

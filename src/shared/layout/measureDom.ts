@@ -11,7 +11,7 @@ export interface NodeRef {
   type: string
 }
 
-export interface NodeSource {
+interface NodeSource {
   /** Every node to measure, with the element that is its box. */
   list(frame: HTMLElement): { el: Element; ref: NodeRef }[]
   /** The node an element belongs to — for naming the container that clips something. */

@@ -159,7 +159,7 @@ export function compiledDefaultProps(
 }
 
 /** Which rules a screen is held to: Faithful (every pattern) or Exploratory (declared patterns may bend). */
-export type Policy = 'faithful' | 'exploratory'
+type Policy = 'faithful' | 'exploratory'
 
 type ComponentSchemas = Record<string, z.ZodObject<z.ZodRawShape>>
 
@@ -219,7 +219,7 @@ const quoteList = (names: string[]): string => names.map((n) => `"${n}"`).join('
  * Why `value` breaks the token tier rule on a prop drawing from `group`, as a sentence
  * the Generator can act on — or `null` when the token tier rule isn't what's wrong.
  */
-export function tokenTierViolation(
+function tokenTierViolation(
   manifest: DesignSystemManifest,
   group: keyof ManifestTokens,
   value: unknown,
@@ -275,7 +275,7 @@ export interface ValidationIssue {
   declared?: RuleProblem['declared']
 }
 
-export type BlueprintValidation = { ok: true } | { ok: false; issues: ValidationIssue[] }
+type BlueprintValidation = { ok: true } | { ok: false; issues: ValidationIssue[] }
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)

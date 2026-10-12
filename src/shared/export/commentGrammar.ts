@@ -22,7 +22,7 @@ export const REUSE = /@reuse\s+([^:\n]+?)\s*:\s*([^\n]*?)\s*(?:\*\/|\n|$)/g
  *    *   <prop>: "<type>"
  *    *\/
  */
-export const PROPOSAL_TAG = /@proposal\b/
+const PROPOSAL_TAG = /@proposal\b/
 const FIELD = /^(why|description|figma|proposedApi)\s*:\s*(.*)$/
 const API_LINE = /^([A-Za-z][A-Za-z0-9]*)\s*:\s*"([^"]+)"$/
 
@@ -62,7 +62,7 @@ export function parseProposal(comment: string): { proposal?: ParsedProposal; mis
   return { proposal: { why: f.why, description: f.description, ...(f.figma ? { figma: f.figma } : {}), api }, missing }
 }
 
-export interface CommentTag {
+interface CommentTag {
   tag: string
   /** The shape to write. */
   form: string

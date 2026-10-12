@@ -18,13 +18,13 @@ export interface Holder {
   value?: unknown
 }
 
-export type FocusFinding<T extends Holder> =
+type FocusFinding<T extends Holder> =
   | { ruleId: 'focus.single'; focused: T[] }
   | { ruleId: 'level.initial-focus'; code: 'wrong'; wrong: T[] }
   | { ruleId: 'level.initial-focus'; code: 'nothing-focused' | 'missing' }
 
 /** What the reader knows beyond what holds the focus. */
-export interface FocusContext {
+interface FocusContext {
   /**
    * The viewer just entered this level (a walk knows; one screen alone does not). Entered, the focus is where the
    * level starts (`on`); moved inside the level, or not known, it may also be on what the level `accepts`.

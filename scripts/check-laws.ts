@@ -58,7 +58,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 /** Types `next/link` for the root tsc, which has no `next` (the render harness and web/ resolve their own). */
 const NEXT_SHIM = resolve(ROOT, 'scripts/render-harness/next-shim.d.ts')
 
-export interface LawProblem {
+interface LawProblem {
   /** The rule id the message is about (a law, or a pattern broken without being declared). */
   law: string
   /** 'static' = read off the source here; 'validator' = the blueprint validator, run on the screen read back from the JSX. */
@@ -540,7 +540,7 @@ export function addRenderResult(report: LawReport, r: Pick<RenderResult, 'issues
   }
 }
 
-export interface FlowReport {
+interface FlowReport {
   dir: string
   /** The states found (file names without .tsx). */
   states: string[]
@@ -571,7 +571,7 @@ export function checkFlow(dir: string): FlowReport {
   return { dir: folder, states, problems }
 }
 
-export interface CheckRun {
+interface CheckRun {
   reports: LawReport[]
   flows: FlowReport[]
   /** What blocks outside a screen's own problems: the flow.ts problems, and a render audit that was required and did not run. */

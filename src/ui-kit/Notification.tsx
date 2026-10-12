@@ -33,9 +33,9 @@ import { FocusRing, RestingBorder, Text, type InteractionState } from '@/primiti
 import './ui-kit.css'
 
 export type NotificationKind = 'message' | 'rounded'
-export type NotificationState = Extract<InteractionState, 'default' | 'focus'>
+type NotificationState = Extract<InteractionState, 'default' | 'focus'>
 
-export interface NotificationProps {
+interface NotificationProps {
   /** `message` carries the text; `rounded` is the logo alone. Default `message`. */
   kind?: NotificationKind
   /** Default `default`. */

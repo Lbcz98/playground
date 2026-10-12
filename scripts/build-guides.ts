@@ -32,7 +32,7 @@ const cell = (s: string): string => s.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 type Json = Record<string, unknown>
 type Tok = ReturnType<typeof collectTokens>[number]
 
-export function tokensGuide(root: unknown): string {
+function tokensGuide(root: unknown): string {
   const all = collectTokens(root as Json)
   const byPath = new Map(all.map((t) => [t.path.join('.'), t]))
   const resolve = (v: unknown, seen: string[] = []): unknown => {
@@ -99,7 +99,7 @@ interface RuleLike {
   appliesTo?: readonly string[]
 }
 
-export function rulesGuide(rules: readonly RuleLike[], scope: (id: string) => string = ruleScope): string {
+function rulesGuide(rules: readonly RuleLike[], scope: (id: string) => string = ruleScope): string {
   const out = [HEADER, '', '# Rules', '']
   const titles = { law: 'Laws (never bypassable)', pattern: 'Patterns (breakable in Exploratory mode, declared)', convention: 'Conventions (breaking one only produces a note)' }
   for (const level of ['law', 'pattern', 'convention'] as const) {

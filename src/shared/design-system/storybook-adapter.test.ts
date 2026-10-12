@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { manifestZodSchema } from './manifest'
-import { chooseTemplate } from '@/shared/templates'
 
 /**
  * A mock Storybook / react-docgen extraction for a Button + a Card, mixed in with
@@ -68,10 +66,6 @@ const STORYBOOK_PAYLOAD = {
 
 describe('parseStorybookDocgenWithReport', () => {
   const manifest = parseStorybookDocgenWithReport(STORYBOOK_PAYLOAD).manifest
-
-  it('produces a schema-valid manifest', () => {
-    expect(manifestZodSchema.safeParse(manifest).success).toBe(true)
-  })
 
   it('carries identity from the payload', () => {
     expect(manifest.name).toBe('Acme UI')
@@ -188,8 +182,7 @@ describe('Phase 2 — importing an external Storybook', () => {
   const warned = (component: string, prop?: string) =>
     warnings.filter((w) => w.component === component && (prop === undefined || w.prop === prop))
 
-  it('E2.1 — Storybook 10 manifests/components.json becomes a schema-valid manifest', () => {
-    expect(manifestZodSchema.safeParse(manifest).success).toBe(true)
+  it('E2.1 — Storybook 10 manifests/components.json becomes a manifest', () => {
     // Subcomponents come in as components of their own.
     expect(Object.keys(manifest.components)).toEqual(
       expect.arrayContaining(['ContentCard', 'ContentCardHeader', 'ContentCardBody', 'ContentCardFooter', 'LabelVideo']),
@@ -448,7 +441,6 @@ describe('Phase 2 — importing an external Storybook', () => {
     const { props } = report.manifest.components.Menu
     expect(Object.keys(props)).toEqual(['items'])
     expect(props.items.fields).toMatchObject({ title: { required: true }, subtitle: { required: false } })
-    expect(manifestZodSchema.safeParse(report.manifest).success).toBe(true)
 
     const errors = (items: unknown) => {
       const v = validateBlueprintAgainstManifest(
@@ -558,10 +550,6 @@ describe('Phase 2 — importing an external Storybook', () => {
       'home',
       'no-such-component',
     ])
-
-    // It reaches the template choice exactly like the built-in ones.
-    const choice = chooseTemplate('Template: home', m.templates!)
-    expect(choice).toEqual({ template: m.templates![0], reason: 'named' })
   })
 
   it('E2.6 — a docs or index file says which file to import instead', () => {

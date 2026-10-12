@@ -356,19 +356,11 @@ export interface RuleProblem {
  * `reuse-missing`: a primitive with no "reuse" at all (any other `primitives.reuse` issue is a reuse that is wrong).
  * `nothing-focused`: `level.initial-focus` because no element is focused (not because the focus is in the wrong place).
  */
-export type IssueCode = 'reuse-missing' | 'nothing-focused'
+type IssueCode = 'reuse-missing' | 'nothing-focused'
 
 /** The book the active design system follows: its own, or the built-in one. */
 export function rulesOf(manifest: DesignSystemManifest): readonly PatternRule[] {
   return manifest.rules ?? RULES
-}
-
-/**
- * The component rules for the components a request names — what the planner
- * prompt adds on demand. Global rules are left out: the prompt's prose carries them.
- */
-export function scopedRules(manifest: DesignSystemManifest, components: readonly string[]): PatternRule[] {
-  return rulesOf(manifest).filter((rule) => rule.appliesTo?.some((id) => components.includes(id)))
 }
 
 export function ruleById(manifest: DesignSystemManifest, id: string): PatternRule | undefined {

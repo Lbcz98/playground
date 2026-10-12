@@ -19,7 +19,7 @@ import { rawTierFor } from './manifest'
 import { hexWithAlpha, isAlpha } from './color-alpha'
 import { isSpringSpec, springToCss } from './spring'
 
-export type TokenGroup = keyof ManifestTokens
+type TokenGroup = keyof ManifestTokens
 
 const GROUPS: TokenGroup[] = ['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients', 'motion']
 

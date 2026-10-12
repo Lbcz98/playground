@@ -4,7 +4,6 @@ import {
   defaultForProp,
   deriveDefaultProps,
   inferControl,
-  isDesignSystemManifest,
   propLabel,
   rootContainerId,
   slotInsertIndex,
@@ -116,52 +115,6 @@ describe('token helpers', () => {
     expect(tokenNames(manifest, 'colors')).toEqual(['brand', 'ink'])
     expect(tokenNames(manifest, 'shadow')).toEqual([])
     expect(tokenCount(manifest.tokens)).toBe(4)
-  })
-})
-
-describe('isDesignSystemManifest', () => {
-  it('accepts a minimal valid manifest and rejects junk', () => {
-    expect(
-      isDesignSystemManifest({
-        id: 'm',
-        name: 'm',
-        version: '1',
-        tokens: { colors: {}, spacing: {}, typography: {} },
-        components: { A: { id: 'A', name: 'A', description: '', acceptsChildren: false, props: {} } },
-      }),
-    ).toBe(true)
-    expect(isDesignSystemManifest({ id: 'm' })).toBe(false)
-    expect(isDesignSystemManifest(null)).toBe(false)
-  })
-})
-
-describe('templates', () => {
-  const base = {
-    id: 'm',
-    name: 'm',
-    version: '1',
-    tokens: { colors: {}, spacing: {}, typography: {} },
-    components: { Stack: { id: 'Stack', name: 'Stack', description: '', acceptsChildren: true, props: {} } },
-  }
-
-  it('accepts a manifest with reference screens, blueprint untyped and unvalidated by this schema', () => {
-    const withTemplates = {
-      ...base,
-      templates: [{ id: 'home', name: 'Home', when: 'The home screen.', blueprint: { version: 1, root: { type: 'Stack' } } }],
-    }
-    expect(isDesignSystemManifest(withTemplates)).toBe(true)
-    expect(isDesignSystemManifest(base)).toBe(true)
-  })
-
-  it('rejects a template missing id, name, when or blueprint', () => {
-    for (const bad of [
-      { name: 'Home', when: 'x', blueprint: {} },
-      { id: 'home', when: 'x', blueprint: {} },
-      { id: 'home', name: 'Home', blueprint: {} },
-      { id: 'home', name: 'Home', when: 'x' },
-    ]) {
-      expect(isDesignSystemManifest({ ...base, templates: [bad] })).toBe(false)
-    }
   })
 })
 

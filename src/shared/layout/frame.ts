@@ -39,9 +39,8 @@ import type {
 import { defaultForProp, rootContainerId, tokenNames } from '@/shared/design-system/manifest'
 import { auditScreenLayerIssues, modelOfScreen, navigationLevel, screenLayersOf } from '@/shared/design-system/screen-layers'
 import type { IssuePath, RuleProblem } from '@/shared/design-system/rules'
-import { coveredBy, declaresRule, type Declaration } from '@/shared/design-system/deviations'
+import { coveredBy, type Declaration } from '@/shared/design-system/deviations'
 import { FOCUS_LOOK_ONLY, focusFindings, type Holder } from './focus-rule'
-import type { ScreenMode } from '@/shared/blueprint'
 
 export const FRAME = {
   /** The layout canvas — what the agent targets and the frame is laid out at. */
@@ -57,11 +56,11 @@ export const FRAME = {
 // Frame sizes — how the 1280×720 layout is shown, never what it's laid out at
 // ---------------------------------------------------------------------------
 
-export const FRAME_SIZE_IDS = ['1080p', '720p'] as const
+const FRAME_SIZE_IDS = ['1080p', '720p'] as const
 export type FrameSizeId = (typeof FRAME_SIZE_IDS)[number]
-export const DEFAULT_FRAME_SIZE: FrameSizeId = '1080p'
+const DEFAULT_FRAME_SIZE: FrameSizeId = '1080p'
 
-export interface FrameSize {
+interface FrameSize {
   id: FrameSizeId
   /** The size the layout is shown at. */
   width: number
@@ -89,20 +88,16 @@ export const FRAME_SIZES: Record<FrameSizeId, FrameSize> = {
   '720p': frameSize('720p', 1, 'HD base'),
 }
 
-export function isFrameSizeId(value: unknown): value is FrameSizeId {
-  return typeof value === 'string' && (FRAME_SIZE_IDS as readonly string[]).includes(value)
-}
-
 // ---------------------------------------------------------------------------
 // TV focus
 // ---------------------------------------------------------------------------
 
-export const FOCUS_SIDES = ['left', 'neutral', 'right'] as const
+const FOCUS_SIDES = ['left', 'neutral', 'right'] as const
 export type FocusSide = (typeof FOCUS_SIDES)[number]
 /** Nothing focusable on screen — the anchored group takes the default zone. */
 export const DEFAULT_FOCUS: FocusSide = 'neutral'
 
-export type AnchorZone = 'bottom-left' | 'bottom-right'
+type AnchorZone = 'bottom-left' | 'bottom-right'
 
 /** Right focus (or nothing focusable) anchors bottom-right; left focus mirrors to the left margin. */
 export function anchorZone(side: FocusSide): AnchorZone {
@@ -110,7 +105,7 @@ export function anchorZone(side: FocusSide): AnchorZone {
 }
 
 /** A focusable element's box, in frame pixels. */
-export interface FocusBox {
+interface FocusBox {
   top: number
   left: number
   width: number
@@ -227,7 +222,7 @@ export function snapSpacingName(
   return best ?? allowed[0]
 }
 
-export type SpacingRole = 'gutter' | 'margin'
+type SpacingRole = 'gutter' | 'margin'
 
 const ROLE_PATTERN: Record<SpacingRole, RegExp> = {
   gutter: /gap|gutter|spacing/i,
@@ -325,7 +320,7 @@ export function focusedBy(node: FrameNode, component: ManifestComponent): Manife
 // Tree helpers — work on untrusted Blueprint nodes and on CanvasNodes alike
 // ---------------------------------------------------------------------------
 
-export interface FrameNode {
+interface FrameNode {
   type?: unknown
   props?: unknown
   children?: unknown
@@ -378,7 +373,7 @@ export function isModuleGroup(
 // 'render' is not produced here — `auditFrameLayout` only ever sees the
 // Blueprint's data, before it paints. It's added by the canvas, which is the
 // only place that can measure the actual rendered screen (`renderAudit.ts`).
-export type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers' | 'render'
+type FrameCheckId = 'frame' | 'margins' | 'grid' | 'focus' | 'layers' | 'render'
 
 export interface FrameCheck {
   id: FrameCheckId
@@ -641,22 +636,6 @@ export function columnDirectionFor(component: ManifestComponent): { prop: Manife
   return prop && column ? { prop, column } : undefined
 }
 
-/**
- * Levels whose outermost container must be a column: a row would turn `justify`
- * into the side, and fight the model — the module places itself left or right
- * inside the column instead. `rootEnd` levels also pin that column to the end of
- * the frame (the bottom); `rootColumn` levels (Home) only require the column —
- * their content can sit at both the top and the bottom (a rail with a
- * notification), so nothing fixes `justify` for them.
- */
-export function levelRootProblems(
-  manifest: DesignSystemManifest,
-  screen: unknown,
-  root: FrameNode | undefined,
-): string[] {
-  return levelRootIssues(manifest, screen, root).map((issue) => issue.message)
-}
-
 function levelRootIssues(
   manifest: DesignSystemManifest,
   screen: unknown,
@@ -722,79 +701,6 @@ function focusLevelOf(manifest: DesignSystemManifest, screen: unknown): Manifest
   const level = model ? navigationLevel(layers, model.level) : undefined
   const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
   return level && { ...level, initialFocus: on.length > 0 ? { ...level.initialFocus!, on } : undefined }
-}
-
-/**
- * Rests every element a screen's level says can't hold the focus — a Home card
- * drawn focused because it links to the rail, a card focused on the third level.
- * Such a focus has one right answer (rest it), so it is fixed here instead of
- * costing a model retry. Only the level's own rule is applied: a missing focus, or
- * the wrong value on the right component, is a design choice left to the validator.
- * Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
- */
-export function restStrayFocus(doc: unknown, manifest: DesignSystemManifest, mode: ScreenMode = 'faithful'): string[] {
-  if (!isObject(doc)) return []
-  const layers = screenLayersOf(manifest)
-  const pages = [
-    { root: doc.root, screen: screenOf(doc), where: 'root' },
-    ...(Array.isArray(doc.screens) ? doc.screens : []).filter(isObject).map((s, i) => ({
-      root: s.root,
-      screen: s.screen,
-      where: `screens[${i}]`,
-    })),
-  ]
-  const changed: string[] = []
-  for (const { root, screen, where } of pages) {
-    const model = modelOfScreen(layers, screen)
-    const level = model ? navigationLevel(layers, model.level) : undefined
-    const on = level?.initialFocus?.on.filter((id) => manifest.components[id]) ?? []
-    const accepts = level?.initialFocus?.accepts ?? []
-    if (!level || on.length === 0 || !isObject(root)) continue
-    // An Exploratory screen that declares where focus starts keeps the focus where it put it.
-    if (mode === 'exploratory' && declaresRule(manifest, root, screen, 'level.initial-focus')) continue
-    const visit = (node: Record<string, unknown>): void => {
-      const component = typeof node.type === 'string' ? manifest.components[node.type] : undefined
-      const prop = component && !on.includes(component.id) && !accepts.includes(component.id) ? focusedBy(node, component) : undefined
-      if (prop) {
-        const rest = unfocusedValue(prop)
-        node.props = { ...(isObject(node.props) ? node.props : {}), [prop.name]: rest }
-        changed.push(`${where}: <${component!.id}> ${prop.name} → ${JSON.stringify(rest)} (level ${level.level} focuses ${on.join('/')})`)
-      }
-      childList(node).filter(isObject).forEach(visit)
-    }
-    visit(root)
-  }
-  return changed
-}
-
-/**
- * Sets every screen's root stack to stretch. The stack that holds the components
- * always stretches (a module places itself inside it), so a root `align` of
- * anything else has one right answer — fixed here instead of costing a model
- * retry. Mutates `doc` (the root and every `screens[]` entry); returns what it changed.
- */
-export function stretchRoots(doc: unknown, manifest: DesignSystemManifest, mode: ScreenMode = 'faithful'): string[] {
-  if (!isObject(doc)) return []
-  const roots = [
-    { root: doc.root, screen: doc.screen, where: 'root' },
-    ...(Array.isArray(doc.screens) ? doc.screens : [])
-      .filter(isObject)
-      .map((s, i) => ({ root: s.root, screen: s.screen, where: `screens[${i}]` })),
-  ]
-  const changed: string[] = []
-  for (const { root, screen, where } of roots) {
-    if (!isObject(root) || typeof root.type !== 'string') continue
-    // An Exploratory screen that declares its root's alignment keeps it.
-    if (mode === 'exploratory' && declaresRule(manifest, root, screen, 'layout.root-align')) continue
-    const component = manifest.components[root.type]
-    const prop = component ? stretchPropFor(component) : undefined
-    const value = prop ? propValue(root, prop) : 'stretch'
-    if (prop && value !== 'stretch') {
-      root.props = { ...(isObject(root.props) ? root.props : {}), [prop.name]: 'stretch' }
-      changed.push(`${where}: root <${component!.id}> ${prop.name} ${JSON.stringify(value)} → "stretch"`)
-    }
-  }
-  return changed
 }
 
 /** Every failed checklist item as one error string each — the validator's retry signal. */

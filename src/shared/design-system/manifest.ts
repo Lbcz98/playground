@@ -15,14 +15,13 @@
  * renderer, the interpreter AND the Electron main process.
  */
 
-import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
 // Interfaces
 // ---------------------------------------------------------------------------
 
 /** A prop's declared type, mirroring react-docgen's `type` node. */
-export interface ManifestPropType {
+interface ManifestPropType {
   /** 'string' | 'boolean' | 'number' | 'enum' | 'node' | 'func' | 'object' | … */
   name: string
   /** The raw source annotation, when the extractor preserved it. */
@@ -139,7 +138,7 @@ export interface ManifestTokenTiers {
  * pieces, and each screen sits on a navigation level that limits what it shows.
  * The DTV rule itself lives in `screen-layers.ts`.
  */
-export type ScreenLayer = 'video' | 'overlay' | 'content'
+type ScreenLayer = 'video' | 'overlay' | 'content'
 
 export const SCREEN_LAYER_STACK: readonly ScreenLayer[] = ['video', 'overlay', 'content']
 
@@ -187,7 +186,7 @@ export interface ManifestNavigationLevel {
   rootColumn?: boolean
 }
 
-export interface ManifestInitialFocus {
+interface ManifestInitialFocus {
   /** The components that may hold the focus (any one of them). */
   on: string[]
   /** Content that takes the starting focus when the screen has it (the third level's content card); `on` stays what a repair writes. */
@@ -236,7 +235,7 @@ export interface ManifestScreenLayers {
 }
 
 /** Each menu button owns an interactivity rail on one side of the frame. */
-export interface ManifestMenuRoles {
+interface ManifestMenuRoles {
   /** The menu component, and the prop that names its focused button. */
   component: string
   prop: string
@@ -245,7 +244,7 @@ export interface ManifestMenuRoles {
   roles: ManifestMenuRole[]
 }
 
-export interface ManifestMenuRole {
+interface ManifestMenuRole {
   /** The prop value that focuses this button. */
   item: string
   name: string
@@ -255,7 +254,7 @@ export interface ManifestMenuRole {
   holds: string
 }
 
-export interface ManifestLinkRules {
+interface ManifestLinkRules {
   /** Components that never carry a link (the main menu). */
   none?: string[]
   /** Back controls: a link always goes up exactly one level. */
@@ -369,251 +368,6 @@ export interface DesignSystemManifest {
 }
 
 // ---------------------------------------------------------------------------
-// Runtime validation — used for IPC payloads and imported files
-// ---------------------------------------------------------------------------
-
-// Bounds so a hostile or oversized manifest can't bloat the IPC channel or the
-// LLM prompt. Generous enough for real Storybook libraries.
-const MAX_COMPONENTS = 200
-const MAX_PROPS_PER_COMPONENT = 60
-const MAX_OPTIONS = 100
-const MAX_STR = 4000
-const MAX_RULES = 200
-
-const idSchema = z.string().min(1).max(120)
-const shortStr = z.string().max(200)
-
-const propTypeSchema: z.ZodType<ManifestPropType> = z
-  .object({
-    name: z.string().min(1).max(120),
-    raw: z.string().max(MAX_STR).optional(),
-  })
-  .strict()
-
-const propSchema: z.ZodType<ManifestProp> = z
-  .object({
-    name: z.string().min(1).max(120),
-    type: propTypeSchema,
-    required: z.boolean(),
-    defaultValue: z.unknown().optional(),
-    options: z.array(z.string().max(200)).max(MAX_OPTIONS).optional(),
-    description: z.string().max(MAX_STR).optional(),
-    tokenGroup: z.enum(['colors', 'spacing', 'typography', 'radius', 'shadow', 'gradients', 'motion']).optional(),
-    control: z.enum(['text', 'textarea', 'select', 'boolean', 'number', 'list']).optional(),
-    nullable: z.boolean().optional(),
-    min: z.number().finite().optional(),
-    max: z.number().finite().optional(),
-    step: z.number().finite().positive().optional(),
-    grid: z.boolean().optional(),
-    fields: z
-      .record(z.lazy(() => propSchema))
-      .refine((f) => Object.keys(f).length <= MAX_PROPS_PER_COMPONENT)
-      .optional(),
-  })
-  .strict()
-
-const componentSchema: z.ZodType<ManifestComponent> = z
-  .object({
-    id: idSchema,
-    name: shortStr,
-    description: z.string().max(MAX_STR),
-    category: shortStr.optional(),
-    acceptsChildren: z.boolean(),
-    slots: z.array(idSchema).max(MAX_COMPONENTS).optional(),
-    parents: z.array(idSchema).max(MAX_COMPONENTS).optional(),
-    props: z.record(propSchema).refine((p) => Object.keys(p).length <= MAX_PROPS_PER_COMPONENT, {
-      message: `a component may declare at most ${MAX_PROPS_PER_COMPONENT} props`,
-    }),
-    storybookPath: z.string().max(MAX_STR).optional(),
-  })
-  .strict()
-
-const tokenGroupSchema = z.record(z.string().max(MAX_STR))
-
-const tokensSchema: z.ZodType<ManifestTokens> = z
-  .object({
-    colors: tokenGroupSchema,
-    spacing: tokenGroupSchema,
-    typography: tokenGroupSchema,
-    radius: tokenGroupSchema.optional(),
-    shadow: tokenGroupSchema.optional(),
-    gradients: tokenGroupSchema.optional(),
-    motion: tokenGroupSchema.optional(),
-  })
-  .strict()
-
-const tierSchema = z.enum(['core', 'semantic', 'layout'])
-
-const tokenTiersSchema: z.ZodType<ManifestTokenTiers> = z
-  .object({
-    rule: z
-      .object({
-        core: z.string().max(MAX_STR),
-        semantic: z.string().max(MAX_STR),
-        layout: z.string().max(MAX_STR),
-      })
-      .strict(),
-    tiers: z
-      .object({
-        colors: z.record(tierSchema).optional(),
-        spacing: z.record(tierSchema).optional(),
-        typography: z.record(tierSchema).optional(),
-        radius: z.record(tierSchema).optional(),
-        shadow: z.record(tierSchema).optional(),
-        gradients: z.record(tierSchema).optional(),
-        motion: z.record(tierSchema).optional(),
-      })
-      .strict(),
-  })
-  .strict()
-
-const MAX_MODELS = 40
-const MAX_TEMPLATES = 40
-
-const manifestScreenTemplateSchema: z.ZodType<ManifestScreenTemplate> = z
-  .object({
-    id: idSchema,
-    name: shortStr,
-    when: z.string().min(1).max(400),
-    blueprint: z.record(z.unknown()),
-  })
-  .strict()
-
-const levelSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
-const shadeSchema = z.enum(SHADE_IDS as [ShadeId, ...ShadeId[]])
-
-const screenLayersSchema: z.ZodType<ManifestScreenLayers> = z
-  .object({
-    rule: z.string().max(MAX_STR),
-    stack: z.array(z.enum(SCREEN_LAYER_STACK as [ScreenLayer, ...ScreenLayer[]])).max(SCREEN_LAYER_STACK.length),
-    shades: z
-      .object(Object.fromEntries(SHADE_IDS.map((id) => [id, z.string().min(1).max(200)])) as Record<ShadeId, z.ZodString>)
-      .strict(),
-    levels: z
-      .array(
-        z
-          .object({
-            level: levelSchema,
-            name: shortStr,
-            rule: z.string().max(MAX_STR),
-            maxModules: z.number().int().min(0).nullable(),
-            allowsAnchor: z.boolean(),
-            rootEnd: z.boolean().optional(),
-            rootColumn: z.boolean().optional(),
-            initialFocus: z
-              .object({
-                on: z.array(idSchema).min(1).max(8),
-                accepts: z.array(idSchema).max(8).optional(),
-                value: shortStr.optional(),
-                hint: z.string().max(MAX_STR),
-                required: z.boolean().optional(),
-                anchored: z.boolean().optional(),
-              })
-              .strict()
-              .optional(),
-          })
-          .strict(),
-      )
-      .max(NAVIGATION_LEVELS.length),
-    models: z
-      .array(
-        z
-          .object({
-            id: idSchema,
-            name: shortStr,
-            level: levelSchema,
-            side: z.enum(['left', 'right']).optional(),
-            shades: z.array(shadeSchema).min(1).max(SHADE_IDS.length),
-            allowsRootStart: z.boolean().optional(),
-            use: z.string().max(MAX_STR),
-          })
-          .strict(),
-      )
-      .max(MAX_MODELS),
-    menu: z
-      .object({
-        component: idSchema,
-        prop: shortStr,
-        initial: shortStr,
-        roles: z
-          .array(
-            z
-              .object({ item: shortStr, name: shortStr, side: z.enum(['left', 'right']), holds: z.string().max(MAX_STR) })
-              .strict(),
-          )
-          .max(MAX_MODELS),
-      })
-      .strict()
-      .optional(),
-    links: z
-      .object({
-        none: z.array(idSchema).max(MAX_MODELS).optional(),
-        back: z.array(idSchema).max(MAX_MODELS).optional(),
-        close: z.array(idSchema).max(MAX_MODELS).optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict()
-  .superRefine((layers, ctx) => {
-    const ids = new Set<string>()
-    const levels = new Set(layers.levels.map((l) => l.level))
-    for (const model of layers.models) {
-      if (ids.has(model.id)) ctx.addIssue({ code: 'custom', message: `duplicate layer model "${model.id}"` })
-      ids.add(model.id)
-      if (!levels.has(model.level)) {
-        ctx.addIssue({ code: 'custom', message: `layer model "${model.id}" is on level ${model.level}, which the rule doesn't define` })
-      }
-    }
-  })
-
-const rulesSchema = z
-  .array(
-    z
-      .object({
-        id: idSchema,
-        title: shortStr,
-        statement: z.string().min(1).max(MAX_STR),
-        flexibility: z.enum(RULE_FLEXIBILITIES as [RuleFlexibility, ...RuleFlexibility[]]),
-        category: shortStr,
-        source: shortStr,
-        appliesTo: z.array(idSchema).max(MAX_COMPONENTS).optional(),
-      })
-      .strict(),
-  )
-  .max(MAX_RULES)
-  .superRefine((rules, ctx) => {
-    const ids = new Set<string>()
-    for (const rule of rules) {
-      if (ids.has(rule.id)) ctx.addIssue({ code: 'custom', message: `duplicate rule "${rule.id}"` })
-      ids.add(rule.id)
-    }
-  })
-
-export const manifestZodSchema: z.ZodType<DesignSystemManifest> = z
-    .object({
-      id: idSchema,
-      name: shortStr,
-      version: z.string().min(1).max(60),
-      tokens: tokensSchema,
-      tokenTiers: tokenTiersSchema.optional(),
-      screenLayers: screenLayersSchema.optional(),
-      templates: z.array(manifestScreenTemplateSchema).max(MAX_TEMPLATES).optional(),
-      rules: rulesSchema.optional(),
-      components: z
-        .record(componentSchema)
-        .refine((c) => Object.keys(c).length >= 1, { message: 'a manifest needs at least one component' })
-        .refine((c) => Object.keys(c).length <= MAX_COMPONENTS, {
-          message: `a manifest may declare at most ${MAX_COMPONENTS} components`,
-        }),
-    })
-    .strict() as z.ZodType<DesignSystemManifest>
-
-export function isDesignSystemManifest(value: unknown): value is DesignSystemManifest {
-  return manifestZodSchema.safeParse(value).success
-}
-
-// ---------------------------------------------------------------------------
 // Small shared helpers
 // ---------------------------------------------------------------------------
 
@@ -717,7 +471,7 @@ export function placementError(
 }
 
 /** `placementError` for two components already in hand (the palette has registry entries, not a manifest). */
-export function placementProblem(parent: ManifestComponent, child: ManifestComponent): string | null {
+function placementProblem(parent: ManifestComponent, child: ManifestComponent): string | null {
   if (!parent.acceptsChildren) return `<${parent.id}> cannot have children.`
   if (parent.slots && !parent.slots.includes(child.id)) {
     return `<${parent.id}> only takes ${slotList(parent.slots)}, not <${child.id}>.`
@@ -777,7 +531,7 @@ export function rootContainerId(manifest: DesignSystemManifest): string | null {
 // The token tier rule
 // ---------------------------------------------------------------------------
 
-export const TOKEN_GROUPS: ReadonlyArray<keyof ManifestTokens> = [
+const TOKEN_GROUPS: ReadonlyArray<keyof ManifestTokens> = [
   'colors',
   'spacing',
   'typography',

@@ -41,7 +41,7 @@ export type MainMenuItem = 'login' | 'schedule' | 'miscellaneous' | 'program' | 
 /** One of the things the miscellaneous button cycles through. */
 export type MiscellaneousItem = NonNullable<MainMenuProps['miscellaneousItems']>[number]
 
-export interface MainMenuProps {
+interface MainMenuProps {
   /**
    * The one focused button. Default `program` — when Home opens, the focus is on
    * the program button (Figma: Main Menu › Focus). On Home it is the button whose

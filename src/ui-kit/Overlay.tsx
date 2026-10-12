@@ -40,7 +40,7 @@ export const OVERLAY_DIRECTIONS: readonly OverlayDirection[] = [
   'top-right',
 ]
 
-export interface OverlayProps {
+interface OverlayProps {
   /** The edge the content sits on. Default `bottom`. */
   direction?: OverlayDirection
 }
@@ -53,7 +53,7 @@ export function Overlay({ direction = 'bottom' }: OverlayProps): ReactNode {
 /** Every DTV screen model, in the order of the Figma Modelos table's levels. */
 export const SCREEN_MODEL_IDS: readonly string[] = DTV_SCREEN_LAYERS.models.map((model) => model.id)
 
-export interface ScreenOverlayProps {
+interface ScreenOverlayProps {
   /** A layer model id, e.g. `home` or `interactivity-cards-right`. */
   model: string
 }
