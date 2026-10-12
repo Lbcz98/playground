@@ -43,6 +43,6 @@ Q1: <question in Portuguese> [opções: <a> | <b>]
 
 One question at a time (for a `@proposal`, the four questions in `CODING_STANDARDS.md`, in order). Needed for: a new component (`@proposal`), an ambiguous request, a break the designer might want (`@deviation` must quote their words as `pedido: "…"`; never invent a reason). You will be resumed with the answer.
 
-## 5. Final report (max 120 words, Portuguese)
+## 5. Final report (Portuguese, brief: the command relays it to the designer as is)
 
 The classification line, what was made (screen names, `/<designer>/<tela>`), the reviewer verdict, anything left broken. Then: "Quando gostar, rode `/deploy`." Do not run the dev server.

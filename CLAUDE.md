@@ -1,4 +1,4 @@
-Active plan: docs/plan-AI-Orchestration.md. Follow its phase order and contracts.
+Background, not a plan to follow: docs/plan-AI-Orchestration.md records how the rules and contracts came about.
 
 Para escrever telas em web/protos/: siga web/protos/CLAUDE.md.
 

@@ -31,7 +31,7 @@ A rule of the system is never broken unless the user asked for that break in the
    - `@reuse` and `@proposal` reasons that restate the code instead of giving a reason.
 6. Files outside `web/protos/<designer>/` changed to make a check pass (`git status --short`, `git diff --stat`) → FAIL.
 
-## Verdict (max 300 words)
+## Verdict
 
 ```
 path: <path>

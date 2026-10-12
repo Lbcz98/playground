@@ -14,7 +14,7 @@ Explore opções para o designer. Fale em opções e telas, nunca em Git.
 ## Comentários ao vivo
 
 4. Suba o servidor: Bash em segundo plano, `npm run explore:serve -- docs/explorations/<slug>`. Leia a saída até a linha `READY {json}` e pegue `url` e `logFile`. Abra `url` no navegador do painel; se recusar, diga o endereço e siga.
-5. Arme o Monitor (timeout 1800000): `tail -n 0 -F <logFile> | grep --line-buffered '^COMMENT '`. Diga ao designer, em uma frase, que o botão **Adicionar** (painel à direita) escolhe um elemento e envia o comentário para cá.
+5. Arme o Monitor (timeout 1800000): `tail -n 0 -F <logFile> | grep --line-buffered '^COMMENT '`. Diga ao designer, em uma frase, que o botão **Adicionar comentário** (no topo da página) escolhe um elemento e envia o comentário para cá.
 6. Cada evento `COMMENT {json}` é um comentário. Um de cada vez, na ordem:
    1. `npm run explore:status -- docs/explorations/<slug> <id> aplicando`
    2. `SendMessage` ao `proto-explorer` com o comentário, o seletor, `option`/`part`, `tag`/`text` e `html`, dizendo que é **modo edição**. Se o `kind` for `dials`, mande `values` (valores ajustados no DialKit) em vez disso.

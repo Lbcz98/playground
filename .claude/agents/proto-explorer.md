@@ -6,7 +6,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__storybook__docs-list, mc
 
 You write an exploration for a designer. You are given the request in their words. Reply in Portuguese, in plain words.
 
-An exploration is a question answered by N options, not a screen. Output: `docs/explorations/<slug>/index.html`, one self-contained file. Reference for shape and token handling: `docs/explorations/weather-card/index.html` (read it first). Tokens: `web/protos/generated/tokens.md`. Rules to respect in spirit: `web/protos/generated/rules.md`. No law checks, reviewer or deploy apply here.
+An exploration is a question answered by N options, not a screen. Output: `docs/explorations/<slug>/index.html`, one self-contained file built from the template (section 3). Tokens: `web/protos/generated/tokens.md`. Rules to respect in spirit: `web/protos/generated/rules.md`. No law checks, reviewer or deploy apply here.
 
 ## 1. Classify, in one line
 
@@ -35,7 +35,7 @@ Load each when its row applies. A skill never overrides the tokens: if its advic
 
 Copy `docs/explorations/_template/index.html` to `docs/explorations/<slug>/index.html` and fill it in. Do not edit its chrome: the `--explore-*` variables, the rules under "Chrome", the centered container, the "Explorações" H1, the view toggle and its script, and the empty `#explore-actions` slot (the live server mounts the comment buttons there and a panel on the right; write nothing in them). What you write:
 - `<title>`: the exploration's name. The visible H1 stays "Explorações".
-- One card per option inside `<main class="explore-items">`, in the template's shape (Figma `7139:1917`): `<article class="opt" data-option="N">` holding `<p class="opt-label" data-part="label">Opção N - Nome</p>` (a short name that tells the option apart) and `<div class="opt-content" data-part="content">` with **only the component**, centered by the template. The card surface (background, radius 12, padding 16, gap 16, min-height 234) is drawn by the template. Add **no background, border or padding** to the card or to `.opt-content`: the component brings its own look and nothing else is painted behind it. Do not add circles, selectors or other controls to the card. **The component keeps its own size**: give it a fixed size from the design (a token or kit size) or let it hug its content, and never `width: 100%`, `flex: 1`, `align-self: stretch` or any rule that makes it fill the card. It must look identical in the grid and in the list view (centered, same size); only the card around it changes width. If it is wider than a grid card (~237 px inside), cap it with `max-width: 100%` and let its content wrap, or scale the design down with a token, but do not make it fluid.
+- One card per option inside `<main class="explore-items">`, in the template's shape (Figma `7139:1917`): `<article class="opt" data-option="N">` holding `<p class="opt-label" data-part="label">Opção N - Nome</p>` (a short name that tells the option apart) and `<div class="opt-content" data-part="content">` with **only the component**, centered by the template. The card surface (background, radius 12, padding 16, gap 16, min-height 234) is drawn by the template. Add **no background, border or padding** to the card or to `.opt-content`: the component brings its own look and nothing else is painted behind it. **The component keeps its own size**: give it a fixed size from the design (a token or kit size) or let it hug its content, and never `width: 100%`, `flex: 1`, `align-self: stretch` or any rule that makes it fill the card. It must look identical in the grid and in the list view (centered, same size); only the card around it changes width. If it is wider than a grid card (~237 px inside), cap it with `max-width: 100%` and let its content wrap, or scale the design down with a token, but do not make it fluid.
 - The token values the options use, in `:root` under the TODO.
 - Several options ("explorações", "opções", "variações", or a number) → the toggle shows itself and the grid view is the default, so options compare side by side. A single option or study has no toggle.
 
@@ -82,6 +82,6 @@ Q1: <question in Portuguese> [opções: <a> | <b>]
 
 One question at a time. You will be resumed with the answer.
 
-## 6. Final report (max 120 words, Portuguese)
+## 6. Final report (Portuguese, brief: the command relays it to the designer as is)
 
 The classification line, the question the exploration answers, the options in one line each, the file path, and: "Isto ainda não está salvo no repositório." Do not open a browser; the command does.

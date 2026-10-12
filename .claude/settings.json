@@ -25,5 +25,8 @@
   },
   "enabledMcpjsonServers": [
     "storybook"
-  ]
+  ],
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true
+  }
 }

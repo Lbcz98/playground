@@ -33,6 +33,19 @@ npm run tokens:check       # generated tokens and guides match tokens/tokens.jso
 
 The shared app has its own install: `cd web && npm install && npm run dev`.
 
+### Claude Code dependencies
+
+`/proto` and `/explore` (the `proto-writer` and `proto-explorer` agents) load two things that are not in this repo:
+
+- **Figma plugin.** Declared in `.claude/settings.json` (`figma@claude-plugins-official`), so it is enabled for this project once you trust the folder.
+- **Interface Craft skill** (`interface-craft`, by Josh Puckett), used for the design critique pass. Install it once per machine:
+
+  ```bash
+  curl -sL interfacecraft.dev/api/install-skills | bash
+  ```
+
+  It writes the skill to `~/.agents/skills/` and links it into `~/.claude/skills/`. Read the script first if you want to see what it does: `curl -sL interfacecraft.dev/api/install-skills | less`.
+
 ## What is where
 
 ```
