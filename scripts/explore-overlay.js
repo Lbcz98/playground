@@ -54,13 +54,9 @@
     <div class="card"><div class="hh"><span class="title">Histórico</span><button class="close" title="Fechar"><span class="ico" style="--src:url(/__explore/icons/close.svg)"></span></button></div><div class="body"></div></div>`
   const body = hroot.querySelector('.body')
 
-  // Header buttons, in the page's slot (a fixed cluster at the top right on pages without one).
-  let slot = document.getElementById('explore-actions')
-  if (!slot) {
-    slot = document.createElement('div')
-    slot.style.cssText = 'position:fixed;top:24px;right:24px;z-index:2147483646'
-    document.body.appendChild(slot)
-  }
+  // Header buttons, in the page's slot (docs/explorations/_template). Pages without it get no live layer.
+  const slot = document.getElementById('explore-actions')
+  if (!slot) return
   slot.dataset.live = ''
   const actions = slot.attachShadow({ mode: 'open' })
   actions.innerHTML = `
