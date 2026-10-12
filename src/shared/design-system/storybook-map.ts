@@ -17,7 +17,7 @@
  */
 
 /** Why a prop exists in code but not in the catalog. */
-export type CodeOnlyReason =
+type CodeOnlyReason =
   /** An image URL or a node slot — the agent has no assets to pass. */
   | 'asset-slot'
   /** Composition the Blueprint expresses with child nodes, or state the canvas owns. */

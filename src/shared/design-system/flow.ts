@@ -19,7 +19,7 @@ interface LinkNode {
   children?: unknown
 }
 
-export interface FlowLink {
+interface FlowLink {
   /** Where the link sits, e.g. `root › Stack[1] › InteractivityButton[0]`. */
   path: string
   /** The component that carries it. */

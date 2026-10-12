@@ -29,7 +29,7 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
  * follow (it wrote `unknown`, or a named alias it did not expand), so no option
  * list can be trusted for it.
  */
-export type DocgenPropKind =
+type DocgenPropKind =
   | 'enum'
   | 'string'
   | 'number'
@@ -66,7 +66,7 @@ export interface DocgenComponent {
   error?: string
 }
 
-export interface SnapshotComponent extends DocgenComponent {
+interface SnapshotComponent extends DocgenComponent {
   /** Storybook title, e.g. `UI Kit/Content Card`. */
   title: string
   /** Every story id under that title, sorted. */
@@ -214,7 +214,7 @@ export function readDocgenProp(raw: unknown): DocgenProp | null {
 }
 
 /** A react-docgen block (`{ displayName, description, props }`) → `DocgenComponent`. */
-export function readDocgenComponent(name: string, docgen: unknown, error?: unknown): DocgenComponent {
+function readDocgenComponent(name: string, docgen: unknown, error?: unknown): DocgenComponent {
   const props: Record<string, DocgenProp> = {}
   const rawProps = isObject(docgen) && isObject(docgen.props) ? docgen.props : {}
   for (const key of Object.keys(rawProps).sort()) {

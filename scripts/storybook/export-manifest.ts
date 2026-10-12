@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { snapshotFromStorybook } from '../../src/shared/design-system/storybook-components-manifest'
 
-export const SNAPSHOT_PATH = 'tests/storybook/manifest.snapshot.json'
+const SNAPSHOT_PATH = 'tests/storybook/manifest.snapshot.json'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const check = process.argv.includes('--check')

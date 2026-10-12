@@ -55,9 +55,9 @@ import {
 import './ui-kit.css'
 import { contentCardSpec, frameSpec, spacingScale } from '@/design-system/primitives'
 
-export type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
+type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
 
-export interface ContentCardProps {
+interface ContentCardProps {
   /** Default `default`. */
   interactionState?: ContentCardState
   /**
@@ -178,21 +178,21 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
 // Zones
 // ---------------------------------------------------------------------------
 
-export interface ContentCardHeaderMatch {
+interface ContentCardHeaderMatch {
   /** The home side: its crest or flag, and its short name. */
   home: { badge?: ReactNode; name: string }
   /** The away side, drawn mirrored against the right edge. */
   away: { badge?: ReactNode; name: string }
 }
 
-export interface ContentCardHeaderPartner {
+interface ContentCardHeaderPartner {
   logo?: ReactNode
   name: string
   /** Draws the verified tick after the name. */
   verified?: boolean
 }
 
-export interface ContentCardHeaderProps {
+interface ContentCardHeaderProps {
   /** Small line above the title. Omitted or empty: not drawn. */
   overline?: string
   /** Omitted or empty: not drawn — a header may be only a match, a partner or an ad tag. */
@@ -332,7 +332,7 @@ export function ContentCardHeader({
   )
 }
 
-export interface ContentCardBodyProps {
+interface ContentCardBodyProps {
   /** A quote under the body's content. Omitted or empty: not drawn. */
   quote?: string
   /**
@@ -377,7 +377,7 @@ export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps):
   )
 }
 
-export interface ContentCardFooterProps {
+interface ContentCardFooterProps {
   /** A centred caption, drawn at 70% like Figma's. Omitted or empty: not drawn. */
   caption?: string
   /** Text laid out beside the caption. Never a `<button>` or `<a>`: the card itself is the one control. */

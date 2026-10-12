@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MARKER } from './findings'
 
-export interface PostOptions {
+interface PostOptions {
   repo: string
   pr: number
   fork?: boolean

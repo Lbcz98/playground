@@ -32,7 +32,7 @@ import { mergeTokens, parseDesignTokenTiers, parseDesignTokens } from '@/shared/
 import { W3C_TOKEN_SOURCE } from './w3cTokenSource'
 import { DTV_SCREEN_LAYERS } from '@/shared/design-system/screen-layers'
 
-export const W3C_MANIFEST_ID = 'global-css-tokens'
+const W3C_MANIFEST_ID = 'global-css-tokens'
 
 const tokens = mergeTokens(parseDesignTokens(W3C_TOKEN_SOURCE))
 const tiers = parseDesignTokenTiers(W3C_TOKEN_SOURCE)

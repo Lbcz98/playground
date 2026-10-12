@@ -9,7 +9,6 @@ import { interactivityRailTemplate } from './interactivityRail'
 import { prototypeFlowTemplate } from './prototypeFlow'
 
 export type { ScreenTemplate } from './types'
-export { chooseTemplate, parseScreenModel, parseTemplateLine, type TemplateChoice } from './choose'
 
 /** Every reference screen, in the order a person meets them. */
 export const SCREEN_TEMPLATES: readonly ScreenTemplate[] = [

@@ -21,14 +21,14 @@ import { Stack, Text } from '@/primitives'
 import { InteractivityButton, type InteractivityButtonState } from './InteractivityButton'
 import './ui-kit.css'
 
-export interface InteractivityMenuItem {
+interface InteractivityMenuItem {
   title: string
   /** Fills the card's thumbnail slot — an image, an icon, or nothing. */
   thumbnail?: ReactNode
   onClick?: () => void
 }
 
-export interface InteractivityMenuProps {
+interface InteractivityMenuProps {
   /** The rail's cards. Ignored when `children` are given. */
   items?: InteractivityMenuItem[]
   /**

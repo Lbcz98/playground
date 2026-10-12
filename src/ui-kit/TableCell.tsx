@@ -43,7 +43,7 @@ export interface TeamCellProps extends TableCellBase {
   stats?: string[]
 }
 
-export interface AthleteCellProps extends TableCellBase {
+interface AthleteCellProps extends TableCellBase {
   type: 'athlete'
   /** Shirt number. Omitted: not drawn. */
   number?: string
@@ -56,7 +56,7 @@ export interface AthleteCellProps extends TableCellBase {
   substitute?: string
 }
 
-export interface ScoutCellProps extends TableCellBase {
+interface ScoutCellProps extends TableCellBase {
   type: 'scout'
   /** The stat being compared, centred whether or not the values are drawn. */
   label: string
@@ -64,14 +64,14 @@ export interface ScoutCellProps extends TableCellBase {
   values?: [string, string]
 }
 
-export type TableCellProps = TeamCellProps | AthleteCellProps | ScoutCellProps
+type TableCellProps = TeamCellProps | AthleteCellProps | ScoutCellProps
 
 /**
  * Every prop any row takes, in one flat shape — the implementation signature, and
  * what Storybook's docgen documents (it can't read a union of props). Callers
  * still get the strict per-row union through `TableCell`'s one overload.
  */
-export interface TableCellFields {
+interface TableCellFields {
   /** Which row: `team` (the default), `athlete` or `scout`. */
   type?: 'team' | 'athlete' | 'scout'
   /** The team or athlete's name (team and athlete rows). */

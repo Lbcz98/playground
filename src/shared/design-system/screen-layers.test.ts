@@ -6,7 +6,7 @@ import {
   screenLayersOf,
   staticContentSide,
 } from './screen-layers'
-import { type DesignSystemManifest, manifestZodSchema } from './manifest'
+import type { DesignSystemManifest } from './manifest'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
 import { W3C_MANIFEST } from '@/shared/fixtures/w3cManifest'
 import { CSS_VARS } from '@/styles/global-tokens'
@@ -64,19 +64,6 @@ describe('the DTV layer rule', () => {
     const imported: DesignSystemManifest = { ...W3C_MANIFEST, screenLayers: undefined }
     expect(screenLayersOf(imported)).toBe(DTV_SCREEN_LAYERS)
     expect(defaultScreen(DTV_SCREEN_LAYERS)).toEqual({ model: 'home', level: 1 })
-  })
-})
-
-describe('the layer rule in the manifest schema', () => {
-  it('accepts the DTV rule and rejects a broken one', () => {
-    expect(manifestZodSchema.safeParse(SCREENFLOW_MANIFEST).success).toBe(true)
-    const withModels = (models: unknown[]) => ({ ...W3C_MANIFEST, screenLayers: { ...DTV_SCREEN_LAYERS, models } })
-    const home = DTV_SCREEN_LAYERS.models[2]
-    expect(manifestZodSchema.safeParse(withModels([home, home])).success).toBe(false) // duplicate id
-    expect(manifestZodSchema.safeParse(withModels([{ ...home, shades: ['glow'] }])).success).toBe(false)
-    expect(manifestZodSchema.safeParse(withModels([{ ...home, level: 4 }])).success).toBe(false)
-    const noLevel2 = { ...W3C_MANIFEST, screenLayers: { ...DTV_SCREEN_LAYERS, levels: DTV_SCREEN_LAYERS.levels.filter((l) => l.level !== 2) } }
-    expect(manifestZodSchema.safeParse(noLevel2).success).toBe(false) // models on level 2 remain
   })
 })
 

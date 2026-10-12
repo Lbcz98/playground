@@ -11,7 +11,7 @@ import backRestIcon from './icons/back-rest.svg'
 import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 import './ui-kit.css'
 
-export interface RoundedButtonProps {
+interface RoundedButtonProps {
   /** Default `focus`. */
   interactionState?: RoundButtonState
   /** Accessible name — the control is icon-only. */

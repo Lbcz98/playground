@@ -48,7 +48,7 @@ export type Control =
 
 export type ComponentCategory = 'layout' | 'content' | 'form'
 
-export interface CatalogEntry {
+interface CatalogEntry {
   type: string
   label: string
   category: ComponentCategory
@@ -119,17 +119,17 @@ export type ButtonProps = z.infer<typeof buttonSchema>
  * compile time. The imports are type-only, so this file stays runtime-free for
  * the Electron main process.
  */
-export const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly InteractivityButtonState[]
-export const CONTROL_STATES = ['default', 'focus'] as const satisfies readonly RoundButtonState[]
-export const WIDE_BUTTON_STATES = [
+const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly InteractivityButtonState[]
+const CONTROL_STATES = ['default', 'focus'] as const satisfies readonly RoundButtonState[]
+const WIDE_BUTTON_STATES = [
   'default',
   'focus',
   'loading',
   'disabled',
 ] as const satisfies readonly WideButtonStatus[]
-export const LABEL_VIDEO_KINDS = ['live', 'replay'] as const satisfies readonly LabelVideoKind[]
+const LABEL_VIDEO_KINDS = ['live', 'replay'] as const satisfies readonly LabelVideoKind[]
 /** `none` is focus elsewhere on the screen — the component's `null`. */
-export const MAIN_MENU_ITEMS = [
+const MAIN_MENU_ITEMS = [
   'program',
   'login',
   'schedule',
@@ -156,7 +156,7 @@ export const mainMenuSchema = z
   })
   .strict()
 
-export const RAIL_ALIGN = ['start', 'end'] as const
+const RAIL_ALIGN = ['start', 'end'] as const
 
 export const interactivityMenuSchema = z
   .object({
@@ -213,7 +213,7 @@ export const closeButtonSchema = z
 const CARD_HEIGHT_MIN = 2 * parseFloat(spacingScale[contentCardSpec.inset])
 
 /** The most a card's gap can be — the 2xl step. */
-export const CARD_GAP_MAX = 40
+const CARD_GAP_MAX = 40
 
 /** A gap in px anywhere on the 8pt scale (`isOnGrid`), up to CARD_GAP_MAX. Omitted: the component's own. */
 function onGridGap() {
@@ -280,7 +280,7 @@ export const contentCardFooterSchema = z
 
 const CONTENT_CARD_ZONES = ['ContentCardHeader', 'ContentCardBody', 'ContentCardFooter'] as const
 
-export const TABLE_CELL_TYPES = ['team', 'athlete', 'scout'] as const
+const TABLE_CELL_TYPES = ['team', 'athlete', 'scout'] as const
 
 /**
  * One row of a Content Card's table. The row type decides which props are drawn;
@@ -314,7 +314,7 @@ export const tableCellSchema = z
   })
   .strict()
 
-export const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
+const NOTIFICATION_KINDS = ['message', 'rounded'] as const satisfies readonly NotificationKind[]
 
 export const notificationSchema = z
   .object({
@@ -324,7 +324,7 @@ export const notificationSchema = z
   })
   .strict()
 
-export const ALERT_BUG_STYLES = ['interface', 'transmission'] as const satisfies readonly AlertBugStyle[]
+const ALERT_BUG_STYLES = ['interface', 'transmission'] as const satisfies readonly AlertBugStyle[]
 
 export const alertBugSchema = z
   .object({
@@ -635,11 +635,11 @@ export const Catalog = {
   },
 } as const satisfies Record<string, CatalogEntry>
 
-export type CatalogType = keyof typeof Catalog
+type CatalogType = keyof typeof Catalog
 
 export const CATALOG_TYPES = Object.keys(Catalog) as CatalogType[]
 
-export function isCatalogType(type: string): type is CatalogType {
+function isCatalogType(type: string): type is CatalogType {
   return Object.prototype.hasOwnProperty.call(Catalog, type)
 }
 

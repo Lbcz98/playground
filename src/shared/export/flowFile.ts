@@ -28,10 +28,10 @@ import type { RuleProblem } from '../design-system/rules'
 import { literal } from './fromTsx'
 
 /** The keys a flow can bind. Back is automatic, except as the home bar's explicit two-step. */
-export const FLOW_KEYS = ['up', 'down', 'left', 'right', 'enter', 'back'] as const satisfies readonly FlowKeyName[]
+const FLOW_KEYS = ['up', 'down', 'left', 'right', 'enter', 'back'] as const satisfies readonly FlowKeyName[]
 export type FlowKey = (typeof FLOW_KEYS)[number]
 
-export interface FlowTransition {
+interface FlowTransition {
   from: string
   key: FlowKey
   to: string
@@ -42,7 +42,7 @@ export interface FlowFile {
   transitions: FlowTransition[]
 }
 
-export interface FlowParse {
+interface FlowParse {
   flow?: FlowFile
   /** What is wrong with the file itself (shape, not meaning). */
   problems: string[]

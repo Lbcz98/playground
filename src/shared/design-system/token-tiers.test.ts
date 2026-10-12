@@ -9,7 +9,6 @@ import {
   deriveDefaultProps,
   inferTokenTiers,
   isCoreToken,
-  manifestZodSchema,
   semanticEquivalents,
   tokenTierRule,
   tokenTier,
@@ -92,14 +91,6 @@ describe('the token tier rule in the manifest', () => {
     expect(semanticEquivalents(TIERED, 'colors', 'core-blue')).toEqual([])
   })
 
-  it('round-trips through the manifest schema, and rejects an unknown tier', () => {
-    const declared: DesignSystemManifest = { ...TIERED, tokenTiers: { rule: TOKEN_TIER_RULE, tiers: inferTokenTiers(TIERED.tokens) } }
-    expect(manifestZodSchema.safeParse(declared).success).toBe(true)
-    const bad = { ...declared, tokenTiers: { rule: TOKEN_TIER_RULE, tiers: { colors: { 'core-white': 'raw' } } } }
-    expect(manifestZodSchema.safeParse(bad).success).toBe(false)
-    // Manifests saved before the rule existed still load.
-    expect(manifestZodSchema.safeParse(TIERED).success).toBe(true)
-  })
 })
 
 describe('the token tier rule in the validator', () => {

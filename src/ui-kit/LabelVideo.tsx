@@ -16,7 +16,7 @@ import './ui-kit.css'
 
 export type LabelVideoKind = 'live' | 'replay'
 
-export interface LabelVideoProps {
+interface LabelVideoProps {
   /** `live` says AO VIVO, `replay` says REPLAY. */
   kind?: LabelVideoKind
   /** Focused: gradient fill with the volume icon. Default: translucent chip. Default `focus`. */

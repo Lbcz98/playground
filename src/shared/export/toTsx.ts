@@ -40,7 +40,7 @@ export class TsxExportError extends Error {
   }
 }
 
-export interface TsxExportOptions {
+interface TsxExportOptions {
   /** The component name of the first screen. Default: the document's name, else `Screen`. */
   componentName?: string
   /** Rewrites a module path, e.g. `@/ui-kit/MainMenu` → `@globo/dtv-kit/MainMenu`. Default: as is. */
@@ -49,14 +49,14 @@ export interface TsxExportOptions {
   kit?: Readonly<Record<string, KitImport>>
 }
 
-export interface ExportedScreen {
+interface ExportedScreen {
   /** The screen's id in the document (what `goTo` names). */
   id: string
   /** The exported component's name. */
   component: string
 }
 
-export interface TsxExport {
+interface TsxExport {
   code: string
   screens: ExportedScreen[]
 }

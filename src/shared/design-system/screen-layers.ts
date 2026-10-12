@@ -584,12 +584,3 @@ export function menuFocusCheck(
   const accepted = railSide === 'left' ? allowed : [...allowed, 'channel-bug']
   return { menu, found, railSide, allowed, accepted }
 }
-
-/** A one-line description of a screen's layers, for status lines. */
-export function describeScreen(manifest: DesignSystemManifest, screen: ScreenSpec | undefined): string | null {
-  if (!screen) return null
-  const layers = screenLayersOf(manifest)
-  const model = modelOfScreen(layers, screen)
-  const level = navigationLevel(layers, screen.level)
-  return `${model?.name ?? screen.model} · nível ${screen.level}${level ? ` (${level.name})` : ''}`
-}

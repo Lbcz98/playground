@@ -26,7 +26,7 @@ export const diskTree: Tree = {
   read: (file) => readFileSync(file, 'utf8'),
 }
 
-export interface DesignerPath {
+interface DesignerPath {
   designer: string
   /** `…/web/protos/<designer>`: the path as given, up to and including the designer's name. */
   folder: string

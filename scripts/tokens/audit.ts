@@ -21,9 +21,9 @@ import { collectTokens, cssVarName, textClassName } from './compile'
 
 export const AUDITED_DIRS = ['src/ui-kit', 'src/primitives'] as const
 
-export type Tier = 'core' | 'semantic'
+type Tier = 'core' | 'semantic'
 
-export interface FileAudit {
+interface FileAudit {
   file: string
   /** Token name → occurrences. */
   core: Map<string, number>

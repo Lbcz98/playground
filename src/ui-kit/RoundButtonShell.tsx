@@ -18,7 +18,7 @@ import './ui-kit.css'
 
 export type RoundButtonState = Extract<InteractionState, 'default' | 'focus'>
 
-export interface RoundButtonShellProps {
+interface RoundButtonShellProps {
   /** Default `default`. */
   interactionState?: RoundButtonState
   /** Accessible name — every consumer so far is icon/image-only. */

@@ -38,7 +38,7 @@ import {
 } from './token-adapter'
 import { isComponentsManifest, literalOptions, readDocgenProp, unquoteLiteral } from './storybook-components-manifest'
 
-export interface StorybookAdapterMeta {
+interface StorybookAdapterMeta {
   id?: string
   name?: string
   version?: string
@@ -47,14 +47,14 @@ export interface StorybookAdapterMeta {
 }
 
 /** Something the import accepted with a loss the author should know about. */
-export interface StorybookImportWarning {
+interface StorybookImportWarning {
   /** The component — or `tokens`, with the token's path as `prop`. */
   component: string
   prop?: string
   message: string
 }
 
-export interface StorybookImportReport {
+interface StorybookImportReport {
   manifest: DesignSystemManifest
   warnings: StorybookImportWarning[]
 }
@@ -324,7 +324,7 @@ function childKeys(raw: Record<string, unknown>): boolean {
 }
 
 /** One component a Storybook components manifest documents, under the name it imports as. */
-export interface StorybookComponentSource {
+interface StorybookComponentSource {
   /** Its name in the imported manifest — qualified by its story when two share a name. */
   name: string
   /** The name its react-docgen output gives it, when that differs from `name`. */
@@ -581,6 +581,6 @@ function screenTemplatesFrom(
 }
 
 /** A token the parse left out, in the importer's warning shape. */
-export function tokenImportWarning(w: TokenWarning): StorybookImportWarning {
+function tokenImportWarning(w: TokenWarning): StorybookImportWarning {
   return { component: 'tokens', prop: w.token, message: w.message }
 }

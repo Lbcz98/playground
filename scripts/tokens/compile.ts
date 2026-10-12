@@ -27,7 +27,7 @@ export const TOKEN_OUTPUTS = {
   names: 'src/primitives/token-names.ts',
 } as const
 
-export interface CompiledTokens {
+interface CompiledTokens {
   css: string
   ts: string
   names: string

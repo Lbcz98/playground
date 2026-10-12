@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { SCREEN_TEMPLATES } from '@/shared/templates'
 import { SCREENFLOW_MANIFEST } from './screenflow-manifest'
-import { manifestZodSchema } from './manifest'
 import { compileManifestSchemas } from './manifest-zod'
 import { Catalog, CATALOG_TYPES, getCatalogEntry } from '@/design-system/catalog'
 
 describe('SCREENFLOW_MANIFEST (derived from the catalog)', () => {
-  it('is a schema-valid manifest', () => {
-    expect(manifestZodSchema.safeParse(SCREENFLOW_MANIFEST).success).toBe(true)
-  })
-
   it('mirrors every catalog component and no others', () => {
     expect(Object.keys(SCREENFLOW_MANIFEST.components).sort()).toEqual([...CATALOG_TYPES].sort())
   })

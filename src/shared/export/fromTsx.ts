@@ -44,9 +44,9 @@ export interface ParsedScreen {
  * Local components (name as used in the JSX) the screen imports from `components/`: a proposal
  * becomes a `Proposal` node; `null` (no valid proposal) leaves the element out, the caller reports it.
  */
-export type LocalComponents = ReadonlyMap<string, ParsedProposal | null>
+type LocalComponents = ReadonlyMap<string, ParsedProposal | null>
 
-export type NotReadKind = 'computed-prop' | 'iteration' | 'spread' | 'text' | 'conditional' | 'other'
+type NotReadKind = 'computed-prop' | 'iteration' | 'spread' | 'text' | 'conditional' | 'other'
 export interface NotRead {
   line: number
   kind: NotReadKind

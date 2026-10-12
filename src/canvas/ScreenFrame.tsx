@@ -29,7 +29,7 @@ import { cx } from '@/lib/cx'
  * first so every `--sfs-*` var the generic renderer reads is always defined,
  * even when an imported system supplies only a partial token set.
  */
-export interface ScreenFrameProps {
+interface ScreenFrameProps {
   /** The root node. Its `screen` names the layer model the frame paints. */
   tree: CanvasNode
   layers: ManifestScreenLayers

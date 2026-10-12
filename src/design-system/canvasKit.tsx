@@ -26,7 +26,7 @@ type Space = 'none' | '3xs' | '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' |
 // Stack
 // ===========================================================================
 
-export interface CanvasStackProps {
+interface CanvasStackProps {
   /** The main axis. Default `vertical`. */
   direction?: 'vertical' | 'horizontal'
   /** Space between children. On the root and between modules it is the frame's gutter. Default `sm`. */
@@ -106,7 +106,7 @@ export function CanvasStack({
 // Text
 // ===========================================================================
 
-export interface CanvasTextProps {
+interface CanvasTextProps {
   /** The words. Default `Text`. */
   content?: string
   /** Size and weight; the element follows (display h1, title h2, heading h3, body p, caption span). Default `body`. */
@@ -162,7 +162,7 @@ export function CanvasText({
 // Button
 // ===========================================================================
 
-export interface CanvasButtonProps {
+interface CanvasButtonProps {
   /** What it does, e.g. "Create account". Default `Button`. */
   label?: string
   /** Emphasis. Default `primary`. */

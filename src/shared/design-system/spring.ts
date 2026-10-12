@@ -9,7 +9,7 @@
  * and critically-damped springs are all solved exactly (no step integration).
  */
 
-export interface SpringSpec {
+interface SpringSpec {
   /** Settle time the curve is laid over, e.g. "800ms". */
   duration: string
   stiffness: number
@@ -36,7 +36,7 @@ export function springAt(t: number, { stiffness, damping, mass = 1 }: Omit<Sprin
 }
 
 /** "800ms" / "0.8s" → seconds; null when it isn't a duration. */
-export function durationSeconds(value: string): number | null {
+function durationSeconds(value: string): number | null {
   const m = value.trim().match(/^(\d*\.?\d+)(ms|s)$/)
   if (!m) return null
   return m[2] === 'ms' ? Number(m[1]) / 1000 : Number(m[1])

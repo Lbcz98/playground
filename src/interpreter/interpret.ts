@@ -89,7 +89,7 @@ export interface InterpretIssue {
   message: string
 }
 
-export type InterpretResult =
+type InterpretResult =
   | { ok: true; tree: CanvasNode; issues: InterpretIssue[]; nodeCount: number; mode: ScreenMode }
   | { ok: false; error: string; issues: InterpretIssue[] }
 
@@ -313,7 +313,7 @@ export function interpretBlueprint(
   return { ok: true, tree: root, issues, nodeCount: countNodes(root), mode }
 }
 
-export type PrototypeResult =
+type PrototypeResult =
   | { ok: true; screens: ScreenEntry[]; issues: InterpretIssue[]; nodeCount: number; linkCount: number; notes: string[] }
   | { ok: false; error: string; issues: InterpretIssue[] }
 
