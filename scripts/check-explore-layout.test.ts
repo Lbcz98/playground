@@ -10,10 +10,10 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }))
 const chromiumUp = await chromium.launch().then((b) => (b.close(), true), () => false)
 
 /** A page of the template with one option whose component is `inner`; the checker's own output for it. */
-function check(inner: string, css = ''): { code: number; out: string } {
+function check(inner: string, css = '', attrs = ''): { code: number; out: string } {
   const folder = join(dir, String(Math.random()).slice(2, 8))
   mkdirSync(folder)
-  writeFileSync(join(folder, 'index.html'), `<!doctype html><html><head><link rel="stylesheet" href="/__explore/tokens.css"><style>*{box-sizing:border-box}.opt{display:flex;flex-direction:column;width:320px;padding:16px;background:#232323}.opt-content{display:flex;justify-content:center} ${css}</style></head><body><main class="explore-items"><article class="opt" data-option="1"><p class="opt-label">Opção 1 - X</p><div class="opt-content">${inner}</div></article></main></body></html>`)
+  writeFileSync(join(folder, 'index.html'), `<!doctype html><html><head><link rel="stylesheet" href="/__explore/tokens.css"><style>*{box-sizing:border-box}.opt{display:flex;flex-direction:column;width:320px;padding:16px;background:#232323}.opt-content{display:flex;justify-content:center} ${css}</style></head><body><main class="explore-items"><article class="opt" data-option="1"${attrs}><p class="opt-label">Opção 1 - X</p><div class="opt-content">${inner}</div></article></main></body></html>`)
   try { return { code: 0, out: execFileSync('node', ['scripts/check-explore-layout.mjs', folder], { encoding: 'utf8' }) } }
   catch (e) { const x = e as { status: number; stderr: string }; return { code: x.status, out: x.stderr } }
 }
@@ -22,6 +22,12 @@ const card = 'background: var(--color-semantic-functional-background-elevated); 
 describe.skipIf(!chromiumUp)('check-explore-layout', () => {
   it('passes a card made of the kit surface', () => {
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card}}`)).toEqual({ code: 0, out: 'ok\n' })
+  })
+  it('advises, never fails, a surface the designer tuned off the kit on /tune', () => {
+    const r = check('<div class="c"><span>24°</span></div>', `.c{${card} border-radius: 16px}`, ' data-tuned')
+    expect(r.code).toBe(0)
+    expect(r.out).toContain('advisory: Opção 1: superfície')
+    expect(r.out.trim().endsWith('ok')).toBe(true)
   })
   it('names a radius that is not the kit\'s, and a pill on a tall box', () => {
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} border-radius: 16px}`).out).toContain('superfície')

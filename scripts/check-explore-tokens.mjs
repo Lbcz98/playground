@@ -14,11 +14,15 @@ const SIZE = '--dimension-size-semantic-'
 const sizes = Object.keys(defs).filter(n => n.startsWith(SIZE) && /^\d+px$/.test(value(defs[n]))).map(n => [n.slice(SIZE.length), parseFloat(value(defs[n]))])
 const named = k => sizes.filter(s => s[1] === k).map(s => s[0]).join(' / ')
 const strip = (s, re) => s.replace(re, '')
+// /tune: a tuned option's spec (dial values, hex colors included) is data, and a value the designer moved off its token carries `/* tune */`: it is advised, not failed.
+const tuned = [], tunedNames = []
 const authored = page.replace(/\/\* Chrome \*\/[\s\S]*?(?=\/\* Options|<\/style>)/, '') // the template's chrome is fixed by Figma
+  .replace(/<script type="application\/json" data-tune[\s\S]*?<\/script>/g, '')
+  .replace(/(--[\w-]+):\s*([^;]+);\s*\/\* tune \*\//g, (_, name, v) => (tunedNames.push(name), tuned.push(`advisory: tuned off-token ${name}: ${v.trim()} (a candidate token; /proto snaps it to the nearest)`), ''))
 const body = strip(strip(strip(authored, /<svg[\s\S]*?<\/svg>/g), /<!--[\s\S]*?-->/g), /\/\*[\s\S]*?\*\//g)
 const root = body.match(/:root\s*\{[\s\S]*?\n\}/)?.[0] ?? ''
 const outside = body.replace(root, '')
-const declared = new Set(body.match(/--[\w-]+(?=\s*:)/g))
+const declared = new Set([...(body.match(/--[\w-]+(?=\s*:)/g) ?? []), ...tunedNames])
 const bad = []
 
 for (const n of root.match(/--[\w-]+(?=\s*:)/g) ?? []) if (!n.startsWith('--explore-')) bad.push(`:root redeclares ${n}: link the kit's token instead`)
@@ -28,7 +32,7 @@ for (const m of outside.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)) bad.push(`lite
 for (const m of outside.matchAll(/(padding|margin|gap|border-radius|font-size)[\w-]*:\s*([^;{}]*\d+px[^;{}]*)/g))
   if (!/var\(/.test(m[2]) || /(^|[\s(])[1-9]\d*px/.test(m[2].replace(/var\([^)]*\)/g, ''))) bad.push(`literal length in ${m[1]}: ${m[2].trim()}: use --dimension-* / --typography-*`)
 
-const advice = []
+const advice = [...tuned]
 for (const m of outside.matchAll(/(?<![\w-])((?:min-|max-)?(?:width|height)):\s*([^;{}]*)/g))
   for (const [, n] of m[2].replace(/calc\((?:[^()]|\([^()]*\))*\)/g, '').replace(/var\([^)]*\)/g, '').matchAll(/(?<![\w.-])(\d+(?:\.\d+)?)px/g)) {
     // ponytail: "near" is within 5% of a kit size, a guess; tune it if it nags about sizes meant to be new.

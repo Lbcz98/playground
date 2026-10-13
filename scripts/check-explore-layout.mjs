@@ -13,7 +13,7 @@ import { openExploration } from './explore-page.mjs'
 
 const { page, close } = await openExploration(process.argv[2])
 const whole = !/\d+\.html$/.test(process.argv[2])
-const found = await page.evaluate((whole) => {
+const result = await page.evaluate((whole) => {
   const out = []
   const name = (e) => `<${e.tagName.toLowerCase()}${e.classList.length ? '.' + [...e.classList].join('.') : ''}>`
   const px = (v) => parseFloat(v) || 0
@@ -117,8 +117,13 @@ const found = await page.evaluate((whole) => {
       if (f.bg !== bg) out.push(`Opção ${f.n}: consistência: ${f.name} tem outra cor de fundo (${f.bg}) das outras opções (${bg})`)
     }
   }
-  return [...new Set(out)]
+  // A tuned option (/tune) may leave the kit's radius, inset or color on purpose: advised, not failed.
+  const tuned = (l) => document.querySelector(`.opt[data-option="${l.match(/^Opção (\d+)/)?.[1]}"]`)?.hasAttribute('data-tuned')
+  const advice = out.filter((l) => /: (superfície|consistência):/.test(l) && tuned(l))
+  return [[...new Set(out.filter((l) => !advice.includes(l)))], [...new Set(advice)]]
 }, whole)
 await close()
+const [found, advice] = result
+if (advice.length) console.log(advice.map((l) => `advisory: ${l}`).join('\n'))
 if (found.length) { console.error(found.join('\n')); process.exit(1) }
 console.log('ok')

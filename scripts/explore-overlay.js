@@ -4,9 +4,10 @@
  *  - A fixed 288 px panel on the right with the "Histórico" card and, only when the page defines window.exploreDials,
  *    a DialKit card under it. The panel opens when either exists and floats over the page below the header row
  *    (top 72 px, where the cards start), so the page never moves and the header buttons stay reachable.
- *  - The picker outline and the note box live in a separate fixed layer. Shadow roots keep the page's CSS out. */
+ *  - The picker outline and the note box live in a separate fixed layer. Shadow roots keep the page's CSS out.
+ *  - On the /tune stage: no card menus and no "Mais opções"; "Aplicar valores" is written by the server (window.exploreTune). */
 (() => {
-  const { token } = window.__EXPLORE__
+  const { token, tune } = window.__EXPLORE__ // `tune`: the page is the /tune stage (scripts/explore-tune.js ran first)
   // A click that cannot reach the session must say so: a silent failure looks like "nothing happens".
   const alertBar = document.createElement('div')
   alertBar.setAttribute('role', 'alert')
@@ -94,6 +95,7 @@
   const [add, toggle] = ['.add', '.toggle'].map((s) => actions.querySelector(s))
   const more = actions.querySelector('.more')
   // One batch of new ideas at a time: the button waits for the one it asked for (cancel it on its placeholder or in Histórico).
+  if (tune) more.style.display = 'none'
   more.onclick = () => { more.disabled = true; api('comment', { method: 'POST', body: JSON.stringify({ kind: 'more' }) }) }
 
   // Per-card menu: variations of an option the designer liked, or discard it. Lives inside the card so Tab reaches it right after the card.
@@ -109,7 +111,7 @@
     @keyframes explore-pulse { 50% { opacity: .5; } } @media (prefers-reduced-motion: reduce) { .opt.explore-pending { animation: none; } }`
   document.head.appendChild(pageCss)
   const discard = (option, discarded) => api('discard', { method: 'POST', body: JSON.stringify({ option, discarded }) })
-  for (const card of document.querySelectorAll('.opt[data-option]')) {
+  for (const card of tune ? [] : document.querySelectorAll('.opt[data-option]')) {
     const n = card.dataset.option, gone = card.hasAttribute('data-discarded')
     const host = document.createElement('div')
     host.className = 'explore-card-menu'
@@ -128,7 +130,7 @@
       <div class="menu" role="group" aria-label="Variar opção ${esc(n)}">
         <input placeholder="O que mudar? Enter envia" aria-label="O que mudar nesta opção. Enter envia; ou escolha um tipo de variação abaixo" maxlength="300">
         ${VARY.map(([a, label]) => `<button class="item" data-action="${a}">${label}</button>`).join('')}
-        <div class="sep"></div><button class="item del">Descartar</button>
+        <button class="item tune">Ajustar (ajuste fino)</button><div class="sep"></div><button class="item del">Descartar</button>
       </div>`}`
     card.appendChild(host)
     if (gone) { r.querySelector('.restore').onclick = () => discard(n, false); continue }
@@ -148,6 +150,7 @@
     note.addEventListener('keydown', (e) => { if (e.key === 'Enter' && note.value.trim()) { e.preventDefault(); send('livre') } }) // preventDefault: send() focuses the Variar button, and this same Enter would press it
     menu.onclick = (e) => {
       const b = e.target.closest('.item'); if (!b) return
+      if (b.classList.contains('tune')) return void (location.href = `/tune/${n}`)
       if (b.classList.contains('del')) return show(false), discard(n, true)
       send(b.dataset.action)
     }
@@ -288,6 +291,7 @@
       window.DialKit.createDialRoot({ mode: 'inline', target: host, theme: 'dark' })
       const kits = window.exploreDials(window.DialKit) ?? {}
       apply.onclick = async () => {
+        if (tune) return void (await window.exploreTune.apply())
         const values = Object.fromEntries(Object.entries(kits).map(([name, kit]) => [name, kit.getValues()]))
         await api('comment', { method: 'POST', body: JSON.stringify({ kind: 'dials', values }) })
         setHistory(true)
