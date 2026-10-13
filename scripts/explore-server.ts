@@ -1,6 +1,6 @@
 /**
  * Live server for one exploration (`/explore`): serves `docs/explorations/<slug>/` over http,
- * injects the comment overlay into its HTML, and turns each comment into one `COMMENT {json}` line.
+ * injects the comment overlay into its HTML, and turns each comment or request for variations into one `COMMENT {json}` line.
  *
  *   npm run explore:serve -- <folder> [--port N] [--idle-min 30]
  *
@@ -16,12 +16,15 @@ import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou'
+export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou' | 'cancelado'
 export interface Comment {
   id: number
   status: Status
   /** `dials`: the DialKit values the designer tuned and wants written in as the new defaults. */
-  kind: 'comment' | 'dials'
+  /** `vary`: variations of one option (`option`, `action`, optional `note`). `more`: a fresh batch from the brief. */
+  kind: 'comment' | 'dials' | 'vary' | 'more'
+  action?: Action
+  note?: string
   values?: Record<string, unknown>
   summary?: string
   comment: string
@@ -49,7 +52,19 @@ const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2',
 }
-const STATUSES: Status[] = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou']
+/** What a variation changes; the brief stays fixed in all of them. */
+export const ACTIONS = { sutil: 'Variar sutil', forte: 'Variar forte', layout: 'Embaralhar layout', estilo: 'Mudar estilo', livre: 'Variar' } as const
+export type Action = keyof typeof ACTIONS
+
+/** The page with one option's card marked as discarded (hidden by the template, never deleted) or restored. */
+export function setDiscarded(html: string, option: string, discarded: boolean): string {
+  return html.replace(new RegExp(`<article\\b[^>]*\\bdata-option="${option}"[^>]*>`), (tag) => {
+    const clean = tag.replace(/\s+data-discarded(="[^"]*")?/, '')
+    return discarded ? clean.replace(/>$/, ' data-discarded>') : clean
+  })
+}
+
+const STATUSES: Status[] = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou'] // what the session may set; `cancelado` is the designer's
 const clip = (v: unknown, n: number) => String(v ?? '').slice(0, n)
 
 export function startServer(opts: { dir: string; port?: number; idleMin?: number; log?: (line: string) => void }) {
@@ -107,12 +122,21 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
 
       if (url.pathname === '/__explore/comment') {
         const dials = b.kind === 'dials'
+        const vary = b.kind === 'vary', more = b.kind === 'more'
+        if (vary && !(/^\d+$/.test(String(b.option)) && Object.hasOwn(ACTIONS, b.action))) return json(res, 400, { error: 'vary' })
+        const note = vary || more ? clip(b.note, 300).trim() : ''
+        // `livre` is the direction field sent alone: without words it asks for nothing.
+        if (vary && b.action === 'livre' && !note) return json(res, 400, { error: 'note' })
         if (dials && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
-        const text = dials ? 'Aplicar valores do DialKit' : clip(b.comment, 2000).trim()
+        const text = dials ? 'Aplicar valores do DialKit'
+          : vary ? `${ACTIONS[b.action as Action]} · opção ${b.option}${note && `: ${note}`}`
+          : more ? `Mais opções${note && `: ${note}`}`
+          : clip(b.comment, 2000).trim()
         if (!text) return json(res, 400, { error: 'empty' })
         const c: Comment = {
           id: comments.length + 1,
-          kind: dials ? 'dials' : 'comment',
+          kind: dials ? 'dials' : vary ? 'vary' : more ? 'more' : 'comment',
+          action: vary ? b.action : undefined, note: note || undefined,
           values: dials ? b.values : undefined,
           status: comments.some((x) => x.status === 'aplicando') ? 'aguardando' : 'enviado',
           comment: text, selector: clip(b.selector, 500), option: b.option ? clip(b.option, 40) : undefined,
@@ -123,9 +147,29 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         broadcast(state())
         return json(res, 200, { id: c.id })
       }
+      // Discarding needs no agent: the server marks the card in the file and the page reloads.
+      if (url.pathname === '/__explore/discard') {
+        if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
+        const index = join(root, 'index.html'), html = readFileSync(index, 'utf8'), next = setDiscarded(html, String(b.option), b.discarded !== false)
+        if (next === html) return json(res, 400, { error: 'option' })
+        writeFileSync(index, next)
+        broadcast('event: reload\ndata: 1\n\n')
+        return json(res, 200, { ok: true })
+      }
+      // The designer takes a request back: any queued one, and a batch of options while it is being made (an edit under way cannot be undone).
+      if (url.pathname === '/__explore/cancel') {
+        const c = comments.find((x) => x.id === b.id)
+        const batch = c?.kind === 'vary' || c?.kind === 'more'
+        if (!c || !(c.status === 'enviado' || c.status === 'aguardando' || (c.status === 'aplicando' && batch))) return json(res, 400, { error: 'cancel' })
+        c.status = 'cancelado'
+        broadcast(state())
+        return json(res, 200, { ok: true })
+      }
       if (url.pathname === '/__explore/status') {
         const c = comments.find((x) => x.id === b.id)
         if (!c || !STATUSES.includes(b.status)) return json(res, 400, { error: 'status' })
+        // The session learns of a cancel here: it asks to start or finish the request and is told to drop it.
+        if (c.status === 'cancelado') return json(res, 409, { error: 'cancelado' })
         c.status = b.status
         c.summary = b.summary ? clip(b.summary, 300) : undefined
         broadcast(state())

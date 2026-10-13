@@ -3,7 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { startServer } from './explore-server'
+import { readFileSync } from 'node:fs'
+import { setDiscarded, startServer } from './explore-server'
 
 const dir = mkdtempSync(join(tmpdir(), 'explore-test-'))
 mkdirSync(join(dir, 'sub'))
@@ -62,6 +63,38 @@ describe('explore server', () => {
     expect(s.comments.at(-1)).toMatchObject({ kind: 'dials', values: { 'Opção 2': { radius: 32 } } })
     expect((await post('comment', { kind: 'dials' })).status).toBe(400)
     expect((await post('comment', { kind: 'dials', values: { x: 'a'.repeat(5000) } })).status).toBe(400)
+  })
+
+  it('takes a request for variations of one option, and rejects an unknown action or option', async () => {
+    expect((await post('comment', { kind: 'vary', option: '1', action: 'forte', note: 'mais compacto' })).status).toBe(200)
+    expect(JSON.parse(lines.at(-1)!.replace(/^COMMENT /, ''))).toMatchObject({ kind: 'vary', option: '1', action: 'forte', note: 'mais compacto', comment: 'Variar forte · opção 1: mais compacto' })
+    expect((await post('comment', { kind: 'more' })).status).toBe(200)
+    expect(s.comments.at(-1)).toMatchObject({ kind: 'more', comment: 'Mais opções' })
+    expect((await post('comment', { kind: 'vary', option: '1', action: 'apagar' })).status).toBe(400)
+    expect((await post('comment', { kind: 'vary', option: '1"] x', action: 'forte' })).status).toBe(400)
+  })
+
+  it('lets the designer cancel a queued request or a batch under way, and tells the session to drop it', async () => {
+    const id = (await (await post('comment', { kind: 'more' })).json()).id
+    expect((await post('cancel', { id })).status).toBe(200)
+    const r = await post('status', { id, status: 'aplicando' })
+    expect([r.status, await r.json()]).toEqual([409, { error: 'cancelado' }])
+    expect((await post('cancel', { id })).status).toBe(400)
+    const batch = (await (await post('comment', { kind: 'vary', option: '1', action: 'livre', note: 'sem ícones' })).json()).id
+    await post('status', { id: batch, status: 'aplicando' })
+    expect((await post('cancel', { id: batch })).status).toBe(200)
+    expect((await post('cancel', { id: 1 })).status).toBe(400) // the first comment is an edit under way
+    expect((await post('comment', { kind: 'vary', option: '1', action: 'livre' })).status).toBe(400)
+  })
+
+  it('discards and restores a card in the file, without deleting it', async () => {
+    const page = '<article class="opt" data-option="2" tabindex="0"><p>a</p></article><article class="opt" data-option="12">b</article>'
+    const gone = setDiscarded(page, '2', true)
+    expect(gone).toContain('<article class="opt" data-option="2" tabindex="0" data-discarded><p>a</p>')
+    expect(gone).toContain('data-option="12">b')
+    expect(setDiscarded(setDiscarded(gone, '2', true), '2', false)).toBe(page)
+    expect((await post('discard', { option: '9' })).status).toBe(400)
+    expect(readFileSync(join(dir, 'index.html'), 'utf8')).not.toContain('data-discarded')
   })
 
   it('does not serve files outside the exploration folder', async () => {
