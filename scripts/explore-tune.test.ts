@@ -1,0 +1,147 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+// @ts-expect-error plain .mjs, so `node` runs it without a build
+import { applyTuned, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
+import { startServer } from './explore-server'
+
+const spec: any = {
+  states: ['repouso', 'foco'],
+  folders: [
+    { name: 'Superfície', part: 'card', controls: [
+      { id: 'radius', label: 'Raio', type: 'slider', var: '--radius', value: 40, base: 40, min: 0, max: 64, step: 1, unit: 'px', token: '--dimension-radius-semantic-content-card' },
+      { id: 'bg', label: 'Fundo', type: 'color', var: '--bg', value: '#3f3f3f', base: '#3f3f3f', token: '--color-semantic-functional-background-elevated' },
+    ] },
+    { name: 'Movimento', controls: [
+      { id: 'move', label: 'Transição', type: 'easing', durVar: '--dur', easeVar: '--ease', value: { duration: 0.2, ease: [0.2, 0, 0, 1] }, base: { duration: 0.2, ease: [0.2, 0, 0, 1] } },
+      { id: 'mode', label: 'Modo', type: 'select', var: '--mode', value: 'a', options: ['a', 'b'] },
+    ] },
+  ],
+}
+const page = (extra = '') => `<style>\n${varsBlock(spec, 2)}\n</style>
+<article class="opt" data-option="1"></article>
+<article class="opt" data-option="2" data-parent="1" data-tuned>
+<script type="application/json" data-tune="2">${JSON.stringify(spec)}</script></article>${extra}`
+
+describe('tune spec and target', () => {
+  it('reads the spec, and says where /tune/<n> lands', () => {
+    expect(tuneSpec(page(), 2)).toEqual(spec)
+    expect(tuneSpec(page(), 1)).toBeUndefined()
+    expect(tuneTarget(page(), 2)).toEqual({ option: '2', preparing: false })
+    expect(tuneTarget(page(), 1)).toEqual({ option: '2', preparing: false })
+    expect(tuneTarget(page().replace('data-tuned', 'data-tuned data-discarded'), 1)).toEqual({ option: '1', preparing: true })
+    expect(tuneTarget('<article data-option="3"></article>', 3)).toEqual({ option: '3', preparing: true })
+  })
+})
+
+describe('vars block', () => {
+  it('keeps a value on its token until it moves, and marks it when it leaves', () => {
+    const same = varsBlock(spec, 2)
+    expect(same).toContain('--radius: var(--dimension-radius-semantic-content-card);')
+    expect(same).toContain('--bg: var(--color-semantic-functional-background-elevated);')
+    expect(same).toContain('--dur: 200ms;')
+    expect(same).toContain('--ease: cubic-bezier(0.2, 0, 0, 1);')
+    expect(same).toContain('--mode: a;')
+    const moved = structuredClone(spec); moved.folders[0].controls[0].value = 14; moved.folders[0].controls[1].value = '#112233'
+    const out = varsBlock(moved, 2)
+    expect(out).toContain('--radius: 14px; /* tune */')
+    expect(out).toContain('--bg: #112233; /* tune */')
+  })
+})
+
+describe('applyTuned', () => {
+  it('writes values into the spec and regenerates the block; ignores what does not fit', () => {
+    const { html, changed } = applyTuned(page(), 2, { '0.radius': 14, '0.bg': '#112233', '1.move': { duration: 0.4, ease: [0.4, 0, 0.2, 1] }, '1.mode': 'zzz', '9.nope': 1, '0.radius ': 1 })
+    expect(changed).toBe(3)
+    expect(html).toContain('--radius: 14px; /* tune */')
+    expect(html).toContain('--dur: 400ms;')
+    expect(html).toContain('--ease: cubic-bezier(0.4, 0, 0.2, 1);')
+    expect(html).toContain('--mode: a;')
+    expect(tuneSpec(html, 2).folders[0].controls[0]).toMatchObject({ value: 14, base: 40 })
+    expect(html.match(/tune:vars \*\//g)).toHaveLength(2) // one block, start and end
+  })
+  it('clamps sliders, lowercases colors, bounds easing handles and leaves the page alone when nothing changes', () => {
+    const { html } = applyTuned(page(), 2, { '0.radius': 999, '0.bg': '#ABCDEF', '1.move': { duration: 0.2, ease: [5, -3, 0, 1] } })
+    const c = tuneSpec(html, 2).folders
+    expect(c[0].controls[0].value).toBe(64)
+    expect(c[0].controls[1].value).toBe('#abcdef')
+    expect(c[1].controls[0].value.ease).toEqual([1, -3, 0, 1]) // x handles stay in 0..1, y handles may overshoot
+    expect(applyTuned(page(), 2, { '0.radius': 40 })).toEqual({ html: page(), changed: 0 })
+    expect(applyTuned(page(), 2, { '0.radius': 'abc', '0.bg': 'red' }).changed).toBe(0)
+    expect(applyTuned('<article data-option="2"></article>', 2).changed).toBe(0)
+  })
+  it('cannot be broken out of its script tag', () => {
+    const s = structuredClone(spec); s.folders[0].name = '</script><b>'
+    const html = page().replace(JSON.stringify(spec), JSON.stringify(s).replace(/</g, '\\u003c'))
+    const next = applyTuned(html, 2, { '0.radius': 10 }).html
+    expect(next).not.toContain('</script><b>')
+    expect(tuneSpec(next, 2).folders[0].name).toBe('</script><b>')
+  })
+})
+
+describe('stage routes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'explore-tune-'))
+  writeFileSync(join(dir, 'index.html'), `<html><body>${page()}</body></html>`)
+  let s: Awaited<ReturnType<typeof startServer>>
+  const lines: string[] = []
+  beforeAll(async () => { s = await startServer({ dir, log: (l) => lines.push(l) }) })
+  afterAll(async () => { await s.close(); rmSync(dir, { recursive: true, force: true }) })
+  const post = (path: string, body: unknown) => fetch(s.url + '__explore/' + path, { method: 'POST', body: JSON.stringify(body), headers: { 'x-explore-token': s.token } })
+
+  it('sends the original to its tuned copy and loads the stage script only there', async () => {
+    const r = await fetch(s.url + 'tune/1', { redirect: 'manual' })
+    expect([r.status, r.headers.get('location')]).toEqual([302, '/tune/2'])
+    const html = await (await fetch(s.url + 'tune/2')).text()
+    expect(html.indexOf('/__explore/tune.js')).toBeGreaterThan(0)
+    expect(html.indexOf('/__explore/tune.js')).toBeLessThan(html.indexOf('/__explore/overlay.js')) // the stage defines window.exploreDials first
+    expect(html).toContain('"tune":{"option":"2","preparing":false}')
+    expect(await (await fetch(s.url)).text()).not.toContain('tune.js')
+    expect((await fetch(s.url + 'tune/9')).status).toBe(404)
+    expect((await fetch(s.url + '__explore/tune.js')).status).toBe(200)
+  })
+
+  it('asks once per option for the copy or the review, and refuses a bad option', async () => {
+    const a = await (await post('comment', { kind: 'tune', option: '1' })).json()
+    const b = await (await post('comment', { kind: 'tune', option: '1' })).json()
+    expect(b.id).toBe(a.id)
+    expect(JSON.parse(lines.at(-1)!.replace(/^COMMENT /, ''))).toMatchObject({ kind: 'tune', option: '1', comment: 'Preparar controles · opção 1' })
+    const j = await (await post('comment', { kind: 'judge', option: 2 })).json()
+    expect(j.id).not.toBe(a.id)
+    expect((await post('comment', { kind: 'judge', option: 'x' })).status).toBe(400)
+    await post('status', { id: a.id, status: 'aplicado' })
+    expect((await (await post('comment', { kind: 'tune', option: '1' })).json()).id).not.toBe(a.id) // finished: a new ask is a new request
+  })
+
+  it('writes tuned values itself, and serves the findings the judge left', async () => {
+    expect(await (await fetch(s.url + `__explore/judge?option=2&token=${s.token}`)).json()).toBeNull()
+    writeFileSync(join(dir, 'judge-2.json'), JSON.stringify({ verdict: 'Approve', findings: [] }))
+    expect((await (await fetch(s.url + `__explore/judge?option=2&token=${s.token}`)).json()).verdict).toBe('Approve')
+    expect((await fetch(s.url + '__explore/judge?option=../x&token=' + s.token)).status).toBe(400)
+    expect((await post('tune-apply', { option: '2', values: { '0.radius': 12 } })).status).toBe(200)
+    expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('--radius: 12px; /* tune */')
+    expect((await post('tune-apply', { option: 'x', values: {} })).status).toBe(400)
+  })
+})
+
+describe('lintSpec', () => {
+  // @ts-expect-error plain .mjs
+  const lint = (html: string, kit?: Set<string>) => import('./explore-tune.mjs').then((m) => m.lintSpec(html, 2, kit) as string[])
+  it('passes a sound option', async () => {
+    expect(await lint(page().replace('<style>', '<style>[data-state="foco"]{}'), new Set(['--dimension-radius-semantic-content-card', '--color-semantic-functional-background-elevated']))).toEqual([])
+  })
+  it('names what would break on the stage', async () => {
+    const s = structuredClone(spec)
+    s.folders[0].controls[0].min = 50 // value 40 below min
+    s.folders[0].controls[1].id = 'radius' // repeated id
+    s.folders[1].controls[1].options = ['b'] // value not in options
+    const broken = page().replace(JSON.stringify(spec), JSON.stringify(s))
+    const bad = (await lint(broken, new Set())).join('\n')
+    expect(bad).toContain('Raio: value deve estar entre min e max')
+    expect(bad).toContain('id vazio ou repetido (radius)')
+    expect(bad).toContain('Modo: value deve estar em options')
+    expect(bad).toContain('--dimension-radius-semantic-content-card não é um token do kit')
+    expect((await lint(page().replace('--radius: var(', '--radio: var('))).join('\n')).toContain('não é o que "Aplicar valores" escreveria')
+    expect(await lint('<article data-option="2"></article>')).toEqual(['o <article data-option="2"> não tem data-tuned', 'falta <script type="application/json" data-tune="2"> com JSON válido'])
+  })
+})

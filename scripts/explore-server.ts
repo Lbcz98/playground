@@ -1,6 +1,7 @@
 /**
  * Live server for one exploration (`/explore`): serves `docs/explorations/<slug>/` over http,
  * injects the comment overlay into its HTML, and turns each comment or request for variations into one `COMMENT {json}` line.
+ * `/tune/<N>` serves the same page as a fine-tuning stage for one option (scripts/explore-tune.js); "Aplicar valores" there is written by the server, no agent.
  *
  *   npm run explore:serve -- <folder> [--port N] [--idle-min 30]
  *
@@ -15,6 +16,8 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// @ts-expect-error plain .mjs, like explore-stitch: `node` runs it without a build
+import { applyTuned, tuneTarget } from './explore-tune.mjs'
 
 export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou' | 'cancelado'
 export interface Comment {
@@ -22,7 +25,8 @@ export interface Comment {
   status: Status
   /** `dials`: the DialKit values the designer tuned and wants written in as the new defaults. */
   /** `vary`: variations of one option (`option`, `action`, optional `note`). `more`: a fresh batch from the brief. */
-  kind: 'comment' | 'dials' | 'vary' | 'more'
+  /** `tune`: the designer opened the stage on an option that has no controls yet. `judge`: "Avaliar" on a tuned option. Both carry `option`. */
+  kind: 'comment' | 'dials' | 'vary' | 'more' | 'tune' | 'judge'
   action?: Action
   note?: string
   values?: Record<string, unknown>
@@ -45,6 +49,7 @@ const ASSETS: Record<string, [string, string]> = {
   // The kit's own tokens and face: explorations link these instead of retyping values.
   'tokens.css': [fileURLToPath(new URL('../src/styles/global.css', import.meta.url)), 'text/css'],
   'inter.css': [INTER + 'wght.css', 'text/css'],
+  'tune.js': [fileURLToPath(new URL('./explore-tune.js', import.meta.url)), 'text/javascript'],
   'dialkit.js': [DIALKIT + 'browser.global.js', 'text/javascript'],
   'dialkit.css': [DIALKIT + 'styles.css', 'text/css'],
 }
@@ -89,6 +94,12 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
       req.on('end', () => { try { ok(JSON.parse(s)) } catch { ok(null) } })
     })
 
+  /** The page with the live layer; `tune` also loads the stage, which must run before the overlay (it defines window.exploreDials). */
+  const withLive = (html: string, tune?: { option: string; preparing: boolean }) => {
+    const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>`
+    return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
+  }
+
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://x')
     // Host must be ours (DNS rebinding); a cross-origin page sends a foreign Origin.
@@ -98,6 +109,16 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
     if (url.pathname === '/__explore/overlay.js') {
       res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' }) // never an old overlay on a reloaded page
       return res.end(readFileSync(OVERLAY))
+    }
+    // The fine-tuning stage: option N when it has controls, else its newest tuned copy (a redirect), else the original while the copy is being made.
+    const stage = url.pathname.match(/^\/tune\/(\d+)\/?$/)
+    if (stage) {
+      const html = readFileSync(join(root, 'index.html'), 'utf8')
+      if (!new RegExp(`<article\\b[^>]*\\bdata-option="${stage[1]}"`).test(html)) return json(res, 404, { error: 'option' })
+      const t = tuneTarget(html, stage[1])
+      if (t.option !== stage[1]) { res.writeHead(302, { location: `/tune/${t.option}` }); return res.end() }
+      res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' })
+      return res.end(withLive(html, t))
     }
     const name = url.pathname.replace('/__explore/', '')
     const asset = ASSETS[name] ?? (/^icons\/[a-z-]+\.svg$/.test(name) ? [ICONS + name.slice(6), 'image/svg+xml'] : /^files\/inter-[a-z-]+-wght-normal\.woff2$/.test(name) ? [INTER + name, 'font/woff2'] : undefined)
@@ -115,6 +136,13 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         clients.add(res)
         return void req.on('close', () => (clients.delete(res), (lastActivity = Date.now())))
       }
+      // The judge's findings for one option: written by proto-judge next to the page, shown in the stage.
+      if (url.pathname === '/__explore/judge') {
+        const n = url.searchParams.get('option') ?? ''
+        const file = join(root, `judge-${n}.json`)
+        if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
+        return json(res, 200, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
+      }
       if (url.pathname === '/__explore/pending') return json(res, 200, comments.filter((c) => c.status === 'enviado' || c.status === 'aguardando'))
       if (req.method !== 'POST') return json(res, 405, { error: 'method' })
       const b = await body(req)
@@ -123,23 +151,31 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
       if (url.pathname === '/__explore/comment') {
         const dials = b.kind === 'dials'
         const vary = b.kind === 'vary', more = b.kind === 'more'
+        const stageKind = b.kind === 'tune' || b.kind === 'judge' ? (b.kind as 'tune' | 'judge') : undefined
+        if (stageKind) {
+          if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
+          // The stage asks on every load: one open request per option and kind is enough.
+          const open = comments.find((x) => x.kind === stageKind && x.option === String(b.option) && (x.status === 'enviado' || x.status === 'aguardando' || x.status === 'aplicando'))
+          if (open) return json(res, 200, { id: open.id })
+        }
         if (vary && !(/^\d+$/.test(String(b.option)) && Object.hasOwn(ACTIONS, b.action))) return json(res, 400, { error: 'vary' })
         const note = vary || more ? clip(b.note, 300).trim() : ''
         // `livre` is the direction field sent alone: without words it asks for nothing.
         if (vary && b.action === 'livre' && !note) return json(res, 400, { error: 'note' })
         if (dials && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
-        const text = dials ? 'Aplicar valores do DialKit'
+        const text = stageKind ? `${stageKind === 'tune' ? 'Preparar controles' : 'Avaliar'} · opção ${b.option}`
+          : dials ? 'Aplicar valores do DialKit'
           : vary ? `${ACTIONS[b.action as Action]} · opção ${b.option}${note && `: ${note}`}`
           : more ? `Mais opções${note && `: ${note}`}`
           : clip(b.comment, 2000).trim()
         if (!text) return json(res, 400, { error: 'empty' })
         const c: Comment = {
           id: comments.length + 1,
-          kind: dials ? 'dials' : vary ? 'vary' : more ? 'more' : 'comment',
+          kind: stageKind ?? (dials ? 'dials' : vary ? 'vary' : more ? 'more' : 'comment'),
           action: vary ? b.action : undefined, note: note || undefined,
           values: dials ? b.values : undefined,
           status: comments.some((x) => x.status === 'aplicando') ? 'aguardando' : 'enviado',
-          comment: text, selector: clip(b.selector, 500), option: b.option ? clip(b.option, 40) : undefined,
+          comment: text, selector: clip(b.selector, 500), option: b.option ? clip(String(b.option), 40) : undefined,
           part: b.part ? clip(b.part, 40) : undefined, tag: clip(b.tag, 40), text: clip(b.text, 80), html: clip(b.html, 500),
         }
         comments.push(c)
@@ -155,6 +191,14 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         writeFileSync(index, next)
         broadcast('event: reload\ndata: 1\n\n')
         return json(res, 200, { ok: true })
+      }
+      // "Aplicar valores" in the stage: the spec holds the numbers, so the server rewrites them (and the CSS they drive) itself.
+      if (url.pathname === '/__explore/tune-apply') {
+        if (!/^\d+$/.test(String(b.option)) || !b.values || typeof b.values !== 'object') return json(res, 400, { error: 'values' })
+        const index = join(root, 'index.html'), html = readFileSync(index, 'utf8')
+        const { html: next, changed } = applyTuned(html, String(b.option), b.values)
+        if (next !== html) { writeFileSync(index, next); broadcast('event: reload\ndata: 1\n\n') }
+        return json(res, 200, { changed })
       }
       // The designer takes a request back: any queued one, and a batch of options while it is being made (an edit under way cannot be undone).
       if (url.pathname === '/__explore/cancel') {
@@ -173,7 +217,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         c.status = b.status
         c.summary = b.summary ? clip(b.summary, 300) : undefined
         broadcast(state())
-        if (c.status === 'aplicado') broadcast('event: reload\ndata: 1\n\n')
+        if (c.status === 'aplicado' && c.kind !== 'judge') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
         return json(res, 200, { ok: true })
       }
       return json(res, 404, { error: 'not found' })
@@ -185,11 +229,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
     if (file !== root && !file.startsWith(root + sep)) return json(res, 403, { error: 'path' })
     if (!existsSync(file) || !statSync(file).isFile()) return json(res, 404, { error: 'not found' })
     let data: Buffer | string = readFileSync(file)
-    if (basename(file) === 'index.html') {
-      const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token })}</script><script src="/__explore/overlay.js"></script>`
-      const html = data.toString()
-      data = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
-    }
+    if (basename(file) === 'index.html') data = withLive(data.toString())
     res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store' })
     res.end(data)
   })
