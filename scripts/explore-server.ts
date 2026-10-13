@@ -36,8 +36,12 @@ export interface Comment {
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
 const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
+const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
 // Served without a token (like the overlay): fixed files, no state.
 const ASSETS: Record<string, [string, string]> = {
+  // The kit's own tokens and face: explorations link these instead of retyping values.
+  'tokens.css': [fileURLToPath(new URL('../src/styles/global.css', import.meta.url)), 'text/css'],
+  'inter.css': [INTER + 'wght.css', 'text/css'],
   'dialkit.js': [DIALKIT + 'browser.global.js', 'text/javascript'],
   'dialkit.css': [DIALKIT + 'styles.css', 'text/css'],
 }
@@ -81,7 +85,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
       return res.end(readFileSync(OVERLAY))
     }
     const name = url.pathname.replace('/__explore/', '')
-    const asset = ASSETS[name] ?? (/^icons\/[a-z-]+\.svg$/.test(name) ? [ICONS + name.slice(6), 'image/svg+xml'] : undefined)
+    const asset = ASSETS[name] ?? (/^icons\/[a-z-]+\.svg$/.test(name) ? [ICONS + name.slice(6), 'image/svg+xml'] : /^files\/inter-[a-z-]+-wght-normal\.woff2$/.test(name) ? [INTER + name, 'font/woff2'] : undefined)
     if (url.pathname.startsWith('/__explore/') && asset) {
       if (!existsSync(asset[0])) return json(res, 404, { error: 'asset' })
       res.writeHead(200, { 'content-type': asset[1] })

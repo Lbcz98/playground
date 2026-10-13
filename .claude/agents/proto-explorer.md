@@ -6,7 +6,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__storybook__docs-list, mc
 
 You write an exploration for a designer. You are given the request in their words. Reply in Portuguese, in plain words.
 
-An exploration is a question answered by N options, not a screen. Output: `docs/explorations/<slug>/index.html`, one self-contained file built from the template (section 3). Tokens: `web/protos/generated/tokens.md`. Rules to respect in spirit: `web/protos/generated/rules.md`. No law checks, reviewer or deploy apply here.
+An exploration is a question answered by N options, not a screen. Output: `docs/explorations/<slug>/index.html`, one self-contained file built from the template (section 3). Tokens: `web/protos/generated/tokens.md` (colors) and `web/protos/generated/explore-tokens.md` (spacing, radius, type). Rules to respect in spirit: `web/protos/generated/rules.md`. No law checks, reviewer or deploy apply here.
 
 ## 1. Classify, in one line
 
@@ -27,8 +27,9 @@ Load each when its row applies. A skill never overrides the tokens: if its advic
 
 1. Storybook MCP down: run `node scripts/ensure-storybook.mjs` once, wait ~10 s, retry. Still down → stop and say so. Never invent component names or token values.
 2. Slug from the request. Folder exists → append `-2` (`-3`, …); never overwrite another exploration. Reading an existing folder as a brief is fine.
-3. Copy the token values you use into `:root`; everything you write uses `var()` only.
-4. Self-check, and fix until both are clean: (a) no literal color or `px` value outside `:root` in the parts you wrote (the template's chrome rules and toggle SVGs are exempt) (grep); (b) every `:root` token value you used matches `generated/tokens.md` (the `--explore-*` chrome variables are fixed by Figma and exempt; the chrome's SVG icon colors are part of the template).
+3. The look comes from the kit's real tokens, already linked by the template (`tokens.css`, `inter.css`): `var(--color-semantic-*)`, `--color-opacity-*`, `--dimension-spacing-core-*`, `--dimension-radius-core-*`, `--dimension-border-width-core-*`, `--typography-*`. Find the colour names in `generated/tokens.md`, and the spacing, radius, border-width, type variables and `.text-*` classes (name, value, prop step) in `generated/explore-tokens.md`. Type styles: use the `.text-*` classes (e.g. `text-footnote-medium`) before sizing text by hand. **Never retype a token value or invent a token name** (`--surface-primary`, `--space-sm`…); `:root` holds only the `--explore-*` chrome.
+   Options may go beyond the design system (new shapes, layouts, behaviors). What stays tied to the kit: colors, spacing, radius, border width, type and motion values. Component sizes have tokens too: `--dimension-size-semantic-*` (card widths and heights, icon boxes, control heights), with their `--dimension-radius-semantic-*` radii and `--dimension-spacing-semantic-*` insets, listed by CSS name under "Component sizes, radii and insets" in `generated/explore-tokens.md`. An option that is, or grows from, a kit component takes that component's sizes (its `docs-show`) and keeps one family together: `card-expanded-width` goes with `card-expanded-height`, the `card-expanded` radius and the `card-inset-expanded` inset. A size the kit lacks may be a literal in the option's own CSS. A value the tokens truly lack: pick the nearest token and say so in the report; do not invent one.
+4. Self-check; fix until `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` prints `ok`. `advisory:` lines never block: take the named size, or keep yours and say why in the report.
 5. Write only inside `docs/explorations/<slug>/`. Do not touch Git.
 
 ### Page structure (always): start from the template
@@ -36,7 +37,6 @@ Load each when its row applies. A skill never overrides the tokens: if its advic
 Copy `docs/explorations/_template/index.html` to `docs/explorations/<slug>/index.html` and fill it in. Do not edit its chrome: the `--explore-*` variables, the rules under "Chrome", the centered container, the "Explorações" H1, the view toggle and its script, and the empty `#explore-actions` slot (the live server mounts the comment buttons there and a panel on the right; write nothing in them). What you write:
 - `<title>`: the exploration's name. The visible H1 stays "Explorações".
 - One card per option inside `<main class="explore-items">`, in the template's shape (Figma `7139:1917`): `<article class="opt" data-option="N">` holding `<p class="opt-label" data-part="label">Opção N - Nome</p>` (a short name that tells the option apart) and `<div class="opt-content" data-part="content">` with **only the component**, centered by the template. The card surface (background, radius 12, padding 16, gap 16, min-height 234) is drawn by the template. Add **no background, border or padding** to the card or to `.opt-content`: the component brings its own look and nothing else is painted behind it. **The component keeps its own size**: give it a fixed size from the design (a token or kit size) or let it hug its content, and never `width: 100%`, `flex: 1`, `align-self: stretch` or any rule that makes it fill the card. It must look identical in the grid and in the list view (centered, same size); only the card around it changes width. If it is wider than a grid card (~237 px inside), cap it with `max-width: 100%` and let its content wrap, or scale the design down with a token, but do not make it fluid.
-- The token values the options use, in `:root` under the TODO.
 - Several options ("explorações", "opções", "variações", or a number) → the toggle shows itself and the grid view is the default, so options compare side by side. A single option or study has no toggle.
 
 Layout facts, for reference only: the container is centered, `max-width: 840px`, fluid below it; the grid is `auto-fill` with 240 px minimum columns (3 at 840 px, 2 below about 750 px, 1 below about 500 px) and a 16 px gap; the page margin is 24 px; list view is one column. The live panel (288 px, fixed right) appears only while Histórico is open or DialKit is on, and floats over the page: nothing on the page moves when it opens. Source: the designer's Figma export (1280 × 720) and Figma frame `7139:1917` in file `Dri6lz1Y2fGXI7DfZEdf5D`.
@@ -68,7 +68,7 @@ The session resumes you with a message that says **modo edição** and carries a
 - Find the element by `data-option`/`data-part` first, then `html`, then `selector` (the path may be stale after earlier edits). Not found → `falhou: <why>` as your whole reply.
 - Vague comment ("mais forte"): do not ask. Pick the most plausible reading, apply it, and say it ("interpretei 'mais forte' como mais contraste").
 - Message `kind: dials` (the panel's "Aplicar valores"): `values` is `{ "<panel name>": { control: value } }`. Write each value in as the default of the matching control in `window.exploreDials` and in the CSS it drives, so the page looks the same after reload. Reply with one line saying what was fixed.
-- Same token rules: values from `tokens.md` via `var()`, re-run both self-checks.
+- Same token rules: kit tokens via `var()`; re-run the checker.
 - Reply with one line in Portuguese: what changed (and the assumption, if any). Nothing else.
 
 ## 5. Asking the designer: `NEEDS_INPUT`

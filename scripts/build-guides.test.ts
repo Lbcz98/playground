@@ -15,6 +15,7 @@ describe('generated guides', () => {
   it('are up to date (run npm run guides:build)', () => {
     expect(read(GUIDE_FILES.tokens)).toBe(built.tokens)
     expect(read(GUIDE_FILES.rules)).toBe(built.rules)
+    expect(read(GUIDE_FILES.explore)).toBe(built.explore)
   })
 
   it('list every rule id', () => {
@@ -26,6 +27,14 @@ describe('generated guides', () => {
       expect(built.tokens, t.path.join('.')).not.toContain(`\`${t.path.join('.')}\``)
       expect(built.tokens, cssVarName(t.path)).not.toContain(cssVarName(t.path))
     }
+  })
+
+  it('name every spacing, radius, border-width and type variable global.css defines, for HTML explorations', () => {
+    const css = read('src/styles/global.css')
+    for (const m of css.matchAll(/^\s*(--(?:dimension-(?:(?:spacing|radius|border-width)-core|(?:size|radius|spacing)-semantic)|typography)-[\w-]+):/gm)) {
+      expect(built.explore, m[1]).toContain(`\`${m[1]}\``)
+    }
+    for (const m of css.matchAll(/^\.(text-[\w-]+) \{/gm)) expect(built.explore, m[1]).toContain(`\`.${m[1]}\``)
   })
 
   it('do not depend on input order', () => {

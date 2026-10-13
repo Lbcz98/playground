@@ -59,7 +59,7 @@ scripts/check-laws.ts        the gate: tsc, raw values, imports, layers, focus, 
 scripts/render-audit.ts      paints a screen in headless Chromium (scripts/render-harness) and measures it
 scripts/deploy.ts            /deploy: branch, commit, pull request, CI, for one designer folder
 scripts/pr-report.ts         the sticky pull request comment, from check:laws --json
-scripts/build-guides.ts      writes web/protos/generated/{tokens,rules}.md
+scripts/build-guides.ts      writes web/protos/generated/{tokens,rules,explore-tokens}.md
 web/                         the shared Next.js app: web/protos/<designer>/<screen>.tsx → /<designer>/<screen>
 tests/checks/                the conformance corpus and the end-to-end run of the gate
 .github/workflows/protos.yml CI: `kit` (typecheck, tests, tokens) and `protos` (folder lock, laws, build)
