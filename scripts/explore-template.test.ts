@@ -5,7 +5,7 @@ const html = readFileSync(new URL('../docs/explorations/_template/index.html', i
 
 describe('exploration template', () => {
   it('has the hooks the live panel, the toggle and the agent rely on', () => {
-    for (const marker of ['<h1>Explorações</h1>', '/__explore/tokens.css', '/__explore/inter.css', 'id="explore-actions"', 'class="explore-container"', 'data-view="grid"', 'data-view="list"', 'data-option="1"', '.opt:focus-visible', '.opt-group', '.opt[data-discarded]', 'data-part="label"', 'class="opt-content"'])
+    for (const marker of ['<h1>Explorações</h1>', '/__explore/tokens.css', '/__explore/inter.css', 'id="explore-actions"', 'class="explore-container"', 'data-view="grid"', 'data-view="list"', 'data-option="1"', '.opt:focus-visible', '.opt-group', 'align-items: start', '.opt[data-discarded]', 'data-part="label"', 'class="opt-content"'])
       expect(html).toContain(marker)
   })
 

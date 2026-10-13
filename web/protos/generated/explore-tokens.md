@@ -89,6 +89,23 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--dimension-spacing-semantic-focus-offset` | 2px |
 | `--dimension-spacing-semantic-table-row-gap` | 8px |
 
+## Surfaces: which tokens a card takes
+
+A card, a panel or any box that holds an option is one of the kit's surfaces. The same role looks the same in every option of an exploration: same radius, same color, same inset. `scripts/check-explore-layout.mjs` measures this on the rendered page.
+
+| Surface | Radius | Inset (padding, all sides) | Width (fixed) | Color |
+| --- | --- | --- | --- | --- |
+| Card | `--dimension-radius-semantic-card` | `--dimension-spacing-semantic-card-inset` | `--dimension-size-semantic-card-width`, `-card-height` | `--color-semantic-functional-background-elevated` |
+| Expanded card, Content Card (tall panel, at most 456px high) | `--dimension-radius-semantic-content-card` | `--dimension-spacing-semantic-card-inset-expanded` (the Content Card's `lg`, 24px) | `--dimension-size-semantic-card-expanded-width`, `--dimension-size-semantic-content-card-width` | `--color-semantic-functional-background-elevated` |
+| Pill (a glance bar, a chip) | `--dimension-radius-semantic-pill`, only up to two controls tall (`--dimension-size-semantic-control-height-lg`) | `--dimension-spacing-core-2xs` or `-xs` | hugs its content | `--color-semantic-functional-background-elevated` |
+
+- Width is the kit's, never squeezed: no `max-width`, no percentage. Height hugs the content, never a fixed `height`, and stops at 456px (the tallest a kit card may be).
+- A panel of an option is a Card or a Content Card, never a new radius (12, 16, 20…). Rows and chips inside it take a smaller `--dimension-radius-core-*` step than the surface.
+- The dark area behind the panel (`--color-semantic-functional-background-primary`) is the TV, not a card: it takes no card radius and counts as no surface.
+- The inset is at least the one in the table: a 40px radius with a 16px inset leaves text hugging the curve.
+- Pick one surface for the whole exploration. Using the other on purpose (say, a Content Card beside small cards) is the idea of that option, not a style choice.
+- An option whose idea is not a card (a ring, a map, a strip) marks the shape with `data-surface="own"` and says why in the report.
+
 ## Border width
 
 | CSS variable | Value |
