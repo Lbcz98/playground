@@ -7,7 +7,21 @@
  *  - The picker outline and the note box live in a separate fixed layer. Shadow roots keep the page's CSS out. */
 (() => {
   const { token } = window.__EXPLORE__
-  const api = (path, init) => fetch(`/__explore/${path}`, { ...init, headers: { 'x-explore-token': token, 'content-type': 'application/json' } })
+  // A click that cannot reach the session must say so: a silent failure looks like "nothing happens".
+  const alertBar = document.createElement('div')
+  alertBar.setAttribute('role', 'alert')
+  alertBar.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;display:none;max-width:min(560px,calc(100vw - 32px));padding:10px 14px;border-radius:10px;background:#3a1f1f;border:1px solid #eb5757;color:#eee;font:500 13px/1.4 "SF Pro",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.5)'
+  document.body.appendChild(alertBar)
+  const DEAD = 'Esta página perdeu a conexão com a conversa do Claude, então os pedidos não chegam. Na conversa, rode /explore com a pasta desta exploração para reabrir, e use a aba nova.'
+  const warn = (msg) => { alertBar.textContent = msg; alertBar.style.display = msg ? 'block' : 'none' }
+  const api = async (path, init) => {
+    let res
+    try { res = await fetch(`/__explore/${path}`, { ...init, headers: { 'x-explore-token': token, 'content-type': 'application/json' } }) }
+    catch { warn(DEAD); throw new Error('explore: servidor fora do ar') }
+    // 401: another server took this address (new token); anything else is a request this server refused.
+    if (!res.ok) warn(res.status === 401 ? DEAD : `O pedido não foi aceito (erro ${res.status}). Recarregue a página e tente de novo.`)
+    return res
+  }
   const FONT = `"SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif`
   const COLORS = { enviado: '#d9d9d9', aguardando: '#888', aplicando: '#f2c94c', aplicado: '#6fcf97', falhou: '#eb5757', cancelado: '#555' }
   const isBatch = (c) => c.kind === 'vary' || c.kind === 'more'
@@ -201,7 +215,7 @@
     return parts.join(' > ')
   }
   // The panel, the header buttons and the note are ours: never pickable.
-  const ours = (el) => el === layer || panel.contains(el) || el === slot || slot.contains(el) || !!el.closest('.explore-card-menu, .explore-card-menu-line, .explore-pending')
+  const ours = (el) => el === layer || el === alertBar || panel.contains(el) || el === slot || slot.contains(el) || !!el.closest('.explore-card-menu, .explore-card-menu-line, .explore-pending')
   const at = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); return !el || ours(el) ? null : el }
   const stop = () => { picking = false; add.classList.remove('on'); box.style.display = 'none'; document.body.style.cursor = '' }
 
@@ -283,7 +297,11 @@
   }
 
   const es = new EventSource(`/__explore/events?token=${token}`)
-  es.addEventListener('state', (e) => render(JSON.parse(e.data)))
+  es.addEventListener('state', (e) => { warn(''); render(JSON.parse(e.data)) })
+  // The stream retries by itself; two failures in a row mean the server is gone, not a blip.
+  let drops = 0
+  es.addEventListener('open', () => (drops = 0))
+  es.addEventListener('error', () => { if (++drops >= 2) warn(DEAD) })
   es.addEventListener('reload', () => { try { sessionStorage.setItem('explore-scroll', scrollY) } catch {} location.reload() })
   let wasOpen = false
   try {

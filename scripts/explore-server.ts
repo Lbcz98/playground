@@ -96,7 +96,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
     if (req.headers.origin && req.headers.origin !== origin) return json(res, 403, { error: 'origin' })
 
     if (url.pathname === '/__explore/overlay.js') {
-      res.writeHead(200, { 'content-type': 'text/javascript' })
+      res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' }) // never an old overlay on a reloaded page
       return res.end(readFileSync(OVERLAY))
     }
     const name = url.pathname.replace('/__explore/', '')

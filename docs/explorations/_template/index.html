@@ -18,7 +18,7 @@
  * Use them with var(); never redeclare them here. Colors: web/protos/generated/tokens.md; the rest: web/protos/generated/explore-tokens.md.
  * ------------------------------------------------------------------------- */
 :root {
-  --explore-container-max: 840px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 240px;
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
   --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
   --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
   --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
@@ -40,7 +40,7 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
 /* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
 #explore-actions { display: none; }
 #explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
-.explore-items { display: grid; gap: var(--explore-gap); align-content: start; }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
 .explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
 .explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
 .opt {
