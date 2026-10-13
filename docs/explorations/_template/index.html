@@ -5,12 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
 <title>Exploração</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
 <style>
 /* ---------------------------------------------------------------------------
  * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
  * Do not change the --explore-* values or the rules under "Chrome".
- * Design tokens: copy only the ones the options use from web/protos/generated/tokens.md
- * into :root below; everything else uses var() only.
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. Colors: web/protos/generated/tokens.md; the rest: web/protos/generated/explore-tokens.md.
  * ------------------------------------------------------------------------- */
 :root {
   --explore-container-max: 840px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 240px;
@@ -20,8 +25,6 @@
   --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
   --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  /* TODO tokens used by the options (name: value from tokens.md), e.g.: */
-  /* --space-lg: 24px; */
 }
 
 /* Chrome */
