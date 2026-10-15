@@ -37,7 +37,7 @@ A domain you did not open is `Not reviewed: no dial touched`, never `Clear`. `be
 
 Order of authority: the kit's tokens and `web/protos/generated/rules.md`, then the designer's dial values, then the review rules. A designer's value that differs from a review-rule value is a finding with the rule and the cost, never an order; do not flag a value only because it differs from a "use exactly" number when the kit or the brief decides it. Do **not** flag, because they do not apply here:
 - hover, press (`:active`, scale on press), hit-area size, forms, skip links, SPA focus, focus traps, zoom/reflow at 200%/320 px, breakpoints, safe-area `env()`, theme switch, right-to-left and logical properties;
-- arrows that do not wrap at the ends, and one Tab stop on the `<article>` with no `tabindex` inside it: those are the kit's remote model, which beats the web patterns.
+- the card's key model (`node scripts/explore-ref.mjs --teclas`): ←/→ that do not wrap at the ends, Enter acting on the focused piece, ↑/↓ leaving the card unhandled (no `preventDefault`), and one Tab stop on the `<article>` with no `tabindex` inside it. That is the kit's remote model, which beats the web patterns.
 
 What does apply, and how a TV changes it:
 - **Focus is the interface.** Exactly one focused element; its indicator is visible in every state, at least a 2 px perimeter, and ≥ 3:1 against every colour it crosses; the kit's focus tokens are the starting point.

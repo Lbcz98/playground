@@ -46,7 +46,7 @@ export function append(page, group, parts, parent) {
 
 /** The page's cards: number, label, parent and whether the designer discarded it. */
 export function options(page) {
-  return [...page.matchAll(/<article\b([^>]*\bdata-option="(\d+)"[^>]*)>\s*<p class="opt-label"[^>]*>([\s\S]*?)<\/p>/g)].map(([, attrs, n, label]) => ({
+  return [...page.matchAll(/<article\b([^>]*\bdata-option="(\d+)"[^>]*)>\s*(?:<!--[\s\S]*?-->\s*)*<p class="opt-label"[^>]*>([\s\S]*?)<\/p>/g)].map(([, attrs, n, label]) => ({
     n: Number(n), label: label.trim(), parent: attrs.match(/data-parent="(\d+)"/)?.[1], discarded: /\bdata-discarded\b/.test(attrs),
   }))
 }
