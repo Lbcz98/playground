@@ -18,6 +18,11 @@ describe('explore-stitch', () => {
     expect(page.match(/<\/style>/g)).toHaveLength(1)
   })
 
+  it('finds a card whose thesis comment sits between the article and its label', () => {
+    const page = stitch(template, 't', [[1, '<article class="opt" data-option="1">\n  <!-- tese: uma ideia -->\n  <p class="opt-label" data-part="label">Opção 1 - Com tese</p></article>']])
+    expect(options(page)).toMatchObject([{ n: 1, label: 'Opção 1 - Com tese' }])
+  })
+
   it('appends a titled batch after the existing cards and records the parent', () => {
     const card = (n: number) => `<article class="opt" data-option="${n}">\n  <p class="opt-label" data-part="label">Opção ${n} - X</p></article>`
     const page = append(stitch(template, 't', [[1, card(1)], [2, card(2)]]), 'Variações da Opção 2 · forte', [[3, part(3).replace('<p>', '<p class="opt-label">')], [4, card(4)]], '2')

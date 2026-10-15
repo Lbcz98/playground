@@ -32,3 +32,7 @@ web/tsconfig.tsbuildinfo
 .checks-corpus-e2e
 .export-test-flow
 .checks-flow
+
+# Reference screenshots stay local: agents read only the notes in analises/
+docs/explorations/_references/Cards/
+docs/explorations/_references/Composition/
