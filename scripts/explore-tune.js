@@ -288,7 +288,7 @@
   load()
   const btn = $('.judge', bar)
   btn.onclick = () => { btn.disabled = true; btn.textContent = 'Avaliando…'; api('comment', { kind: 'judge', option: M }) }
-  let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}`))
+  let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}-${token}`))
   new EventSource(`/__explore/events?token=${token}`).addEventListener('state', (e) => {
     const mine = JSON.parse(e.data).filter((c) => c.kind === 'judge' && c.option === M), last = mine.at(-1)
     const busy = !!last && ['enviado', 'aguardando', 'aplicando'].includes(last.status)
@@ -300,6 +300,6 @@
     fpush.disabled = on('figma-push'); fpush.textContent = on('figma-push') ? 'Enviando…' : 'Enviar ao Figma'
     fpull.disabled = on('figma-pull') || !fpull.dataset.sent; fpull.textContent = on('figma-pull') ? 'Trazendo…' : 'Trazer do Figma'
     const done = fig.filter((c) => c.status === 'aplicado' || c.status === 'falhou').at(-1)
-    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}`, String(seenF)); loadFigma(); fmsg.firstChild?.nodeType === 3 && fmsg.firstChild.remove(); fmsg.prepend(document.createTextNode(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`)); fmsg.hidden = false }
+    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}-${token}`, String(seenF)); loadFigma(); fmsg.firstChild?.nodeType === 3 && fmsg.firstChild.remove(); fmsg.prepend(document.createTextNode(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`)); fmsg.hidden = false }
   })
 })()
