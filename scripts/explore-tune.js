@@ -35,8 +35,11 @@
     #explore-actions[data-live] { box-sizing: border-box; width: var(--explore-panel-w); justify-content: space-between; } /* the header actions span the DialKit panel below them */
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
-        .tune-fig { position: relative; } .tune-fmenu svg { width: 14px; height: 14px; fill: currentColor; flex: none; } .tune-fmenu .chev { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; } .tune-fmenu { gap: 6px; }
-    .tune-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 100%; padding: 4px; display: flex; flex-direction: column; border-radius: 10px; background: #181818; border: 1px solid var(--explore-toggle-border); } .tune-menu[hidden] { display: none; }
+        .tune-fig { position: relative; } .tune-fmenu svg { width: 16px; height: 16px; flex: none; } .tune-fmenu .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); } .tune-fmenu[aria-expanded=true] .chev { transform: rotate(180deg); } .tune-fmenu { gap: 6px; }
+    .tune-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 100%; padding: 4px; display: flex; flex-direction: column; border-radius: 10px; background: #181818; border: 1px solid var(--explore-toggle-border);
+      transform-origin: top right; opacity: 0; transform: translateY(-4px) scale(.97); visibility: hidden; pointer-events: none; transition: opacity 160ms ease-out, transform 200ms cubic-bezier(.2, 0, 0, 1), visibility 0s 200ms; }
+    .tune-menu.open { opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+    @media (prefers-reduced-motion: reduce) { .tune-menu { transform: none; transition: opacity 120ms linear, visibility 0s 120ms; } .tune-fmenu .chev { transition: none; } }
     .tune-menu button { height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: #ccc; font: 500 14px ${FONT}; text-align: left; white-space: nowrap; cursor: pointer; } .tune-menu button:hover:not(:disabled) { background: #2a2a2a; color: #fff; } .tune-menu button:disabled { opacity: .5; cursor: default; }
     .tune-note a { color: #9cf; } .tune-note .ftext + .undo { margin-top: 8px; } .tune-note .ftext { display: block; word-break: break-word; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
@@ -75,10 +78,10 @@
   bar.innerHTML = `<a class="tune-btn tune-back" href="/" aria-label="Voltar às opções" title="Opções">←</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>`
   // Over the canvas: review and Figma at the top right, zoom centred at the bottom (position: fixed, see the css above).
   const tools = Object.assign(document.createElement('div'), { className: 'tune-tools' })
-  const FIGMA = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.33 16a2.67 2.67 0 0 0 2.67-2.67v-2.66H5.33a2.67 2.67 0 0 0 0 5.33zM2.67 8a2.67 2.67 0 0 1 2.66-2.67H8v5.34H5.33A2.67 2.67 0 0 1 2.67 8zm0-5.33A2.67 2.67 0 0 1 5.33 0H8v5.33H5.33a2.67 2.67 0 0 1-2.66-2.66zM8 0h2.67a2.67 2.67 0 0 1 0 5.33H8V0zm5.33 8A2.67 2.67 0 1 1 8 8a2.67 2.67 0 0 1 5.33 0z"/></svg>'
+  const FIGMA = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#888888" stroke-linejoin="round" stroke-width="1.5"><circle cx="15" cy="12" r="3"/><path d="M9 21a3 3 0 0 0 3-3v-3H9a3 3 0 1 0 0 6Z"/><path stroke-linecap="round" d="M12 9v6H9a3 3 0 1 1 0-6zm0-6v6H9a3 3 0 0 1 0-6zm0 0v6h3a3 3 0 1 0 0-6z"/></g></svg>' // hugeicons:figma
   tools.innerHTML = `<button class="tune-btn judge">Avaliar</button>
     <div class="tune-fig"><button class="tune-btn tune-fmenu fmenu" aria-haspopup="menu" aria-expanded="false">${FIGMA}<span>Figma</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
-      <div class="tune-menu" role="menu" hidden><button role="menuitem" class="fpush">Enviar ao Figma</button><button role="menuitem" class="fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button></div></div>`
+      <div class="tune-menu" role="menu"><button role="menuitem" class="fpush">Enviar ao Figma</button><button role="menuitem" class="fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button></div></div>`
   const zoomBox = Object.assign(document.createElement('div'), { className: 'tune-zoom' })
   zoomBox.setAttribute('role', 'group'); zoomBox.setAttribute('aria-label', 'Zoom')
   zoomBox.innerHTML = `<button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit" aria-label="Ajustar ao palco" title="Ajustar ao palco (F)" hidden></button>`
@@ -273,10 +276,11 @@
   // --- Figma ---------------------------------------------------------------------------------------------------------------------
   // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
   const fpush = $('.fpush', tools), fpull = $('.fpull', tools), fmenu = $('.fmenu', tools), fmenuLabel = $('span', fmenu), menu = $('.tune-menu', tools)
-  const openMenu = (on) => { menu.hidden = !on; fmenu.setAttribute('aria-expanded', String(on)) }
-  fmenu.onclick = () => openMenu(menu.hidden)
-  document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !e.target.closest?.('.tune-fig')) openMenu(false) })
-  document.addEventListener('keydown', (e) => { if (!menu.hidden && e.key === 'Escape') (openMenu(false), fmenu.focus()) })
+  const isOpen = () => menu.classList.contains('open')
+  const openMenu = (on) => { menu.classList.toggle('open', on); fmenu.setAttribute('aria-expanded', String(on)) }
+  fmenu.onclick = () => openMenu(!isOpen())
+  document.addEventListener('pointerdown', (e) => { if (isOpen() && !e.target.closest?.('.tune-fig')) openMenu(false) })
+  document.addEventListener('keydown', (e) => { if (isOpen() && e.key === 'Escape') (openMenu(false), fmenu.focus()) })
   const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
   document.body.append(fmsg)
   const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
