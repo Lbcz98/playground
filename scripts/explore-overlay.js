@@ -337,7 +337,7 @@
     apply.style.cssText = `height:24px;padding:0 10px;border:.7px solid #888;border-radius:8px;background:linear-gradient(#3c3c3c,#2f2f2f);box-shadow:inset 0 0 8px rgba(14,14,14,.19);color:#ccc;font:500 14px ${FONT};cursor:pointer`
     foot.appendChild(apply); card.append(host, foot); panel.appendChild(card)
     const extra = window.exploreTune?.extra // /tune: "Exportar .md" sits beside "Aplicar valores"
-    if (extra) { extra.style.cssText = apply.style.cssText; foot.style.gap = '12px'; extra.style.flex = apply.style.flex = '1 1 0'; foot.prepend(extra) } // two equal buttons, 12px apart
+    if (extra) { extra.style.cssText = apply.style.cssText; foot.style.gap = '8px'; foot.style.padding = '12px'; for (const b of [extra, apply]) { b.style.flex = '1 1 0'; b.style.border = 'none'; b.style.borderRadius = '999px' } foot.prepend(extra) } // two equal pill buttons, no outline, 8px apart
 
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/__explore/dialkit.css'; document.head.appendChild(css)
     const js = document.createElement('script'); js.src = '/__explore/dialkit.js'
