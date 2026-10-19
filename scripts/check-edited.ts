@@ -1,5 +1,5 @@
 /**
- * Runs `check:laws` on the file Claude Code just wrote. Started by scripts/hook-check-protos.mjs, the PostToolUse
+ * Runs `check:laws` (static, no render) on the file Claude Code just wrote. Started by scripts/hook-check-protos.mjs, the PostToolUse
  * hook of `.claude/settings.json` (Write, Edit), with the tool call on stdin.
  * A file that is not a `.tsx` or `.ts` of `web/protos/<designer>/` is ignored; `check:laws` itself decides what
  * the file puts in question (a component or a data file: every screen of its folder).
@@ -20,11 +20,18 @@ export function editedFile(input: string, exists: (file: string) => boolean): st
   return typeof file === 'string' && isDesignerCode(file) && exists(file) ? file : undefined
 }
 
-/** What the hook says about an edited file: nothing when its checks pass, else the lines of `check:laws` for the agent. */
+/** A line of `check:laws` that says something holds: the agent has nothing to do with it. */
+const HOLDS = /  (laws hold|flow holds|declared )/
+
+/**
+ * What the hook says about an edited file: nothing when its checks pass, else the lines of `check:laws` that need work.
+ * Static only: the render audit (Vite and Chromium) costs seconds on every edit, and the writer's own `check:laws`
+ * and `proto-reviewer` run it before anything is shown.
+ */
 export async function findingsFor(file: string): Promise<string | undefined> {
-  const run = await runChecks([file])
+  const run = await runChecks([file], { render: false })
   if (run.exitCode === 0) return undefined
-  return `check:laws encontrou bloqueios depois desta edição. Uma lei se corrige; um padrão só se declara com @deviation quando o usuário pediu a quebra, citando o pedido (web/protos/CODING_STANDARDS.md).\n${[...reportLines(run), ...run.notes].join('\n')}`
+  return `check:laws encontrou bloqueios depois desta edição. Uma lei se corrige; um padrão só se declara com @deviation quando o usuário pediu a quebra, citando o pedido (web/protos/CODING_STANDARDS.md).\n${[...reportLines(run).filter((l) => !HOLDS.test(l)), ...run.notes].join('\n')}`
 }
 
 async function main(): Promise<void> {

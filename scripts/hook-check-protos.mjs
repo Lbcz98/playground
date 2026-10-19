@@ -7,6 +7,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -31,7 +32,8 @@ export function mayBeDesignerCode(input) {
 /** Runs the hook for one stdin; `spawn` is spawnSync's shape. Returns the exit code. */
 export function runHook(input, spawn = spawnSync) {
   if (!mayBeDesignerCode(input)) return 0
-  const run = spawn('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-edited.ts'], { cwd: ROOT, input, stdio: ['pipe', 'inherit', 'inherit'] })
+  // vite-node's own entry on this node: no `npx` lookup, and no `.bin` shim (a .cmd on Windows).
+  const run = spawn(process.execPath, [join(ROOT, 'node_modules/vite-node/vite-node.mjs'), '--config', 'vitest.config.ts', 'scripts/check-edited.ts'], { cwd: ROOT, input, stdio: ['pipe', 'inherit', 'inherit'] })
   return run.status ?? 1
 }
 

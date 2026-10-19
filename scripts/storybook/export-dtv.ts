@@ -41,6 +41,8 @@ import { DTV_TEMPLATES } from './dtv-templates'
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const OUT = join(ROOT, 'dist-dtv')
 const from = process.argv.find((arg) => arg.startsWith('--from='))?.slice('--from='.length)
+/** `--json-only`: only dtv-storybook.json, what the checks read (scripts/dtv-manifest.ts); no bundle build. */
+const jsonOnly = process.argv.includes('--json-only')
 
 /** The Storybook component ids that make up the DTV system. */
 const DTV = /^(ui-kit-|primitives-stack$)/
@@ -104,7 +106,7 @@ try {
   const entryFile = join(dir, 'dtv-bundle-entry.ts')
   writeFileSync(entryFile, `${imports.join('\n')}\n\n;(window as any).${LIVE_BUNDLE_GLOBAL} = {\n${entries.join('\n')}\n}\n`)
 
-  await build({
+  if (!jsonOnly) await build({
     configFile: false,
     root: ROOT,
     logLevel: 'warn',
@@ -126,7 +128,7 @@ try {
 
   console.log(
     `Wrote dist-dtv/dtv-storybook.json (${Object.keys(components).length} story components, ` +
-      `${DTV_TEMPLATES.length} reference screens) and dist-dtv/dtv.bundle.js (${entries.length} components).`,
+      `${DTV_TEMPLATES.length} reference screens)${jsonOnly ? '' : ` and dist-dtv/dtv.bundle.js (${entries.length} components)`}.`,
   )
 } finally {
   if (!from) rmSync(dir, { recursive: true, force: true })
