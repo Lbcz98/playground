@@ -31,6 +31,7 @@
     .tune-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tune-btn { flex: none; height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
       background: linear-gradient(180deg, var(--explore-btn-fill-from), var(--explore-btn-fill-to)) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from), var(--explore-btn-stroke-to)) border-box; }
+    .tune-btn.tune-back { background: none; font-size: 18px; padding: 0 6px; } .tune-btn.tune-back:hover { color: #fff; }
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
@@ -66,7 +67,7 @@
   const label = $('.opt-label', art)?.textContent.trim() ?? `Opção ${M}`
   const bar = document.createElement('div')
   bar.className = 'tune-bar'
-  bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>`
+  bar.innerHTML = `<a class="tune-btn tune-back" href="/" aria-label="Voltar às opções" title="Opções">←</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>`
   // Over the canvas: review and Figma at the top right, zoom centred at the bottom (position: fixed, see the css above).
   const tools = Object.assign(document.createElement('div'), { className: 'tune-tools' })
   tools.innerHTML = `<button class="tune-btn judge">Avaliar</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
