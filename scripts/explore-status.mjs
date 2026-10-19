@@ -7,6 +7,7 @@
  *   npm run explore:status -- <folder> post <figma-state|tune-apply> '<json>'   write through the server (figma.json, tuned values)
  *
  * Prints the server's JSON answer; exit 1 when the server is gone (stopped or idle).
+ * Plain `node`, not vite-node: it is called twice per comment, and it needs nothing but Node.
  */
 import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -31,4 +32,4 @@ async function main() {
   }
 }
 
-if (!process.env.VITEST) void main()
+void main()

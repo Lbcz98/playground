@@ -28,7 +28,13 @@ export async function openExploration(target, width = 1280) {
   const page = await browser.newPage({ viewport: { width, height: 800 } })
   await page.goto(url(join(dir, 'index.html')))
   await page.evaluate(() => document.fonts.ready)
-  // The "carregando" states clear themselves after a moment; look at the page after that.
-  await page.waitForTimeout(1300)
+  // The "carregando" states clear themselves after a moment (a timer); look at the page after that.
+  // With no timer in the page, look once its entrance animations have ended (at most the same 1.3 s).
+  if (/\bset(Timeout|Interval)\s*\(/.test(source)) await page.waitForTimeout(1300)
+  else
+    await page.evaluate(() => Promise.race([
+      Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+      new Promise((r) => setTimeout(r, 1300)),
+    ]).then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))))
   return { page, close: async () => { await browser.close(); rmSync(dir, { recursive: true, force: true }) }, resolve }
 }

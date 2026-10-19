@@ -89,7 +89,22 @@ async function measure(target, option) {
     const text = mix([fg[0], fg[1], fg[2], fg[3] * opacity], bg)
     return { ...row, fg: text.map(Math.round), bg: bg.map(Math.round), ratio: +ratio(text, bg).toFixed(2) }
   })
+  facts.contrast = fold(facts.contrast, 'state')
+  facts.focus = fold(facts.focus, 'state')
+  facts.motion = fold(facts.motion, 'el')
   return facts
+}
+
+/** Rows equal but for `field` as one row, its values joined: a fact true in every state, or of several pieces, is said once. */
+export function fold(rows, field) {
+  const by = new Map()
+  for (const r of rows) {
+    const key = JSON.stringify({ ...r, [field]: 0 })
+    const had = by.get(key)
+    if (!had) by.set(key, { ...r })
+    else if (!String(had[field]).split(', ').includes(String(r[field]))) had[field] = `${had[field]}, ${r[field]}`
+  }
+  return [...by.values()]
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

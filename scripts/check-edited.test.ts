@@ -20,15 +20,13 @@ describe('the file the hook checks after an edit', () => {
 describe('what the hook hands back to the agent', () => {
   afterAll(cleanCorpus)
   afterEach(() => void vi.unstubAllEnvs())
-  it('is the lines of check:laws under one sentence of what to do, when the run blocks', async () => {
-    vi.stubEnv('CHROMIUM_PATH', '/nonexistent')
+  it('is the static lines of check:laws that need work, under one sentence of what to do, when the run blocks', async () => {
+    vi.stubEnv('CHROMIUM_PATH', '/nonexistent') // a render would say Chromium could not start: the hook does not render
     const said = await findingsFor(writeCase(CASES.find((c) => c.id === 'focus-two')!))
     expect(said?.split('\n')).toEqual([
       expect.stringMatching(/^check:laws encontrou bloqueios depois desta edição\. .*CODING_STANDARDS\.md\)\.$/),
       expect.stringMatching(/focus-two\/s\.tsx:\d+  \[focus\.single\] 2 focused elements/),
       expect.stringMatching(/focus-two\/s\.tsx  \[level\.initial-focus\] /),
-      expect.stringMatching(/focus-two\/s\.tsx  not read: render check did not run: Chromium could not start/),
-      expect.stringMatching(/^Chromium could not start/),
     ])
   }, 120_000)
 })

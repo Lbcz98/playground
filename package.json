@@ -20,7 +20,7 @@
     "storybook:manifest:check": "vite-node --config vitest.config.ts scripts/storybook/export-manifest.ts -- --check",
     "dtv:export": "vite-node --config vitest.config.ts scripts/storybook/export-dtv.ts",
     "explore:serve": "vite-node --config vitest.config.ts scripts/explore-server.ts --",
-    "explore:status": "vite-node --config vitest.config.ts scripts/explore-status.ts --",
+    "explore:status": "node scripts/explore-status.mjs --",
     "deploy": "vite-node --config vitest.config.ts scripts/deploy.ts --",
     "check:laws": "vite-node --config vitest.config.ts scripts/check-laws-cli.ts --",
     "ci:protos": "vite-node --config vitest.config.ts scripts/protos-ci.ts --",

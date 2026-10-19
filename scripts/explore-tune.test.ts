@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { applyTuned, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
+import { applyTuned, specJson, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
 import { startServer } from './explore-server'
 
 const spec: any = {
@@ -47,6 +47,15 @@ describe('vars block', () => {
     const out = varsBlock(moved, 2)
     expect(out).toContain('--radius: 14px; /* tune */')
     expect(out).toContain('--bg: #112233; /* tune */')
+  })
+})
+
+describe('specJson', () => {
+  it('is the same spec, one control per line', () => {
+    const json = specJson(spec)
+    expect(JSON.parse(json)).toEqual(spec)
+    const lines = json.split('\n').map((l: string) => l.replace(/,$/, ''))
+    for (const c of spec.folders.flatMap((f: any) => f.controls)) expect(lines).toContain(JSON.stringify(c))
   })
 })
 

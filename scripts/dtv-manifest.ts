@@ -18,7 +18,7 @@ let cached: DesignSystemManifest | undefined
 export function loadDtvManifest(): DesignSystemManifest {
   if (cached) return cached
   if (!existsSync(FILE)) {
-    const run = spawnSync('npm', ['run', 'dtv:export'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] })
+    const run = spawnSync('npm', ['run', 'dtv:export', '--', '--json-only'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] })
     if (run.status !== 0 || !existsSync(FILE)) throw new Error('npm run dtv:export failed — the DTV manifest is not available.')
   }
   cached = parseStorybookDocgenWithReport(JSON.parse(readFileSync(FILE, 'utf8')), { id: 'dtv', name: 'DTV' }).manifest

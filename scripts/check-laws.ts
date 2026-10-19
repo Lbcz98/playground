@@ -175,7 +175,18 @@ function componentExports(sf: ts.SourceFile): Map<string, { line: number; commen
   return out
 }
 
-export function checkLaws(file: string, options: { skipValidator?: boolean } = {}): LawReport {
+let tsOptions: ts.CompilerOptions | undefined
+/** tsc over `files` in one program, against the real kit: the kit and its types are read once however many screens there are. */
+export function typeCheck(files: string[]): readonly ts.Diagnostic[] {
+  if (!tsOptions) {
+    const configPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!
+    tsOptions = ts.parseJsonConfigFileContent(ts.readConfigFile(configPath, ts.sys.readFile).config, ts.sys, ROOT).options
+  }
+  return ts.getPreEmitDiagnostics(ts.createProgram([...files, NEXT_SHIM], { ...tsOptions, noEmit: true }))
+}
+
+/** `diagnostics`: a `typeCheck` that covers this file (runChecks shares one across its files); else the file is checked alone. */
+export function checkLaws(file: string, options: { skipValidator?: boolean; diagnostics?: readonly ts.Diagnostic[] } = {}): LawReport {
   const path = resolve(file)
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
@@ -222,10 +233,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean } = {
   importsOf(path, sf)
 
   // ── tsc against the real kit (the screen and its local files) ───────────────
-  const configPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!
-  const config = ts.parseJsonConfigFileContent(ts.readConfigFile(configPath, ts.sys.readFile).config, ts.sys, ROOT)
-  const program = ts.createProgram([path, NEXT_SHIM], { ...config.options, noEmit: true })
-  for (const d of ts.getPreEmitDiagnostics(program)) {
+  for (const d of options.diagnostics ?? typeCheck([path])) {
     if (!d.file) continue
     const f = resolve(d.file.fileName)
     if (f !== path && !locals.has(f)) continue
@@ -592,7 +600,8 @@ export async function runChecks(targets: string[], options: { render?: boolean; 
   // through the screens of its designer folder: its focus and size show on the screens that use it.
   const { files, flows: flowDirs } = checkTargets(targets.map((a) => resolve(a)), diskTree)
   const flows = flowDirs.map(checkFlow)
-  const reports = files.map((f) => checkLaws(f))
+  const diagnostics = files.length > 1 ? typeCheck(files) : undefined
+  const reports = files.map((f) => checkLaws(f, { diagnostics }))
   const findings: Finding[] = flows.flatMap((f) => f.problems.map((p) => ({ rule: p.law, file: join(f.dir, 'flow.ts'), message: p.message })))
   const notes: string[] = []
   if (render) {

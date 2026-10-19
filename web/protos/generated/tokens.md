@@ -2,38 +2,13 @@
 
 # Tokens
 
-Semantic and layout tokens only; core tokens are never named by a screen. "Screen name" is the value a kit prop takes (its type in `src/primitives/token-names.ts` or `tokens.ts`); blank means no kit prop takes it.
+The tokens a screen can name: "Screen name" is the value a kit prop takes (its type in `src/primitives/token-names.ts` or `tokens.ts`). Core tokens, and tokens no kit prop takes (gradients, motion, some colours), are not here: a screen cannot name them. Text styles read `size / line height · weight · letter spacing`, in Inter.
 Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep` props of the kit.
-
-## color.opacity
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `color.opacity.background` | #191F274D |  |
-| `color.opacity.base-rounded` | #2B313A33 |  |
-| `color.opacity.dark.10` | #0000001A |  |
-| `color.opacity.dark.20` | #00000033 |  |
-| `color.opacity.dark.30` | #0000004D |  |
-| `color.opacity.dark.50` | #00000080 |  |
-| `color.opacity.dark.60` | #00000099 |  |
-| `color.opacity.dark.70` | #000000B3 |  |
-| `color.opacity.dark.80` | #000000CC |  |
-| `color.opacity.dark.90` | #000000E6 |  |
-| `color.opacity.greymid-30` | #6464644D |  |
-| `color.opacity.light.10` | #FFFFFF1A |  |
-| `color.opacity.light.20` | #FFFFFF33 |  |
-| `color.opacity.light.30` | #FFFFFF4D |  |
-| `color.opacity.light.50` | #FFFFFF80 |  |
-| `color.opacity.light.70` | #FFFFFFB3 |  |
 
 ## color.semantic
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `color.semantic.focus.glow` | #35C7F3 |  |
-| `color.semantic.focus.inset` | #000000B3 |  |
-| `color.semantic.focus.inset-fade` | #17161B |  |
-| `color.semantic.focus.outline` | #414FFD |  |
 | `color.semantic.functional.background-elevated` | #3F3F3F | `SurfaceColor` `elevated` |
 | `color.semantic.functional.background-overlay` | #2B313A33 | `SurfaceColor` `overlay` |
 | `color.semantic.functional.background-primary` | #191919 | `SurfaceColor` `primary` |
@@ -50,22 +25,6 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `color.semantic.functional.text-primary` | #EEEEEE | `TextRole` `primary` |
 | `color.semantic.functional.text-secondary` | #888888 | `TextRole` `secondary` |
 | `color.semantic.functional.text-subtle` | #999999 | `TextRole` `subtle` |
-| `color.semantic.overlay.scrim` | #0000001A |  |
-| `color.semantic.theme.dia-dark` | #00E879 |  |
-| `color.semantic.theme.dia-light` | #00E1C0 |  |
-| `color.semantic.theme.noite-dark` | #414FFD |  |
-| `color.semantic.theme.noite-light` | #35C7F3 |  |
-| `color.semantic.theme.tarde-dark` | #ED6001 |  |
-| `color.semantic.theme.tarde-light` | #E7C300 |  |
-
-## dimension.border-width
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `dimension.border-width.semantic.button` | 1px |  |
-| `dimension.border-width.semantic.card` | 1px |  |
-| `dimension.border-width.semantic.divider` | 1px |  |
-| `dimension.border-width.semantic.focus-ring` | 4px |  |
 
 ## dimension.radius
 
@@ -114,79 +73,6 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `dimension.size.semantic.table-value-column` | 32px | `SizeRole` `table-value-column` |
 | `dimension.size.semantic.wide-button-width` | 240px | `SizeRole` `wide-button-width` |
 
-## dimension.spacing
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `dimension.spacing.semantic.card-inset` | 20px |  |
-| `dimension.spacing.semantic.card-inset-expanded` | 24px |  |
-| `dimension.spacing.semantic.focus-offset` | 2px |  |
-| `dimension.spacing.semantic.table-row-gap` | 8px |  |
-
-## gradient.complementary
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `gradient.complementary.dark` | [{"color":"#34343C00","position":0},{"color":"#17161B","position":1}] |  |
-| `gradient.complementary.diagonal-light` | [{"color":"#FFFFFFB3","position":0},{"color":"#6464644D","position":0.6}] |  |
-| `gradient.complementary.linear-light` | [{"color":"#EEEEEE","position":0},{"color":"#EEEEEE00","position":1}] |  |
-| `gradient.complementary.live` | [{"color":"#FD4142","position":0},{"color":"#DE2C2C","position":0.7}] |  |
-| `gradient.complementary.replay` | [{"color":"#FFB54E","position":0},{"color":"#DA7F00","position":0.7}] |  |
-| `gradient.complementary.shiny` | [{"color":"#999999","position":0},{"color":"#EEEEEE","position":1}] |  |
-
-## gradient.inverse
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `gradient.inverse.dia` | [{"color":"#00E1C0","position":0},{"color":"#00E879","position":1}] |  |
-| `gradient.inverse.noite` | [{"color":"#35C7F3","position":0},{"color":"#414FFD","position":0.7}] |  |
-| `gradient.inverse.tarde` | [{"color":"#E7C300","position":0},{"color":"#ED6001","position":0.7}] |  |
-
-## gradient.overlay
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `gradient.overlay.bottom` | [{"color":"#00000000","position":0.5},{"color":"#000000E6","position":0.9}] |  |
-| `gradient.overlay.bottom-left` | [{"color":"#00000000","position":0.5952},{"color":"#000000","position":0.9579}] |  |
-| `gradient.overlay.bottom-right` | [{"color":"#00000000","position":0.5952},{"color":"#000000","position":0.9579}] |  |
-| `gradient.overlay.left` | [{"color":"#00000000","position":0.5745},{"color":"#00000099","position":0.9716}] |  |
-| `gradient.overlay.right` | [{"color":"#00000000","position":0.5745},{"color":"#00000099","position":0.9716}] |  |
-| `gradient.overlay.top-right` | [{"color":"#00000000","position":0.7015},{"color":"#000000","position":0.9322}] |  |
-
-## gradient.primary
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `gradient.primary.dia` | [{"color":"#00E879","position":0.3},{"color":"#00E1C0","position":1}] |  |
-| `gradient.primary.noite` | [{"color":"#414FFD","position":0.3},{"color":"#35C7F3","position":1}] |  |
-| `gradient.primary.tarde` | [{"color":"#ED6001","position":0.3},{"color":"#E7C300","position":1}] |  |
-
-## gradient.semantic
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `gradient.semantic.border.default` | [{"color":"#FFFFFFB3","position":0},{"color":"#6464644D","position":0.6}] |  |
-| `gradient.semantic.focus.ring` | [{"color":"#414FFD","position":0.3},{"color":"#35C7F3","position":1}] |  |
-| `gradient.semantic.overlay.bottom` | [{"color":"#00000000","position":0.5},{"color":"#000000E6","position":0.9}] |  |
-| `gradient.semantic.overlay.bottom-left` | [{"color":"#00000000","position":0.5952},{"color":"#000000","position":0.9579}] |  |
-| `gradient.semantic.overlay.bottom-right` | [{"color":"#00000000","position":0.5952},{"color":"#000000","position":0.9579}] |  |
-| `gradient.semantic.overlay.left` | [{"color":"#00000000","position":0.5745},{"color":"#00000099","position":0.9716}] |  |
-| `gradient.semantic.overlay.right` | [{"color":"#00000000","position":0.5745},{"color":"#00000099","position":0.9716}] |  |
-| `gradient.semantic.overlay.top-right` | [{"color":"#00000000","position":0.7015},{"color":"#000000","position":0.9322}] |  |
-| `gradient.semantic.status.live` | [{"color":"#FD4142","position":0},{"color":"#DE2C2C","position":0.7}] |  |
-| `gradient.semantic.status.replay` | [{"color":"#FFB54E","position":0},{"color":"#DA7F00","position":0.7}] |  |
-
-## motion.semantic
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `motion.semantic.carousel-step` | 3000ms |  |
-| `motion.semantic.duration` | 800ms |  |
-| `motion.semantic.easing` | {"damping":15,"duration":"800ms","mass":1,"stiffness":56} |  |
-| `motion.semantic.focus-cycle-duration` | 12000ms |  |
-| `motion.semantic.focus-cycle-easing` | {"damping":15,"duration":"800ms","mass":1,"stiffness":56} |  |
-| `motion.semantic.focus-cycle-step` | 3000ms |  |
-
 ## opacity.semantic
 
 | Path | Value | Screen name |
@@ -211,99 +97,57 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.body-lg.bold` | {"fontFamily":"Inter","fontSize":"18px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-lg-bold"` |
-| `typography.body-lg.medium` | {"fontFamily":"Inter","fontSize":"18px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-lg-medium"` |
+| `typography.body-lg.bold` | 18px / 1.2 · 700 · -0.01em | `Text variant="body-lg-bold"` |
+| `typography.body-lg.medium` | 18px / 1.2 · 500 · -0.01em | `Text variant="body-lg-medium"` |
 
 ## typography.body-md
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.body-md.bold` | {"fontFamily":"Inter","fontSize":"16px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-md-bold"` |
-| `typography.body-md.medium` | {"fontFamily":"Inter","fontSize":"16px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-md-medium"` |
-| `typography.body-md.regular` | {"fontFamily":"Inter","fontSize":"16px","fontWeight":400,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-md-regular"` |
+| `typography.body-md.bold` | 16px / 1.2 · 700 · -0.01em | `Text variant="body-md-bold"` |
+| `typography.body-md.medium` | 16px / 1.2 · 500 · -0.01em | `Text variant="body-md-medium"` |
+| `typography.body-md.regular` | 16px / 1.2 · 400 · -0.01em | `Text variant="body-md-regular"` |
 
 ## typography.body-sm
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.body-sm.bold` | {"fontFamily":"Inter","fontSize":"14px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-sm-bold"` |
-| `typography.body-sm.extra-bold` | {"fontFamily":"Inter","fontSize":"14px","fontWeight":800,"letterSpacing":"-0.02em","lineHeight":1.1} | `Text variant="body-sm-extra-bold"` |
-| `typography.body-sm.medium` | {"fontFamily":"Inter","fontSize":"14px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="body-sm-medium"` |
+| `typography.body-sm.bold` | 14px / 1.2 · 700 · -0.01em | `Text variant="body-sm-bold"` |
+| `typography.body-sm.extra-bold` | 14px / 1.1 · 800 · -0.02em | `Text variant="body-sm-extra-bold"` |
+| `typography.body-sm.medium` | 14px / 1.2 · 500 · -0.01em | `Text variant="body-sm-medium"` |
 
 ## typography.caption
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.caption.bold` | {"fontFamily":"Inter","fontSize":"10px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="caption-bold"` |
-| `typography.caption.extra-bold` | {"fontFamily":"Inter","fontSize":"10px","fontWeight":800,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="caption-extra-bold"` |
-| `typography.caption.medium` | {"fontFamily":"Inter","fontSize":"10px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="caption-medium"` |
-
-## typography.fontFamily
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.fontFamily.primary` | Inter |  |
-
-## typography.fontSize
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.fontSize.2xl` | 24px |  |
-| `typography.fontSize.3xl` | 28px |  |
-| `typography.fontSize.base` | 16px |  |
-| `typography.fontSize.lg` | 18px |  |
-| `typography.fontSize.md` | 14px |  |
-| `typography.fontSize.sm` | 12px |  |
-| `typography.fontSize.xl` | 20px |  |
-| `typography.fontSize.xs` | 10px |  |
-
-## typography.fontWeight
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.fontWeight.bold` | 700 |  |
-| `typography.fontWeight.extra-bold` | 800 |  |
-| `typography.fontWeight.medium` | 500 |  |
-| `typography.fontWeight.regular` | 400 |  |
+| `typography.caption.bold` | 10px / 1.2 · 700 · -0.01em | `Text variant="caption-bold"` |
+| `typography.caption.extra-bold` | 10px / 1.2 · 800 · -0.01em | `Text variant="caption-extra-bold"` |
+| `typography.caption.medium` | 10px / 1.2 · 500 · -0.01em | `Text variant="caption-medium"` |
 
 ## typography.footnote
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.footnote.bold` | {"fontFamily":"Inter","fontSize":"12px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="footnote-bold"` |
-| `typography.footnote.medium` | {"fontFamily":"Inter","fontSize":"12px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="footnote-medium"` |
+| `typography.footnote.bold` | 12px / 1.2 · 700 · -0.01em | `Text variant="footnote-bold"` |
+| `typography.footnote.medium` | 12px / 1.2 · 500 · -0.01em | `Text variant="footnote-medium"` |
 
 ## typography.heading-3
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.heading-3.bold` | {"fontFamily":"Inter","fontSize":"28px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-3-bold"` |
-| `typography.heading-3.medium` | {"fontFamily":"Inter","fontSize":"28px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-3-medium"` |
+| `typography.heading-3.bold` | 28px / 1.2 · 700 · -0.01em | `Text variant="heading-3-bold"` |
+| `typography.heading-3.medium` | 28px / 1.2 · 500 · -0.01em | `Text variant="heading-3-medium"` |
 
 ## typography.heading-4
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.heading-4.bold` | {"fontFamily":"Inter","fontSize":"24px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-4-bold"` |
-| `typography.heading-4.medium` | {"fontFamily":"Inter","fontSize":"24px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-4-medium"` |
+| `typography.heading-4.bold` | 24px / 1.2 · 700 · -0.01em | `Text variant="heading-4-bold"` |
+| `typography.heading-4.medium` | 24px / 1.2 · 500 · -0.01em | `Text variant="heading-4-medium"` |
 
 ## typography.heading-5
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `typography.heading-5.bold` | {"fontFamily":"Inter","fontSize":"20px","fontWeight":700,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-5-bold"` |
-| `typography.heading-5.medium` | {"fontFamily":"Inter","fontSize":"20px","fontWeight":500,"letterSpacing":"-0.01em","lineHeight":1.2} | `Text variant="heading-5-medium"` |
-
-## typography.letterSpacing
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.letterSpacing.tight` | -0.01em |  |
-| `typography.letterSpacing.tighter` | -0.02em |  |
-
-## typography.lineHeight
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.lineHeight.normal` | 1.2 |  |
-| `typography.lineHeight.tight` | 1.1 |  |
+| `typography.heading-5.bold` | 20px / 1.2 · 700 · -0.01em | `Text variant="heading-5-bold"` |
+| `typography.heading-5.medium` | 20px / 1.2 · 500 · -0.01em | `Text variant="heading-5-medium"` |
