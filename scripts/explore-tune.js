@@ -35,7 +35,8 @@
     #explore-actions[data-live] { box-sizing: border-box; width: var(--explore-panel-w); justify-content: space-between; } /* the header actions span the DialKit panel below them */
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
-        .dialkit-panel-toolbar { display: none !important; } /* presets and "copy parameters" are not part of this stage */
+        .dialkit-panel-header { border-bottom: 0 !important; }
+    .dialkit-panel-toolbar { display: none !important; } /* presets and "copy parameters" are not part of this stage */
     .tune-collapse { flex: none; width: 28px; height: 28px; margin-left: auto; padding: 0; border: 0; border-radius: 8px; background: none; color: #888; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; } .tune-collapse:hover { color: #fff; background: #ffffff14; } .tune-collapse:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-collapse svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     .dialkit-folder-header-top { display: flex; align-items: center; }
