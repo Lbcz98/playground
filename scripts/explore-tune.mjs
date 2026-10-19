@@ -96,7 +96,7 @@ export function lintSpec(html, n, kit) {
   if (!Array.isArray(spec.folders) || !spec.folders.length) bad.push('folders vazio')
   const ids = new Set(), names = new Set(), fin = Number.isFinite
   for (const f of spec.folders ?? []) {
-    if (!f.name || names.has(f.name) || f.name === 'Simulador') bad.push(`pasta "${f.name}": nome vazio, repetido ou reservado (Simulador)`)
+    if (!f.name || names.has(f.name) || f.name === 'Simulador' || f.name === 'Palco') bad.push(`pasta "${f.name}": nome vazio, repetido ou reservado (Simulador, Palco)`)
     names.add(f.name)
     const labels = new Set()
     for (const c of f.controls ?? []) {
