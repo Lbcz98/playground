@@ -166,30 +166,41 @@
     lr.querySelector('button').onclick = (e) => { const on = items.toggleAttribute('data-show-discarded'); e.currentTarget.setAttribute('aria-pressed', String(on)); e.currentTarget.classList.toggle('on', on) }
     items.after(line)
   }
-  // Placeholder cards: an ASCII dot matrix while the agent writes the options (prototype: docs/explorations/ascii-thinking).
-  // A batch can take minutes, so it is cheap on purpose: one loop for every card at 24 fps, only for cards on screen,
-  // and a still dot field with reduced motion. About 1.4 ms per frame for four cards.
+  // Placeholder cards: ASCII waves while the agent writes the options (prototype: docs/explorations/ascii-waves; the values below are the ones picked there).
+  // A batch can take minutes, so it is cheap on purpose: one loop for every card at 30 fps and only for cards on screen.
+  // Reduced motion gets one frozen frame of the same waves.
   const matrix = (() => {
-    const CW = 12, CH = 16, RAMP = ' .·:+*o●', SPEED = 8, RANDOM = 0.5, TRAIL = 10, FPS = 24
+    const CW = 12, CH = 16, RAMP = ' .·:+*o●', TAU = Math.PI * 2, FPS = 30
+    const SPEED = 5.5, LENGTH = 12, ANGLE = 40 * TAU / 360, LAYERS = 4, RANDOM = 0.85, CURL = 0.7, RIPPLES = 0.3, OPACITY = 0.5, SHARP = 1.2
     const still = matchMedia('(prefers-reduced-motion: reduce)')
     const hash = (a, b, s) => { const x = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return x - Math.floor(x) }
-    const draw = (cv, t) => { // t null: the still field
+    const draw = (cv, t) => {
       const d = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight
       if (cv.width !== w * d || cv.height !== h * d) { cv.width = w * d; cv.height = h * d }
-      const x = cv.getContext('2d'), seed = +cv.dataset.seed
+      const x = cv.getContext('2d'), seed = 1 + +cv.dataset.seed * 17.3
       x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h)
-      x.font = '12px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'
-      const cols = Math.floor(w / CW), rows = Math.floor(h / CH), span = rows + TRAIL
-      for (let c = 0; c < cols; c++) {
-        // RANDOM 0 would be one diagonal sweep; 1, every column on its own speed and phase.
-        const head = t === null ? -1 : (t * SPEED * (1 + (hash(c, 1, seed) - 0.5) * 1.6 * RANDOM) + c * 0.6 * (1 - RANDOM) + hash(c, 2, seed) * span * RANDOM) % span
-        for (let r = 0; r < rows; r++) {
-          const k = 1 - (head - r) / TRAIL, lit = head >= r && k > 0
-          const flick = lit ? (hash(c, r, seed + Math.floor(t * 12)) - 0.5) * RANDOM * 4 : 0
-          x.globalAlpha = lit ? 0.12 + 0.48 * k : 0.15
-          x.fillStyle = lit ? '#a3a3a3' : '#6f6f6f'
-          x.fillText(lit ? RAMP[Math.max(1, Math.min(RAMP.length - 1, Math.round(k * (RAMP.length - 1) + flick)))] : '·', c * CW + CW / 2, r * CH + CH / 2)
-        }
+      x.font = '12px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#a3a3a3'
+      const cols = Math.floor(w / CW), rows = Math.floor(h / CH)
+      // Each layer has its own direction, wavelength and speed, and its strength breathes slowly, so the pattern never repeats.
+      const layers = Array.from({ length: LAYERS }, (_, n) => {
+        const ang = ANGLE + (hash(n, 1, seed) - 0.5) * Math.PI * RANDOM * 1.2, k = TAU / (LENGTH * (0.7 + 0.6 * hash(n, 2, seed)))
+        return { cx: Math.cos(ang), cy: Math.sin(ang), k, w: k * SPEED * (0.6 + 0.8 * hash(n, 3, seed)), ph: hash(n, 4, seed) * TAU,
+          am: 0.65 + 0.35 * Math.sin(t * 0.2 * (0.5 + hash(n, 5, seed)) + hash(n, 6, seed) * TAU) }
+      })
+      const sum = layers.reduce((a, l) => a + l.am, 0) + RIPPLES, rk = TAU / (LENGTH * 0.8)
+      // A ripple source wanders slowly across the card.
+      const sx = cols / 2 + cols * 0.35 * Math.sin(t * 0.11 + seed), sy = rows / 2 + rows * 0.3 * Math.cos(t * 0.09 + seed * 2)
+      for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+        // Curl bends the crests so they are never straight lines.
+        const wx = c + CURL * 3 * Math.sin(r * 0.17 + t * 0.4 + seed), wy = r * 1.6 + CURL * 3 * Math.cos(c * 0.13 - t * 0.33 + seed)
+        let s = 0
+        for (const l of layers) s += l.am * Math.sin(l.k * (wx * l.cx + wy * l.cy) - l.w * t + l.ph)
+        const dist = Math.hypot(c - sx, (r - sy) * 1.6)
+        s += RIPPLES * Math.sin(rk * dist - SPEED * rk * t) / (1 + Math.hypot(c - sx, r - sy) * 0.03)
+        let v = (s / sum) * 0.5 + 0.5 + (hash(c, r, seed + Math.floor(t * 8)) - 0.5) * RANDOM * 0.12
+        v = Math.pow(Math.max(0, Math.min(1, v)), SHARP)
+        x.globalAlpha = OPACITY * (0.12 + 0.88 * v)
+        x.fillText(v < 0.08 ? '·' : RAMP[Math.max(1, Math.round(v * (RAMP.length - 1)))], c * CW + CW / 2, r * CH + CH / 2)
       }
     }
     const shown = new Set()
@@ -207,7 +218,7 @@
       for (const e of entries) e.isIntersecting ? shown.add(e.target) : shown.delete(e.target)
       if (shown.size && !raf) raf = requestAnimationFrame(tick)
     })
-    return (cv) => (still.matches ? draw(cv, null) : io.observe(cv))
+    return (cv) => (still.matches ? draw(cv, 0) : io.observe(cv))
   })()
 
   // While a batch is being made: its group title and placeholder cards at the end of the page. The reload after "aplicado" brings the real ones.
