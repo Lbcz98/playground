@@ -35,6 +35,10 @@
     #explore-actions[data-live] { box-sizing: border-box; width: var(--explore-panel-w); justify-content: space-between; } /* the header actions span the DialKit panel below them */
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
+        .tune-fig { position: relative; } .tune-fmenu svg { width: 14px; height: 14px; fill: currentColor; flex: none; } .tune-fmenu .chev { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; } .tune-fmenu { gap: 6px; }
+    .tune-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 100%; padding: 4px; display: flex; flex-direction: column; border-radius: 10px; background: #181818; border: 1px solid var(--explore-toggle-border); } .tune-menu[hidden] { display: none; }
+    .tune-menu button { height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: #ccc; font: 500 14px ${FONT}; text-align: left; white-space: nowrap; cursor: pointer; } .tune-menu button:hover:not(:disabled) { background: #2a2a2a; color: #fff; } .tune-menu button:disabled { opacity: .5; cursor: default; }
+    .tune-note a { color: #9cf; } .tune-note .ftext + .undo { margin-top: 8px; } .tune-note .ftext { display: block; word-break: break-word; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
     .tune-zoom { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); justify-content: center; pointer-events: none; display: flex; align-items: center; gap: 4px; } .tune-zoom > * { pointer-events: auto; } .tune-zoom .fit[hidden] { display: none; } .tune-zoom .fit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
     .tune-stage { position: fixed; top: 72px; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: var(--explore-margin); display: flex; overflow: auto; background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius); }
@@ -71,7 +75,10 @@
   bar.innerHTML = `<a class="tune-btn tune-back" href="/" aria-label="Voltar às opções" title="Opções">←</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>`
   // Over the canvas: review and Figma at the top right, zoom centred at the bottom (position: fixed, see the css above).
   const tools = Object.assign(document.createElement('div'), { className: 'tune-tools' })
-  tools.innerHTML = `<button class="tune-btn judge">Avaliar</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
+  const FIGMA = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.33 16a2.67 2.67 0 0 0 2.67-2.67v-2.66H5.33a2.67 2.67 0 0 0 0 5.33zM2.67 8a2.67 2.67 0 0 1 2.66-2.67H8v5.34H5.33A2.67 2.67 0 0 1 2.67 8zm0-5.33A2.67 2.67 0 0 1 5.33 0H8v5.33H5.33a2.67 2.67 0 0 1-2.66-2.66zM8 0h2.67a2.67 2.67 0 0 1 0 5.33H8V0zm5.33 8A2.67 2.67 0 1 1 8 8a2.67 2.67 0 0 1 5.33 0z"/></svg>'
+  tools.innerHTML = `<button class="tune-btn judge">Avaliar</button>
+    <div class="tune-fig"><button class="tune-btn tune-fmenu fmenu" aria-haspopup="menu" aria-expanded="false">${FIGMA}<span>Figma</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+      <div class="tune-menu" role="menu" hidden><button role="menuitem" class="fpush">Enviar ao Figma</button><button role="menuitem" class="fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button></div></div>`
   const zoomBox = Object.assign(document.createElement('div'), { className: 'tune-zoom' })
   zoomBox.setAttribute('role', 'group'); zoomBox.setAttribute('aria-label', 'Zoom')
   zoomBox.innerHTML = `<button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit" aria-label="Ajustar ao palco" title="Ajustar ao palco (F)" hidden></button>`
@@ -143,7 +150,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    for (const b of ['.judge', '.fpush', '.fpull']) $(b, tools).disabled = true
+    for (const b of ['.judge', '.fmenu']) $(b, tools).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -265,13 +272,16 @@
 
   // --- Figma ---------------------------------------------------------------------------------------------------------------------
   // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
-  const fpush = $('.fpush', tools), fpull = $('.fpull', tools), flink = $('.flink', tools)
+  const fpush = $('.fpush', tools), fpull = $('.fpull', tools), fmenu = $('.fmenu', tools), fmenuLabel = $('span', fmenu), menu = $('.tune-menu', tools)
+  const openMenu = (on) => { menu.hidden = !on; fmenu.setAttribute('aria-expanded', String(on)) }
+  fmenu.onclick = () => openMenu(menu.hidden)
+  document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !e.target.closest?.('.tune-fig')) openMenu(false) })
+  document.addEventListener('keydown', (e) => { if (!menu.hidden && e.key === 'Escape') (openMenu(false), fmenu.focus()) })
   const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
   document.body.append(fmsg)
   const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
-    flink.hidden = !f?.url; if (f?.url) flink.href = f.url
     fpull.title = f?.url ? '' : 'Envie ao Figma antes de trazer'
-    fpull.dataset.sent = f?.url ? '1' : ''; fpull.disabled = !f?.url || fpull.textContent === 'Trazendo…'
+    fpull.dataset.sent = f?.url ? '1' : ''; fpull.disabled = !f?.url || fmenuLabel.textContent === 'Trazendo…'
     fmsg.querySelector('.undo')?.remove()
     if (f?.undo) {
       const undo = Object.assign(document.createElement('button'), { className: 'tune-btn undo', textContent: 'Voltar ao antes do Figma' })
@@ -284,8 +294,12 @@
   }).catch(() => {})
   loadFigma()
   const ask = (kind) => api('comment', { kind, option: M, values: current })
-  fpush.onclick = () => { fmsg.hidden = true; ask('figma-push') }
-  fpull.onclick = () => { fmsg.hidden = true; ask('figma-pull') }
+  fpush.onclick = () => { openMenu(false); fmsg.hidden = true; ask('figma-push') }
+  fpull.onclick = () => { openMenu(false); fmsg.hidden = true; ask('figma-pull') }
+  const say = (txt) => { // the file's address in a message is a link: "Abrir no Figma" lives there now
+    let t = $('.ftext', fmsg); if (!t) (t = Object.assign(document.createElement('span'), { className: 'ftext' }), fmsg.prepend(t))
+    t.innerHTML = esc(txt).replace(/https:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noreferrer">${u}</a>`); fmsg.hidden = false
+  }
   fmsg.onclick = (e) => { if (e.target === fmsg) fmsg.hidden = true }
 
   // --- Review ----------------------------------------------------------------------------------------------------------------
@@ -314,9 +328,9 @@
     // Figma: one request at a time per kind; the newest answer shows as a message (it survives the reload a pull causes: the server keeps the comments).
     const fig = JSON.parse(e.data).filter((c) => c.kind?.startsWith('figma-') && c.option === M)
     const busyF = (k) => fig.filter((c) => c.kind === k).at(-1), on = (k) => ['enviado', 'aguardando', 'aplicando'].includes(busyF(k)?.status)
-    fpush.disabled = on('figma-push'); fpush.textContent = on('figma-push') ? 'Enviando…' : 'Enviar ao Figma'
-    fpull.disabled = on('figma-pull') || !fpull.dataset.sent; fpull.textContent = on('figma-pull') ? 'Trazendo…' : 'Trazer do Figma'
+    fpush.disabled = on('figma-push'); fpull.disabled = on('figma-pull') || !fpull.dataset.sent
+    fmenuLabel.textContent = on('figma-push') ? 'Enviando…' : on('figma-pull') ? 'Trazendo…' : 'Figma'
     const done = fig.filter((c) => c.status === 'aplicado' || c.status === 'falhou').at(-1)
-    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}-${token}`, String(seenF)); loadFigma(); fmsg.firstChild?.nodeType === 3 && fmsg.firstChild.remove(); fmsg.prepend(document.createTextNode(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`)); fmsg.hidden = false }
+    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}-${token}`, String(seenF)); loadFigma(); say(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`) }
   })
 })()
