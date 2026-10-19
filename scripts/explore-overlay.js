@@ -96,6 +96,7 @@
   const more = actions.querySelector('.more')
   // One batch of new ideas at a time: the button waits for the one it asked for (cancel it on its placeholder or in Histórico).
   if (tune) more.style.display = 'none'
+  if (tune) { toggle.classList.remove('icon'); toggle.append('Histórico') } // on the stage the toggle carries its name
   more.onclick = () => { more.disabled = true; api('comment', { method: 'POST', body: JSON.stringify({ kind: 'more' }) }) }
 
   // Per-card menu: variations of an option the designer liked, or discard it. Lives inside the card so Tab reaches it right after the card.
@@ -337,7 +338,7 @@
     apply.style.cssText = `height:24px;padding:0 10px;border:.7px solid #888;border-radius:8px;background:linear-gradient(#3c3c3c,#2f2f2f);box-shadow:inset 0 0 8px rgba(14,14,14,.19);color:#ccc;font:500 14px ${FONT};cursor:pointer`
     foot.appendChild(apply); card.append(host, foot); panel.appendChild(card)
     const extra = window.exploreTune?.extra // /tune: "Exportar .md" sits beside "Aplicar valores"
-    if (extra) { extra.style.cssText = apply.style.cssText; foot.style.gap = '8px'; foot.style.padding = '12px'; for (const b of [extra, apply]) { b.style.flex = '1 1 0'; b.style.border = 'none'; b.style.borderRadius = '999px' } foot.prepend(extra); Object.assign(apply.style, { background: '#eee', boxShadow: 'none', color: '#181818' }) } // two equal pill buttons, no outline, 8px apart; Aplicar valores is the primary one
+    if (extra) { extra.style.cssText = apply.style.cssText; foot.style.gap = '8px'; foot.style.padding = '12px'; for (const b of [extra, apply]) { b.style.flex = '1 1 0'; b.style.height = '32px'; b.style.border = 'none'; b.style.borderRadius = '999px' } foot.prepend(extra); Object.assign(apply.style, { background: '#eee', boxShadow: 'none', color: '#181818' }) } // two equal pill buttons, no outline, 8px apart; Aplicar valores is the primary one
 
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/__explore/dialkit.css'; document.head.appendChild(css)
     const js = document.createElement('script'); js.src = '/__explore/dialkit.js'
