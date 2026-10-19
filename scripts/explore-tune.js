@@ -2,7 +2,7 @@
  * One option sits alone on a zoomable stage; the DialKit panel on the right is built from the option's own spec
  * (<script type="application/json" data-tune="N">, see scripts/explore-tune.mjs) and writes straight to the CSS custom properties the option reads.
  * Around the controls: the states the option declares (Estado), a replay between two of them with loop and slow motion,
- * hold O to flip to the original, click a piece to open its folder, and "Avaliar" to ask for a review.
+ * hold O to flip to the original, click the option to test its focus (everything else goes inert; Alt+click on a piece opens its folder), and "Avaliar" to ask for a review.
  * No spec yet: the original shows while Claude makes the tunable copy (the page reloads onto it when it lands). */
 (() => {
   const { token, tune } = window.__EXPLORE__ ?? {}
@@ -43,7 +43,11 @@
     .tune-notrans, .tune-notrans *, .tune-notrans *::before, .tune-notrans *::after { transition: none !important; animation: none !important; }
     .tune-badge { position: fixed; left: calc(var(--explore-margin) + 12px); top: 84px; padding: 4px 10px; border-radius: 8px; background: #000a; color: #eee; font: 500 12px ${FONT}; pointer-events: none; }
     .tune-note, .tune-judge { position: fixed; left: calc(var(--explore-margin) + 12px); bottom: calc(var(--explore-margin) + 12px); width: min(440px, 60vw); max-height: 45vh; overflow: auto; padding: 12px; border-radius: 12px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 400 13px/1.45 ${FONT}; }
-    .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
+    .tune-stage.testing { outline: 2px solid var(--explore-tile-label); outline-offset: -2px; }
+    body > [inert] { opacity: .4; }
+    .tune-ft { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); display: flex; justify-content: center; pointer-events: none; }
+    .tune-ft > div { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 10px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 500 13px ${FONT}; pointer-events: auto; }
+    .tune-ft[hidden], .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
     .tune-judge h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; } .tune-judge .f { padding: 8px 0; border-top: 1px solid var(--explore-toggle-border); }
     .tune-judge code { font-size: 12px; color: #bbb; word-break: break-word; } .tune-judge .sev { font-weight: 600; } .tune-judge .HIGH { color: #eb8a8a; } .tune-judge .MEDIUM { color: #f2c94c; }`
   document.head.appendChild(css)
@@ -68,6 +72,7 @@
   const pct = $('output', bar)
 
   let z = 1
+  let testing = false // focus test: the option has the keyboard alone (see "Focus test")
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
   const layout = () => {
     sizer.style.width = scaler.offsetWidth * z + 'px'; sizer.style.height = scaler.offsetHeight * z + 'px'
@@ -91,7 +96,7 @@
   $('.fit', bar).onclick = refit
   stage.addEventListener('wheel', (e) => {
     if (!(e.ctrlKey || e.metaKey)) return // plain wheel scrolls (pans) the stage; a trackpad pinch arrives as ctrl+wheel
-    e.preventDefault(); const r = stage.getBoundingClientRect(); setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top)
+    e.preventDefault(); if (testing) return; const r = stage.getBoundingClientRect(); setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top)
   }, { passive: false })
   const saved = Number(stored(`tune-zoom-${M}`))
   if (saved) (z = saved, auto = false)
@@ -107,7 +112,7 @@
   document.body.append(badge)
   const compare = (on) => { if (!parent) return; art.style.visibility = on ? 'hidden' : ''; parent.style.visibility = on ? '' : 'hidden'; badge.hidden = !on }
   document.addEventListener('keydown', (e) => {
-    if (typing(e)) return
+    if (testing || typing(e)) return
     if (e.key === '+' || e.key === '=') setZoom(z * 1.25)
     else if (e.key === '-') setZoom(z / 1.25)
     else if (e.key === '0') setZoom(1)
@@ -188,8 +193,35 @@
   }
   window.exploreTune = { apply: () => api('tune-apply', { option: M, values: current }), get kit() { return kit } }
 
-  // Click a piece of the option: its folder opens in the panel.
+  // --- Focus test ------------------------------------------------------------------------------------------------------------
+  // A click on the option hands it the keyboard alone: everything else on the page goes inert, zoom stays as it is, the option starts at its first
+  // state (and gets its own state back on exit). Esc is the remote's Back, so it never leaves; "Sair" or a click outside does.
+  const ft = Object.assign(document.createElement('div'), { className: 'tune-ft', hidden: true })
+  ft.innerHTML = '<div role="status"><span>Teste de foco ativo · ← → move · Enter age · Esc ou Backspace volta · ↑ ↓ passam</span><button class="tune-btn">Sair</button></div>'
+  document.body.append(ft)
+  const locked = []
+  let before
+  function enterTest() {
+    if (testing) return
+    testing = true; run++; art.classList.remove('tune-notrans')
+    before = art.dataset.state; setState(states[0])
+    for (const el of document.body.children) if (el !== stage && el !== ft && !el.inert && !/^(SCRIPT|STYLE)$/.test(el.tagName)) (el.inert = true, locked.push(el))
+    stage.classList.add('testing'); ft.hidden = false; focusArt()
+  }
+  function leaveTest() {
+    if (!testing) return
+    testing = false; locked.splice(0).forEach((el) => (el.inert = false))
+    stage.classList.remove('testing'); ft.hidden = true; setState(before)
+  }
+  $('button', ft).onclick = leaveTest
+  document.addEventListener('pointerdown', (e) => { if (testing && !e.target.closest?.('.opt, .tune-ft')) leaveTest() }, true)
+  document.addEventListener('keydown', (e) => { if (testing && e.key === 'Tab') { e.preventDefault(); focusArt() } })
+  window.exploreTune.test = { enter: enterTest, leave: leaveTest, get on() { return testing } }
+
+  // Click the option: the focus test. Alt+click on a piece: its folder opens in the panel.
   scaler.addEventListener('click', (e) => {
+    if (testing || !art.contains(e.target)) return
+    if (!e.altKey) return enterTest()
     for (let el = e.target.closest('[data-part]'); el; el = el.parentElement?.closest('[data-part]')) {
       const f = folders.find((x) => x.part === el.dataset.part); if (!f) continue
       const box = [...document.querySelectorAll('.dialkit-folder')].find((n) => $('.dialkit-folder-title', n)?.textContent.trim() === f.name)
