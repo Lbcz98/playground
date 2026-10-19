@@ -313,6 +313,7 @@
     hist.style.display = open ? 'flex' : 'none'
     toggle.classList.toggle('on', open)
     syncPanel(open)
+    if (open) window.exploreTune?.expand?.() // /tune: Histórico lives in the panel, so it brings the panel back
     try { sessionStorage.setItem('explore-history', open ? '1' : '') } catch {}
   }
   toggle.onclick = () => setHistory(hist.style.display !== 'flex')

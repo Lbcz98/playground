@@ -35,7 +35,18 @@
     #explore-actions[data-live] { box-sizing: border-box; width: var(--explore-panel-w); justify-content: space-between; } /* the header actions span the DialKit panel below them */
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
-        .tune-fig { position: relative; } .tune-fmenu svg { width: 16px; height: 16px; flex: none; } .tune-fmenu .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); } .tune-fmenu[aria-expanded=true] .chev { transform: rotate(180deg); } .tune-fmenu { gap: 6px; }
+        .dialkit-panel-toolbar { display: none !important; } /* presets and "copy parameters" are not part of this stage */
+    .tune-collapse { flex: none; width: 28px; height: 28px; margin-left: auto; padding: 0; border: 0; border-radius: 8px; background: none; color: #888; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; } .tune-collapse:hover { color: #fff; background: #ffffff14; } .tune-collapse:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+    .tune-collapse svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .dialkit-folder-header-top { display: flex; align-items: center; }
+    .tune-reopen { position: fixed; top: 84px; right: calc(var(--explore-margin) + 12px); } .tune-reopen { display: none; } body.tune-collapsed .tune-reopen { display: inline-flex; }
+    #explore-panel { transition: transform 240ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease-out, visibility 0s; }
+    body.tune-collapsed { --explore-panel-w: calc(-1 * var(--explore-margin)); } /* the stage, tools, zoom and banner measure from the panel: with it gone they run to the margin */
+    body.tune-collapsed #explore-panel { transform: translateX(calc(100% + var(--explore-margin))); opacity: 0; visibility: hidden; pointer-events: none; transition: transform 240ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease-out, visibility 0s 240ms; }
+    body.tune-collapsed #explore-actions[data-live] { width: auto; }
+    body.tune-collapsed .tune-tools { right: calc(var(--explore-margin) + 12px + 36px); }
+    @media (prefers-reduced-motion: reduce) { #explore-panel, body.tune-collapsed #explore-panel { transition: none; } }
+    .tune-fig { position: relative; } .tune-fmenu svg { width: 16px; height: 16px; flex: none; } .tune-fmenu .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); } .tune-fmenu[aria-expanded=true] .chev { transform: rotate(180deg); } .tune-fmenu { gap: 6px; }
     .tune-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 100%; padding: 4px; display: flex; flex-direction: column; border-radius: 10px; background: #181818; border: 1px solid var(--explore-toggle-border);
       transform-origin: top right; opacity: 0; transform: translateY(-4px) scale(.97); visibility: hidden; pointer-events: none; transition: opacity 160ms ease-out, transform 200ms cubic-bezier(.2, 0, 0, 1), visibility 0s 200ms; }
     .tune-menu.open { opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
@@ -305,6 +316,21 @@
     t.innerHTML = esc(txt).replace(/https:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noreferrer">${u}</a>`); fmsg.hidden = false
   }
   fmsg.onclick = (e) => { if (e.target === fmsg) fmsg.hidden = true }
+
+  // --- Collapse the panel -------------------------------------------------------------------------------------------------------
+  // A ghost button beside the panel's title folds the whole right column away (the stage widens); a twin at the stage's corner brings it back.
+  const PANEL_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M10 3v10"/></svg>'
+  const collapse = (on) => { document.body.classList.toggle('tune-collapsed', on); store('tune-collapsed', on ? '1' : undefined) }
+  const mkBtn = (cls, label, to) => { const b = Object.assign(document.createElement('button'), { className: `tune-collapse ${cls}`, type: 'button', innerHTML: PANEL_ICON, title: label }); b.setAttribute('aria-label', label); b.onclick = (e) => { e.stopPropagation(); collapse(to) }; return b }
+  const reopen = mkBtn('tune-reopen', 'Mostrar painel', false)
+  document.body.append(reopen)
+  const hook = () => { // DialKit draws the panel after the overlay loads it, and may redraw the header: keep the button there
+    const top = $('.dialkit-folder-title-root')?.closest('.dialkit-folder-header-top')
+    if (top && !$('.tune-collapse', top)) top.append(mkBtn('', 'Recolher painel', true))
+  }
+  new MutationObserver(hook).observe(document.body, { childList: true, subtree: true }); hook()
+  if (stored('tune-collapsed')) collapse(true)
+  window.exploreTune.expand = () => collapse(false) // the overlay calls it when Histórico opens, which lives in the same column
 
   // --- Review ----------------------------------------------------------------------------------------------------------------
   const judge = Object.assign(document.createElement('div'), { className: 'tune-judge', hidden: true })
