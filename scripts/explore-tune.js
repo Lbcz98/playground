@@ -46,8 +46,8 @@
     .tune-notrans, .tune-notrans *, .tune-notrans *::before, .tune-notrans *::after { transition: none !important; animation: none !important; }
     .tune-badge { position: fixed; left: calc(var(--explore-margin) + 12px); top: 84px; padding: 4px 10px; border-radius: 8px; background: #000a; color: #eee; font: 500 12px ${FONT}; pointer-events: none; }
     .tune-note, .tune-judge { position: fixed; left: calc(var(--explore-margin) + 12px); bottom: calc(var(--explore-margin) + 56px); width: min(440px, 60vw); max-height: 45vh; overflow: auto; padding: 12px; border-radius: 12px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 400 13px/1.45 ${FONT}; }
-    .tune-stage.testing { outline: 2px solid var(--explore-tile-label); outline-offset: -2px; }
-    body > [inert] { opacity: .4; }
+    .tune-stage.testing { outline: 4px solid #fff; outline-offset: -4px; }
+    body > [inert] { opacity: .4; } body.tune-testing .tune-note, body.tune-testing .tune-judge { visibility: hidden; } /* the banner takes their place */
     .tune-ft { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 56px); display: flex; justify-content: center; pointer-events: none; }
     .tune-ft > div { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 10px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 500 13px ${FONT}; pointer-events: auto; }
     .tune-ft[hidden], .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
@@ -221,12 +221,12 @@
     testing = true; run++; art.classList.remove('tune-notrans')
     before = art.dataset.state; setState(states[0])
     for (const el of document.body.children) if (el !== stage && el !== ft && !el.inert && !/^(SCRIPT|STYLE)$/.test(el.tagName)) (el.inert = true, locked.push(el))
-    stage.classList.add('testing'); ft.hidden = false; focusArt()
+    stage.classList.add('testing'); document.body.classList.add('tune-testing'); ft.hidden = false; focusArt()
   }
   function leaveTest() {
     if (!testing) return
     testing = false; locked.splice(0).forEach((el) => (el.inert = false))
-    stage.classList.remove('testing'); ft.hidden = true; setState(before)
+    stage.classList.remove('testing'); document.body.classList.remove('tune-testing'); ft.hidden = true; setState(before)
   }
   $('button', ft).onclick = leaveTest
   document.addEventListener('pointerdown', (e) => { if (testing && !e.target.closest?.('.opt, .tune-ft')) leaveTest() }, true)
