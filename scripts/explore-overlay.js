@@ -107,8 +107,9 @@
     .opt-group.explore-pending { display: flex; align-items: center; gap: 12px; }
     .explore-pending button { height: 24px; padding: 0 10px; border: .7px solid #888; border-radius: 8px; background: linear-gradient(#3c3c3c, #2f2f2f); color: #ccc; font: 500 12px ${FONT}; cursor: pointer; }
     .explore-pending button:focus-visible { outline: 2px solid #ccc; outline-offset: 2px; }
-    .opt.explore-pending { align-items: center; justify-content: center; color: #888; font: 500 14px ${FONT}; animation: explore-pulse 1.6s ease-in-out infinite; }
-    @keyframes explore-pulse { 50% { opacity: .5; } } @media (prefers-reduced-motion: reduce) { .opt.explore-pending { animation: none; } }`
+    .opt.explore-pending { align-items: center; justify-content: center; color: #888; font: 500 14px ${FONT}; overflow: hidden; }
+    .opt.explore-pending canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .opt.explore-pending span { position: relative; padding: 2px 8px; border-radius: 6px; background: var(--explore-tile-bg); }`
   document.head.appendChild(pageCss)
   const discard = (option, discarded) => api('discard', { method: 'POST', body: JSON.stringify({ option, discarded }) })
   for (const card of tune ? [] : document.querySelectorAll('.opt[data-option]')) {
@@ -165,7 +166,51 @@
     lr.querySelector('button').onclick = (e) => { const on = items.toggleAttribute('data-show-discarded'); e.currentTarget.setAttribute('aria-pressed', String(on)); e.currentTarget.classList.toggle('on', on) }
     items.after(line)
   }
-  // While a batch is being made: its group title and empty cards at the end of the page. The reload after "aplicado" brings the real ones.
+  // Placeholder cards: an ASCII dot matrix while the agent writes the options (prototype: docs/explorations/ascii-thinking).
+  // A batch can take minutes, so it is cheap on purpose: one loop for every card at 24 fps, only for cards on screen,
+  // and a still dot field with reduced motion. About 1.4 ms per frame for four cards.
+  const matrix = (() => {
+    const CW = 12, CH = 16, RAMP = ' .·:+*o●', SPEED = 8, RANDOM = 0.5, TRAIL = 10, FPS = 24
+    const still = matchMedia('(prefers-reduced-motion: reduce)')
+    const hash = (a, b, s) => { const x = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return x - Math.floor(x) }
+    const draw = (cv, t) => { // t null: the still field
+      const d = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight
+      if (cv.width !== w * d || cv.height !== h * d) { cv.width = w * d; cv.height = h * d }
+      const x = cv.getContext('2d'), seed = +cv.dataset.seed
+      x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h)
+      x.font = '12px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'
+      const cols = Math.floor(w / CW), rows = Math.floor(h / CH), span = rows + TRAIL
+      for (let c = 0; c < cols; c++) {
+        // RANDOM 0 would be one diagonal sweep; 1, every column on its own speed and phase.
+        const head = t === null ? -1 : (t * SPEED * (1 + (hash(c, 1, seed) - 0.5) * 1.6 * RANDOM) + c * 0.6 * (1 - RANDOM) + hash(c, 2, seed) * span * RANDOM) % span
+        for (let r = 0; r < rows; r++) {
+          const k = 1 - (head - r) / TRAIL, lit = head >= r && k > 0
+          const flick = lit ? (hash(c, r, seed + Math.floor(t * 12)) - 0.5) * RANDOM * 4 : 0
+          x.globalAlpha = lit ? 0.12 + 0.48 * k : 0.15
+          x.fillStyle = lit ? '#a3a3a3' : '#6f6f6f'
+          x.fillText(lit ? RAMP[Math.max(1, Math.min(RAMP.length - 1, Math.round(k * (RAMP.length - 1) + flick)))] : '·', c * CW + CW / 2, r * CH + CH / 2)
+        }
+      }
+    }
+    const shown = new Set()
+    let raf = 0, last = 0
+    const tick = (now) => {
+      raf = 0
+      for (const cv of shown) if (!cv.isConnected) { io.unobserve(cv); shown.delete(cv) }
+      if (!shown.size) return // the observer starts it again
+      raf = requestAnimationFrame(tick)
+      if (now - last < 1000 / FPS) return
+      last = now
+      for (const cv of shown) draw(cv, now / 1000)
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) e.isIntersecting ? shown.add(e.target) : shown.delete(e.target)
+      if (shown.size && !raf) raf = requestAnimationFrame(tick)
+    })
+    return (cv) => (still.matches ? draw(cv, null) : io.observe(cv))
+  })()
+
+  // While a batch is being made: its group title and placeholder cards at the end of the page. The reload after "aplicado" brings the real ones.
   let seen = null // ids already shown; null until the first state, so a reload does not jump the page
   const pending = (list) => {
     const open = list.filter((c) => isBatch(c) && isOpen(c))
@@ -179,8 +224,15 @@
       x.setAttribute('aria-label', `Cancelar: ${c.comment}`)
       h.append(x)
       if (seen && !seen.has(c.id)) fresh = h
-      items.append(h, ...Array.from({ length: BATCH }, () => Object.assign(document.createElement('article'), { className: 'opt explore-pending', textContent: c.status === 'aplicando' ? 'Criando…' : 'Na fila…', ariaBusy: 'true' })))
+      items.append(h, ...Array.from({ length: BATCH }, (_, i) => {
+        const card = Object.assign(document.createElement('article'), { className: 'opt explore-pending', ariaBusy: 'true' })
+        const cv = Object.assign(document.createElement('canvas'), { ariaHidden: 'true' })
+        cv.dataset.seed = i // per slot, so a re-render on the next state keeps each card's pattern
+        card.append(cv, Object.assign(document.createElement('span'), { textContent: c.status === 'aplicando' ? 'Criando…' : 'Na fila…' }))
+        return card
+      }))
     }
+    items.querySelectorAll('.opt.explore-pending canvas').forEach(matrix)
     seen = new Set(list.map((c) => c.id))
     // The answer to a click is at the end of the page: bring it into view, or the click looks like it did nothing.
     fresh?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })

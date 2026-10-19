@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ascii-thinking",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4321", "-d", "docs/explorations/ascii-thinking"],
+      "port": 4321
+    }
+  ]
+}
