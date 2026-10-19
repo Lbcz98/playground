@@ -12,7 +12,7 @@ You change nothing in the option. The only file you write is `docs/explorations/
 ## 1. Facts first
 
 Run, and keep the output:
-- `node scripts/tune-measure.mjs docs/explorations/<slug> M`: contrast of every text piece in every state (WCAG ratio, measured on the colour actually behind it), each text style, every transition and animation, nested radii with their concentric value, focus outlines per state, whether a reduced-motion rule exists.
+- `node scripts/tune-measure.mjs docs/explorations/<slug> M`: contrast of every text piece in every state (WCAG ratio, measured on the colour actually behind it); a row the same in several states names them all in `state`, and a motion row the same on several pieces names them all in `el`, each text style, every transition and animation, nested radii with their concentric value, focus outlines per state, whether a reduced-motion rule exists.
 - `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` and `node scripts/check-explore-layout.mjs docs/explorations/<slug>`: their `advisory:` lines about option M are facts too.
 - The option's source: `grep -n` for `data-option="M"` in `index.html`, then read its CSS, script and spec (`<script … data-tune="M">`). Cite `docs/explorations/<slug>/index.html:<line>` for source findings and `medido: contrast[<state>] <piece>` for measured ones.
 

@@ -61,6 +61,12 @@ export function varsBlock(spec, n) {
   return `/* tune:vars */\n[data-option="${n}"] {\n${lines.join('\n')}\n}\n/* /tune:vars */`
 }
 
+/** The spec as JSON with one control per line: a third shorter than indented, and no line too long for an agent to read. */
+export function specJson({ folders, ...top }) {
+  const folder = ({ controls = [], ...f }) => `${JSON.stringify(f).slice(0, -1)}${Object.keys(f).length ? ',' : ''}"controls":[\n${controls.map((c) => JSON.stringify(c)).join(',\n')}\n]}`
+  return `${JSON.stringify(top).slice(0, -1)}${Object.keys(top).length ? ',' : ''}"folders":[\n${(folders ?? []).map(folder).join(',\n')}\n]}`
+}
+
 /**
  * The page with the designer's tuned `values` ({ "<folder index>.<control id>": value }) written into option `n`.
  * Unknown ids and values that do not fit their control are ignored. Returns `{ html, changed }`.
@@ -74,7 +80,7 @@ export function applyTuned(html, n, values) {
     if (v !== undefined && JSON.stringify(v) !== JSON.stringify(c.value)) (c.value = v, changed++)
   }))
   if (!changed) return { html, changed }
-  const json = JSON.stringify(spec, null, 1).replace(/</g, '\\u003c')
+  const json = specJson(spec).replace(/</g, '\\u003c')
   const next = html
     .replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, b) => `${a}${json}${b}`)
     .replace(VARS, () => varsBlock(spec, n))

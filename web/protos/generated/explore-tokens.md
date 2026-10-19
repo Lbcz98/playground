@@ -2,8 +2,56 @@
 
 # Tokens for HTML explorations only
 
-For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--name)`. A `/proto` screen never uses this file: it takes `tokens.md` and the kit props (`GridSpacing`, `RadiusStep`, `Text`), not raw core variables.
+For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--name)`: every kit variable an option uses is here. A `/proto` screen never uses this file: it takes `tokens.md` and the kit props (`GridSpacing`, `RadiusStep`, `Text`), not raw core variables.
 "Prop step" is the value the kit prop of that name takes.
+
+## Colours
+
+| CSS variable | Value |
+| --- | --- |
+| `--color-opacity-background` | #191F274D |
+| `--color-opacity-base-rounded` | #2B313A33 |
+| `--color-opacity-dark-10` | #0000001A |
+| `--color-opacity-dark-20` | #00000033 |
+| `--color-opacity-dark-30` | #0000004D |
+| `--color-opacity-dark-50` | #00000080 |
+| `--color-opacity-dark-60` | #00000099 |
+| `--color-opacity-dark-70` | #000000B3 |
+| `--color-opacity-dark-80` | #000000CC |
+| `--color-opacity-dark-90` | #000000E6 |
+| `--color-opacity-greymid-30` | #6464644D |
+| `--color-opacity-light-10` | #FFFFFF1A |
+| `--color-opacity-light-20` | #FFFFFF33 |
+| `--color-opacity-light-30` | #FFFFFF4D |
+| `--color-opacity-light-50` | #FFFFFF80 |
+| `--color-opacity-light-70` | #FFFFFFB3 |
+| `--color-semantic-focus-glow` | #35C7F3 |
+| `--color-semantic-focus-inset-fade` | #17161B |
+| `--color-semantic-focus-inset` | #000000B3 |
+| `--color-semantic-focus-outline` | #414FFD |
+| `--color-semantic-functional-background-elevated` | #3F3F3F |
+| `--color-semantic-functional-background-overlay` | #2B313A33 |
+| `--color-semantic-functional-background-primary` | #191919 |
+| `--color-semantic-functional-background-tint` | #FFFFFF1A |
+| `--color-semantic-functional-background-translucent` | #191F274D |
+| `--color-semantic-functional-border-default` | #FFFFFF33 |
+| `--color-semantic-functional-border-subtle` | #FFFFFF1A |
+| `--color-semantic-functional-status-error` | #DE2C2C |
+| `--color-semantic-functional-status-live` | #FD4142 |
+| `--color-semantic-functional-status-success` | #11BB0E |
+| `--color-semantic-functional-status-warning` | #FFA90A |
+| `--color-semantic-functional-text-inverse` | #000000 |
+| `--color-semantic-functional-text-muted` | #FFFFFFB3 |
+| `--color-semantic-functional-text-primary` | #EEEEEE |
+| `--color-semantic-functional-text-secondary` | #888888 |
+| `--color-semantic-functional-text-subtle` | #999999 |
+| `--color-semantic-overlay-scrim` | #0000001A |
+| `--color-semantic-theme-dia-dark` | #00E879 |
+| `--color-semantic-theme-dia-light` | #00E1C0 |
+| `--color-semantic-theme-noite-dark` | #414FFD |
+| `--color-semantic-theme-noite-light` | #35C7F3 |
+| `--color-semantic-theme-tarde-dark` | #ED6001 |
+| `--color-semantic-theme-tarde-light` | #E7C300 |
 
 ## Spacing
 
@@ -114,6 +162,70 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--dimension-border-width-core-thin` | 2px |
 | `--dimension-border-width-core-medium` | 4px |
 | `--dimension-border-width-core-thick` | 6px |
+
+## Opacity
+
+| CSS variable | Value |
+| --- | --- |
+| `--opacity-semantic-background-subtle` | 0.3 |
+| `--opacity-semantic-border-subtle` | 0.4 |
+| `--opacity-semantic-content-muted` | 0.5 |
+| `--opacity-semantic-focus-glow` | 0.6 |
+| `--opacity-semantic-hidden` | 0 |
+| `--opacity-semantic-illumination-strong` | 0.8 |
+| `--opacity-semantic-image-subdued` | 0.2 |
+| `--opacity-semantic-overlay-minimal` | 0.1 |
+| `--opacity-semantic-overlay` | 0.6 |
+| `--opacity-semantic-shadow-subtle` | 0.25 |
+| `--opacity-semantic-state-disabled` | 0.5 |
+| `--opacity-semantic-statistics-vector` | 0.75 |
+| `--opacity-semantic-text-secondary` | 0.7 |
+| `--opacity-semantic-title` | 0.9 |
+| `--opacity-semantic-visible` | 1 |
+
+## Gradients
+
+| CSS variable | Stops |
+| --- | --- |
+| `--gradient-complementary-dark` | #34343C00 0%, #17161B 100% |
+| `--gradient-complementary-diagonal-light` | #FFFFFFB3 0%, #6464644D 60% |
+| `--gradient-complementary-linear-light` | #EEEEEE 0%, #EEEEEE00 100% |
+| `--gradient-complementary-live` | #FD4142 0%, #DE2C2C 70% |
+| `--gradient-complementary-replay` | #FFB54E 0%, #DA7F00 70% |
+| `--gradient-complementary-shiny` | #999999 0%, #EEEEEE 100% |
+| `--gradient-inverse-dia` | #00E1C0 0%, #00E879 100% |
+| `--gradient-inverse-noite` | #35C7F3 0%, #414FFD 70% |
+| `--gradient-inverse-tarde` | #E7C300 0%, #ED6001 70% |
+| `--gradient-overlay-bottom-left` | #00000000 60%, #000000 96% |
+| `--gradient-overlay-bottom-right` | #00000000 60%, #000000 96% |
+| `--gradient-overlay-bottom` | #00000000 50%, #000000E6 90% |
+| `--gradient-overlay-left` | #00000000 57%, #00000099 97% |
+| `--gradient-overlay-right` | #00000000 57%, #00000099 97% |
+| `--gradient-overlay-top-right` | #00000000 70%, #000000 93% |
+| `--gradient-primary-dia` | #00E879 30%, #00E1C0 100% |
+| `--gradient-primary-noite` | #414FFD 30%, #35C7F3 100% |
+| `--gradient-primary-tarde` | #ED6001 30%, #E7C300 100% |
+| `--gradient-semantic-border-default` | #FFFFFFB3 0%, #6464644D 60% |
+| `--gradient-semantic-focus-ring` | #414FFD 30%, #35C7F3 100% |
+| `--gradient-semantic-overlay-bottom-left` | #00000000 60%, #000000 96% |
+| `--gradient-semantic-overlay-bottom-right` | #00000000 60%, #000000 96% |
+| `--gradient-semantic-overlay-bottom` | #00000000 50%, #000000E6 90% |
+| `--gradient-semantic-overlay-left` | #00000000 57%, #00000099 97% |
+| `--gradient-semantic-overlay-right` | #00000000 57%, #00000099 97% |
+| `--gradient-semantic-overlay-top-right` | #00000000 70%, #000000 93% |
+| `--gradient-semantic-status-live` | #FD4142 0%, #DE2C2C 70% |
+| `--gradient-semantic-status-replay` | #FFB54E 0%, #DA7F00 70% |
+
+## Motion
+
+| CSS variable | Value |
+| --- | --- |
+| `--motion-semantic-carousel-step` | 3000ms |
+| `--motion-semantic-duration` | 800ms |
+| `--motion-semantic-easing` | {"damping":15,"duration":"800ms","mass":1,"stiffness":56} |
+| `--motion-semantic-focus-cycle-duration` | 12000ms |
+| `--motion-semantic-focus-cycle-easing` | {"damping":15,"duration":"800ms","mass":1,"stiffness":56} |
+| `--motion-semantic-focus-cycle-step` | 3000ms |
 
 ## Type parts
 

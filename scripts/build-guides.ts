@@ -60,7 +60,15 @@ function resolver(root: unknown) {
     const alpha = hint && typeof hint === 'object' ? (hint as Json).alpha : undefined
     return typeof value === 'string' && isAlpha(alpha) ? (hexWithAlpha(value, alpha) ?? value) : value
   }
-  const show = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => cmp(a, b))) : x)))
+  const json = (v: unknown): string => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => cmp(a, b))) : x))
+  /** A value as a reader takes it in: a text style as `size / line height · weight · tracking`, a gradient as its stops. */
+  const show = (v: unknown): string => {
+    if (typeof v === 'string') return v
+    const o = v as Record<string, unknown>
+    if (o && typeof o === 'object' && 'fontSize' in o) return `${o.fontSize} / ${o.lineHeight} · ${o.fontWeight} · ${o.letterSpacing}`
+    if (Array.isArray(v) && v.every((x) => x && typeof x === 'object' && 'color' in x && 'position' in x)) return v.map((x) => `${x.color} ${Math.round(Number(x.position) * 100)}%`).join(', ')
+    return json(v)
+  }
 
   return { all, literalOf, show }
 }
@@ -82,6 +90,7 @@ function tokensGuide(root: unknown): string {
   const groups = new Map<string, Tok[]>()
   for (const t of all) {
     if (t.path.includes('core')) continue // core tokens exist only for other tokens to point at
+    if (!screenName(t)) continue // no kit prop takes it: an HTML exploration finds it in explore-tokens.md
     const g = t.path.slice(0, 2).join('.')
     groups.set(g, [...(groups.get(g) ?? []), t])
   }
@@ -90,7 +99,7 @@ function tokensGuide(root: unknown): string {
     '',
     '# Tokens',
     '',
-    'Semantic and layout tokens only; core tokens are never named by a screen. "Screen name" is the value a kit prop takes (its type in `src/primitives/token-names.ts` or `tokens.ts`); blank means no kit prop takes it.',
+    'The tokens a screen can name: "Screen name" is the value a kit prop takes (its type in `src/primitives/token-names.ts` or `tokens.ts`). Core tokens, and tokens no kit prop takes (gradients, motion, some colours), are not here: a screen cannot name them. Text styles read `size / line height · weight · letter spacing`, in Inter.',
     'Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep` props of the kit.',
   ]
   for (const g of [...groups.keys()].sort(cmp)) {
@@ -110,7 +119,7 @@ function exploreGuide(root: unknown): string {
     '',
     '# Tokens for HTML explorations only',
     '',
-    'For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--name)`. A `/proto` screen never uses this file: it takes `tokens.md` and the kit props (`GridSpacing`, `RadiusStep`, `Text`), not raw core variables.',
+    'For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--name)`: every kit variable an option uses is here. A `/proto` screen never uses this file: it takes `tokens.md` and the kit props (`GridSpacing`, `RadiusStep`, `Text`), not raw core variables.',
     '"Prop step" is the value the kit prop of that name takes.',
   ]
   const table = (title: string, rows: string[][], head = ['CSS variable', 'Value', 'Prop step']): void => {
@@ -123,6 +132,9 @@ function exploreGuide(root: unknown): string {
       .map((t) => [`\`${cssVarName(t.path)}\``, show(literalOf(t)), step(t.path[t.path.length - 1])])
       .sort((a, b) => cmp(a[0].replace(/[^-]*$/, ''), b[0].replace(/[^-]*$/, '')) || parseFloat(a[1]) - parseFloat(b[1]) || cmp(a[0], b[0])) // by family, then by value: order-independent
   const core = (f: string) => (t: Tok) => t.path.join('.').startsWith(`dimension.${f}.core.`)
+  /** A family's non-core tokens by CSS name: values of mixed kinds (hex, ms, objects) have no order of their own. */
+  const named = (family: string): string[][] => by((t) => t.path[0] === family && !t.path.includes('core')).map((r) => r.slice(0, 2)).sort((a, b) => cmp(a[0], b[0]))
+  table('Colours', named('color'), ['CSS variable', 'Value'])
   table('Spacing', by(core('spacing'), (n) => (GRID_SPACING.includes(n as never) ? `\`GridSpacing\` \`${n}\`` : 'off the layout grid: no prop')))
   table('Radius', by(core('radius'), (n) => `\`RadiusStep\` \`${n}\``))
   table('Component sizes, radii and insets', by((t) => /^--dimension-(size|radius|spacing)-semantic-/.test(cssVarName(t.path))).map((r) => r.slice(0, 2)), ['CSS variable', 'Value'])
@@ -146,6 +158,9 @@ function exploreGuide(root: unknown): string {
     '- An option whose idea is not a card (a ring, a map, a strip) marks the shape with `data-surface="own"` and says why in the report.',
   )
   table('Border width', by(core('border-width')).map((r) => r.slice(0, 2)), ['CSS variable', 'Value'])
+  table('Opacity', named('opacity'), ['CSS variable', 'Value'])
+  table('Gradients', named('gradient'), ['CSS variable', 'Stops'])
+  table('Motion', named('motion'), ['CSS variable', 'Value'])
   table('Type parts', by((t) => t.path[0] === 'typography' && t.type !== 'typography').map((r) => r.slice(0, 2)), ['CSS variable', 'Value'])
   const text = all.filter((t) => t.type === 'typography')
   table(
