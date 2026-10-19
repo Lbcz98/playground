@@ -59,7 +59,7 @@
     <style>
       * { box-sizing: border-box; margin: 0; font-family: ${FONT}; }
       :host { display: contents; }
-      .card { background: #232323; border: 1px solid #3f3a3a; box-shadow: 0 8px 24px rgba(0,0,0,.5); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; padding: 12px; min-height: 0; max-height: 100%; }
+      .card { background: #232323; ${tune ? '' : 'border: 1px solid #3f3a3a; box-shadow: 0 8px 24px rgba(0,0,0,.5);'} border-radius: 12px; display: flex; flex-direction: column; gap: 12px; padding: 12px; min-height: 0; max-height: 100%; }
       .hh { display: flex; align-items: center; justify-content: space-between; padding: 4px; flex: none; }
       .title { font-size: 16px; font-weight: 600; color: #ccc; }
       .close { width: 14px; height: 14px; border: 0; background: none; padding: 0; cursor: pointer; color: #ccc; }
@@ -329,7 +329,7 @@
   // DialKit: only when the exploration asks for it (it defines window.exploreDials).
   if (hasDials) {
     const card = document.createElement('div')
-    card.style.cssText = `flex:1 1 0;min-height:0;display:flex;flex-direction:column;background:#232323;border-radius:12px;overflow:hidden;${EDGE}`
+    card.style.cssText = `flex:1 1 0;min-height:0;display:flex;flex-direction:column;background:#232323;border-radius:12px;overflow:hidden;${tune ? '' : EDGE}` // /tune: flat cards, no outline or shadow
     const host = document.createElement('div')
     host.style.cssText = 'flex:1 1 0;min-height:0;overflow:auto;position:relative'
     const foot = document.createElement('div')
