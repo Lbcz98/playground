@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 // @ts-expect-error plain .mjs, like explore-stitch: `node` runs it without a build
-import { applyTuned, tuneTarget } from './explore-tune.mjs'
+import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 
 export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou' | 'cancelado'
 export interface Comment {
@@ -26,7 +26,8 @@ export interface Comment {
   /** `dials`: the DialKit values the designer tuned and wants written in as the new defaults. */
   /** `vary`: variations of one option (`option`, `action`, optional `note`). `more`: a fresh batch from the brief. */
   /** `tune`: the designer opened the stage on an option that has no controls yet. `judge`: "Avaliar" on a tuned option. Both carry `option`. */
-  kind: 'comment' | 'dials' | 'vary' | 'more' | 'tune' | 'judge'
+  /** `figma-push` / `figma-pull`: "Enviar ao Figma" / "Trazer do Figma" on a tuned option; carry `option` and the stage's live dial `values`. */
+  kind: 'comment' | 'dials' | 'vary' | 'more' | 'tune' | 'judge' | 'figma-push' | 'figma-pull'
   action?: Action
   note?: string
   values?: Record<string, unknown>
@@ -81,6 +82,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
   const comments: Comment[] = []
   const clients = new Set<ServerResponse>()
   const out = opts.log ?? (() => {})
+  const figmaFile = join(root, 'figma.json')
   let lastActivity = Date.now()
   let origin = ''
 
@@ -146,6 +148,8 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
         return json(res, 200, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
       }
+      // The Figma file this exploration was pushed to (figma.json: url, fileKey, the pushed `snapshot`, the `undo` values of the last pull): written by the session through figma-state.
+      if (url.pathname === '/__explore/figma') return json(res, 200, existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')) : null)
       if (url.pathname === '/__explore/pending') return json(res, 200, comments.filter((c) => c.status === 'enviado' || c.status === 'aguardando'))
       if (req.method !== 'POST') return json(res, 405, { error: 'method' })
       const b = await body(req)
@@ -154,7 +158,8 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
       if (url.pathname === '/__explore/comment') {
         const dials = b.kind === 'dials'
         const vary = b.kind === 'vary', more = b.kind === 'more'
-        const stageKind = b.kind === 'tune' || b.kind === 'judge' ? (b.kind as 'tune' | 'judge') : undefined
+        const figma = b.kind === 'figma-push' || b.kind === 'figma-pull'
+        const stageKind = b.kind === 'tune' || b.kind === 'judge' || figma ? (b.kind as 'tune' | 'judge' | 'figma-push' | 'figma-pull') : undefined
         if (stageKind) {
           if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
           // The stage asks on every load: one open request per option and kind is enough.
@@ -166,7 +171,9 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         // `livre` is the direction field sent alone: without words it asks for nothing.
         if (vary && b.action === 'livre' && !note) return json(res, 400, { error: 'note' })
         if (dials && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
-        const text = stageKind ? `${stageKind === 'tune' ? 'Preparar controles' : 'Avaliar'} · opção ${b.option}`
+        if (b.kind === 'figma-pull' && !existsSync(figmaFile)) return json(res, 400, { error: 'push' }) // nothing was sent yet
+        if (figma && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
+        const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
           : dials ? 'Aplicar valores do DialKit'
           : vary ? `${ACTIONS[b.action as Action]} · opção ${b.option}${note && `: ${note}`}`
           : more ? `Mais opções${note && `: ${note}`}`
@@ -176,7 +183,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
           id: comments.length + 1,
           kind: stageKind ?? (dials ? 'dials' : vary ? 'vary' : more ? 'more' : 'comment'),
           action: vary ? b.action : undefined, note: note || undefined,
-          values: dials ? b.values : undefined,
+          values: dials || figma ? b.values : undefined,
           status: comments.some((x) => x.status === 'aplicando') ? 'aguardando' : 'enviado',
           comment: text, selector: clip(b.selector, 500), option: b.option ? clip(String(b.option), 40) : undefined,
           part: b.part ? clip(b.part, 40) : undefined, tag: clip(b.tag, 40), text: clip(b.text, 80), html: clip(b.html, 500),
@@ -203,6 +210,26 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         if (next !== html) { writeFileSync(index, next); broadcast('event: reload\ndata: 1\n\n') }
         return json(res, 200, { changed })
       }
+      // "Exportar .md": the option's contract for a developer's agent, built from the spec and the stage's live values; written next to the page.
+      if (url.pathname === '/__explore/tune-md') {
+        const n = String(b.option)
+        if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
+        const html = readFileSync(join(root, 'index.html'), 'utf8')
+        const brief = existsSync(join(root, 'brief.md')) ? readFileSync(join(root, 'brief.md'), 'utf8') : ''
+        const figma = existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')).url : undefined
+        const md = specMarkdown(html, n, { values: b.values && typeof b.values === 'object' ? b.values : {}, label: clip(b.label, 120) || undefined, brief, figma })
+        if (!md) return json(res, 400, { error: 'spec' })
+        writeFileSync(join(root, `spec-${n}.md`), md)
+        return json(res, 200, { file: `spec-${n}.md`, md })
+      }
+      // Merges into figma.json (a null value removes the key). Only a figma.com address is kept as the link.
+      if (url.pathname === '/__explore/figma-state') {
+        if (b.url != null && !/^https:\/\/([\w-]+\.)?figma\.com\//.test(String(b.url))) return json(res, 400, { error: 'url' })
+        const now = existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')) : {}
+        for (const k of ['url', 'fileKey', 'snapshot', 'undo']) if (k in b) b[k] == null ? delete now[k] : (now[k] = b[k])
+        writeFileSync(figmaFile, JSON.stringify(now, null, 1))
+        return json(res, 200, now)
+      }
       // The designer takes a request back: any queued one, and a batch of options while it is being made (an edit under way cannot be undone).
       if (url.pathname === '/__explore/cancel') {
         const c = comments.find((x) => x.id === b.id)
@@ -220,7 +247,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         c.status = b.status
         c.summary = b.summary ? clip(b.summary, 300) : undefined
         broadcast(state())
-        if (c.status === 'aplicado' && c.kind !== 'judge') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
+        if (c.status === 'aplicado' && c.kind !== 'judge' && c.kind !== 'figma-push' && c.kind !== 'figma-pull') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
         return json(res, 200, { ok: true })
       }
       return json(res, 404, { error: 'not found' })

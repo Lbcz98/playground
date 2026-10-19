@@ -2,7 +2,7 @@
  * One option sits alone on a zoomable stage; the DialKit panel on the right is built from the option's own spec
  * (<script type="application/json" data-tune="N">, see scripts/explore-tune.mjs) and writes straight to the CSS custom properties the option reads.
  * Around the controls: the states the option declares (Estado), a replay between two of them with loop and slow motion,
- * hold O to flip to the original, click a piece to open its folder, and "Avaliar" to ask for a review.
+ * hold O to flip to the original, click the option to test its focus (everything else goes inert; Alt+click on a piece opens its folder), and "Avaliar" to ask for a review.
  * No spec yet: the original shows while Claude makes the tunable copy (the page reloads onto it when it lands). */
 (() => {
   const { token, tune } = window.__EXPLORE__ ?? {}
@@ -27,9 +27,9 @@
   css.textContent = `
     .explore-container { max-width: none; }
     .explore-items, .view-toggle, .explore-header h1, .explore-card-menu-line { display: none !important; }
-    .tune-bar { display: flex; align-items: center; gap: 12px; min-width: 0; font-family: ${FONT}; color: var(--explore-tile-label); }
+    .tune-bar { display: flex; align-items: center; gap: 12px; min-width: 0; overflow-x: auto; scrollbar-width: none; font-family: ${FONT}; color: var(--explore-tile-label); }
     .tune-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tune-btn { height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    .tune-btn { flex: none; height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
       background: linear-gradient(180deg, var(--explore-btn-fill-from), var(--explore-btn-fill-to)) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from), var(--explore-btn-stroke-to)) border-box; }
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
@@ -43,7 +43,11 @@
     .tune-notrans, .tune-notrans *, .tune-notrans *::before, .tune-notrans *::after { transition: none !important; animation: none !important; }
     .tune-badge { position: fixed; left: calc(var(--explore-margin) + 12px); top: 84px; padding: 4px 10px; border-radius: 8px; background: #000a; color: #eee; font: 500 12px ${FONT}; pointer-events: none; }
     .tune-note, .tune-judge { position: fixed; left: calc(var(--explore-margin) + 12px); bottom: calc(var(--explore-margin) + 12px); width: min(440px, 60vw); max-height: 45vh; overflow: auto; padding: 12px; border-radius: 12px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 400 13px/1.45 ${FONT}; }
-    .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
+    .tune-stage.testing { outline: 2px solid var(--explore-tile-label); outline-offset: -2px; }
+    body > [inert] { opacity: .4; }
+    .tune-ft { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); display: flex; justify-content: center; pointer-events: none; }
+    .tune-ft > div { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 10px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 500 13px ${FONT}; pointer-events: auto; }
+    .tune-ft[hidden], .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
     .tune-judge h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; } .tune-judge .f { padding: 8px 0; border-top: 1px solid var(--explore-toggle-border); }
     .tune-judge code { font-size: 12px; color: #bbb; word-break: break-word; } .tune-judge .sev { font-weight: 600; } .tune-judge .HIGH { color: #eb8a8a; } .tune-judge .MEDIUM { color: #f2c94c; }`
   document.head.appendChild(css)
@@ -63,11 +67,12 @@
   bar.className = 'tune-bar'
   bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>
     <div class="tune-zoom" role="group" aria-label="Zoom"><button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button></div>
-    <button class="tune-btn judge">Avaliar</button>`
+    <button class="tune-btn judge">Avaliar</button><button class="tune-btn md">Exportar .md</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
   $('.explore-header').prepend(bar)
   const pct = $('output', bar)
 
   let z = 1
+  let testing = false // focus test: the option has the keyboard alone (see "Focus test")
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
   const layout = () => {
     sizer.style.width = scaler.offsetWidth * z + 'px'; sizer.style.height = scaler.offsetHeight * z + 'px'
@@ -91,7 +96,7 @@
   $('.fit', bar).onclick = refit
   stage.addEventListener('wheel', (e) => {
     if (!(e.ctrlKey || e.metaKey)) return // plain wheel scrolls (pans) the stage; a trackpad pinch arrives as ctrl+wheel
-    e.preventDefault(); const r = stage.getBoundingClientRect(); setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top)
+    e.preventDefault(); if (testing) return; const r = stage.getBoundingClientRect(); setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top)
   }, { passive: false })
   const saved = Number(stored(`tune-zoom-${M}`))
   if (saved) (z = saved, auto = false)
@@ -107,7 +112,7 @@
   document.body.append(badge)
   const compare = (on) => { if (!parent) return; art.style.visibility = on ? 'hidden' : ''; parent.style.visibility = on ? '' : 'hidden'; badge.hidden = !on }
   document.addEventListener('keydown', (e) => {
-    if (typing(e)) return
+    if (testing || typing(e)) return
     if (e.key === '+' || e.key === '=') setZoom(z * 1.25)
     else if (e.key === '-') setZoom(z / 1.25)
     else if (e.key === '0') setZoom(1)
@@ -123,7 +128,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    $('.judge', bar).disabled = true
+    for (const b of ['.judge', '.md', '.fpush', '.fpull']) $(b, bar).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -188,8 +193,35 @@
   }
   window.exploreTune = { apply: () => api('tune-apply', { option: M, values: current }), get kit() { return kit } }
 
-  // Click a piece of the option: its folder opens in the panel.
+  // --- Focus test ------------------------------------------------------------------------------------------------------------
+  // A click on the option hands it the keyboard alone: everything else on the page goes inert, zoom stays as it is, the option starts at its first
+  // state (and gets its own state back on exit). Esc is the remote's Back, so it never leaves; "Sair" or a click outside does.
+  const ft = Object.assign(document.createElement('div'), { className: 'tune-ft', hidden: true })
+  ft.innerHTML = '<div role="status"><span>Teste de foco ativo · ← → move · Enter age · Esc ou Backspace volta · ↑ ↓ passam</span><button class="tune-btn">Sair</button></div>'
+  document.body.append(ft)
+  const locked = []
+  let before
+  function enterTest() {
+    if (testing) return
+    testing = true; run++; art.classList.remove('tune-notrans')
+    before = art.dataset.state; setState(states[0])
+    for (const el of document.body.children) if (el !== stage && el !== ft && !el.inert && !/^(SCRIPT|STYLE)$/.test(el.tagName)) (el.inert = true, locked.push(el))
+    stage.classList.add('testing'); ft.hidden = false; focusArt()
+  }
+  function leaveTest() {
+    if (!testing) return
+    testing = false; locked.splice(0).forEach((el) => (el.inert = false))
+    stage.classList.remove('testing'); ft.hidden = true; setState(before)
+  }
+  $('button', ft).onclick = leaveTest
+  document.addEventListener('pointerdown', (e) => { if (testing && !e.target.closest?.('.opt, .tune-ft')) leaveTest() }, true)
+  document.addEventListener('keydown', (e) => { if (testing && e.key === 'Tab') { e.preventDefault(); focusArt() } })
+  window.exploreTune.test = { enter: enterTest, leave: leaveTest, get on() { return testing } }
+
+  // Click the option: the focus test. Alt+click on a piece: its folder opens in the panel.
   scaler.addEventListener('click', (e) => {
+    if (testing || !art.contains(e.target)) return
+    if (!e.altKey) return enterTest()
     for (let el = e.target.closest('[data-part]'); el; el = el.parentElement?.closest('[data-part]')) {
       const f = folders.find((x) => x.part === el.dataset.part); if (!f) continue
       const box = [...document.querySelectorAll('.dialkit-folder')].find((n) => $('.dialkit-folder-title', n)?.textContent.trim() === f.name)
@@ -199,6 +231,45 @@
       return box.scrollIntoView({ block: 'nearest' })
     }
   })
+
+  // --- Export: the option's contract as spec-<M>.md (the server writes it next to the page; the browser also downloads it) ---------------------
+  const mdBtn = $('.md', bar)
+  mdBtn.onclick = async () => {
+    mdBtn.disabled = true
+    try {
+      const r = await api('tune-md', { option: M, label, values: current }).then((x) => x.json())
+      if (!r.md) throw new Error(r.error)
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([r.md], { type: 'text/markdown' })), download: r.file })
+      a.click(); URL.revokeObjectURL(a.href)
+      mdBtn.textContent = `Salvo: ${r.file}`
+    } catch { mdBtn.textContent = 'Não consegui exportar' }
+    setTimeout(() => { mdBtn.textContent = 'Exportar .md'; mdBtn.disabled = false }, 2500)
+  }
+
+  // --- Figma ---------------------------------------------------------------------------------------------------------------------
+  // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
+  const fpush = $('.fpush', bar), fpull = $('.fpull', bar), flink = $('.flink', bar)
+  const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
+  document.body.append(fmsg)
+  const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
+    flink.hidden = !f?.url; if (f?.url) flink.href = f.url
+    fpull.title = f?.url ? '' : 'Envie ao Figma antes de trazer'
+    fpull.dataset.sent = f?.url ? '1' : ''; fpull.disabled = !f?.url || fpull.textContent === 'Trazendo…'
+    fmsg.querySelector('.undo')?.remove()
+    if (f?.undo) {
+      const undo = Object.assign(document.createElement('button'), { className: 'tune-btn undo', textContent: 'Voltar ao antes do Figma' })
+      undo.onclick = () => { // lands in the panel only, like a review suggestion: "Aplicar valores" is what saves
+        for (const [k, v] of Object.entries(f.undo)) { const [i, id] = [k.slice(0, k.indexOf('.')), k.slice(k.indexOf('.') + 1)], fo = folders[i], c = fo?.controls?.find((x) => x.id === id); if (c && kit) kit.setValue(`${fo.name}.${c.label}`, v) }
+        fmsg.hidden = true
+      }
+      fmsg.append(undo); fmsg.hidden = false
+    }
+  }).catch(() => {})
+  loadFigma()
+  const ask = (kind) => api('comment', { kind, option: M, values: current })
+  fpush.onclick = () => { fmsg.hidden = true; ask('figma-push') }
+  fpull.onclick = () => { fmsg.hidden = true; ask('figma-pull') }
+  fmsg.onclick = (e) => { if (e.target === fmsg) fmsg.hidden = true }
 
   // --- Review ----------------------------------------------------------------------------------------------------------------
   const judge = Object.assign(document.createElement('div'), { className: 'tune-judge', hidden: true })
@@ -217,11 +288,18 @@
   load()
   const btn = $('.judge', bar)
   btn.onclick = () => { btn.disabled = true; btn.textContent = 'Avaliando…'; api('comment', { kind: 'judge', option: M }) }
-  let seen = 0
+  let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}-${token}`))
   new EventSource(`/__explore/events?token=${token}`).addEventListener('state', (e) => {
     const mine = JSON.parse(e.data).filter((c) => c.kind === 'judge' && c.option === M), last = mine.at(-1)
     const busy = !!last && ['enviado', 'aguardando', 'aplicando'].includes(last.status)
     btn.disabled = busy; btn.textContent = busy ? 'Avaliando…' : 'Avaliar'
     if (last?.status === 'aplicado' && last.id > seen) { seen = last.id; load() }
+    // Figma: one request at a time per kind; the newest answer shows as a message (it survives the reload a pull causes: the server keeps the comments).
+    const fig = JSON.parse(e.data).filter((c) => c.kind?.startsWith('figma-') && c.option === M)
+    const busyF = (k) => fig.filter((c) => c.kind === k).at(-1), on = (k) => ['enviado', 'aguardando', 'aplicando'].includes(busyF(k)?.status)
+    fpush.disabled = on('figma-push'); fpush.textContent = on('figma-push') ? 'Enviando…' : 'Enviar ao Figma'
+    fpull.disabled = on('figma-pull') || !fpull.dataset.sent; fpull.textContent = on('figma-pull') ? 'Trazendo…' : 'Trazer do Figma'
+    const done = fig.filter((c) => c.status === 'aplicado' || c.status === 'falhou').at(-1)
+    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}-${token}`, String(seenF)); loadFigma(); fmsg.firstChild?.nodeType === 3 && fmsg.firstChild.remove(); fmsg.prepend(document.createTextNode(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`)); fmsg.hidden = false }
   })
 })()

@@ -122,3 +122,42 @@ export function lintSpec(html, n, kit) {
   if (have !== varsBlock(spec, n).replace(/\s+/g, ' ')) bad.push('o bloco tune:vars não é o que "Aplicar valores" escreveria a partir do spec: escreva-o no formato exato (uma declaração por --var, token como var(--token), easing em ms e cubic-bezier)')
   return bad
 }
+
+const show = (c, v) => c.type === 'slider' ? `${v}${c.unit ?? ''}` : c.type === 'easing' ? `${Math.round(v.duration * 1000)}ms, cubic-bezier(${v.ease.join(', ')})` : String(v)
+const cell = (s) => String(s ?? '').replace(/\|/g, '\\|') || '-'
+const range = (c) => c.type === 'slider' ? `${c.min}–${c.max}${c.unit ?? ''}, step ${c.step ?? 1}` : c.type === 'select' ? c.options.join(' / ') : ''
+
+/**
+ * The option's contract as markdown for a developer's agent: properties (every dial, with the values on the stage now), states, keys, motion,
+ * token candidates. `values` are the stage's live dial values ({ "<folder index>.<id>": value }); `brief` is brief.md; `figma` the pushed file's url.
+ * Built from the spec alone, so the same input gives the same file.
+ */
+export function specMarkdown(html, n, { values = {}, label = `Option ${n}`, brief = '', figma } = {}) {
+  const spec = tuneSpec(html, n)
+  if (!spec) return undefined
+  const rows = (spec.folders ?? []).flatMap((f, i) => (f.controls ?? []).map((c) => {
+    const live = clean(c, values[`${i}.${c.id}`]), v = live ?? c.value
+    return { f, c, v, moved: live !== undefined && JSON.stringify(live) !== JSON.stringify(c.value) }
+  }))
+  const unapplied = rows.filter((r) => r.moved).length
+  const out = [`# ${label}`, '']
+  if (unapplied) out.push(`> ${unapplied} value(s) on the stage are not applied to the option yet ("Aplicar valores"); this file uses the stage values.`, '')
+  if (figma) out.push(`Figma: ${figma}`, '')
+  out.push('## Properties', '')
+  for (const f of spec.folders ?? []) {
+    out.push(`### ${f.name}${f.part ? ` (\`data-part="${f.part}"\`)` : ''}`, '', '| Property | CSS variable | Value | Original | Token | Range |', '| --- | --- | --- | --- | --- | --- |')
+    for (const { c, v } of rows.filter((r) => r.f === f)) {
+      const name = c.type === 'easing' ? `${c.durVar}, ${c.easeVar}` : c.var
+      out.push(`| ${cell(c.label)} | \`${name}\` | ${cell(show(c, v))} | ${cell(c.base === undefined ? '' : show(c, c.base))} | ${cell(c.token && `\`${c.token}\``)} | ${cell(range(c))} |`)
+    }
+    out.push('')
+  }
+  out.push('## States', '', `The option reads its state from \`data-state\` on its root. Resting state: \`${spec.states?.[0]}\`.`, '', ...(spec.states ?? []).map((s) => `- \`${s}\``), '')
+  const keys = brief.split('\n').filter((l) => /^\s*[-*]?\s*\**(controle|teclas)\b/i.test(l)).map((l) => l.trim())
+  out.push('## Keys', '', 'TV remote model inside the card (source: `node scripts/explore-ref.mjs --teclas`): ←/→ move the one focus without wrapping, Enter acts on the focused piece, Back (Esc / Backspace) undoes the last action and, at the initial state, leaves the card; ↑/↓ leave the card and are never handled inside it.', '', ...keys, ...(keys.length ? [''] : []))
+  const motion = rows.filter((r) => r.c.type === 'easing')
+  out.push('## Motion', '', ...(motion.length ? motion.map(({ c, f, v }) => `- ${f.name} › ${c.label}: ${show(c, v)}`) : ['- No timed transitions.']), '- With `prefers-reduced-motion: reduce`, slides and scales become an opacity crossfade and the focus ring stays.', '')
+  const cand = rows.filter((r) => r.c.type !== 'select' && (r.c.token ? JSON.stringify(r.v) !== JSON.stringify(r.c.base) : true))
+  out.push('## Token candidates', '', ...(cand.length ? ['Values that are not a kit token (moved off their token, or a free literal in the design):', '', ...cand.map(({ c, f, v }) => `- ${f.name} › ${c.label}: ${show(c, v)}${c.token ? ` (was \`${c.token}\`)` : ''}`)] : ['None: every value is a kit token.']), '')
+  return out.join('\n')
+}
