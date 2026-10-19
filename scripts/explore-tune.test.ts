@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { applyTuned, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
+import { applyTuned, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
 import { startServer } from './explore-server'
 
 const spec: any = {
@@ -80,6 +80,28 @@ describe('applyTuned', () => {
   })
 })
 
+describe('specMarkdown', () => {
+  it('lists properties with live values, states, motion and token candidates', () => {
+    const md = specMarkdown(page(), 2, { label: 'Opção 2 - Card', figma: 'https://figma.com/design/x', brief: '- Controle: ←/→ move' })
+    expect(md).toContain('# Opção 2 - Card')
+    expect(md).toContain('Figma: https://figma.com/design/x')
+    expect(md).toContain('| Raio | `--radius` | 40px | 40px | `--dimension-radius-semantic-content-card` | 0–64px, step 1 |')
+    expect(md).toContain('- `repouso`')
+    expect(md).toContain('- Controle: ←/→ move')
+    expect(md).toContain('- Movimento › Transição: 200ms, cubic-bezier(0.2, 0, 0, 1)')
+    expect(md).toContain('Values that are not a kit token') // the easing has no token: a free literal
+    expect(md).not.toContain('not applied')
+  })
+  it('warns about unapplied stage values and flags a value that left its token', () => {
+    const md = specMarkdown(page(), 2, { values: { '0.radius': 20, '0.bg': 'nope' } })!
+    expect(md).toContain('1 value(s) on the stage are not applied')
+    expect(md).toContain('| Raio | `--radius` | 20px | 40px |')
+    expect(md).toContain('- Superfície › Raio: 20px (was `--dimension-radius-semantic-content-card`)')
+    expect(md).not.toContain('Superfície › Fundo') // an invalid live value is ignored: the colour is still its token
+    expect(specMarkdown(page(), 1)).toBeUndefined()
+  })
+})
+
 describe('stage routes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'explore-tune-'))
   writeFileSync(join(dir, 'index.html'), `<html><body>${page()}</body></html>`)
@@ -121,6 +143,17 @@ describe('stage routes', () => {
     expect((await post('tune-apply', { option: '2', values: { '0.radius': 12 } })).status).toBe(200)
     expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('--radius: 12px; /* tune */')
     expect((await post('tune-apply', { option: 'x', values: {} })).status).toBe(400)
+  })
+
+  it('writes spec-<n>.md from the live values, with the Figma link when there is one', async () => {
+    writeFileSync(join(dir, 'figma.json'), JSON.stringify({ url: 'https://figma.com/design/abc' }))
+    const r = await (await post('tune-md', { option: '2', label: 'Opção 2', values: { '0.radius': 20 } })).json()
+    expect(r.file).toBe('spec-2.md')
+    expect(readFileSync(join(dir, 'spec-2.md'), 'utf8')).toBe(r.md)
+    expect(r.md).toContain('Figma: https://figma.com/design/abc')
+    expect(r.md).toContain('not applied')
+    expect((await post('tune-md', { option: '1' })).status).toBe(400) // no spec
+    expect((await post('tune-md', { option: 'x' })).status).toBe(400)
   })
 })
 

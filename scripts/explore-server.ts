@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 // @ts-expect-error plain .mjs, like explore-stitch: `node` runs it without a build
-import { applyTuned, tuneTarget } from './explore-tune.mjs'
+import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 
 export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou' | 'cancelado'
 export interface Comment {
@@ -199,6 +199,19 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         const { html: next, changed } = applyTuned(html, String(b.option), b.values)
         if (next !== html) { writeFileSync(index, next); broadcast('event: reload\ndata: 1\n\n') }
         return json(res, 200, { changed })
+      }
+      // "Exportar .md": the option's contract for a developer's agent, built from the spec and the stage's live values; written next to the page.
+      if (url.pathname === '/__explore/tune-md') {
+        const n = String(b.option)
+        if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
+        const html = readFileSync(join(root, 'index.html'), 'utf8')
+        const brief = existsSync(join(root, 'brief.md')) ? readFileSync(join(root, 'brief.md'), 'utf8') : ''
+        const figmaFile = join(root, 'figma.json')
+        const figma = existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')).url : undefined
+        const md = specMarkdown(html, n, { values: b.values && typeof b.values === 'object' ? b.values : {}, label: clip(b.label, 120) || undefined, brief, figma })
+        if (!md) return json(res, 400, { error: 'spec' })
+        writeFileSync(join(root, `spec-${n}.md`), md)
+        return json(res, 200, { file: `spec-${n}.md`, md })
       }
       // The designer takes a request back: any queued one, and a batch of options while it is being made (an edit under way cannot be undone).
       if (url.pathname === '/__explore/cancel') {

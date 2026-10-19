@@ -67,7 +67,7 @@
   bar.className = 'tune-bar'
   bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>
     <div class="tune-zoom" role="group" aria-label="Zoom"><button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button></div>
-    <button class="tune-btn judge">Avaliar</button>`
+    <button class="tune-btn judge">Avaliar</button><button class="tune-btn md">Exportar .md</button>`
   $('.explore-header').prepend(bar)
   const pct = $('output', bar)
 
@@ -128,7 +128,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    $('.judge', bar).disabled = true
+    $('.judge', bar).disabled = $('.md', bar).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -231,6 +231,20 @@
       return box.scrollIntoView({ block: 'nearest' })
     }
   })
+
+  // --- Export: the option's contract as spec-<M>.md (the server writes it next to the page; the browser also downloads it) ---------------------
+  const mdBtn = $('.md', bar)
+  mdBtn.onclick = async () => {
+    mdBtn.disabled = true
+    try {
+      const r = await api('tune-md', { option: M, label, values: current }).then((x) => x.json())
+      if (!r.md) throw new Error(r.error)
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([r.md], { type: 'text/markdown' })), download: r.file })
+      a.click(); URL.revokeObjectURL(a.href)
+      mdBtn.textContent = `Salvo: ${r.file}`
+    } catch { mdBtn.textContent = 'Não consegui exportar' }
+    setTimeout(() => { mdBtn.textContent = 'Exportar .md'; mdBtn.disabled = false }, 2500)
+  }
 
   // --- Review ----------------------------------------------------------------------------------------------------------------
   const judge = Object.assign(document.createElement('div'), { className: 'tune-judge', hidden: true })
