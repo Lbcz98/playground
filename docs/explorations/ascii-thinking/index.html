@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ASCII thinking skeleton</title>
-<!-- Serve over http (ES module): python3 -m http.server -d docs/explorations/ascii-thinking 4321 -->
-<link rel="stylesheet" href="ui-generation.css">
+<!-- Serve the repo root over http (ES module): python3 -m http.server 4321, then open /docs/explorations/ascii-thinking/ -->
+<link rel="stylesheet" href="../../../scripts/explore-generation/ui-generation.css">
 <style>
   :root { --bg:#f6f6f5; --card:#fff; --border:#e6e6e3; --fg:#0d0d0d; --muted:#7a7a76; --accent:#2f6df6; }
   @media (prefers-color-scheme: dark) { :root { --bg:#0e0e0e; --card:#181818; --border:#2a2a2a; --fg:#f2f2f2; --muted:#8f8f8f; --accent:#6b98ff; } }
@@ -62,7 +62,7 @@
 </div>
 
 <script type="module">
-import { generate } from "./ui-generation.js";
+import { generate } from "../../../scripts/explore-generation/ui-generation.js";
 
 const $ = id => document.getElementById(id);
 const cv = $('thinking'), ctx = cv.getContext('2d'), card = $('card');

@@ -52,6 +52,9 @@ const ASSETS: Record<string, [string, string]> = {
   'tune.js': [fileURLToPath(new URL('./explore-tune.js', import.meta.url)), 'text/javascript'],
   'dialkit.js': [DIALKIT + 'browser.global.js', 'text/javascript'],
   'dialkit.css': [DIALKIT + 'styles.css', 'text/css'],
+  // The build reveal of new options (transitions.dev ui-generation, vendored unchanged).
+  'ui-generation.js': [fileURLToPath(new URL('./explore-generation/ui-generation.js', import.meta.url)), 'text/javascript'],
+  'ui-generation.css': [fileURLToPath(new URL('./explore-generation/ui-generation.css', import.meta.url)), 'text/css'],
 }
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',

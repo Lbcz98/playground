@@ -358,12 +358,42 @@
   let drops = 0
   es.addEventListener('open', () => (drops = 0))
   es.addEventListener('error', () => { if (++drops >= 2) warn(DEAD) })
-  es.addEventListener('reload', () => { try { sessionStorage.setItem('explore-scroll', scrollY) } catch {} location.reload() })
-  let wasOpen = false
+  const optionIds = () => [...document.querySelectorAll('.opt[data-option]')].map((o) => o.dataset.option)
+  es.addEventListener('reload', () => {
+    try { sessionStorage.setItem('explore-scroll', scrollY); sessionStorage.setItem('explore-options', JSON.stringify(optionIds())) } catch {}
+    location.reload()
+  })
+  let wasOpen = false, before = null
   try {
     const y = sessionStorage.getItem('explore-scroll')
     if (y) { sessionStorage.removeItem('explore-scroll'); scrollTo(0, Number(y)) }
     wasOpen = !!sessionStorage.getItem('explore-history')
+    before = JSON.parse(sessionStorage.getItem('explore-options'))
+    sessionStorage.removeItem('explore-options')
   } catch {}
   setHistory(wasOpen)
+
+  // Build reveal: the options a batch just brought are drawn the way an agent builds them, then shown
+  // (transitions.dev ui-generation, scripts/explore-generation). Only cards that were not on the page before
+  // the reload, so an edit, which reloads too, plays nothing; the runtime is loaded only then, and each card
+  // plays once it is on screen. Reduced motion: the runtime fades it in instead.
+  const fresh = Array.isArray(before) && !tune
+    ? [...document.querySelectorAll('.opt[data-option]:not([data-discarded]) .opt-content')].filter((c) => !before.includes(c.closest('.opt').dataset.option))
+    : []
+  if (fresh.length) {
+    // The component itself, so the outline is its own shape and not the card's content area.
+    const targets = fresh.map((c) => (c.children.length === 1 ? c.firstElementChild : c))
+    targets.forEach((el) => { el.__tGenOpacity = el.style.opacity; el.style.opacity = 0 }) // hidden until it plays; the runtime restores __tGenOpacity
+    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: '/__explore/ui-generation.css' })
+    document.head.appendChild(css)
+    const show = () => targets.forEach((el) => { el.style.opacity = el.__tGenOpacity })
+    Promise.all([import('/__explore/ui-generation.js'), document.fonts.ready, new Promise((ok) => { css.onload = css.onerror = ok })])
+      .then(([{ generate }]) => {
+        const io = new IntersectionObserver((entries) => {
+          entries.filter((e) => e.isIntersecting).forEach((e, i) => { io.unobserve(e.target); generate(e.target, { mode: 'skeleton', delay: i * 260 }) })
+        }, { threshold: 0.35 })
+        targets.forEach((el) => io.observe(el))
+      })
+      .catch(show) // never leave a card hidden because the reveal could not load
+  }
 })()

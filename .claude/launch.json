@@ -4,7 +4,7 @@
     {
       "name": "ascii-thinking",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4321", "-d", "docs/explorations/ascii-thinking"],
+      "runtimeArgs": ["-m", "http.server", "4321"],
       "port": 4321
     }
   ]
