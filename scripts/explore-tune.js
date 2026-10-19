@@ -34,7 +34,7 @@
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
-    .tune-zoom { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); justify-content: center; pointer-events: none; display: flex; align-items: center; gap: 4px; } .tune-zoom > * { pointer-events: auto; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
+    .tune-zoom { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); justify-content: center; pointer-events: none; display: flex; align-items: center; gap: 4px; } .tune-zoom > * { pointer-events: auto; } .tune-zoom .fit[hidden] { display: none; } .tune-zoom .fit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
     .tune-stage { position: fixed; top: 72px; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: var(--explore-margin); display: flex; overflow: auto; background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius); }
     .tune-sizer { position: relative; flex: none; margin: auto; }
     .tune-scaler { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; padding: 64px; }
@@ -72,10 +72,10 @@
   tools.innerHTML = `<button class="tune-btn judge">Avaliar</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
   const zoomBox = Object.assign(document.createElement('div'), { className: 'tune-zoom' })
   zoomBox.setAttribute('role', 'group'); zoomBox.setAttribute('aria-label', 'Zoom')
-  zoomBox.innerHTML = `<button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button>`
+  zoomBox.innerHTML = `<button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit" aria-label="Ajustar ao palco" title="Ajustar ao palco (F)" hidden></button>`
   document.body.append(tools, zoomBox)
   $('.explore-header').prepend(bar)
-  const pct = $('output', zoomBox)
+  const pct = $('output', zoomBox), fitBtn = $('.fit', zoomBox)
 
   let z = 1
   let testing = false // focus test: the option has the keyboard alone (see "Focus test")
@@ -83,6 +83,13 @@
   const layout = () => {
     sizer.style.width = scaler.offsetWidth * z + 'px'; sizer.style.height = scaler.offsetHeight * z + 'px'
     scaler.style.transform = `scale(${z})`; pct.textContent = Math.round(z * 100) + '%'
+    // "Ajustar" shows only once the zoom has left the fitted size, and its arrows say which way it goes back: in when zoomed in, out when zoomed out.
+    const f = fit(), off = Math.abs(z - f) > 0.005, bigger = z > f
+    fitBtn.hidden = !off
+    if (off && fitBtn.dataset.dir !== String(bigger)) {
+      fitBtn.dataset.dir = String(bigger)
+      fitBtn.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${bigger ? 'M13 7H9V3M3 9h4v4M9 7l4-4M7 9l-4 4' : 'M9 3h4v4M7 13H3V9M13 3L9.5 6.5M3 13l3.5-3.5'}"/></svg>`
+    }
   }
   // Zooms about a point of the stage (its centre by default), keeping what is under it where it is.
   let auto = true // until the designer zooms, the option is kept as large as the stage allows
