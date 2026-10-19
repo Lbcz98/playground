@@ -3,6 +3,8 @@
  *
  *   npm run explore:status -- <folder> pending
  *   npm run explore:status -- <folder> <comment id> <aplicando|aplicado|falhou> ["one-line summary"]
+ *   npm run explore:status -- <folder> get <figma|judge?option=N>      read one of the server's GET answers
+ *   npm run explore:status -- <folder> post <figma-state|tune-apply> '<json>'   write through the server (figma.json, tuned values)
  *
  * Prints the server's JSON answer; exit 1 when the server is gone (stopped or idle).
  */
@@ -19,6 +21,8 @@ async function main() {
   try {
     const r = what === 'pending'
       ? await fetch(`${url}__explore/pending?token=${token}`)
+      : what === 'get' ? await fetch(`${url}__explore/${status}${status.includes('?') ? '&' : '?'}token=${token}`)
+      : what === 'post' && /^(figma-state|tune-apply)$/.test(status) ? await fetch(`${url}__explore/${status}`, { method: 'POST', headers: { 'x-explore-token': token }, body: summary })
       : await fetch(`${url}__explore/status`, { method: 'POST', headers: { 'x-explore-token': token }, body: JSON.stringify({ id: Number(what), status, summary }) })
     console.log(await r.text())
   } catch {

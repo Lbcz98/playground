@@ -27,9 +27,9 @@
   css.textContent = `
     .explore-container { max-width: none; }
     .explore-items, .view-toggle, .explore-header h1, .explore-card-menu-line { display: none !important; }
-    .tune-bar { display: flex; align-items: center; gap: 12px; min-width: 0; font-family: ${FONT}; color: var(--explore-tile-label); }
+    .tune-bar { display: flex; align-items: center; gap: 12px; min-width: 0; overflow-x: auto; scrollbar-width: none; font-family: ${FONT}; color: var(--explore-tile-label); }
     .tune-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tune-btn { height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    .tune-btn { flex: none; height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
       background: linear-gradient(180deg, var(--explore-btn-fill-from), var(--explore-btn-fill-to)) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from), var(--explore-btn-stroke-to)) border-box; }
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
@@ -67,7 +67,7 @@
   bar.className = 'tune-bar'
   bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>
     <div class="tune-zoom" role="group" aria-label="Zoom"><button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button></div>
-    <button class="tune-btn judge">Avaliar</button><button class="tune-btn md">Exportar .md</button>`
+    <button class="tune-btn judge">Avaliar</button><button class="tune-btn md">Exportar .md</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
   $('.explore-header').prepend(bar)
   const pct = $('output', bar)
 
@@ -128,7 +128,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    $('.judge', bar).disabled = $('.md', bar).disabled = true
+    for (const b of ['.judge', '.md', '.fpush', '.fpull']) $(b, bar).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -246,6 +246,31 @@
     setTimeout(() => { mdBtn.textContent = 'Exportar .md'; mdBtn.disabled = false }, 2500)
   }
 
+  // --- Figma ---------------------------------------------------------------------------------------------------------------------
+  // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
+  const fpush = $('.fpush', bar), fpull = $('.fpull', bar), flink = $('.flink', bar)
+  const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
+  document.body.append(fmsg)
+  const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
+    flink.hidden = !f?.url; if (f?.url) flink.href = f.url
+    fpull.title = f?.url ? '' : 'Envie ao Figma antes de trazer'
+    fpull.dataset.sent = f?.url ? '1' : ''; fpull.disabled = !f?.url || fpull.textContent === 'Trazendo…'
+    fmsg.querySelector('.undo')?.remove()
+    if (f?.undo) {
+      const undo = Object.assign(document.createElement('button'), { className: 'tune-btn undo', textContent: 'Voltar ao antes do Figma' })
+      undo.onclick = () => { // lands in the panel only, like a review suggestion: "Aplicar valores" is what saves
+        for (const [k, v] of Object.entries(f.undo)) { const [i, id] = [k.slice(0, k.indexOf('.')), k.slice(k.indexOf('.') + 1)], fo = folders[i], c = fo?.controls?.find((x) => x.id === id); if (c && kit) kit.setValue(`${fo.name}.${c.label}`, v) }
+        fmsg.hidden = true
+      }
+      fmsg.append(undo); fmsg.hidden = false
+    }
+  }).catch(() => {})
+  loadFigma()
+  const ask = (kind) => api('comment', { kind, option: M, values: current })
+  fpush.onclick = () => { fmsg.hidden = true; ask('figma-push') }
+  fpull.onclick = () => { fmsg.hidden = true; ask('figma-pull') }
+  fmsg.onclick = (e) => { if (e.target === fmsg) fmsg.hidden = true }
+
   // --- Review ----------------------------------------------------------------------------------------------------------------
   const judge = Object.assign(document.createElement('div'), { className: 'tune-judge', hidden: true })
   document.body.append(judge)
@@ -263,11 +288,18 @@
   load()
   const btn = $('.judge', bar)
   btn.onclick = () => { btn.disabled = true; btn.textContent = 'Avaliando…'; api('comment', { kind: 'judge', option: M }) }
-  let seen = 0
+  let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}`))
   new EventSource(`/__explore/events?token=${token}`).addEventListener('state', (e) => {
     const mine = JSON.parse(e.data).filter((c) => c.kind === 'judge' && c.option === M), last = mine.at(-1)
     const busy = !!last && ['enviado', 'aguardando', 'aplicando'].includes(last.status)
     btn.disabled = busy; btn.textContent = busy ? 'Avaliando…' : 'Avaliar'
     if (last?.status === 'aplicado' && last.id > seen) { seen = last.id; load() }
+    // Figma: one request at a time per kind; the newest answer shows as a message (it survives the reload a pull causes: the server keeps the comments).
+    const fig = JSON.parse(e.data).filter((c) => c.kind?.startsWith('figma-') && c.option === M)
+    const busyF = (k) => fig.filter((c) => c.kind === k).at(-1), on = (k) => ['enviado', 'aguardando', 'aplicando'].includes(busyF(k)?.status)
+    fpush.disabled = on('figma-push'); fpush.textContent = on('figma-push') ? 'Enviando…' : 'Enviar ao Figma'
+    fpull.disabled = on('figma-pull') || !fpull.dataset.sent; fpull.textContent = on('figma-pull') ? 'Trazendo…' : 'Trazer do Figma'
+    const done = fig.filter((c) => c.status === 'aplicado' || c.status === 'falhou').at(-1)
+    if (done && done.id > seenF) { seenF = done.id; store(`tune-figma-seen-${M}`, String(seenF)); loadFigma(); fmsg.firstChild?.nodeType === 3 && fmsg.firstChild.remove(); fmsg.prepend(document.createTextNode(`${done.status === 'falhou' ? 'Figma: não deu certo. ' : ''}${done.summary ?? ''}`)); fmsg.hidden = false }
   })
 })()

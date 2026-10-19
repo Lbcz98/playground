@@ -145,8 +145,26 @@ describe('stage routes', () => {
     expect((await post('tune-apply', { option: 'x', values: {} })).status).toBe(400)
   })
 
+  it('queues Figma pushes and pulls, and keeps the file state in figma.json', async () => {
+    expect((await post('comment', { kind: 'figma-push', option: '2' })).status).toBe(400) // the live values come along
+    expect((await post('comment', { kind: 'figma-pull', option: '2', values: {} })).status).toBe(400) // nothing sent yet
+    const push = await (await post('comment', { kind: 'figma-push', option: '2', values: { '0.radius': 20 } })).json()
+    expect((await (await post('comment', { kind: 'figma-push', option: '2', values: {} })).json()).id).toBe(push.id) // one open push per option
+    expect(JSON.parse(lines.at(-1)!.replace(/^COMMENT /, ''))).toMatchObject({ kind: 'figma-push', option: '2', values: { '0.radius': 20 }, comment: 'Enviar ao Figma · opção 2' })
+    const get = async () => (await fetch(s.url + `__explore/figma?token=${s.token}`)).json()
+    expect(await get()).toBeNull()
+    expect((await post('figma-state', { url: 'https://evil.example/x' })).status).toBe(400)
+    await post('figma-state', { url: 'https://www.figma.com/design/abc', snapshot: { '0.radius': 20 } })
+    await post('figma-state', { undo: { '0.radius': 12 } })
+    expect(await get()).toEqual({ url: 'https://www.figma.com/design/abc', snapshot: { '0.radius': 20 }, undo: { '0.radius': 12 } })
+    await post('figma-state', { undo: null })
+    expect((await get()).undo).toBeUndefined()
+    expect((await post('comment', { kind: 'figma-pull', option: '2', values: {} })).status).toBe(200) // sent: a pull is possible
+    rmSync(join(dir, 'figma.json'))
+  })
+
   it('writes spec-<n>.md from the live values, with the Figma link when there is one', async () => {
-    writeFileSync(join(dir, 'figma.json'), JSON.stringify({ url: 'https://figma.com/design/abc' }))
+    writeFileSync(join(dir, 'figma.json'), JSON.stringify({ url: 'https://figma.com/design/abc' })) // after the Figma test removed its own
     const r = await (await post('tune-md', { option: '2', label: 'Opção 2', values: { '0.radius': 20 } })).json()
     expect(r.file).toBe('spec-2.md')
     expect(readFileSync(join(dir, 'spec-2.md'), 'utf8')).toBe(r.md)
