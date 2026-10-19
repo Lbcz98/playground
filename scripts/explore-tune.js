@@ -37,7 +37,7 @@
     .tune-btn:disabled { opacity: .5; cursor: default; }
         .dialkit-panel-header { border-bottom: 0 !important; }
     .dialkit-panel-toolbar { display: none !important; } /* presets and "copy parameters" are not part of this stage */
-    .tune-collapse { flex: none; width: 28px; height: 28px; margin-left: auto; padding: 0; border: 0; border-radius: 8px; background: none; color: #888; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; } .tune-collapse:hover { color: #fff; background: #ffffff14; } .tune-collapse:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+    .tune-collapse { flex: none; width: 32px; height: 32px; margin-left: auto; padding: 0; border: 0; border-radius: 8px; background: none; color: #888; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; } .tune-collapse:hover { color: #fff; background: #ffffff14; } .tune-collapse:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-collapse svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     .dialkit-folder-header-top { display: flex; align-items: center; }
     .tune-reopen { position: fixed; top: 84px; right: calc(var(--explore-margin) + 12px); } .tune-reopen { display: none; } body.tune-collapsed .tune-reopen { display: inline-flex; }
@@ -45,7 +45,7 @@
     body.tune-collapsed { --explore-panel-w: calc(-1 * var(--explore-margin)); } /* the stage, tools, zoom and banner measure from the panel: with it gone they run to the margin */
     body.tune-collapsed #explore-panel { transform: translateX(calc(100% + var(--explore-margin))); opacity: 0; visibility: hidden; pointer-events: none; transition: transform 240ms cubic-bezier(.2, 0, 0, 1), opacity 160ms ease-out, visibility 0s 240ms; }
     body.tune-collapsed #explore-actions[data-live] { width: auto; }
-    body.tune-collapsed .tune-tools { right: calc(var(--explore-margin) + 12px + 36px); }
+    body.tune-collapsed .tune-tools { right: calc(var(--explore-margin) + 12px + 40px); }
     @media (prefers-reduced-motion: reduce) { #explore-panel, body.tune-collapsed #explore-panel { transition: none; } }
     .tune-fig { position: relative; } .tune-fmenu svg { width: 16px; height: 16px; flex: none; } .tune-fmenu .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); } .tune-fmenu[aria-expanded=true] .chev { transform: rotate(180deg); } .tune-fmenu { gap: 6px; }
     .tune-menu { position: absolute; right: 0; top: calc(100% + 6px); min-width: 100%; padding: 4px; display: flex; flex-direction: column; border-radius: 10px; background: #181818; border: 1px solid var(--explore-toggle-border);
