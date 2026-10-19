@@ -45,7 +45,7 @@ Aqui ninguém devolve `NEEDS_INPUT`: o agente escolhe a leitura mais plausível 
 
 ## Página ao vivo
 
-4. Suba o servidor: Bash em segundo plano, `npm run explore:serve -- docs/explorations/<slug>`. Leia até a linha `READY {json}` e pegue `url` e `logFile`. Abra `url` no navegador do painel; recusou, diga o endereço e siga.
+4. Suba o servidor: Bash em segundo plano, `npm run explore:serve -- docs/explorations/<slug>`. Leia até a linha `READY {json}` (sai em menos de 1 s: leia a saída logo, sem `sleep`) e pegue `url` e `logFile`. Abra `url` no navegador do painel; recusou, diga o endereço e siga.
 5. Arme o Monitor (timeout 1800000): `tail -n 0 -F <logFile> | grep --line-buffered '^COMMENT '`. Diga ao designer, em duas frases: em cada card, **Variar** pede 4 variações (o que mudar + Enter, ou sutil, forte, embaralhar layout, mudar estilo), a descarta, ou **Ajustar** abre o palco de ajuste fino (`/tune`); no topo, **Mais opções** pede 4 ideias novas e **Adicionar comentário** escolhe um elemento e manda um ajuste. Todo pedido se cancela onde aparece ou no Histórico.
 6. Cada evento `COMMENT {json}` é um pedido; um por vez, na ordem de chegada. Comece com `npm run explore:status -- docs/explorations/<slug> <id> aplicando` e termine com `aplicado "<uma linha>"` (a página recarrega sozinha) ou `falhou "<motivo>"`. Resposta `{"error":"cancelado"}` a qualquer um: cancelado; largue o pedido calado e passe ao próximo.
    - `kind: comment` → um `proto-explorer` em **modo edição**, com o slug, o comentário, o seletor, `option`/`part`, `tag`/`text` e `html`. Retome com `SendMessage` quem já mexeu naquela opção nesta conversa, ou chame um novo. A linha que devolve é o resumo.

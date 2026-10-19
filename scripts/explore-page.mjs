@@ -26,15 +26,22 @@ export async function openExploration(target, width = 1280) {
   const dir = mkdtempSync(join(tmpdir(), 'explore-page-'))
   writeFileSync(join(dir, 'index.html'), html)
   const page = await browser.newPage({ viewport: { width, height: 800 } })
+  // Counts the timers the page starts while it loads; one in a key handler never runs here.
+  await page.addInitScript(() => {
+    window.__loadTimers = 0
+    for (const k of ['setTimeout', 'setInterval']) {
+      const f = window[k]
+      window[k] = function (...a) { window.__loadTimers++; return f.apply(this, a) }
+    }
+  })
   await page.goto(url(join(dir, 'index.html')))
   await page.evaluate(() => document.fonts.ready)
-  // The "carregando" states clear themselves after a moment (a timer); look at the page after that.
-  // With no timer in the page, look once its entrance animations have ended (at most the same 1.3 s).
-  if (/\bset(Timeout|Interval)\s*\(/.test(source)) await page.waitForTimeout(1300)
-  else
-    await page.evaluate(() => Promise.race([
-      Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
-      new Promise((r) => setTimeout(r, 1300)),
-    ]).then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))))
+  // The "carregando" states clear themselves after a moment (a timer started on load); look at the page after that.
+  if (await page.evaluate(() => window.__loadTimers)) await page.waitForTimeout(1300)
+  // Entrance animations jump to their end; looping ones keep running.
+  await page.evaluate(() => {
+    for (const a of document.getAnimations()) if (a.effect?.getComputedTiming().iterations !== Infinity) try { a.finish() } catch {}
+    return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  })
   return { page, close: async () => { await browser.close(); rmSync(dir, { recursive: true, force: true }) }, resolve }
 }

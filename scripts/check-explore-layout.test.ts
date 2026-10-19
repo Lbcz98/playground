@@ -49,4 +49,8 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c" data-stack style="overflow:hidden;height:20px"><p style="height:60px">oi</p></div>', `.c{${card}}`).code).toBe(0)
     expect(check('<div class="c" data-surface="own"><span>24°</span></div>', `.c{${card} border-radius: 12px}`).code).toBe(0)
   })
+  it('looks at the page settled: a loading state its timer clears, a slow entrance animation at its end', () => {
+    expect(check('<div class="c" style="width:400px;flex:none"><b>x</b></div><script>setTimeout(() => document.querySelector(".c").style.width = "", 200)</script>', `.c{${card}}`).code).toBe(0)
+    expect(check('<div class="c"><b class="in">x</b></div>', `.c{${card}} .in{display:block;animation:in 5s} @keyframes in{from{transform:translateX(600px)}}`).code).toBe(0)
+  })
 })

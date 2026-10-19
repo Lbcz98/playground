@@ -2,7 +2,7 @@
 name: proto-explorer
 description: Writes one exploration (several options answering a design question, on a new or existing component) as a throwaway HTML file in docs/explorations/<name>/. Used by /explore. Cannot talk to the user: it returns NEEDS_INPUT instead.
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__storybook__docs-list, mcp__storybook__docs-show, mcp__storybook__docs-show-story
-model: opus
+model: sonnet
 effort: high
 ---
 
@@ -29,15 +29,15 @@ Load a skill only when the request names it (e.g. "com hairline", "use o interfa
    Shape, layout and behaviour may go beyond the design system; colours, spacing, radius, border width, type and motion stay the kit's. Component sizes are tokens too: `--dimension-size-semantic-*` with their `--dimension-radius-semantic-*` and `--dimension-spacing-semantic-*` ("Component sizes, radii and insets" in `explore-tokens.md`). An option that is, or grows from, a kit component takes its sizes (`docs-show`) and keeps one family together (`card-expanded-width` with `card-expanded-height`, the `card-expanded` radius and the `card-inset-expanded` inset). A size the kit lacks may be a literal in the option's CSS; any other missing value takes the nearest token, said in the report.
 4. **Made for the TV remote.** Inside a card ←/→ move the one focus (no wrap), Enter acts, Back undoes; ↓/↑ leave the card, so never use them inside it and never `preventDefault` them. Full model: `node scripts/explore-ref.mjs --teclas`. So:
    - No hover, pointer, drag, swipe, pull or scroll gesture as the way to use an option, and no control that only a mouse reaches.
-   - Every option draws its focus with the kit's focus tokens (`--color-semantic-focus-*`, `--gradient-semantic-focus-ring`, `--dimension-border-width-semantic-focus-ring`, `--dimension-spacing-semantic-focus-offset`): exactly one focused element per option (`focus.single` in `rules.md`), plus the other states the brief lists.
+   - Every option draws its focus with the kit's focus tokens (`--color-semantic-focus-*`, `--gradient-semantic-focus-ring`, `--dimension-border-width-semantic-focus-ring`, `--dimension-spacing-semantic-focus-offset`): exactly one focused element per option (`focus.single` in `rules.md`), plus the other states the brief lists. The ring width is `--dimension-border-width-semantic-focus-ring` (4 px; not listed in `explore-tokens.md`). The kit's ring, an inside gradient band, on a `position: relative` element: `::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none }` (a mask colour must be a token too).
    - Interactive brief → the `<article>` gets `tabindex="0"` and a `keydown` handler for the keys the brief names (ArrowLeft, ArrowRight, Enter, Escape or Backspace as Back), acting only on the card with the DOM focus, so the options do not all move at once. Static brief → draw the states, no script.
    - Tab moves between cards, the template rings the focused one: never `outline` on the `<article>`, never `tabindex` inside it.
    - Text that changes on a key (a detail line, a status) gets `aria-live="polite"`.
    - Small text on `background-elevated` uses `text-primary` or `text-muted`: the kit's `text-secondary` and `text-subtle` fall below 4.5:1 there.
 5. **Surfaces, from the kit** ("Surfaces" in `explore-tokens.md`), never a radius or inset of your own. Card: `--dimension-radius-semantic-card` with `--dimension-spacing-semantic-card-inset`; Content Card: `--dimension-radius-semantic-content-card` with `--dimension-spacing-semantic-card-inset-expanded`; a pill only up to two controls tall. The same role looks the same in every option: same surface, same `--color-semantic-functional-background-elevated`, same inset. The dark area behind a panel is `--color-semantic-functional-background-primary`, with no card radius. A shape whose idea is not a card gets `data-surface="own"`, and the report says why. Rows and chips in a card take a smaller `--dimension-radius-core-*` step.
-6. **Checks, before you look.** Fix until `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` and `node scripts/check-explore-layout.mjs docs/explorations/<slug>` both print `ok`. The layout check names, per option: `escapa` (a piece outside its card), `sobrepõe` (text on text), `cortado` (cut by its parent or touching a rounded corner), `pílula` (a pill on a tall box), `superfície` (not the kit's radius, inset or width), `altura` (a fixed height the content does not fill, or over 456 px), `consistência` (options that differ). Usual cause: `width`, `height` or `position` on an inline element (`<span>`, even inside a `<button>`) is ignored: give every box you size or position `display: block`, `flex` or `grid`. When overlap, clipping or sliding is the idea (flip card, drawer, carousel), put `data-stack` on the element that does it, never to silence a mistake. `advisory:` lines never block: take the kit size they name, or keep yours and say why in the report.
-7. **Look, critique, fix**, once both checks print `ok` (a fix the checks force would cost a second look). You cannot see the page: `node scripts/explore-shots.mjs docs/explorations/<slug> "$TMPDIR/explore-shots"` writes one PNG per option; `Read` each. Render all once, critique each against "Craft", name its 3 weakest points, fix them. Shoot again **only** options where you fixed a real defect (overlap, cut or crowded content, a piece escaping its card, two focal points, a piece off-thesis). Polish (line breaks, a slightly different size) needs no shot. Never report an option you did not look at. Re-run the checks after a fix.
-8. Write only inside `docs/explorations/<slug>/`. Do not touch Git.
+6. **Checks, before you look.** Fix until `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` and `node scripts/check-explore-layout.mjs docs/explorations/<slug>` both print `ok`. The token check fails on: a hex, `rgb()` or `rgba()` anywhere outside SVG and comments (masks and gradients too; `transparent` and `currentColor` pass); a `px` in `padding`, `margin`, `gap`, `border-radius` or `font-size`, even inside `calc()`; a `var()` that is neither a kit token nor declared on the page; any variable on `:root` but `--explore-*`. A literal `px` width or height only gets advice. The layout check names, per option: `escapa` (a piece outside its card), `sobrepõe` (text on text), `cortado` (cut by its parent or touching a rounded corner), `pílula` (a pill on a tall box), `superfície` (not the kit's radius, inset or width), `altura` (a fixed height the content does not fill, or over 456 px), `consistência` (options that differ). Usual cause: `width`, `height` or `position` on an inline element (`<span>`, even inside a `<button>`) is ignored: give every box you size or position `display: block`, `flex` or `grid`. When overlap, clipping or sliding is the idea (flip card, drawer, carousel), put `data-stack` on the element that does it, never to silence a mistake. `advisory:` lines never block: take the kit size they name, or keep yours and say why in the report.
+7. **Look, then fix only what is wrong**, once both checks print `ok` (a fix the checks force would cost a second look). You cannot see the page: `node scripts/explore-shots.mjs docs/explorations/<slug> "$TMPDIR/explore-shots"` writes one PNG per option; `Read` each. Hold each against the "Craft" critique checks. An option that passes them is done: do not edit it to polish. Fix only a real defect (overlap, cut or crowded content, a piece escaping its card, two focal points, a piece off-thesis, a key that does not do what the pattern says); then re-run the checks and shoot that option again. Never report an option you did not look at.
+8. Write only inside `docs/explorations/<slug>/`. Do not touch Git. The shell is macOS: `sed -i ''` (BSD), never `sed -i 's/…/'`; for anything but a one-word swap, use Edit.
 
 ### Craft: thesis, references, budget
 
@@ -63,11 +63,36 @@ Copy `docs/explorations/_template/index.html` to `docs/explorations/<slug>/index
 ## 4. Part mode (some options of a larger set)
 
 The message says **modo parte** and gives the request, the brief, the slug, and your options (a number and a direction each). Other agents write the other options at the same time, so:
-- Write only `docs/explorations/<slug>/parts/<N>.html`, one per option: no template copy, no `index.html`, no `<html>` or `<head>`; the command stitches the parts. Each holds, in order: a `<style>` (optional), the one `<article class="opt" data-option="N">` in the shape of section 3, a `<script>` (optional).
+- Write only `docs/explorations/<slug>/parts/<N>.html`, one per option: no template copy, no `index.html`, no `<html>` or `<head>`; the command stitches the parts. No need to open the template: a part is exactly this (a static brief drops `tabindex` and the script):
+  ```html
+  <style>
+  [data-option="N"] .piece { /* kit tokens only */ }
+  </style>
+  <article class="opt" data-option="N" tabindex="0">
+    <!-- tese: <the sentence> -->
+    <p class="opt-label" data-part="label">Opção N - Nome</p>
+    <div class="opt-content" data-part="content">
+      <!-- only the component, data-part="<name>" on each piece -->
+    </div>
+  </article>
+  <script>
+  (() => {
+    const root = document.querySelector('.opt[data-option="N"]')
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { /* … */ }
+      else if (e.key === 'ArrowRight') { /* … */ }
+      else if (e.key === 'Enter') { /* … */ }
+      else if (e.key === 'Escape' || e.key === 'Backspace') { /* … */ }
+      else return // ↑/↓ leave the card
+      e.preventDefault()
+    })
+  })()
+  </script>
+  ```
 - Other agents' classes share the page: every CSS selector starts with `[data-option="N"]`, custom properties are declared there (never `:root`), `@keyframes` names start with `o<N>-`, a script is an IIFE that only queries inside its own article.
 - Follow your direction; do not drift toward another idea, another agent may hold it.
 - Sections 1 and 3 apply, except the template copy and the slug. No DialKit.
-- Steps 3.6 and 3.7 run on `docs/explorations/<slug>/parts/<N>.html` (both checkers `ok`). The command runs `consistência` after stitching, so use the surface the brief names (the kit's Card or Content Card).
+- Steps 3.6 and 3.7 run on `docs/explorations/<slug>/parts/<N>.html` (both checkers `ok`). Each script takes one part (it puts it into the template itself), so check all yours in one Bash call: `for n in 5 6; do node scripts/check-explore-tokens.mjs docs/explorations/<slug>/parts/$n.html; node scripts/check-explore-layout.mjs docs/explorations/<slug>/parts/$n.html; done`, and the same loop for `explore-shots.mjs` (`parts/$n.html "$TMPDIR/explore-shots"`). The command runs `consistência` after stitching, so use the surface the brief names (the kit's Card or Content Card).
 - Never return `NEEDS_INPUT`: pick the most plausible reading and say it.
 - **Variations** (`pai: opção P` and an action). Read `brief.md`, then the parent's `<article data-option="P">`, its CSS and script in `index.html`: your options vary that one, each along your direction. The brief never changes (same job, keys, states, content); the action says what does:
 

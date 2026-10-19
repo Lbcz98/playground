@@ -11,42 +11,26 @@
  */
 import { randomBytes } from 'node:crypto'
 import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-// @ts-expect-error plain .mjs, like explore-stitch: `node` runs it without a build
 import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 
-export type Status = 'enviado' | 'aguardando' | 'aplicando' | 'aplicado' | 'falhou' | 'cancelado'
-export interface Comment {
-  id: number
-  status: Status
-  /** `dials`: the DialKit values the designer tuned and wants written in as the new defaults. */
-  /** `vary`: variations of one option (`option`, `action`, optional `note`). `more`: a fresh batch from the brief. */
-  /** `tune`: the designer opened the stage on an option that has no controls yet. `judge`: "Avaliar" on a tuned option. Both carry `option`. */
-  /** `figma-push` / `figma-pull`: "Enviar ao Figma" / "Trazer do Figma" on a tuned option; carry `option` and the stage's live dial `values`. */
-  kind: 'comment' | 'dials' | 'vary' | 'more' | 'tune' | 'judge' | 'figma-push' | 'figma-pull'
-  action?: Action
-  note?: string
-  values?: Record<string, unknown>
-  summary?: string
-  comment: string
-  selector: string
-  option?: string
-  part?: string
-  tag: string
-  text: string
-  html: string
-}
+// A comment: { id, status, kind, action?, note?, values?, summary?, comment, selector, option?, part?, tag, text, html }.
+// status: enviado | aguardando | aplicando | aplicado | falhou | cancelado. kind:
+//   comment    a designer's note on a piece of the page
+//   dials      the DialKit values the designer tuned and wants written in as the new defaults
+//   vary       variations of one option (`option`, `action`, optional `note`); more: a fresh batch from the brief
+//   tune       the designer opened the stage on an option that has no controls yet; judge: "Avaliar" on a tuned option. Both carry `option`.
+//   figma-push / figma-pull  "Enviar ao Figma" / "Trazer do Figma" on a tuned option; carry `option` and the stage's live dial `values`
 
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
 const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
 const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
 // Served without a token (like the overlay): fixed files, no state.
-const ASSETS: Record<string, [string, string]> = {
+const ASSETS = {
   // The kit's own tokens and face: explorations link these instead of retyping values.
   'tokens.css': [fileURLToPath(new URL('../src/styles/global.css', import.meta.url)), 'text/css'],
   'inter.css': [INTER + 'wght.css', 'text/css'],
@@ -57,50 +41,50 @@ const ASSETS: Record<string, [string, string]> = {
   'ui-generation.js': [fileURLToPath(new URL('./explore-generation/ui-generation.js', import.meta.url)), 'text/javascript'],
   'ui-generation.css': [fileURLToPath(new URL('./explore-generation/ui-generation.css', import.meta.url)), 'text/css'],
 }
-const TYPES: Record<string, string> = {
+const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2',
 }
 /** What a variation changes; the brief stays fixed in all of them. */
-export const ACTIONS = { sutil: 'Variar sutil', forte: 'Variar forte', layout: 'Embaralhar layout', estilo: 'Mudar estilo', livre: 'Variar' } as const
-export type Action = keyof typeof ACTIONS
+export const ACTIONS = { sutil: 'Variar sutil', forte: 'Variar forte', layout: 'Embaralhar layout', estilo: 'Mudar estilo', livre: 'Variar' }
 
 /** The page with one option's card marked as discarded (hidden by the template, never deleted) or restored. */
-export function setDiscarded(html: string, option: string, discarded: boolean): string {
+export function setDiscarded(html, option, discarded) {
   return html.replace(new RegExp(`<article\\b[^>]*\\bdata-option="${option}"[^>]*>`), (tag) => {
     const clean = tag.replace(/\s+data-discarded(="[^"]*")?/, '')
     return discarded ? clean.replace(/>$/, ' data-discarded>') : clean
   })
 }
 
-const STATUSES: Status[] = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou'] // what the session may set; `cancelado` is the designer's
-const clip = (v: unknown, n: number) => String(v ?? '').slice(0, n)
+const STATUSES = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou'] // what the session may set; `cancelado` is the designer's
+const clip = (v, n) => String(v ?? '').slice(0, n)
 
-export function startServer(opts: { dir: string; port?: number; idleMin?: number; log?: (line: string) => void }) {
+/** opts: { dir, port?, idleMin?, log?(line) } → { url, token, comments, close() } */
+export function startServer(opts) {
   const root = resolve(opts.dir)
   const token = randomBytes(16).toString('hex')
-  const comments: Comment[] = []
-  const clients = new Set<ServerResponse>()
+  const comments = []
+  const clients = new Set()
   const out = opts.log ?? (() => {})
   const figmaFile = join(root, 'figma.json')
   let lastActivity = Date.now()
   let origin = ''
 
   const state = () => `event: state\ndata: ${JSON.stringify(comments)}\n\n`
-  const broadcast = (msg: string) => clients.forEach((c) => c.write(msg))
-  const json = (res: ServerResponse, code: number, body: unknown) => {
+  const broadcast = (msg) => clients.forEach((c) => c.write(msg))
+  const json = (res, code, body) => {
     res.writeHead(code, { 'content-type': 'application/json' })
     res.end(JSON.stringify(body))
   }
-  const body = (req: IncomingMessage) =>
-    new Promise<any>((ok) => {
+  const body = (req) =>
+    new Promise((ok) => {
       let s = ''
       req.on('data', (d) => (s += d, s.length > 50_000 && req.destroy()))
       req.on('end', () => { try { ok(JSON.parse(s)) } catch { ok(null) } })
     })
 
   /** The page with the live layer; `tune` also loads the stage, which must run before the overlay (it defines window.exploreDials). */
-  const withLive = (html: string, tune?: { option: string; preparing: boolean }) => {
+  const withLive = (html, tune) => {
     const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>`
     return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
   }
@@ -159,7 +143,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         const dials = b.kind === 'dials'
         const vary = b.kind === 'vary', more = b.kind === 'more'
         const figma = b.kind === 'figma-push' || b.kind === 'figma-pull'
-        const stageKind = b.kind === 'tune' || b.kind === 'judge' || figma ? (b.kind as 'tune' | 'judge' | 'figma-push' | 'figma-pull') : undefined
+        const stageKind = b.kind === 'tune' || b.kind === 'judge' || figma ? b.kind : undefined
         if (stageKind) {
           if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
           // The stage asks on every load: one open request per option and kind is enough.
@@ -175,11 +159,11 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
         if (figma && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
         const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
           : dials ? 'Aplicar valores do DialKit'
-          : vary ? `${ACTIONS[b.action as Action]} · opção ${b.option}${note && `: ${note}`}`
+          : vary ? `${ACTIONS[b.action]} · opção ${b.option}${note && `: ${note}`}`
           : more ? `Mais opções${note && `: ${note}`}`
           : clip(b.comment, 2000).trim()
         if (!text) return json(res, 400, { error: 'empty' })
-        const c: Comment = {
+        const c = {
           id: comments.length + 1,
           kind: stageKind ?? (dials ? 'dials' : vary ? 'vary' : more ? 'more' : 'comment'),
           action: vary ? b.action : undefined, note: note || undefined,
@@ -258,7 +242,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
     const file = resolve(root, rel)
     if (file !== root && !file.startsWith(root + sep)) return json(res, 403, { error: 'path' })
     if (!existsSync(file) || !statSync(file).isFile()) return json(res, 404, { error: 'not found' })
-    let data: Buffer | string = readFileSync(file)
+    let data = readFileSync(file)
     if (basename(file) === 'index.html') data = withLive(data.toString())
     res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store' })
     res.end(data)
@@ -271,7 +255,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
   }, 30_000)
   timer.unref()
 
-  const close = () => new Promise<void>((done) => {
+  const close = () => new Promise((done) => {
     clearInterval(timer)
     clients.forEach((c) => c.end())
     server.close(() => done())
@@ -279,9 +263,9 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
     out('STOPPED')
   })
 
-  return new Promise<{ url: string; token: string; comments: Comment[]; close: () => Promise<void> }>((ok) =>
+  return new Promise((ok) =>
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
-      origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+      origin = `http://127.0.0.1:${server.address().port}`
       ok({ url: origin + '/', token, comments, close })
     }),
   )
@@ -290,7 +274,7 @@ export function startServer(opts: { dir: string; port?: number; idleMin?: number
 // CLI: `npm run explore:serve -- docs/explorations/<slug>`
 async function main() {
   const args = process.argv.slice(2).filter((a) => a !== '--')
-  const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
+  const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
   const dir = args.find((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--'))
   if (!dir || !existsSync(join(dir, 'index.html'))) {
     console.error('uso: npm run explore:serve -- <pasta com index.html> [--port N] [--idle-min 30]')
@@ -298,7 +282,7 @@ async function main() {
   }
   const logFile = join(tmpdir(), `explore-${basename(resolve(dir))}.log`)
   writeFileSync(logFile, '')
-  const log = (line: string) => { console.log(line); appendFileSync(logFile, line + '\n') }
+  const log = (line) => { console.log(line); appendFileSync(logFile, line + '\n') }
   const s = await startServer({ dir, port: flag('--port') ? Number(flag('--port')) : undefined, idleMin: Number(flag('--idle-min') ?? 30), log })
   log(`READY ${JSON.stringify({ url: s.url, token: s.token, logFile })}`)
   process.on('SIGTERM', async () => { await s.close(); process.exit(0) })
