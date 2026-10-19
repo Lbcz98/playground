@@ -59,7 +59,7 @@
     <style>
       * { box-sizing: border-box; margin: 0; font-family: ${FONT}; }
       :host { display: contents; }
-      .card { background: #232323; border: 1px solid #3f3a3a; box-shadow: 0 8px 24px rgba(0,0,0,.5); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; padding: 12px; min-height: 0; max-height: 100%; }
+      .card { background: #232323; ${tune ? '' : 'border: 1px solid #3f3a3a; box-shadow: 0 8px 24px rgba(0,0,0,.5);'} border-radius: 12px; display: flex; flex-direction: column; gap: 12px; padding: 12px; min-height: 0; max-height: 100%; }
       .hh { display: flex; align-items: center; justify-content: space-between; padding: 4px; flex: none; }
       .title { font-size: 16px; font-weight: 600; color: #ccc; }
       .close { width: 14px; height: 14px; border: 0; background: none; padding: 0; cursor: pointer; color: #ccc; }
@@ -96,6 +96,7 @@
   const more = actions.querySelector('.more')
   // One batch of new ideas at a time: the button waits for the one it asked for (cancel it on its placeholder or in Histórico).
   if (tune) more.style.display = 'none'
+  if (tune) { toggle.classList.remove('icon'); toggle.append('Histórico') } // on the stage the toggle carries its name
   more.onclick = () => { more.disabled = true; api('comment', { method: 'POST', body: JSON.stringify({ kind: 'more' }) }) }
 
   // Per-card menu: variations of an option the designer liked, or discard it. Lives inside the card so Tab reaches it right after the card.
@@ -312,6 +313,7 @@
     hist.style.display = open ? 'flex' : 'none'
     toggle.classList.toggle('on', open)
     syncPanel(open)
+    if (open) window.exploreTune?.expand?.() // /tune: Histórico lives in the panel, so it brings the panel back
     try { sessionStorage.setItem('explore-history', open ? '1' : '') } catch {}
   }
   toggle.onclick = () => setHistory(hist.style.display !== 'flex')
@@ -327,7 +329,7 @@
   // DialKit: only when the exploration asks for it (it defines window.exploreDials).
   if (hasDials) {
     const card = document.createElement('div')
-    card.style.cssText = `flex:1 1 0;min-height:0;display:flex;flex-direction:column;background:#232323;border-radius:12px;overflow:hidden;${EDGE}`
+    card.style.cssText = `flex:1 1 0;min-height:0;display:flex;flex-direction:column;background:#232323;border-radius:12px;overflow:hidden;${tune ? '' : EDGE}` // /tune: flat cards, no outline or shadow
     const host = document.createElement('div')
     host.style.cssText = 'flex:1 1 0;min-height:0;overflow:auto;position:relative'
     const foot = document.createElement('div')
@@ -336,6 +338,8 @@
     apply.textContent = 'Aplicar valores'
     apply.style.cssText = `height:24px;padding:0 10px;border:.7px solid #888;border-radius:8px;background:linear-gradient(#3c3c3c,#2f2f2f);box-shadow:inset 0 0 8px rgba(14,14,14,.19);color:#ccc;font:500 14px ${FONT};cursor:pointer`
     foot.appendChild(apply); card.append(host, foot); panel.appendChild(card)
+    const extra = window.exploreTune?.extra // /tune: "Exportar .md" sits beside "Aplicar valores"
+    if (extra) { extra.style.cssText = apply.style.cssText; foot.style.gap = '8px'; foot.style.padding = '12px'; for (const b of [extra, apply]) { b.style.flex = '1 1 0'; b.style.height = '32px'; b.style.border = 'none'; b.style.borderRadius = '999px' } foot.prepend(extra); Object.assign(apply.style, { background: '#eee', boxShadow: 'none', color: '#181818' }) } // two equal pill buttons, no outline, 8px apart; Aplicar valores is the primary one
 
     const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/__explore/dialkit.css'; document.head.appendChild(css)
     const js = document.createElement('script'); js.src = '/__explore/dialkit.js'
