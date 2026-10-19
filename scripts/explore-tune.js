@@ -32,6 +32,7 @@
     .tune-btn { flex: none; height: 32px; min-width: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #ccc; font: 500 14px ${FONT}; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
       background: linear-gradient(180deg, var(--explore-btn-fill-from), var(--explore-btn-fill-to)) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from), var(--explore-btn-stroke-to)) border-box; }
     .tune-btn.tune-back { background: none; font-size: 18px; padding: 0 6px; } .tune-btn.tune-back:hover { color: #fff; }
+    #explore-actions[data-live] { box-sizing: border-box; width: var(--explore-panel-w); justify-content: space-between; } /* the header actions span the DialKit panel below them */
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
