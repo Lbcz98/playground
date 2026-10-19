@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII thinking skeleton</title>
+<!-- Serve the repo root over http (ES module): python3 -m http.server 4321, then open /docs/explorations/ascii-thinking/ -->
+<link rel="stylesheet" href="../../../scripts/explore-generation/ui-generation.css">
+<style>
+  :root { --bg:#f6f6f5; --card:#fff; --border:#e6e6e3; --fg:#0d0d0d; --muted:#7a7a76; --accent:#2f6df6; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e0e0e; --card:#181818; --border:#2a2a2a; --fg:#f2f2f2; --muted:#8f8f8f; --accent:#6b98ff; } }
+  * { box-sizing:border-box }
+  body { margin:0; padding:48px 16px; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui,sans-serif; display:grid; gap:96px; justify-items:center }
+
+  /* the slot holds the real component and, on top, the thinking canvas */
+  .slot { position:relative; width:min(340px,100%) }
+  #thinking { position:absolute; inset:0; width:100%; height:100%; border-radius:16px; transition:opacity .3s ease-out; pointer-events:none }
+
+  /* the component being "built" */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; display:grid; gap:14px }
+  .card header { display:flex; gap:12px; align-items:center }
+  .card .icon { width:40px; height:40px; border-radius:10px; background:color-mix(in srgb,var(--accent) 14%,transparent); display:grid; place-items:center; color:var(--accent) }
+  .card h3 { margin:0; font-size:15px } .card small { color:var(--muted) }
+  .card p { margin:0; color:var(--muted) }
+  .card .row { display:flex; gap:8px }
+  .card input { flex:1; min-width:0; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:inherit; background:transparent; color:inherit }
+  .card button { border:0; border-radius:8px; padding:8px 14px; font:inherit; font-weight:600; background:var(--accent); color:#fff }
+
+  .controls { display:grid; gap:10px; width:min(560px,100%); font:12px/1.4 ui-monospace,Menlo,monospace; color:var(--muted) }
+  .controls h4 { margin:8px 0 0; color:var(--fg); font-weight:600 }
+  .controls label { display:grid; grid-template-columns:100px 1fr 70px; gap:12px; align-items:center }
+  .controls output { text-align:right }
+  .controls .bar { display:flex; gap:16px; align-items:center; flex-wrap:wrap }
+  .controls .bar label { display:flex; gap:6px }
+  .controls button { background:var(--fg); color:var(--bg); border:0; border-radius:6px; padding:6px 14px; font:inherit; cursor:pointer }
+  #status { color:var(--fg) }
+</style>
+</head>
+<body>
+<div class="slot">
+  <article class="card" id="card" aria-label="Invite teammates">
+    <header>
+      <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+      <div><h3>Invite teammates</h3><small>3 seats left on your plan</small></div>
+    </header>
+    <p>Teammates can view and comment on every screen in this project.</p>
+    <div class="row"><input placeholder="name@company.com"><button>Invite</button></div>
+  </article>
+  <canvas id="thinking" aria-hidden="true"></canvas>
+</div>
+
+<div class="controls">
+  <div class="bar"><button id="replay">Replay</button><label><input id="loop" type="checkbox" checked> loop</label><span id="status"></span></div>
+  <h4>1 · Thinking (ASCII matrix)</h4>
+  <label>Speed <input id="speed" type="range" min="2" max="40" step="1" value="12"><output></output></label>
+  <label>Duration <input id="duration" type="range" min="0.5" max="10" step="0.5" value="3"><output></output></label>
+  <label>Randomness <input id="random" type="range" min="0" max="1" step="0.01" value="0.5"><output></output></label>
+  <label>Trail <input id="trail" type="range" min="3" max="24" step="1" value="10"><output></output></label>
+  <h4>2 · Build (transitions.dev ui-generation)</h4>
+  <label>Build time <input id="build" type="range" min="1600" max="3600" step="100" value="2400"><output></output></label>
+  <label>Mode <select id="mode"><option>skeleton</option><option>skeleton-texts</option></select><span></span></label>
+</div>
+
+<script type="module">
+import { generate } from "../../../scripts/explore-generation/ui-generation.js";
+
+const $ = id => document.getElementById(id);
+const cv = $('thinking'), ctx = cv.getContext('2d'), card = $('card');
+const CW = 12, CH = 16;                 // cell size px
+const RAMP = ' .·:+*o●';                // dim → bright
+const UNIT = { speed: ' c/s', duration: ' s', build: ' ms' };
+const hash = (a, b, s) => { const x = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return x - Math.floor(x) };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+document.querySelectorAll('.controls input[type=range]').forEach(r => {
+  const o = r.parentNode.querySelector('output'), f = () => o.textContent = r.value + (UNIT[r.id] || '');
+  r.oninput = f; f();
+});
+
+let cols, rows, seed, t0, W, H, raf, run, timer, ink, strong;
+function resize() {
+  const d = devicePixelRatio || 1; W = card.offsetWidth; H = card.offsetHeight;
+  cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+  cols = Math.floor(W / CW); rows = Math.floor(H / CH);
+  // same greys as the build overlay, so the two phases read as one layer
+  const cs = getComputedStyle(document.documentElement);
+  ink = cs.getPropertyValue('--gen-ink').trim(); strong = cs.getPropertyValue('--gen-strong').trim();
+}
+
+function start() {
+  cancelAnimationFrame(raf); clearTimeout(timer); run?.cancel();
+  resize(); seed = Math.random() * 1000; t0 = performance.now();
+  card.style.visibility = 'hidden'; cv.style.opacity = 1;
+  if (reduced.matches) return build();  // no matrix, the runtime does its own plain fade
+  raf = requestAnimationFrame(think);
+}
+
+// Phase 1: the agent is thinking. Matrix rain of dots over the component's footprint.
+function think(now) {
+  const t = (now - t0) / 1000, speed = +$('speed').value, rnd = +$('random').value, L = +$('trail').value;
+  $('status').textContent = `thinking… ${t.toFixed(1)}s`;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = '12px ui-monospace,Menlo,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const span = rows + L;
+  for (let c = 0; c < cols; c++) {
+    // randomness 0: same speed, diagonal sweep. 1: own speed + phase per column.
+    const sp = speed * (1 + (hash(c, 1, seed) - 0.5) * 1.6 * rnd);
+    const off = c * 0.6 * (1 - rnd) + hash(c, 2, seed) * span * rnd;
+    const head = (t * sp + off) % span;
+    for (let r = 0; r < rows; r++) {
+      const d = head - r;
+      let a = 0.35, ch = '·', col = ink;
+      if (d >= 0 && d < L) {
+        const k = 1 - d / L, flick = (hash(c, r, seed + Math.floor(t * 12)) - 0.5) * rnd * 4;
+        ch = RAMP[Math.max(1, Math.min(RAMP.length - 1, Math.round(k * (RAMP.length - 1) + flick)))];
+        a = 0.2 + 0.8 * k; col = strong;
+      }
+      ctx.globalAlpha = a; ctx.fillStyle = col;
+      ctx.fillText(ch, c * CW + CW / 2, r * CH + CH / 2);
+    }
+  }
+  ctx.globalAlpha = 1;
+  if (t < +$('duration').value) raf = requestAnimationFrame(think);
+  else build();
+}
+
+// Phase 2: the component arrives. transitions.dev traces its real parts, then reveals it.
+async function build() {
+  $('status').textContent = 'building…';
+  cv.style.opacity = 0;
+  card.style.visibility = '';                         // generate() hides it via opacity in the same tick
+  run = generate(card, { mode: $('mode').value, duration: +$('build').value, done: 'Invite card ready' });
+  await run.finished;
+  $('status').textContent = 'done';
+  if ($('loop').checked) timer = setTimeout(start, 1800);
+}
+
+$('replay').onclick = start;
+await document.fonts.ready;
+start();
+</script>
+</body>
+</html>
