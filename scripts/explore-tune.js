@@ -33,7 +33,8 @@
       background: linear-gradient(180deg, var(--explore-btn-fill-from), var(--explore-btn-fill-to)) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from), var(--explore-btn-stroke-to)) border-box; }
     .tune-btn:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
     .tune-btn:disabled { opacity: .5; cursor: default; }
-    .tune-zoom { display: flex; align-items: center; gap: 4px; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
+    .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
+    .tune-zoom { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); justify-content: center; pointer-events: none; display: flex; align-items: center; gap: 4px; } .tune-zoom > * { pointer-events: auto; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
     .tune-stage { position: fixed; top: 72px; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: var(--explore-margin); display: flex; overflow: auto; background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius); }
     .tune-sizer { position: relative; flex: none; margin: auto; }
     .tune-scaler { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; padding: 64px; }
@@ -42,10 +43,10 @@
     .tune-scaler .opt:focus-visible { outline: none !important; }
     .tune-notrans, .tune-notrans *, .tune-notrans *::before, .tune-notrans *::after { transition: none !important; animation: none !important; }
     .tune-badge { position: fixed; left: calc(var(--explore-margin) + 12px); top: 84px; padding: 4px 10px; border-radius: 8px; background: #000a; color: #eee; font: 500 12px ${FONT}; pointer-events: none; }
-    .tune-note, .tune-judge { position: fixed; left: calc(var(--explore-margin) + 12px); bottom: calc(var(--explore-margin) + 12px); width: min(440px, 60vw); max-height: 45vh; overflow: auto; padding: 12px; border-radius: 12px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 400 13px/1.45 ${FONT}; }
+    .tune-note, .tune-judge { position: fixed; left: calc(var(--explore-margin) + 12px); bottom: calc(var(--explore-margin) + 56px); width: min(440px, 60vw); max-height: 45vh; overflow: auto; padding: 12px; border-radius: 12px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 400 13px/1.45 ${FONT}; }
     .tune-stage.testing { outline: 2px solid var(--explore-tile-label); outline-offset: -2px; }
     body > [inert] { opacity: .4; }
-    .tune-ft { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); display: flex; justify-content: center; pointer-events: none; }
+    .tune-ft { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 56px); display: flex; justify-content: center; pointer-events: none; }
     .tune-ft > div { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 10px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 500 13px ${FONT}; pointer-events: auto; }
     .tune-ft[hidden], .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
     .tune-judge h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; } .tune-judge .f { padding: 8px 0; border-top: 1px solid var(--explore-toggle-border); }
@@ -65,11 +66,16 @@
   const label = $('.opt-label', art)?.textContent.trim() ?? `Opção ${M}`
   const bar = document.createElement('div')
   bar.className = 'tune-bar'
-  bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>
-    <div class="tune-zoom" role="group" aria-label="Zoom"><button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button></div>
-    <button class="tune-btn judge">Avaliar</button><button class="tune-btn md">Exportar .md</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
+  bar.innerHTML = `<a class="tune-btn" href="/">← Opções</a><span class="tune-title" title="${esc(label)}">Ajuste fino · ${esc(label)}</span>`
+  // Over the canvas: review and Figma at the top right, zoom centred at the bottom (position: fixed, see the css above).
+  const tools = Object.assign(document.createElement('div'), { className: 'tune-tools' })
+  tools.innerHTML = `<button class="tune-btn judge">Avaliar</button><button class="tune-btn fpush">Enviar ao Figma</button><button class="tune-btn fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button><a class="tune-btn flink" target="_blank" rel="noreferrer" hidden>Abrir no Figma</a>`
+  const zoomBox = Object.assign(document.createElement('div'), { className: 'tune-zoom' })
+  zoomBox.setAttribute('role', 'group'); zoomBox.setAttribute('aria-label', 'Zoom')
+  zoomBox.innerHTML = `<button class="tune-btn out" aria-label="Menos zoom">−</button><output aria-live="polite">100%</output><button class="tune-btn in" aria-label="Mais zoom">+</button><button class="tune-btn fit">Ajustar</button>`
+  document.body.append(tools, zoomBox)
   $('.explore-header').prepend(bar)
-  const pct = $('output', bar)
+  const pct = $('output', zoomBox)
 
   let z = 1
   let testing = false // focus test: the option has the keyboard alone (see "Focus test")
@@ -90,10 +96,10 @@
   const fit = () => clamp(Math.min(stage.clientWidth / scaler.offsetWidth, stage.clientHeight / scaler.offsetHeight), 1, 4)
   new ResizeObserver(() => { if (auto) z = fit(); layout() }).observe(stage)
   new ResizeObserver(layout).observe(scaler)
-  $('.in', bar).onclick = () => setZoom(z * 1.25)
-  $('.out', bar).onclick = () => setZoom(z / 1.25)
+  $('.in', zoomBox).onclick = () => setZoom(z * 1.25)
+  $('.out', zoomBox).onclick = () => setZoom(z / 1.25)
   const refit = () => { auto = true; z = fit(); layout(); store(`tune-zoom-${M}`) }
-  $('.fit', bar).onclick = refit
+  $('.fit', zoomBox).onclick = refit
   stage.addEventListener('wheel', (e) => {
     if (!(e.ctrlKey || e.metaKey)) return // plain wheel scrolls (pans) the stage; a trackpad pinch arrives as ctrl+wheel
     e.preventDefault(); if (testing) return; const r = stage.getBoundingClientRect(); setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top)
@@ -128,7 +134,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    for (const b of ['.judge', '.md', '.fpush', '.fpull']) $(b, bar).disabled = true
+    for (const b of ['.judge', '.fpush', '.fpull']) $(b, tools).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -233,9 +239,11 @@
   })
 
   // --- Export: the option's contract as spec-<M>.md (the server writes it next to the page; the browser also downloads it) ---------------------
-  const mdBtn = $('.md', bar)
+  // The button lives in the panel's footer beside "Aplicar valores": the overlay builds that footer and takes it from window.exploreTune.extra.
+  const mdBtn = Object.assign(document.createElement('button'), { textContent: 'Exportar .md' })
+  window.exploreTune.extra = mdBtn
   mdBtn.onclick = async () => {
-    mdBtn.disabled = true
+    mdBtn.disabled = true; mdBtn.style.opacity = '.5'
     try {
       const r = await api('tune-md', { option: M, label, values: current }).then((x) => x.json())
       if (!r.md) throw new Error(r.error)
@@ -243,12 +251,12 @@
       a.click(); URL.revokeObjectURL(a.href)
       mdBtn.textContent = `Salvo: ${r.file}`
     } catch { mdBtn.textContent = 'Não consegui exportar' }
-    setTimeout(() => { mdBtn.textContent = 'Exportar .md'; mdBtn.disabled = false }, 2500)
+    setTimeout(() => { mdBtn.textContent = 'Exportar .md'; mdBtn.disabled = false; mdBtn.style.opacity = '' }, 2500)
   }
 
   // --- Figma ---------------------------------------------------------------------------------------------------------------------
   // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
-  const fpush = $('.fpush', bar), fpull = $('.fpull', bar), flink = $('.flink', bar)
+  const fpush = $('.fpush', tools), fpull = $('.fpull', tools), flink = $('.flink', tools)
   const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
   document.body.append(fmsg)
   const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
@@ -286,7 +294,7 @@
   }
   const load = () => fetch(`/__explore/judge?option=${M}`, { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((r) => r && show(r)).catch(() => {})
   load()
-  const btn = $('.judge', bar)
+  const btn = $('.judge', tools)
   btn.onclick = () => { btn.disabled = true; btn.textContent = 'Avaliando…'; api('comment', { kind: 'judge', option: M }) }
   let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}-${token}`))
   new EventSource(`/__explore/events?token=${token}`).addEventListener('state', (e) => {
