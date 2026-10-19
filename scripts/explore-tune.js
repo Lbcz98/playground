@@ -56,7 +56,7 @@
     .tune-note a { color: #9cf; } .tune-note .ftext + .undo { margin-top: 8px; } .tune-note .ftext { display: block; word-break: break-word; }
     .tune-tools { position: fixed; top: 84px; right: calc(var(--explore-panel-w) + 2 * var(--explore-margin) + 12px); display: flex; align-items: center; gap: 8px; }
     .tune-zoom { position: fixed; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: calc(var(--explore-margin) + 12px); justify-content: center; pointer-events: none; display: flex; align-items: center; gap: 4px; } .tune-zoom > * { pointer-events: auto; } .tune-zoom .fit[hidden] { display: none; } .tune-zoom .fit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; } .tune-zoom output { min-width: 48px; text-align: center; font: 500 13px ${FONT}; font-variant-numeric: tabular-nums; }
-    .tune-stage { position: fixed; top: 72px; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: var(--explore-margin); display: flex; overflow: auto; --dot-a: .1; --dot-r: 1px; --dot-gap: 20px; /* the "Palco" folder moves these */
+    .tune-stage { position: fixed; top: 72px; left: var(--explore-margin); right: calc(var(--explore-panel-w) + 2 * var(--explore-margin)); bottom: var(--explore-margin); display: flex; overflow: auto; --dot-a: .03; --dot-r: 1.25px; --dot-gap: 23px; /* the "Palco" folder moves these */
       background: radial-gradient(circle, rgba(255, 255, 255, var(--dot-a)) var(--dot-r), transparent calc(var(--dot-r) + .5px)) 0 0 / var(--dot-gap) var(--dot-gap), var(--explore-tile-bg); border-radius: var(--explore-tile-radius); }
     .tune-sizer { position: relative; flex: none; margin: auto; }
     .tune-scaler { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; padding: 64px; }
@@ -185,7 +185,7 @@
     De: { type: 'select', options: states, default: states[0] }, Para: { type: 'select', options: states, default: states.at(-1) },
     Replay: { type: 'action', label: 'Replay' }, Repetir: false, Velocidade: [1, 0.1, 1, 0.05],
   }
-  config.Palco = { _collapsed: true, 'Opacidade dos pontos': [10, 0, 100, 1], 'Tamanho dos pontos': [1, 0.5, 4, 0.25], 'Espaçamento dos pontos': [20, 8, 64, 1] } // the stage's own dials: never written to the option
+  config.Palco = { _collapsed: true, 'Opacidade dos pontos': [3, 0, 100, 1], 'Tamanho dos pontos': [1.25, 0.5, 4, 0.25], 'Espaçamento dos pontos': [23, 8, 64, 1] } // the stage's own dials: never written to the option
   for (const f of folders) config[f.name] = { _collapsed: true, ...Object.fromEntries((f.controls ?? []).map((c) => [c.label, pick(c)])) }
 
   const hash = [...JSON.stringify(spec)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7) // new defaults (Aplicar valores, an edit) start from them, not from an old session
