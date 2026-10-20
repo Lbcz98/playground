@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII waves</title>
+<!-- Throwaway. Open with the repo root served over http: /docs/explorations/ascii-waves/ -->
+<style>
+  :root { --bg:#181818; --tile:#232323; --fg:#eee; --muted:#8f8f8f; --line:#3f3a3a; }
+  * { box-sizing:border-box }
+  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--fg); font:12px/1.4 ui-monospace,Menlo,monospace; display:grid; gap:24px; justify-items:center }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(288px,288px)); gap:16px; justify-content:center; width:min(992px,100%) }
+  .tile { position:relative; height:234px; background:var(--tile); border-radius:12px; overflow:hidden }
+  .tile canvas { position:absolute; inset:0; width:100%; height:100% }
+  .tile span { position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font:500 14px system-ui; pointer-events:none }
+  .tile span b { font-weight:500; padding:2px 8px; border-radius:6px; background:var(--tile) }
+  .controls { display:grid; gap:8px; width:min(560px,100%); color:var(--muted) }
+  .controls h4 { margin:10px 0 0; color:var(--fg); font-weight:600 }
+  label { display:grid; grid-template-columns:110px 1fr 56px; gap:12px; align-items:center }
+  output { text-align:right }
+  input[type=range] { accent-color:#a3a3a3 }
+  .bar { display:flex; gap:8px; flex-wrap:wrap }
+  button { background:var(--fg); color:var(--bg); border:0; border-radius:6px; padding:6px 12px; font:inherit; cursor:pointer }
+  button.ghost { background:none; color:var(--fg); border:1px solid var(--line) }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+
+<div class="controls">
+  <div class="bar" id="presets"></div>
+  <h4>Motion</h4>
+  <label>Speed <input id="speed" type="range" min="1" max="14" step="0.5" value="4"><output></output></label>
+  <label>Wavelength <input id="length" type="range" min="6" max="40" step="1" value="20"><output></output></label>
+  <label>Direction <input id="angle" type="range" min="0" max="360" step="5" value="25"><output></output></label>
+  <label>Layers <input id="layers" type="range" min="1" max="4" step="1" value="3"><output></output></label>
+  <h4>Organic</h4>
+  <label>Randomness <input id="random" type="range" min="0" max="1" step="0.01" value="0.5"><output></output></label>
+  <label>Curl <input id="curl" type="range" min="0" max="1" step="0.01" value="0.5"><output></output></label>
+  <label>Ripples <input id="ripples" type="range" min="0" max="1" step="0.01" value="0.25"><output></output></label>
+  <h4>Look</h4>
+  <label>Opacity <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.5"><output></output></label>
+  <label>Sharpness <input id="sharp" type="range" min="0.5" max="4" step="0.1" value="1.6"><output></output></label>
+  <label>FPS <input id="fps" type="range" min="12" max="60" step="6" value="30"><output></output></label>
+  <div class="bar"><button id="reseed">Reseed</button><button class="ghost" id="pause">Pause</button></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const CW = 12, CH = 16, RAMP = ' .·:+*o●', TAU = Math.PI * 2;
+const hash = (a, b, s) => { const x = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return x - Math.floor(x) };
+const UNIT = { speed: ' c/s', angle: '°', fps: '' };
+const PRESETS = {
+  'Calm sea':  { speed: 3, length: 24, angle: 15, layers: 3, random: 0.35, curl: 0.55, ripples: 0.15, opacity: 0.45, sharp: 1.4, fps: 30 },
+  'Swell':     { speed: 5, length: 32, angle: 0, layers: 2, random: 0.2, curl: 0.3, ripples: 0, opacity: 0.5, sharp: 2.2, fps: 30 },
+  'Choppy':    { speed: 8, length: 12, angle: 40, layers: 4, random: 0.85, curl: 0.7, ripples: 0.3, opacity: 0.5, sharp: 1.2, fps: 30 },
+  'Raindrops': { speed: 4, length: 10, angle: 0, layers: 1, random: 0.5, curl: 0.2, ripples: 1, opacity: 0.5, sharp: 2.6, fps: 30 },
+};
+const ids = ['speed','length','angle','layers','random','curl','ripples','opacity','sharp','fps'];
+const set = (v) => ids.forEach(k => { $(k).value = v[k]; $(k).dispatchEvent(new Event('input')) });
+ids.forEach(k => { const r = $(k), o = r.parentNode.querySelector('output'); r.oninput = () => o.textContent = r.value + (UNIT[k] || ''); r.oninput() });
+for (const name in PRESETS) { const b = Object.assign(document.createElement('button'), { textContent: name, className: 'ghost', onclick: () => set(PRESETS[name]) }); $('presets').append(b) }
+
+// four tiles at the explore card size, each with its own seed
+const tiles = [0, 1, 2, 3].map(i => {
+  const el = document.createElement('div'); el.className = 'tile';
+  el.innerHTML = '<canvas></canvas><span><b>Na fila…</b></span>';
+  $('grid').append(el);
+  return { cv: el.firstChild, seed: i * 17.3 + 1, i };
+});
+let paused = false, tPaused = 0, clock = 0, lastNow = 0;
+
+function draw({ cv, seed, i }, t) {
+  const d = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w * d || cv.height !== h * d) { cv.width = w * d; cv.height = h * d }
+  const x = cv.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h);
+  x.font = '12px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#a3a3a3';
+  const P = Object.fromEntries(ids.map(k => [k, +$(k).value]));
+  const cols = Math.floor(w / CW), rows = Math.floor(h / CH), base = P.angle * TAU / 360;
+  // each layer: its own direction (spread by randomness), wavelength, phase speed and a slow breathing amplitude
+  const L = Array.from({ length: P.layers }, (_, n) => {
+    const ang = base + (hash(n, 1, seed) - 0.5) * Math.PI * P.random * 1.2;
+    const k = TAU / (P.length * (0.7 + 0.6 * hash(n, 2, seed)))
+    return { cx: Math.cos(ang), cy: Math.sin(ang), k, w: k * P.speed * (0.6 + 0.8 * hash(n, 3, seed)), ph: hash(n, 4, seed) * TAU,
+      am: 0.65 + 0.35 * Math.sin(t * 0.2 * (0.5 + hash(n, 5, seed)) + hash(n, 6, seed) * TAU) }
+  });
+  const sum = L.reduce((a, l) => a + l.am, 0) + P.ripples, rk = TAU / (P.length * 0.8);
+  // a ripple source that wanders slowly across the tile
+  const sx = cols / 2 + cols * 0.35 * Math.sin(t * 0.11 + seed), sy = rows / 2 + rows * 0.3 * Math.cos(t * 0.09 + seed * 2);
+  for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+    // curl bends the crests so the lines are never straight
+    const wx = c + P.curl * 3 * Math.sin(r * 0.17 + t * 0.4 + seed), wy = r * 1.6 + P.curl * 3 * Math.cos(c * 0.13 - t * 0.33 + seed);
+    let s = 0;
+    for (const l of L) s += l.am * Math.sin(l.k * (wx * l.cx + wy * l.cy) - l.w * t + l.ph);
+    if (P.ripples) s += P.ripples * Math.sin(rk * Math.hypot((c - sx), (r - sy) * 1.6) - P.speed * rk * t) / (1 + Math.hypot(c - sx, r - sy) * 0.03);
+    let v = (s / sum) * 0.5 + 0.5 + (hash(c, r, seed + Math.floor(t * 8)) - 0.5) * P.random * 0.12;
+    v = Math.pow(Math.max(0, Math.min(1, v)), P.sharp);
+    x.globalAlpha = P.opacity * (0.12 + 0.88 * v);
+    x.fillText(v < 0.08 ? '·' : RAMP[Math.max(1, Math.round(v * (RAMP.length - 1)))], c * CW + CW / 2, r * CH + CH / 2);
+  }
+}
+
+let last = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (now - last < 1000 / +$('fps').value) return;
+  last = now; if (!paused) clock += (now - lastNow) / 1000; lastNow = now;
+  tiles.forEach(tl => draw(tl, clock));
+}
+$('reseed').onclick = () => tiles.forEach(t => t.seed = Math.random() * 1000);
+$('pause').onclick = (e) => { paused = !paused; e.target.textContent = paused ? 'Play' : 'Pause' };
+set(PRESETS['Calm sea']);
+requestAnimationFrame((n) => { lastNow = n; frame(n) });
+</script>
+</body>
+</html>
