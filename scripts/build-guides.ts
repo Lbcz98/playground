@@ -157,7 +157,7 @@ function exploreGuide(root: unknown): string {
     '- Pick one surface for the whole exploration. Using the other on purpose (say, a Content Card beside small cards) is the idea of that option, not a style choice.',
     '- An option whose idea is not a card (a ring, a map, a strip) marks the shape with `data-surface="own"` and says why in the report.',
   )
-  table('Border width', by(core('border-width')).map((r) => r.slice(0, 2)), ['CSS variable', 'Value'])
+  table('Border width', by((t) => t.path[0] === 'dimension' && t.path[1] === 'border-width').map((r) => r.slice(0, 2)), ['CSS variable', 'Value'])
   table('Opacity', named('opacity'), ['CSS variable', 'Value'])
   table('Gradients', named('gradient'), ['CSS variable', 'Stops'])
   table('Motion', named('motion'), ['CSS variable', 'Value'])

@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { setDiscarded, startServer } from './explore-server'
+// @ts-expect-error plain .mjs, so `node` runs it without a build
+import { setDiscarded, startServer } from './explore-server.mjs'
 
 const dir = mkdtempSync(join(tmpdir(), 'explore-test-'))
 mkdirSync(join(dir, 'sub'))
@@ -13,7 +14,7 @@ writeFileSync(join(dir, 'sub', 'a.css'), 'p{}')
 
 let s: Awaited<ReturnType<typeof startServer>>
 const lines: string[] = []
-beforeAll(async () => { s = await startServer({ dir: join(dir), log: (l) => lines.push(l) }) })
+beforeAll(async () => { s = await startServer({ dir: join(dir), log: (l: string) => lines.push(l) }) })
 afterAll(async () => { await s.close(); rmSync(dir, { recursive: true, force: true }) })
 
 const post = (path: string, body: unknown, headers: Record<string, string> = { 'x-explore-token': s.token }) =>
@@ -54,7 +55,7 @@ describe('explore server', () => {
     expect((await fetch(s.url + '__explore/icons/add.svg')).headers.get('content-type')).toBe('image/svg+xml')
     expect((await fetch(s.url + '__explore/dialkit.js')).status).toBe(200)
     expect((await fetch(s.url + '__explore/dialkit.css')).status).toBe(200)
-    expect((await fetch(s.url + '__explore/icons/..%2f..%2fexplore-server.ts')).status).not.toBe(200)
+    expect((await fetch(s.url + '__explore/icons/..%2f..%2fexplore-server.mjs')).status).not.toBe(200)
   })
 
   it('takes tuned DialKit values as a "dials" message, and rejects a missing or oversized one', async () => {

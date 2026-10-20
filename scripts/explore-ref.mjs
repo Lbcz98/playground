@@ -1,4 +1,4 @@
-// node scripts/explore-ref.mjs --list [filtro]            one line per reference: nome | padrão | tags | resumo
+// node scripts/explore-ref.mjs --list [filtro]            one line per reference: nome | padrão | tags | resumo (no match: the whole catalog)
 // node scripts/explore-ref.mjs <nome> [seções…]           only those sections of one anatomy note (default: cerne receita)
 // node scripts/explore-ref.mjs --teclas                   the keys inside a card (docs/explorations/_references/interacoes.md)
 // node scripts/explore-ref.mjs --padroes [nome]           the interaction patterns, or only one row
@@ -38,6 +38,12 @@ export const catalog = (dir, filter = '') => {
     .filter((line) => plain(line).includes(f))
 }
 
+// A filter that matches nothing still answers with the whole catalog, so the caller needs no second call.
+export const listing = (dir, filter = '') => {
+  const hit = catalog(dir, filter)
+  return hit.length ? hit.join('\n') : [`nenhuma referência com "${filter}"; o catálogo inteiro:`, ...catalog(dir)].join('\n')
+}
+
 export const note = (dir, name, wanted = ['cerne', 'receita']) => {
   const all = names(dir)
   const hit = all.includes(name) ? [name] : all.filter((n) => plain(n).includes(plain(name)))
@@ -65,7 +71,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [a, ...rest] = process.argv.slice(2)
   const fail = (m) => { console.error(`erro: ${m}`); process.exit(1) }
   try {
-    if (a === '--list') console.log(catalog(dir, rest.join(' ')).join('\n') || 'nenhuma referência com esse filtro')
+    if (a === '--list') console.log(listing(dir, rest.join(' ')))
     else if (a === '--teclas') console.log(teclas(readFileSync(`${root}interacoes.md`, 'utf8')))
     else if (a === '--padroes') console.log(padroes(readFileSync(`${root}interacoes.md`, 'utf8'), rest.join(' ')))
     else if (a) console.log(note(dir, a, rest.length ? rest : undefined))

@@ -1,4 +1,4 @@
-/* The fine-tuning stage (/tune), loaded by scripts/explore-server.ts on `/tune/<N>` before the overlay.
+/* The fine-tuning stage (/tune), loaded by scripts/explore-server.mjs on `/tune/<N>` before the overlay.
  * One option sits alone on a zoomable stage; the DialKit panel on the right is built from the option's own spec
  * (<script type="application/json" data-tune="N">, see scripts/explore-tune.mjs) and writes straight to the CSS custom properties the option reads.
  * Around the controls: the states the option declares (Estado), a replay between two of them with loop and slow motion,

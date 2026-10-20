@@ -1,4 +1,4 @@
-/* Live layer injected by scripts/explore-server.ts into an exploration's index.html.
+/* Live layer injected by scripts/explore-server.mjs into an exploration's index.html.
  *  - Header buttons "Mais opções" (a fresh batch), "Adicionar comentário" (element picker) and a history toggle, mounted in the page's #explore-actions slot.
  *  - A "Variar" menu on each card: four kinds of variation of that option, or discard it. Placeholder cards stand in while a batch is made.
  *  - A fixed 288 px panel on the right with the "Histórico" card and, only when the page defines window.exploreDials,

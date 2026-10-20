@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
 import { applyTuned, specJson, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
-import { startServer } from './explore-server'
+// @ts-expect-error plain .mjs, so `node` runs it without a build
+import { startServer } from './explore-server.mjs'
 
 const spec: any = {
   states: ['repouso', 'foco'],
@@ -116,7 +117,7 @@ describe('stage routes', () => {
   writeFileSync(join(dir, 'index.html'), `<html><body>${page()}</body></html>`)
   let s: Awaited<ReturnType<typeof startServer>>
   const lines: string[] = []
-  beforeAll(async () => { s = await startServer({ dir, log: (l) => lines.push(l) }) })
+  beforeAll(async () => { s = await startServer({ dir, log: (l: string) => lines.push(l) }) })
   afterAll(async () => { await s.close(); rmSync(dir, { recursive: true, force: true }) })
   const post = (path: string, body: unknown) => fetch(s.url + '__explore/' + path, { method: 'POST', body: JSON.stringify(body), headers: { 'x-explore-token': s.token } })
 
