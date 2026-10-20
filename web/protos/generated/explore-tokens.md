@@ -162,6 +162,10 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--dimension-border-width-core-thin` | 2px |
 | `--dimension-border-width-core-medium` | 4px |
 | `--dimension-border-width-core-thick` | 6px |
+| `--dimension-border-width-semantic-button` | 1px |
+| `--dimension-border-width-semantic-card` | 1px |
+| `--dimension-border-width-semantic-divider` | 1px |
+| `--dimension-border-width-semantic-focus-ring` | 4px |
 
 ## Opacity
 
