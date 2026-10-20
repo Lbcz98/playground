@@ -7,6 +7,9 @@
  *  - The picker outline and the note box live in a separate fixed layer. Shadow roots keep the page's CSS out.
  *  - On the /tune stage: no card menus and no "Mais opções"; "Aplicar valores" is written by the server (window.exploreTune). */
 (() => {
+  // The header buttons go in the page's slot (docs/explorations/_template). A page without it gets no live layer.
+  const slot = document.getElementById('explore-actions')
+  if (!slot) return
   const { token, tune } = window.__EXPLORE__ // `tune`: the page is the /tune stage (scripts/explore-tune.js ran first)
   // A click that cannot reach the session must say so: a silent failure looks like "nothing happens".
   const alertBar = document.createElement('div')
@@ -78,13 +81,7 @@
   const body = hroot.querySelector('.body')
   body.onclick = (e) => { const x = e.target.closest('.x'); if (x) cancel(x.dataset.id) }
 
-  // Header buttons, in the page's slot (a fixed cluster at the top right on pages without one).
-  let slot = document.getElementById('explore-actions')
-  if (!slot) {
-    slot = document.createElement('div')
-    slot.style.cssText = 'position:fixed;top:24px;right:24px;z-index:2147483646'
-    document.body.appendChild(slot)
-  }
+  // Header buttons, in the page's slot.
   slot.dataset.live = ''
   const actions = slot.attachShadow({ mode: 'open' })
   actions.innerHTML = `
