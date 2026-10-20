@@ -3,7 +3,7 @@
  * injects the comment overlay into its HTML, and turns each comment or request for variations into one `COMMENT {json}` line.
  * `/tune/<N>` serves the same page as a fine-tuning stage for one option (scripts/explore-tune.js); "Aplicar valores" there is written by the server, no agent.
  *
- *   npm run explore:serve -- <folder> [--port N] [--idle-min 30]
+ *   npm run explore:serve -- <folder>
  *
  * The session reads the lines (Monitor on the log file), applies the change, then reports back with
  * `POST /__explore/status {id,status,summary}`; "aplicado" makes the open page reload.
@@ -59,7 +59,7 @@ export function setDiscarded(html, option, discarded) {
 const STATUSES = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou'] // what the session may set; `cancelado` is the designer's
 const clip = (v, n) => String(v ?? '').slice(0, n)
 
-/** opts: { dir, port?, idleMin?, log?(line) } → { url, token, comments, close() } */
+/** opts: { dir, log?(line) } → { url, token, comments, close() } */
 export function startServer(opts) {
   const root = resolve(opts.dir)
   const token = randomBytes(16).toString('hex')
@@ -249,7 +249,7 @@ export function startServer(opts) {
   })
 
   // ponytail: idle cutoff polled every 30 s; fine for a one-person local server.
-  const idle = (opts.idleMin ?? 30) * 60_000
+  const idle = 30 * 60_000
   const timer = setInterval(() => {
     if (clients.size === 0 && Date.now() - lastActivity > idle) close()
   }, 30_000)
@@ -264,7 +264,7 @@ export function startServer(opts) {
   })
 
   return new Promise((ok) =>
-    server.listen(opts.port ?? 0, '127.0.0.1', () => {
+    server.listen(0, '127.0.0.1', () => {
       origin = `http://127.0.0.1:${server.address().port}`
       ok({ url: origin + '/', token, comments, close })
     }),
@@ -274,16 +274,15 @@ export function startServer(opts) {
 // CLI: `npm run explore:serve -- docs/explorations/<slug>`
 async function main() {
   const args = process.argv.slice(2).filter((a) => a !== '--')
-  const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
-  const dir = args.find((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--'))
+  const dir = args.find((a) => !a.startsWith('--'))
   if (!dir || !existsSync(join(dir, 'index.html'))) {
-    console.error('uso: npm run explore:serve -- <pasta com index.html> [--port N] [--idle-min 30]')
+    console.error('uso: npm run explore:serve -- <pasta com index.html>')
     process.exit(1)
   }
   const logFile = join(tmpdir(), `explore-${basename(resolve(dir))}.log`)
   writeFileSync(logFile, '')
   const log = (line) => { console.log(line); appendFileSync(logFile, line + '\n') }
-  const s = await startServer({ dir, port: flag('--port') ? Number(flag('--port')) : undefined, idleMin: Number(flag('--idle-min') ?? 30), log })
+  const s = await startServer({ dir, log })
   log(`READY ${JSON.stringify({ url: s.url, token: s.token, logFile })}`)
   process.on('SIGTERM', async () => { await s.close(); process.exit(0) })
   process.on('SIGINT', async () => { await s.close(); process.exit(0) })
