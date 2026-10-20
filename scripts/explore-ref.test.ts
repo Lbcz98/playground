@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { catalog, head, note, padroes, sections, teclas } from './explore-ref.mjs'
+import { catalog, head, listing, note, padroes, sections, teclas } from './explore-ref.mjs'
 
 const body = `# orbita-de-pessoas
 Tags: arranjo radial, foco com rótulo
@@ -36,6 +36,13 @@ describe('explore-ref', () => {
     expect(catalog(dir)).toHaveLength(2)
     expect(catalog(dir, 'ORBITA')).toEqual(['orbita-de-pessoas | Órbita | arranjo radial, foco com rótulo | pessoas em volta de um centro'])
     expect(catalog(dir, 'trilho de passos')).toHaveLength(1)
+  })
+
+  it('answers a filter that matches nothing with the whole catalog under a note', () => {
+    expect(listing(dir, 'orbita').split('\n')).toHaveLength(1)
+    const out = listing(dir, 'futebol').split('\n')
+    expect(out[0]).toBe('nenhuma referência com "futebol"; o catálogo inteiro:')
+    expect(out.slice(1)).toEqual(catalog(dir))
   })
 
   it('returns only the sections asked for, by default cerne and receita', () => {
