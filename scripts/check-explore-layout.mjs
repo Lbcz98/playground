@@ -1,4 +1,4 @@
-// node scripts/check-explore-layout.mjs docs/explorations/<slug>[/parts/<N>.html]
+// node scripts/check-explore-layout.mjs docs/explorations/<slug>[/parts/<N>.html] [--shots <out folder> [--keys ArrowRight,Enter]]
 // Renders the exploration and fails on what the writer cannot see by reading the code. One line per problem, in Portuguese:
 //   escapa     a piece is drawn outside its card (usually width/height/position on an inline element: a <span>)
 //   sobrepõe   two pieces with text sit on top of each other
@@ -9,7 +9,8 @@
 //   consistência  surfaces of one page that differ from the rest in radius, color or inset (whole page only)
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
 // `data-surface="own"` on a surface that is the idea of the option (not a card), with the reason in the report.
-import { openExploration } from './explore-page.mjs'
+// --shots: when the page is `ok`, also the PNGs of scripts/explore-shots.mjs (with its --keys), from the same open page: one Chromium, one call.
+import { openExploration, shoot } from './explore-page.mjs'
 
 const { page, close } = await openExploration(process.argv[2])
 const whole = !/\d+\.html$/.test(process.argv[2])
@@ -122,8 +123,10 @@ const result = await page.evaluate((whole) => {
   const advice = out.filter((l) => /: (superfície|consistência):/.test(l) && tuned(l))
   return [[...new Set(out.filter((l) => !advice.includes(l)))], [...new Set(advice)]]
 }, whole)
-await close()
 const [found, advice] = result
+const flag = (n) => { const i = process.argv.indexOf(n); return i > 2 ? process.argv[i + 1] ?? '' : undefined }
+const shots = !found.length && flag('--shots') ? await shoot(page, flag('--shots'), (flag('--keys') ?? '').split(',').filter(Boolean)) : []
+await close()
 if (advice.length) console.log(advice.map((l) => `advisory: ${l}`).join('\n'))
 if (found.length) { console.error(found.join('\n')); process.exit(1) }
-console.log('ok')
+console.log(['ok', ...shots].join('\n'))
