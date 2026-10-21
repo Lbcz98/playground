@@ -2,6 +2,7 @@
 Tags: arranjo radial, membros em volta de um centro, foco com rótulo flutuante, rodapé de identidade e ação
 Padrão: Órbita
 Resumo: as pessoas de um espaço sentam numa meia órbita em volta do emblema do espaço; a pessoa focada ganha anel e o nome num balão.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O grupo é desenhado como um lugar: o emblema do espaço no centro, as pessoas em volta dele, na mesma distância. A relação "pertence a" vira geometria, sem texto. O nome só aparece para quem está em foco, então sete pessoas cabem sem sete rótulos.

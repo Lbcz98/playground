@@ -37,13 +37,14 @@ A flaw is a finding too (a truncated title, a weak focus, a colour with the wron
 
 ## 2. The note
 
-Start with these three lines (they are the catalog: `node scripts/explore-ref.mjs --list` prints them, and agents choose references from them alone, so make each tag one idea and the Resumo one sentence), then the sections in this order, with exactly these headings: the script reads each section by its heading, and agents ask for only the ones they need, so each section must say only what its title promises and never repeat another. Keep it under about 70 lines; precise beats long.
+Start with these four lines (the first three are the catalog: `node scripts/explore-ref.mjs --list` prints them, and agents choose references from them alone, so make each tag one idea and the Resumo one sentence; `Fonte` is for whoever maintains the note and is not printed), then the sections in this order, with exactly these headings: the script reads each section by its heading, and agents ask for only the ones they need, so each section must say only what its title promises and never repeat another. Keep it under about 70 lines; precise beats long.
 
 ```
 # <image-name>
 Tags: <2 to 4 tags of structural idea, never of appearance>
 Padrão: <exact name from interacoes.md, or "nenhum">
 Resumo: <one line: the idea in plain words>
+Fonte: <folder/file name with extension, as you Read it> · <AAAA-MM-DD>
 
 ## Cerne
 The one idea, in two or three sentences: what the element does and why it is built this way.
@@ -66,6 +67,8 @@ Name the principle (from the lenses) and tie it to what is visible.
 ## Falhas
 What not to learn. "Nenhuma" is valid.
 ```
+
+`Fonte` names the image exactly as you read it (`Cards/foo.png`), so the note can be checked against it later. The date is the one the request states; none stated → leave out ` · <AAAA-MM-DD>` and say so in your reply.
 
 `Padrão` names come from the table under `## Padrões` in `design-brain/references/interacoes.md`: find its line with `Grep -n` and `Read` from there only (the keys above it are not yours to describe). Do not edit it.
 

@@ -2,6 +2,7 @@
 Tags: fase codificada por matiz, esqueleto fixo com zona variável, visualização própria por fase, brilho como atividade
 Padrão: Estado muda o card
 Resumo: o mesmo card em três fases de um processo; cada fase tem um matiz próprio e uma visualização própria de progresso, sobre um esqueleto que não muda.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O nome da fase e a cor dizem "onde o processo está" antes de qualquer número. O esqueleto (título e subtítulo no canto, alça embaixo) fica parado, então o olho reconhece o card; só a zona de dado muda, e muda de forma conforme o que cada fase tem para mostrar. O brilho difuso diz "isto está acontecendo agora".

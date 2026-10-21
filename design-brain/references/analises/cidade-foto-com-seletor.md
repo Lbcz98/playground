@@ -2,6 +2,7 @@
 Tags: foto como contexto, rota simétrica, seletor que troca o card inteiro
 Padrão: Seletor segmentado
 Resumo: Card de viagem com foto da cidade de fundo, rota de dois aeroportos e um seletor de duas cidades que troca a foto e o título.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O seletor no rodapé é um filtro do card: escolher "San Francisco" ou "New York" muda a foto, o título no topo e provavelmente a ênfase da rota. A foto ocupa o card todo e dá o lugar; o texto fica nas duas faixas em que a foto é mais escura ou mais calma (céu no topo, neblina embaixo).

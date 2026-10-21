@@ -31,6 +31,18 @@ server.registerTool('get_reference', {
   inputSchema: { name: z.string(), sections: z.array(z.string()).optional() },
 }, async ({ name, sections }) => text(note(notes, name, sections?.length ? sections : undefined)))
 
+const rules = join(refs, 'conceitos')
+
+server.registerTool('list_concepts', {
+  description: 'Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels), one line each. A filter word narrows it.',
+  inputSchema: { filter: z.string().optional() },
+}, async ({ filter }) => text(listing(rules, filter)))
+
+server.registerTool('get_concept', {
+  description: 'One design rule. Default: cerne (the rule) and receita (the steps). Add uso for the kit tokens that apply it, and ajuste for when to bend it.',
+  inputSchema: { name: z.string(), sections: z.array(z.string()).optional() },
+}, async ({ name, sections }) => text(note(rules, name, sections?.length ? sections : undefined)))
+
 server.registerTool('get_patterns', {
   description: 'The interaction pattern table, or only the row of one pattern by name.',
   inputSchema: { name: z.string().optional() },

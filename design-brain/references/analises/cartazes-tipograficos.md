@@ -2,6 +2,7 @@
 Tags: par espelhado, textura feita de letras, texto em zona livre, marca no sistema da textura
 Padrão: nenhum
 Resumo: Dois cartazes verticais iguais em tamanho e opostos em arranjo: o texto ocupa uma faixa vazia (em cima num, embaixo no outro) e o resto é uma textura de caracteres que desenha formas grandes.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 A superfície inteira é feita de tipografia: a mensagem em letra grande e a textura em letra miúda. A textura nunca disputa com o texto porque cada um tem a sua zona; o texto mora num vão limpo e a textura preenche o resto. Os dois painéis são o mesmo sistema invertido (fundo escuro/texto no alto contra fundo de cor/texto embaixo), o que faz deles uma série e não dois cartazes soltos.

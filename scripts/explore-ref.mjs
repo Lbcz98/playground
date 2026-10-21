@@ -2,14 +2,16 @@
 // node scripts/explore-ref.mjs <nome> [seções…]           only those sections of one anatomy note (default: cerne receita)
 // node scripts/explore-ref.mjs --teclas                   the keys inside a card (design-brain/references/interacoes.md)
 // node scripts/explore-ref.mjs --padroes [nome]           the interaction patterns, or only one row
+// node scripts/explore-ref.mjs --conceitos [filtro]       the same catalog for the cross-cutting rule notes (conceitos/)
+// node scripts/explore-ref.mjs --conceito <nome> [seções…] one rule note (default: cerne receita); it adds the sections uso (kit tokens) and ajuste
 // The /explore agents use this instead of reading the reference files whole, so only what a direction needs enters their context.
-// Sections: cerne pecas tipografia posicao cor hierarquia interacao minucias porque receita falhas | tudo
+// Sections: cerne pecas tipografia posicao cor hierarquia interacao minucias porque receita falhas uso ajuste | tudo
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../design-brain/references/', import.meta.url))
 const plain = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-const KEYS = { cerne: 'cerne', pecas: 'pecas', tipografia: 'tipografia', posicao: 'posicao', cor: 'cor', hierarquia: 'hierarquia', interacao: 'interacao', minucias: 'minucias', por: 'porque', receita: 'receita', falhas: 'falhas' }
+const KEYS = { cerne: 'cerne', pecas: 'pecas', tipografia: 'tipografia', posicao: 'posicao', cor: 'cor', hierarquia: 'hierarquia', interacao: 'interacao', minucias: 'minucias', por: 'porque', receita: 'receita', falhas: 'falhas', uso: 'uso', ajuste: 'ajuste' }
 
 // "## Posição e espaço" → key "posicao"; text without the heading line.
 export const sections = (md) => {
@@ -75,7 +77,9 @@ if (process.argv[1]?.endsWith('explore-ref.mjs')) {
     if (a === '--list') console.log(listing(dir, rest.join(' ')))
     else if (a === '--teclas') console.log(teclas(readFileSync(`${root}interacoes.md`, 'utf8')))
     else if (a === '--padroes') console.log(padroes(readFileSync(`${root}interacoes.md`, 'utf8'), rest.join(' ')))
+    else if (a === '--conceitos') console.log(listing(`${root}conceitos`, rest.join(' ')))
+    else if (a === '--conceito') console.log(note(`${root}conceitos`, rest[0] ?? '', rest.length > 1 ? rest.slice(1) : undefined))
     else if (a) console.log(note(dir, a, rest.length ? rest : undefined))
-    else fail('uso: --list [filtro] | <nome> [seções…] | --teclas | --padroes [nome]')
+    else fail('uso: --list [filtro] | <nome> [seções…] | --teclas | --padroes [nome] | --conceitos [filtro] | --conceito <nome> [seções…]')
   } catch (e) { fail(e.message) }
 }

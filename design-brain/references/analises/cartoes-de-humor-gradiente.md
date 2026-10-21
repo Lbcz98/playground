@@ -2,6 +2,7 @@
 Tags: fileira de cartões iguais, uma variável por cartão, frase em duas partes, ícone que codifica o sentido
 Padrão: Fileira de escolha
 Resumo: Três cartões do mesmo molde, cada um com uma emoção; a frase "i feel" fica igual e só a palavra, a cor e o ícone mudam.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O molde é fixo e só três coisas variam juntas: a palavra da emoção, o matiz do degradê e a forma do ícone. Repetir "i feel" em todos faz o olho ignorar a parte igual e ler só a diferença. São opções lado a lado de mesmo peso, prontas para escolher uma.

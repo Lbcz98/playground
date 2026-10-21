@@ -1078,18 +1078,18 @@ var require_util = __commonJS({
         return;
       if (typeof schema === "boolean")
         return;
-      const rules = self.RULES.keywords;
+      const rules2 = self.RULES.keywords;
       for (const key in schema) {
-        if (!rules[key])
+        if (!rules2[key])
           checkStrictMode(it, `unknown keyword: "${key}"`);
       }
     }
     exports.checkUnknownRules = checkUnknownRules;
-    function schemaHasRules(schema, rules) {
+    function schemaHasRules(schema, rules2) {
       if (typeof schema == "boolean")
         return !schema;
       for (const key in schema)
-        if (rules[key])
+        if (rules2[key])
           return true;
       return false;
     }
@@ -2562,9 +2562,9 @@ var require_validate = __commonJS({
       }
     }
     function checkKeywordTypes(it, ts) {
-      const rules = it.self.RULES.all;
-      for (const keyword in rules) {
-        const rule = rules[keyword];
+      const rules2 = it.self.RULES.all;
+      for (const keyword in rules2) {
+        const rule = rules2[keyword];
         if (typeof rule == "object" && (0, applicability_1.shouldUseRule)(it.schema, rule)) {
           const { type } = rule.definition;
           if (type.length && !type.some((t) => hasApplicableType(ts, t))) {
@@ -4680,15 +4680,15 @@ var require_core = __commonJS({
         return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text2, msg) => text2 + separator + msg);
       }
       $dataMetaSchema(metaSchema, keywordsJsonPointers) {
-        const rules = this.RULES.all;
+        const rules2 = this.RULES.all;
         metaSchema = JSON.parse(JSON.stringify(metaSchema));
         for (const jsonPointer of keywordsJsonPointers) {
           const segments = jsonPointer.split("/").slice(1);
           let keywords = metaSchema;
           for (const seg of segments)
             keywords = keywords[seg];
-          for (const key in rules) {
-            const rule = rules[key];
+          for (const key in rules2) {
+            const rule = rules2[key];
             if (typeof rule != "object")
               continue;
             const { $data } = rule.definition;
@@ -21561,7 +21561,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 var root = fileURLToPath(new URL("../design-brain/references/", import.meta.url));
 var plain = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-var KEYS = { cerne: "cerne", pecas: "pecas", tipografia: "tipografia", posicao: "posicao", cor: "cor", hierarquia: "hierarquia", interacao: "interacao", minucias: "minucias", por: "porque", receita: "receita", falhas: "falhas" };
+var KEYS = { cerne: "cerne", pecas: "pecas", tipografia: "tipografia", posicao: "posicao", cor: "cor", hierarquia: "hierarquia", interacao: "interacao", minucias: "minucias", por: "porque", receita: "receita", falhas: "falhas", uso: "uso", ajuste: "ajuste" };
 var sections = (md) => {
   const out = {};
   let key = null;
@@ -21624,8 +21624,10 @@ if (process.argv[1]?.endsWith("explore-ref.mjs")) {
     if (a === "--list") console.log(listing(dir, rest.join(" ")));
     else if (a === "--teclas") console.log(teclas(readFileSync(`${root}interacoes.md`, "utf8")));
     else if (a === "--padroes") console.log(padroes(readFileSync(`${root}interacoes.md`, "utf8"), rest.join(" ")));
+    else if (a === "--conceitos") console.log(listing(`${root}conceitos`, rest.join(" ")));
+    else if (a === "--conceito") console.log(note(`${root}conceitos`, rest[0] ?? "", rest.length > 1 ? rest.slice(1) : void 0));
     else if (a) console.log(note(dir, a, rest.length ? rest : void 0));
-    else fail("uso: --list [filtro] | <nome> [se\xE7\xF5es\u2026] | --teclas | --padroes [nome]");
+    else fail("uso: --list [filtro] | <nome> [se\xE7\xF5es\u2026] | --teclas | --padroes [nome] | --conceitos [filtro] | --conceito <nome> [se\xE7\xF5es\u2026]");
   } catch (e) {
     fail(e.message);
   }
@@ -21647,6 +21649,15 @@ server.registerTool("get_reference", {
   description: "Only the asked sections of one reference note (default: cerne, receita). Sections: cerne pecas tipografia posicao cor hierarquia interacao minucias porque receita falhas | tudo.",
   inputSchema: { name: external_exports.string(), sections: external_exports.array(external_exports.string()).optional() }
 }, async ({ name, sections: sections2 }) => text(note(notes, name, sections2?.length ? sections2 : void 0)));
+var rules = join(refs, "conceitos");
+server.registerTool("list_concepts", {
+  description: "Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels), one line each. A filter word narrows it.",
+  inputSchema: { filter: external_exports.string().optional() }
+}, async ({ filter }) => text(listing(rules, filter)));
+server.registerTool("get_concept", {
+  description: "One design rule. Default: cerne (the rule) and receita (the steps). Add uso for the kit tokens that apply it, and ajuste for when to bend it.",
+  inputSchema: { name: external_exports.string(), sections: external_exports.array(external_exports.string()).optional() }
+}, async ({ name, sections: sections2 }) => text(note(rules, name, sections2?.length ? sections2 : void 0)));
 server.registerTool("get_patterns", {
   description: "The interaction pattern table, or only the row of one pattern by name.",
   inputSchema: { name: external_exports.string().optional() }
