@@ -9,6 +9,15 @@ node scripts/explore-ref.mjs --teclas               # as teclas dentro do card
 node scripts/explore-ref.mjs --padroes [nome]       # a tabela de padrões de interação, ou só uma linha
 ```
 
+Além das referências (uma imagem cada), `conceitos/` guarda regras que valem para vários elementos (âncora e apoio, uma cor um significado, grupo por espaço, raios concêntricos, foco e seleção, esqueleto fixo). Cada uma tem `cerne`, `receita`, `uso` (os tokens do kit que a aplicam) e `ajuste` (quando dobrá-la):
+
+```bash
+node scripts/explore-ref.mjs --conceitos [filtro]        # uma linha por conceito
+node scripts/explore-ref.mjs --conceito <nome> [seções…] # sem seções: cerne e receita
+```
+
+Os nomes de token numa nota de conceito são conferidos por `scripts/design-brain.test.ts` contra `src/styles/global.css`; sem valores em px nem cores em hex, só razões e nomes.
+
 Seções de uma nota: `cerne` `pecas` `tipografia` `posicao` `cor` `hierarquia` `interacao` `minucias` `porque` `receita` `falhas`, ou `tudo`.
 
 A ideia não é copiar. É entender a estrutura para construir com os tokens do kit e com o controle remoto: proporções, hierarquia e lógica da cor valem; as cores, as medidas e a aparência da imagem não.
