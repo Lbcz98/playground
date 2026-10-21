@@ -3,6 +3,7 @@ Tags: molde repetido, zona de dado variável, consistência entre fases
 Padrão: nenhum
 Resumo: fixe título, margens, raio e subtítulo em todas as fases ou itens e troque só a zona de dado, para a diferença chamar atenção.
 Fonte: destilado de estados-por-cor-e-brilho, cartoes-de-humor-gradiente, semana-barras-e-radial, cidade-foto-com-seletor · 2026-10-21
+Vale para: vários itens ou fases no mesmo card; não vale para uma fase só
 
 ## Cerne
 Quando vários itens ou fases dividem o mesmo card, o que não muda deixa ver o que muda. Fixe o esqueleto (onde entra o título, o subtítulo, a margem, o raio) e troque apenas a zona de dado. A comparação fica instantânea e a mudança de fase se lê sem esforço.

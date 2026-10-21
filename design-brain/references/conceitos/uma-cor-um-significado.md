@@ -3,6 +3,7 @@ Tags: papéis de cor, acento com função, neutro como estrutura
 Padrão: nenhum
 Resumo: cada acento tem um papel só, o resto é neutro, e a cor nunca é o único sinal.
 Fonte: destilado de estados-por-cor-e-brilho, medidor-com-escala-e-marcador, metrica-com-barras-de-sessoes, semana-barras-e-radial, cartoes-de-humor-gradiente, trilho-de-dias-com-seletor · 2026-10-21
+Vale para: qualquer card com cor; a cor identifica ou sinaliza, nunca enfeita
 
 ## Cerne
 Cor carrega significado, então cada matiz serve a uma coisa e nada mais: estado, exceção, identidade ou fase. Tudo que não é um desses papéis fica em neutro. Quando a cor aparece, a pessoa já sabe o que ela diz.

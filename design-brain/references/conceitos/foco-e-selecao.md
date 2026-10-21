@@ -3,6 +3,7 @@ Tags: foco único, seleção por inversão, uma ação forte
 Padrão: nenhum
 Resumo: foco, seleção e ação primária são cada um o elemento mais forte do card, só um de cada, com linguagem própria e sem tomar a cor de identidade.
 Fonte: destilado de orbita-de-pessoas, cidade-foto-com-seletor, trilho-de-dias-com-seletor, cartoes-contexto-evento-voz-clima-voo, saude-anel-metricas-e-barras · 2026-10-21
+Vale para: cards que o controle remoto percorre: foco, escolha e ação
 
 ## Cerne
 Três coisas pedem para ser a mais forte do card: onde está o foco, o que está selecionado e a ação principal. Cada uma é única, e cada uma usa uma linguagem que a cor de identidade não usa (contorno, inversão, único preenchimento). Assim, ninguém confunde "em foco" com "de uma cor".

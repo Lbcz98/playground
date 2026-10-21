@@ -3,6 +3,7 @@ Tags: cantos aninhados, raio menor por dentro, superfície do kit
 Padrão: nenhum
 Resumo: a peça dentro de outra leva o raio da de fora menos a folga entre as duas, para as curvas dividirem o mesmo centro.
 Fonte: destilado de cartoes-contexto-evento-voz-clima-voo, cidade-foto-com-seletor, trilho-de-dias-com-seletor · 2026-10-21
+Vale para: peça arredondada dentro de outra: barra, bandeja, chip, mídia
 
 ## Cerne
 Quando uma caixa arredondada fica dentro de outra, o mesmo raio nas duas abre um vão largo no canto. A relação é uma só: raio de dentro = raio de fora − folga, em que folga é a distância entre as duas bordas (quase sempre o padding do pai, mais a borda, se houver).

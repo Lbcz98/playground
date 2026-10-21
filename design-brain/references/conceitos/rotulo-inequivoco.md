@@ -3,6 +3,7 @@ Tags: rótulo de eixo, dia abreviado, texto sem legenda
 Padrão: nenhum
 Resumo: um rótulo de eixo ou de dia se lê sozinho: se dois itens da fileira dizem o mesmo, o rótulo falhou.
 Fonte: destilado de trilho-de-dias-com-seletor, semana-barras-e-radial e da comparação com e sem conceitos na exploração audiencia-semanal · 2026-10-21
+Vale para: fileiras e eixos com rótulos de dia ou de categoria
 
 ## Cerne
 Um rótulo existe para dispensar a legenda. Quando a fileira repete o mesmo sinal (S, T, Q, Q, S, S, D), a pessoa conta nos dedos para saber que dia é e o rótulo deixou de funcionar. A forma curta tem de separar todos os itens, e a de uma só letra só vale onde nenhuma se repete.

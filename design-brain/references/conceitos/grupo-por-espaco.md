@@ -3,6 +3,7 @@ Tags: agrupamento por proximidade, eixo esquerdo único, sem divisores
 Padrão: nenhum
 Resumo: o vão entre grupos é pelo menos 2× o vão dentro deles, tudo alinha num eixo esquerdo, e o espaço faz o trabalho de linhas e caixas.
 Fonte: destilado de metrica-com-barras-de-sessoes, saude-anel-metricas-e-barras, cartoes-contexto-evento-voz-clima-voo, cartazes-tipograficos, orbita-de-pessoas, cartoes-de-humor-gradiente · 2026-10-21
+Vale para: qualquer card com mais de uma peça
 
 ## Cerne
 Peças que respondem à mesma pergunta ficam juntas; as outras ficam longe. A distância diz o que é grupo, então linhas, caixas e bordas ficam desnecessárias. Um eixo esquerdo único amarra os grupos num só desenho.

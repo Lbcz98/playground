@@ -16,7 +16,7 @@ describe('design-brain concept notes', () => {
     expect(notes.length).toBeGreaterThan(0)
     for (const [f, md] of notes) {
       const h = head(md)
-      expect([h.tags, h.padrao, h.resumo], f).not.toContain('')
+      expect([h.tags, h.padrao, h.resumo, h.escopo], f).not.toContain('')
       expect(md, f).toMatch(/^Fonte: .+/m)
       expect(Object.keys(sections(md)), f).toEqual(['cerne', 'receita', 'uso', 'ajuste'])
     }
