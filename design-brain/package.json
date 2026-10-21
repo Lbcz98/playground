@@ -1,0 +1,15 @@
+{
+  "name": "design-brain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild server.mjs --bundle --platform=node --format=esm --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/server.mjs",
+    "check:dist": "npm run build && git diff --exit-code dist/server.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "esbuild": "0.25.12",
+    "zod": "3.25.76"
+  }
+}
