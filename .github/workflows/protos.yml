@@ -30,6 +30,9 @@ jobs:
       - run: npm test
       - run: npm run lint:tokens
       - run: npm run tokens:check
+      # The committed plugin bundle inlines scripts/explore-ref.mjs: an edit there without a rebuild fails here.
+      - run: npm ci --prefix design-brain
+      - run: npm run check:dist --prefix design-brain
 
   protos:
     name: protos

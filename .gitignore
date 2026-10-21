@@ -1,5 +1,7 @@
 node_modules
 dist
+# The plugin runs its committed bundle: installs copy files and never build.
+!design-brain/dist
 dist-electron
 release
 .env
@@ -34,5 +36,5 @@ web/tsconfig.tsbuildinfo
 .checks-flow
 
 # Reference screenshots stay local: agents read only the notes in analises/
-docs/explorations/_references/Cards/
-docs/explorations/_references/Composition/
+design-brain/references/Cards/
+design-brain/references/Composition/

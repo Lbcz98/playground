@@ -1,13 +1,13 @@
 // node scripts/explore-ref.mjs --list [filtro]            one line per reference: nome | padrão | tags | resumo (no match: the whole catalog)
 // node scripts/explore-ref.mjs <nome> [seções…]           only those sections of one anatomy note (default: cerne receita)
-// node scripts/explore-ref.mjs --teclas                   the keys inside a card (docs/explorations/_references/interacoes.md)
+// node scripts/explore-ref.mjs --teclas                   the keys inside a card (design-brain/references/interacoes.md)
 // node scripts/explore-ref.mjs --padroes [nome]           the interaction patterns, or only one row
 // The /explore agents use this instead of reading the reference files whole, so only what a direction needs enters their context.
 // Sections: cerne pecas tipografia posicao cor hierarquia interacao minucias porque receita falhas | tudo
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const root = fileURLToPath(new URL('../docs/explorations/_references/', import.meta.url))
+const root = fileURLToPath(new URL('../design-brain/references/', import.meta.url))
 const plain = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const KEYS = { cerne: 'cerne', pecas: 'pecas', tipografia: 'tipografia', posicao: 'posicao', cor: 'cor', hierarquia: 'hierarquia', interacao: 'interacao', minucias: 'minucias', por: 'porque', receita: 'receita', falhas: 'falhas' }
 
@@ -66,7 +66,8 @@ export const padroes = (md, name) => {
   return [header, rule, ...picked].join('\n')
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// By name, not import.meta.url: bundled into design-brain/dist/server.mjs, import.meta.url is the server itself.
+if (process.argv[1]?.endsWith('explore-ref.mjs')) {
   const dir = `${root}analises`
   const [a, ...rest] = process.argv.slice(2)
   const fail = (m) => { console.error(`erro: ${m}`); process.exit(1) }

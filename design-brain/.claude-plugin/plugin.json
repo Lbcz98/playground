@@ -1,0 +1,5 @@
+{
+  "name": "design-brain",
+  "version": "0.1.0",
+  "description": "Design reference notes and tokens served over MCP, so any repo's agents query only what a task needs."
+}
