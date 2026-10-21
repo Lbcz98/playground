@@ -2,6 +2,7 @@
 Tags: duas visões do mesmo dado, total fixo com legenda, marcador de agora
 Padrão: Alternar visão
 Resumo: O mesmo tempo da semana (dias × horas, em duas categorias) mostrado como colunas e como anéis, com o total e a legenda idênticos embaixo.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 Um total grande ("31h 30m") é a resposta; o gráfico acima é a explicação, e pode trocar de forma sem mexer na resposta. Os dois painéis mostram exatamente os mesmos números (total, 24h 15m faturável, 7h 15m pessoal) em duas geometrias: colunas por dia e anéis concêntricos por dia. Isso ensina que a visualização é intercambiável e o que fica fixo é o total e a legenda.

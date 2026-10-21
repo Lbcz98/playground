@@ -2,6 +2,7 @@
 Tags: título como conclusão, métrica com tendência, semana com hoje destacado, interruptores
 Padrão: Lista de métricas
 Resumo: Três telas de saúde em que o título já é a conclusão ("Ready for a run") e os números embaixo são a prova.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 Cada tela começa com uma frase-resposta em tamanho de título e um subtítulo que a explica; o gráfico e os números vêm depois, como evidência. O painel do meio é o mais instrutivo: três métricas em lista, cada uma com nome, valor grande com unidade, comparação em palavras e um mini-gráfico de tendência que termina num ponto (o valor de hoje). Os outros dois ensinam o anel com pontuação + barra de fases (esquerda) e a semana com o dia atual invertido + interruptores + ação (direita).

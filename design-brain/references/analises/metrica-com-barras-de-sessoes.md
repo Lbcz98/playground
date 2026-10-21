@@ -2,6 +2,7 @@
 Tags: número-herói com variação, série diária em barras, exceção destacada por cor, card de métrica empilhado
 Padrão: nenhum
 Resumo: um total grande com a variação ao lado, uma fileira de 24 barras diárias em que duas destoam pela cor, e uma ação no pé.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O card responde a uma pergunta escrita em linguagem comum ("a IA está te mandando visitas?") com um número e a forma dos últimos dias. O número dá a resposta; as barras dão a tendência; a cor só aparece onde há algo diferente. Tudo empilha numa coluna, na ordem em que se lê.

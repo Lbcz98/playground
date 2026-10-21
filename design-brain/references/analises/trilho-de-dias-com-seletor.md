@@ -2,6 +2,7 @@
 Tags: trilho de dias, marcador por dia, filtro segmentado acima, frase-resumo com o número em destaque
 Padrão: Trilho de passos
 Resumo: uma semana em sete pílulas; cada dia diz se tem conta (ícone da marca) ou não (círculo tracejado), e o dia selecionado inverte a cor.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 A semana vira uma fileira de sete casas iguais; o que importa (há conta ou não, e de quem) mora num pequeno espaço fixo dentro de cada casa. A frase acima resume a fileira em palavras ("3 bills … next 7 days"), então o leitor tem a conta antes de olhar os dias. O dia escolhido é o único escuro.

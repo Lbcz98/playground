@@ -2,6 +2,7 @@
 Tags: dado-âncora por card, linha que se abre, ação primária única, fileira de dias
 Padrão: Expandir no lugar
 Resumo: Quatro cards de contexto (evento, assistente de voz, clima, voo), cada um com um único dado âncora gigante e o resto em camadas de apoio.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 Cada card responde a uma pergunta só e põe a resposta num único elemento muito maior que o resto: o título do evento, o "24°", o par "SFO → JFK". Tudo o que vem depois é apoio em tamanho de texto comum, organizado em grupos separados por espaço. O painel mais instrutivo é o **evento** ("Launch review"): mostra numa só peça o âncora, linhas de metadado com ícone, uma linha recolhida que se abre ("Attendees · 5 going ⌄") e o par de ações primária/secundária.

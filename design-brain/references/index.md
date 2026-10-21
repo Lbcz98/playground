@@ -22,5 +22,6 @@ A ideia não é copiar. É entender a estrutura para construir com os tokens do 
 ## Para manter as notas baratas de ler
 
 - As três primeiras linhas da nota (`Tags`, `Padrão`, `Resumo`) são o que o agente vê ao escolher: uma ideia por tag, o resumo em uma frase.
+- A quarta, `Fonte`, é para quem mantém: a imagem (`Cards/arquivo.png`) e a data da análise. As notas antigas dizem "imagem fora do repositório", porque as imagens não foram guardadas; ao reanalisar, troque pela pasta e o arquivo.
 - Os títulos das seções não mudam (o script os usa como chave) e cada seção traz só o que o título promete, sem repetir o que está em outra.
 - `interacoes.md` mantém "Teclas dentro do card" e "Padrões" como as duas seções, e cada padrão em uma linha da tabela.

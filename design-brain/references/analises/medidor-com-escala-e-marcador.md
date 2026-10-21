@@ -2,6 +2,7 @@
 Tags: número herói com contexto, escala de traços, marcador de posição, frase de comparação
 Padrão: Marcador em escala
 Resumo: Um valor grande, uma escala de traços que se colore até onde o valor chega, um marcador em cima e uma frase que diz o que o número significa.
+Fonte: imagem fora do repositório · 2026-10-15
 
 ## Cerne
 O número sozinho não diz se é bom; o card responde isso três vezes, de jeitos diferentes: a variação contra o período anterior, a posição numa escala de ruim a perfeito, e uma frase comparando com a mediana. A escala é feita de traços discretos para que "quanto falta" seja visível como traços apagados, não só como um fim de barra.
