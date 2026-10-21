@@ -29,7 +29,10 @@ describe('design-brain concept notes', () => {
         const family = name.endsWith('-')
         expect(family ? [...kit].some((k) => k.startsWith(name)) : kit.has(name), `${f}: ${name}`).toBe(true)
       }
-      for (const [name] of md.matchAll(/\.text-[\w-]+/g)) expect(classes.has(name), `${f}: ${name}`).toBe(true)
+      for (const [name] of md.matchAll(/\.text-[\w-]+/g)) {
+        const family = name.endsWith('-')
+        expect(family ? [...classes].some((c) => c.startsWith(name)) : classes.has(name), `${f}: ${name}`).toBe(true)
+      }
     }
   })
 

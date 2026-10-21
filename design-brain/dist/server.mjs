@@ -21651,7 +21651,7 @@ server.registerTool("get_reference", {
 }, async ({ name, sections: sections2 }) => text(note(notes, name, sections2?.length ? sections2 : void 0)));
 var rules = join(refs, "conceitos");
 server.registerTool("list_concepts", {
-  description: "Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton), one line each. A filter word narrows it.",
+  description: "Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels), one line each. A filter word narrows it.",
   inputSchema: { filter: external_exports.string().optional() }
 }, async ({ filter }) => text(listing(rules, filter)));
 server.registerTool("get_concept", {
