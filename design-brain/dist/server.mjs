@@ -21578,14 +21578,14 @@ var sections = (md) => {
 };
 var head = (md) => {
   const field = (name) => new RegExp(`^${name}:\\s*(.*)$`, "mi").exec(md.split(/^## /m)[0])?.[1].trim() ?? "";
-  return { tags: field("Tags"), padrao: field("Padr[a\xE3]o"), resumo: field("Resumo") };
+  return { tags: field("Tags"), padrao: field("Padr[a\xE3]o"), resumo: field("Resumo"), escopo: field("Vale para") };
 };
 var names = (dir) => existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3)).sort() : [];
 var catalog = (dir, filter = "") => {
   const f = plain(filter);
   return names(dir).map((n) => {
     const h = head(readFileSync(`${dir}/${n}.md`, "utf8"));
-    return `${n} | ${h.padrao} | ${h.tags} | ${h.resumo}`;
+    return `${n} | ${h.padrao} | ${h.tags} | ${h.resumo}${h.escopo ? ` | vale para: ${h.escopo}` : ""}`;
   }).filter((line) => plain(line).includes(f));
 };
 var listing = (dir, filter = "") => {

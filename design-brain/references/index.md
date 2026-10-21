@@ -9,7 +9,7 @@ node scripts/explore-ref.mjs --teclas               # as teclas dentro do card
 node scripts/explore-ref.mjs --padroes [nome]       # a tabela de padrões de interação, ou só uma linha
 ```
 
-Além das referências (uma imagem cada), `conceitos/` guarda regras que valem para vários elementos (âncora e apoio, uma cor um significado, grupo por espaço, raios concêntricos, foco e seleção, esqueleto fixo, rótulo inequívoco). Cada uma tem `cerne`, `receita`, `uso` (os tokens do kit que a aplicam) e `ajuste` (quando dobrá-la):
+Além das referências (uma imagem cada), `conceitos/` guarda regras que valem para vários elementos (âncora e apoio, uma cor um significado, grupo por espaço, raios concêntricos, foco e seleção, esqueleto fixo, rótulo inequívoco). O catálogo mostra, em `vale para:`, a que tipo de card cada uma se aplica. Cada uma tem `cerne`, `receita`, `uso` (os tokens do kit que a aplicam) e `ajuste` (quando dobrá-la):
 
 ```bash
 node scripts/explore-ref.mjs --conceitos [filtro]        # uma linha por conceito

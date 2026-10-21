@@ -25,10 +25,10 @@ export const sections = (md) => {
   return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.join('\n').trim()]))
 }
 
-// The three lines under the title: Tags, Padrão, Resumo.
+// The lines under the title: Tags, Padrão, Resumo, and (rules only) Vale para, the kind of card the rule is for.
 export const head = (md) => {
   const field = (name) => new RegExp(`^${name}:\\s*(.*)$`, 'mi').exec(md.split(/^## /m)[0])?.[1].trim() ?? ''
-  return { tags: field('Tags'), padrao: field('Padr[aã]o'), resumo: field('Resumo') }
+  return { tags: field('Tags'), padrao: field('Padr[aã]o'), resumo: field('Resumo'), escopo: field('Vale para') }
 }
 
 const names = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort() : [])
@@ -36,7 +36,7 @@ const names = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsW
 export const catalog = (dir, filter = '') => {
   const f = plain(filter)
   return names(dir)
-    .map((n) => { const h = head(readFileSync(`${dir}/${n}.md`, 'utf8')); return `${n} | ${h.padrao} | ${h.tags} | ${h.resumo}` })
+    .map((n) => { const h = head(readFileSync(`${dir}/${n}.md`, 'utf8')); return `${n} | ${h.padrao} | ${h.tags} | ${h.resumo}${h.escopo ? ` | vale para: ${h.escopo}` : ''}` })
     .filter((line) => plain(line).includes(f))
 }
 

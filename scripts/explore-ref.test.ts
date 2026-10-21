@@ -29,7 +29,7 @@ writeFileSync(join(dir, 'trilho-de-dias.md'), body.replace('orbita-de-pessoas', 
 describe('explore-ref', () => {
   it('splits a note into sections keyed by their first word, and reads the head', () => {
     expect(Object.keys(sections(body))).toEqual(['cerne', 'posicao', 'porque', 'receita'])
-    expect(head(body)).toEqual({ tags: 'arranjo radial, foco com rótulo', padrao: 'Órbita', resumo: 'pessoas em volta de um centro' })
+    expect(head(body)).toEqual({ tags: 'arranjo radial, foco com rótulo', padrao: 'Órbita', resumo: 'pessoas em volta de um centro', escopo: '' })
   })
 
   it('lists one line per note and filters without caring for accents or case', () => {
