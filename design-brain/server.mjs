@@ -34,7 +34,7 @@ server.registerTool('get_reference', {
 const rules = join(refs, 'conceitos')
 
 server.registerTool('list_concepts', {
-  description: 'Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels), one line each. A filter word narrows it.',
+  description: 'Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels, type details), one line each. A filter word narrows it.',
   inputSchema: { filter: z.string().optional() },
 }, async ({ filter }) => text(listing(rules, filter)))
 

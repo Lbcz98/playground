@@ -6,6 +6,9 @@
 //   pílula     a pill radius on a box taller than a control
 //   superfície a card-like surface that is not the kit's: radius, inset or width (see "Surfaces" in explore-tokens.md)
 //   altura     a card with a fixed height its content does not fill (the kit's card hugs its content), or taller than the kit allows
+//   ritmo      the gaps between the groups of a card: one value, 12 to 16 (smaller gaps are inside a group)
+//   quebra     text of two lines or more with no text-wrap: balance (a title) or pretty (a sentence): its last line may be one lone word
+//   respiro    a card whose space under its content is bigger than above it (a min-height or reserved lines for a longer text show as dead space at the bottom)
 //   consistência  surfaces of one page that differ from the rest in radius, color or inset (whole page only)
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
 // `data-surface="own"` on a surface that is the idea of the option (not a card), with the reason in the report.
@@ -35,6 +38,24 @@ const result = await page.evaluate((whole) => {
   const STAGE = getComputedStyle(probe).backgroundColor
   probe.remove()
   const surfaces = []
+  // How far the card's edge is from what is drawn in it: text (its glyph boxes) and boxes that paint something, not layout boxes that only reserve room.
+  const inkOf = (card) => {
+    const cr = card.getBoundingClientRect()
+    let top = Infinity, bottom = -Infinity
+    const take = (r) => { if (r.width > 1 && r.height > 1) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom) } }
+    const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT)
+    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+      const p = t.parentElement
+      if (!t.textContent.trim() || !p || !visible(p) || p.closest('svg') || p.closest('[data-stack]')) continue
+      const rg = document.createRange(); rg.selectNodeContents(t); for (const r of rg.getClientRects()) take(r)
+    }
+    for (const e of card.querySelectorAll('*')) {
+      if (!visible(e) || e.closest('[data-stack]')) continue
+      const s = getComputedStyle(e), alpha = (s.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0])[3] ?? 1
+      if ((e.tagName === 'svg' && !e.parentElement.closest('svg')) || (!e.closest('svg') && (e.tagName === 'IMG' || alpha > 0.05))) take(e.getBoundingClientRect())
+    }
+    return top === Infinity ? null : { top: top - cr.top, bottom: cr.bottom - bottom }
+  }
 
   for (const card of document.querySelectorAll('.opt[data-option]')) {
     const n = card.dataset.option, content = card.querySelector('.opt-content'), box = card.getBoundingClientRect()
@@ -57,6 +78,16 @@ const result = await page.evaluate((whole) => {
       const a = texts[i].r, b = texts[j].r
       const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
       if (w > 2 && h > 2 && w * h > 0.25 * Math.min(a.width * a.height, b.width * b.height)) { say('sobrepõe', `${name(texts[i].e)} "${texts[i].e.textContent.trim().slice(0, 16)}" e ${name(texts[j].e)} "${texts[j].e.textContent.trim().slice(0, 16)}" ficam um sobre o outro`); break overlap }
+    }
+
+    // quebra: two lines or more need text-wrap: balance (a title) or pretty (a sentence), or a line may end in one lone word.
+    for (const { e: t } of texts) {
+      // The lines of the text itself (its client rects), not the height of its box: a segment 40px tall around one line is one line.
+      const rg = document.createRange(); rg.selectNodeContents(t)
+      const lines = new Set([...rg.getClientRects()].map((r) => Math.round(r.top / 4))).size
+      if (lines < 2 || /balance|pretty/.test(getComputedStyle(t).textWrapStyle)) continue
+      say('quebra', `o texto "${t.textContent.trim().slice(0, 18)}" tem ${lines} linhas sem text-wrap: balance (título) nem pretty (frase); a última linha pode ficar com uma palavra só`)
+      break
     }
 
     // cortado: overflow hidden/clip with content beyond it (an ellipsis or a scroller is on purpose).
@@ -107,6 +138,19 @@ const result = await page.evaluate((whole) => {
     // A pile or a stage of absolutely placed layers has no content height to hug: `data-stack` inside says the height is the design.
     if (f.h - natural > 16 && !f.e.querySelector('[data-stack]')) out.push(`Opção ${f.n}: altura: ${f.name} tem altura fixa de ${Math.round(f.h)}px e o conteúdo ocupa ${Math.round(natural)}px: sobra um vazio de ${Math.round(f.h - natural)}px. O card do kit abraça o conteúdo: tire o height`)
     if (f.h > MAX_HEIGHT + 0.5) out.push(`Opção ${f.n}: altura: ${f.name} tem ${Math.round(f.h)}px; o card do kit vai até ${MAX_HEIGHT}px. Mostre menos de uma vez`)
+    // ritmo: between the groups of a card, one gap, 12 to 16 (--dimension-spacing-core-xs or -sm). Gaps under 9 are inside a group (a title and its sentence).
+    const stack = [...f.e.children].filter((k) => visible(k) && getComputedStyle(k).position !== 'absolute' && !inStack(k)).map((k) => k.getBoundingClientRect()).filter((r) => r.height > 0).sort((a, b) => a.top - b.top)
+    const between = stack.slice(1).map((r, i) => r.top - stack[i].bottom).filter((g) => g >= 9)
+    if (between.length && stack.every((r, i) => !i || r.top >= stack[i - 1].bottom - 1) && (between.some((g) => g < 11 || g > 17) || Math.max(...between) - Math.min(...between) > 2)) out.push(`Opção ${f.n}: ritmo: os vãos entre os grupos de ${f.name} são ${between.map((g) => Math.round(g) + 'px').join(', ')}; use um só valor, de 12 a 16 (--dimension-spacing-core-xs ou -sm), e deixe os vãos menores só dentro de um grupo`)
+    // respiro: the same distance from the edge to the content at the top and at the bottom. A few px of text leading is not a gap; reserved room is.
+    // Only where the card's height comes from its content: a kit Card of fixed size may have room under short content, by design.
+    const was = f.e.getAttribute('style')
+    f.e.style.setProperty('height', 'auto', 'important')
+    f.e.style.setProperty('min-height', '0', 'important')
+    const hug = f.e.getBoundingClientRect().height
+    was === null ? f.e.removeAttribute('style') : f.e.setAttribute('style', was)
+    const ink = f.h > 96 && f.h - hug <= 16 && !f.e.querySelector('[data-stack]') ? inkOf(f.e) : null
+    if (ink && ink.bottom - ink.top > 8) out.push(`Opção ${f.n}: respiro: ${f.name} tem ${Math.round(ink.bottom)}px de espaço embaixo do conteúdo e ${Math.round(ink.top)}px em cima; o respiro é o mesmo nos dois (o inset do kit). Um min-height ou linhas reservadas para um texto mais longo aparecem como espaço morto embaixo: tire a reserva e escreva as frases com o mesmo número de linhas`)
   }
   // consistência: the same role looks the same in every option. The most used kit radius and the most used color are the reference.
   if (whole) {

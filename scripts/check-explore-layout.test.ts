@@ -45,6 +45,28 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} width: var(--dimension-size-semantic-content-card-width); max-width: 240px}`).out).toContain('de largura')
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} height: 300px}`).out).toContain('altura fixa de 300px')
   })
+  it('names space reserved under the content: the bottom respiro bigger than the top', () => {
+    const r = check('<div class="c"><b>Cinema</b><p style="min-height:90px;margin:0">frase curta</p></div>', `.c{${card}}`)
+    expect(r.code).toBe(1)
+    expect(r.out).toContain('respiro')
+    // Text leading at the bottom is not a gap, and a box that paints to the bottom edge of the content counts as content.
+    expect(check('<div class="c"><b>Cinema</b><p style="margin:0">frase curta</p></div>', `.c{${card}}`)).toEqual({ code: 0, out: 'ok\n' })
+    expect(check('<div class="c"><b>Cinema</b><div style="height:90px;background:rgba(255,255,255,.2)"></div></div>', `.c{${card}}`)).toEqual({ code: 0, out: 'ok\n' })
+  })
+  it('names gaps between groups that are not one value from 12 to 16, and leaves the small gaps inside a group', () => {
+    const col = 'display:flex;flex-direction:column;'
+    expect(check('<div class="c"><b>a</b><b>b</b></div>', `.c{${card} ${col} gap:24px}`).out).toContain('ritmo')
+    expect(check('<div class="c"><b>a</b><b>b</b><b>c</b></div>', `.c{${card} ${col} gap:12px} b:last-child{margin-top:4px}`).out).toContain('ritmo')
+    expect(check('<div class="c"><b>a</b><b>b</b><b>c</b></div>', `.c{${card} ${col} gap:16px}`)).toEqual({ code: 0, out: 'ok\n' })
+    // 4px between a title and its sentence is a group; 16px is the gap between groups.
+    expect(check('<div class="c"><b>a</b><p style="margin:0">b</p><b>c</b></div>', `.c{${card} ${col} gap:16px} p{margin-top:-12px!important}`)).toEqual({ code: 0, out: 'ok\n' })
+  })
+  it('names text of two lines or more with no text-wrap, and takes balance or pretty', () => {
+    const long = '<p style="width:120px;margin:0">uma frase comprida que quebra em linhas</p>'
+    expect(check(`<div class="c">${long}</div>`, `.c{${card}}`).out).toContain('quebra')
+    expect(check(`<div class="c">${long}</div>`, `.c{${card}} p{text-wrap:pretty}`)).toEqual({ code: 0, out: 'ok\n' })
+    expect(check(`<div class="c">${long}</div>`, `.c{${card}} p{text-wrap:balance}`)).toEqual({ code: 0, out: 'ok\n' })
+  })
   it('lets data-stack and data-surface="own" through', () => {
     expect(check('<div class="c" data-stack style="overflow:hidden;height:20px"><p style="height:60px">oi</p></div>', `.c{${card}}`).code).toBe(0)
     expect(check('<div class="c" data-surface="own"><span>24°</span></div>', `.c{${card} border-radius: 12px}`).code).toBe(0)
