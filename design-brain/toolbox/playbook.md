@@ -139,4 +139,5 @@ No scripts or templates exist yet.
 
 ### Hand-off md
 - Start from the designer's topic list (section 5) and the devs' markers for unknown values (never estimate, mark what is missing, cite the source).
-- Still to ask the devs: should this md follow the same four-file layout as `figma-handoff`?
+- Shape, borrowed from the devs' `figma-handoff` skill: two files per feature, `componentes.md` (components, states, tokens) and `fluxo.md` (states, transitions, focus order, interactions). Usage scenarios, error cases, the prototype check and technical viability go in as sections of those files.
+- Not borrowed: `contrato-dados.md` (only if the devs ask the designer for it) and `cards-propostos.md` (the devs' own refinement step).
