@@ -45,6 +45,14 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} width: var(--dimension-size-semantic-content-card-width); max-width: 240px}`).out).toContain('de largura')
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} height: 300px}`).out).toContain('altura fixa de 300px')
   })
+  it('names space reserved under the content: the bottom respiro bigger than the top', () => {
+    const r = check('<div class="c"><b>Cinema</b><p style="min-height:90px;margin:0">frase curta</p></div>', `.c{${card}}`)
+    expect(r.code).toBe(1)
+    expect(r.out).toContain('respiro')
+    // Text leading at the bottom is not a gap, and a box that paints to the bottom edge of the content counts as content.
+    expect(check('<div class="c"><b>Cinema</b><p style="margin:0">frase curta</p></div>', `.c{${card}}`)).toEqual({ code: 0, out: 'ok\n' })
+    expect(check('<div class="c"><b>Cinema</b><div style="height:90px;background:rgba(255,255,255,.2)"></div></div>', `.c{${card}}`)).toEqual({ code: 0, out: 'ok\n' })
+  })
   it('lets data-stack and data-surface="own" through', () => {
     expect(check('<div class="c" data-stack style="overflow:hidden;height:20px"><p style="height:60px">oi</p></div>', `.c{${card}}`).code).toBe(0)
     expect(check('<div class="c" data-surface="own"><span>24°</span></div>', `.c{${card} border-radius: 12px}`).code).toBe(0)

@@ -6,6 +6,7 @@
 //   pílula     a pill radius on a box taller than a control
 //   superfície a card-like surface that is not the kit's: radius, inset or width (see "Surfaces" in explore-tokens.md)
 //   altura     a card with a fixed height its content does not fill (the kit's card hugs its content), or taller than the kit allows
+//   respiro    a card whose space under its content is bigger than above it (a min-height or reserved lines for a longer text show as dead space at the bottom)
 //   consistência  surfaces of one page that differ from the rest in radius, color or inset (whole page only)
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
 // `data-surface="own"` on a surface that is the idea of the option (not a card), with the reason in the report.
@@ -35,6 +36,24 @@ const result = await page.evaluate((whole) => {
   const STAGE = getComputedStyle(probe).backgroundColor
   probe.remove()
   const surfaces = []
+  // How far the card's edge is from what is drawn in it: text (its glyph boxes) and boxes that paint something, not layout boxes that only reserve room.
+  const inkOf = (card) => {
+    const cr = card.getBoundingClientRect()
+    let top = Infinity, bottom = -Infinity
+    const take = (r) => { if (r.width > 1 && r.height > 1) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom) } }
+    const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT)
+    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+      const p = t.parentElement
+      if (!t.textContent.trim() || !p || !visible(p) || p.closest('svg') || p.closest('[data-stack]')) continue
+      const rg = document.createRange(); rg.selectNodeContents(t); for (const r of rg.getClientRects()) take(r)
+    }
+    for (const e of card.querySelectorAll('*')) {
+      if (!visible(e) || e.closest('[data-stack]')) continue
+      const s = getComputedStyle(e), alpha = (s.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0])[3] ?? 1
+      if ((e.tagName === 'svg' && !e.parentElement.closest('svg')) || (!e.closest('svg') && (e.tagName === 'IMG' || alpha > 0.05))) take(e.getBoundingClientRect())
+    }
+    return top === Infinity ? null : { top: top - cr.top, bottom: cr.bottom - bottom }
+  }
 
   for (const card of document.querySelectorAll('.opt[data-option]')) {
     const n = card.dataset.option, content = card.querySelector('.opt-content'), box = card.getBoundingClientRect()
@@ -107,6 +126,15 @@ const result = await page.evaluate((whole) => {
     // A pile or a stage of absolutely placed layers has no content height to hug: `data-stack` inside says the height is the design.
     if (f.h - natural > 16 && !f.e.querySelector('[data-stack]')) out.push(`Opção ${f.n}: altura: ${f.name} tem altura fixa de ${Math.round(f.h)}px e o conteúdo ocupa ${Math.round(natural)}px: sobra um vazio de ${Math.round(f.h - natural)}px. O card do kit abraça o conteúdo: tire o height`)
     if (f.h > MAX_HEIGHT + 0.5) out.push(`Opção ${f.n}: altura: ${f.name} tem ${Math.round(f.h)}px; o card do kit vai até ${MAX_HEIGHT}px. Mostre menos de uma vez`)
+    // respiro: the same distance from the edge to the content at the top and at the bottom. A few px of text leading is not a gap; reserved room is.
+    // Only where the card's height comes from its content: a kit Card of fixed size may have room under short content, by design.
+    const was = f.e.getAttribute('style')
+    f.e.style.setProperty('height', 'auto', 'important')
+    f.e.style.setProperty('min-height', '0', 'important')
+    const hug = f.e.getBoundingClientRect().height
+    was === null ? f.e.removeAttribute('style') : f.e.setAttribute('style', was)
+    const ink = f.h > 96 && f.h - hug <= 16 && !f.e.querySelector('[data-stack]') ? inkOf(f.e) : null
+    if (ink && ink.bottom - ink.top > 8) out.push(`Opção ${f.n}: respiro: ${f.name} tem ${Math.round(ink.bottom)}px de espaço embaixo do conteúdo e ${Math.round(ink.top)}px em cima; o respiro é o mesmo nos dois (o inset do kit). Um min-height ou linhas reservadas para um texto mais longo aparecem como espaço morto embaixo: tire a reserva e escreva as frases com o mesmo número de linhas`)
   }
   // consistência: the same role looks the same in every option. The most used kit radius and the most used color are the reference.
   if (whole) {

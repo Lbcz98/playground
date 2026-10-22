@@ -10,6 +10,7 @@ Peças que respondem à mesma pergunta ficam juntas; as outras ficam longe. A di
 
 ## Receita
 - Defina os grupos pela pergunta que cada peça responde. O vão entre grupos é de 2× a 3× o vão dentro de um grupo: menos que 2× não separa, mais que 3× desfaz o card em peças soltas.
+- O respiro é o mesmo em cima e embaixo, medido até o que se vê (texto e formas), não até as caixas de layout. Altura reservada com `min-height` ou linhas extras para uma frase mais longa vira espaço morto embaixo, e o respiro de baixo parece maior que os outros. Não reserve: a altura do card acompanha o conteúdo, e as frases que trocam com o foco têm o mesmo número de linhas (no tamanho de leitura, cerca de 55 caracteres cabem em duas linhas no Content Card). O `check-explore-layout` confere (`respiro`).
 - Um só vão entre grupos no card inteiro, um ritmo; não um vão diferente para cada par de peças.
 - O que qualifica um título (o check do escolhido, uma contagem, um estado) fica ao lado dele, no mesmo grupo e na mesma linha de base, nunca na outra ponta da linha: a proximidade diz a quem ele pertence.
 - Separe por espaço, não por borda. Divisor só onde há faixas de dados densos.
@@ -26,4 +27,5 @@ Peças que respondem à mesma pergunta ficam juntas; as outras ficam longe. A di
 
 ## Ajuste
 - 2× é o piso e 3× o teto, não a meta. Com muitos grupos num card baixo, o vão grande come a altura: corte grupos antes de encolher o vão.
+- Se a frase precisa de mais linhas do que o resto, encurte a frase; não deixe sobra embaixo.
 - Se a ideia da opção é um desenho (um anel, uma órbita), o agrupamento vem da forma, e o vão entre texto e desenho segue a mesma razão.
