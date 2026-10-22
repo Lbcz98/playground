@@ -503,6 +503,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--dimension-spacing-core-2xs);
+  /* The stats, scout values, shirt numbers and goals change while the match runs: digits of one width, so nothing shifts. */
+  font-variant-numeric: tabular-nums;
 }
 
 .sfs-table-cell[data-type='team'],
