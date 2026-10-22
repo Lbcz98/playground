@@ -6,6 +6,8 @@
 //   pílula     a pill radius on a box taller than a control
 //   superfície a card-like surface that is not the kit's: radius, inset or width (see "Surfaces" in explore-tokens.md)
 //   altura     a card with a fixed height its content does not fill (the kit's card hugs its content), or taller than the kit allows
+//   ritmo      the gaps between the groups of a card: one value, 12 to 16 (smaller gaps are inside a group)
+//   quebra     text of two lines or more with no text-wrap: balance (a title) or pretty (a sentence): its last line may be one lone word
 //   respiro    a card whose space under its content is bigger than above it (a min-height or reserved lines for a longer text show as dead space at the bottom)
 //   consistência  surfaces of one page that differ from the rest in radius, color or inset (whole page only)
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
@@ -78,6 +80,16 @@ const result = await page.evaluate((whole) => {
       if (w > 2 && h > 2 && w * h > 0.25 * Math.min(a.width * a.height, b.width * b.height)) { say('sobrepõe', `${name(texts[i].e)} "${texts[i].e.textContent.trim().slice(0, 16)}" e ${name(texts[j].e)} "${texts[j].e.textContent.trim().slice(0, 16)}" ficam um sobre o outro`); break overlap }
     }
 
+    // quebra: two lines or more need text-wrap: balance (a title) or pretty (a sentence), or a line may end in one lone word.
+    for (const { e: t } of texts) {
+      // The lines of the text itself (its client rects), not the height of its box: a segment 40px tall around one line is one line.
+      const rg = document.createRange(); rg.selectNodeContents(t)
+      const lines = new Set([...rg.getClientRects()].map((r) => Math.round(r.top / 4))).size
+      if (lines < 2 || /balance|pretty/.test(getComputedStyle(t).textWrapStyle)) continue
+      say('quebra', `o texto "${t.textContent.trim().slice(0, 18)}" tem ${lines} linhas sem text-wrap: balance (título) nem pretty (frase); a última linha pode ficar com uma palavra só`)
+      break
+    }
+
     // cortado: overflow hidden/clip with content beyond it (an ellipsis or a scroller is on purpose).
     for (const e of all) {
       const s = getComputedStyle(e)
@@ -126,6 +138,10 @@ const result = await page.evaluate((whole) => {
     // A pile or a stage of absolutely placed layers has no content height to hug: `data-stack` inside says the height is the design.
     if (f.h - natural > 16 && !f.e.querySelector('[data-stack]')) out.push(`Opção ${f.n}: altura: ${f.name} tem altura fixa de ${Math.round(f.h)}px e o conteúdo ocupa ${Math.round(natural)}px: sobra um vazio de ${Math.round(f.h - natural)}px. O card do kit abraça o conteúdo: tire o height`)
     if (f.h > MAX_HEIGHT + 0.5) out.push(`Opção ${f.n}: altura: ${f.name} tem ${Math.round(f.h)}px; o card do kit vai até ${MAX_HEIGHT}px. Mostre menos de uma vez`)
+    // ritmo: between the groups of a card, one gap, 12 to 16 (--dimension-spacing-core-xs or -sm). Gaps under 9 are inside a group (a title and its sentence).
+    const stack = [...f.e.children].filter((k) => visible(k) && getComputedStyle(k).position !== 'absolute' && !inStack(k)).map((k) => k.getBoundingClientRect()).filter((r) => r.height > 0).sort((a, b) => a.top - b.top)
+    const between = stack.slice(1).map((r, i) => r.top - stack[i].bottom).filter((g) => g >= 9)
+    if (between.length && stack.every((r, i) => !i || r.top >= stack[i - 1].bottom - 1) && (between.some((g) => g < 11 || g > 17) || Math.max(...between) - Math.min(...between) > 2)) out.push(`Opção ${f.n}: ritmo: os vãos entre os grupos de ${f.name} são ${between.map((g) => Math.round(g) + 'px').join(', ')}; use um só valor, de 12 a 16 (--dimension-spacing-core-xs ou -sm), e deixe os vãos menores só dentro de um grupo`)
     // respiro: the same distance from the edge to the content at the top and at the bottom. A few px of text leading is not a gap; reserved room is.
     // Only where the card's height comes from its content: a kit Card of fixed size may have room under short content, by design.
     const was = f.e.getAttribute('style')
