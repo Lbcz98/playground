@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Card Pompeia (cmp-1-explore)</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] .card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .piece { position: relative; display: block; border-radius: var(--dimension-radius-core-lg); }
+/* Focus: the kit's ring, one piece at a time */
+[data-option="1"] .piece[data-focus]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+}
+
+/* 1. Image + title: the anchor */
+[data-option="1"] .media {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: var(--dimension-spacing-core-3xs);
+  min-height: 144px; overflow: hidden;
+  padding: var(--dimension-spacing-core-xs);
+  background: linear-gradient(to top, var(--color-opacity-dark-80), transparent 70%), var(--gradient-primary-noite);
+}
+[data-option="1"] .media[data-open="true"] { min-height: 176px; }
+[data-option="1"] .vol {
+  display: block; position: absolute; left: 0; right: 0; top: var(--dimension-spacing-core-lg); height: 64px;
+  background: var(--color-opacity-dark-50);
+  clip-path: polygon(0 100%, 30% 55%, 40% 62%, 47% 8%, 52% 0, 58% 12%, 66% 58%, 78% 48%, 100% 100%);
+}
+[data-option="1"] .title, [data-option="1"] .genre { position: relative; margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .title { text-wrap: balance; }
+[data-option="1"] .genre { display: none; }
+[data-option="1"] .media[data-open="true"] .genre { display: block; }
+
+/* 2 and 3. Rows that open: own background + a direction mark */
+[data-option="1"] .row { padding: var(--dimension-spacing-core-xs); background: var(--color-opacity-light-10); }
+[data-option="1"] .head { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .head .grow { flex: 1; font-variant-numeric: tabular-nums; }
+[data-option="1"] .chev { display: block; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); flex: none; color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .row[data-open="true"] .chev { transform: rotate(180deg); }
+[data-option="1"] .rating {
+  display: grid; place-items: center; flex: none;
+  width: var(--dimension-size-semantic-table-cell-md); height: var(--dimension-size-semantic-table-cell-md);
+  border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-default);
+  border-radius: var(--dimension-radius-core-xs);
+}
+[data-option="1"] .dot { display: block; flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="1"] .detail { display: none; margin-top: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .row[data-open="true"] .detail { display: block; }
+[data-option="1"] .kv { display: grid; grid-template-columns: auto 1fr; column-gap: var(--dimension-spacing-core-sm); row-gap: var(--dimension-spacing-core-3xs); margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="1"] .kv dt { color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .kv dd { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .bar { display: block; height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); overflow: hidden; }
+[data-option="1"] .bar > i { display: block; width: 80%; height: 100%; border-radius: inherit; background: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .span2 { display: flex; justify-content: space-between; margin: var(--dimension-spacing-core-3xs) 0 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+
+/* 4. The single action: neutral at rest, inverted when chosen */
+[data-option="1"] .go {
+  display: flex; align-items: center; justify-content: center; gap: var(--dimension-spacing-core-2xs);
+  height: var(--dimension-size-semantic-control-height-lg);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-20); color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .go[data-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="1"] .go .ok { display: none; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); }
+[data-option="1"] .go[data-selected="true"] .ok { display: block; }
+[data-option="2"] .card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  overflow: hidden;
+}
+/* Image: the fixed context. Blue sky, a volcano silhouette, a veil that darkens the bottom band where the controls sit. */
+[data-option="2"] .image { position: absolute; inset: 0; display: block; background: var(--gradient-semantic-overlay-bottom), var(--gradient-inverse-noite); }
+[data-option="2"] .image::before { content: ''; position: absolute; left: 0; right: 0; top: 18%; bottom: 0; background: var(--color-opacity-dark-50); clip-path: polygon(0 100%, 0 70%, 30% 40%, 42% 44%, 56% 6%, 66% 32%, 78% 38%, 100% 66%, 100% 100%); }
+[data-option="2"] .title { position: relative; margin: 0; padding-bottom: calc(var(--dimension-spacing-core-6xl) + var(--dimension-spacing-core-4xl)); text-wrap: balance; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .bottom { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+
+/* Segmented selector: the selected segment is the only opaque surface; focus is the kit ring around the bar. */
+[data-option="2"] .selector { position: relative; display: flex; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-lg); background: var(--color-opacity-light-10); }
+[data-option="2"] .selector::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="2"] .seg { flex: 1 1 0; display: flex; align-items: center; justify-content: center; height: var(--dimension-size-semantic-control-height); border-radius: var(--dimension-radius-core-md); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+
+/* Info: what the segment says. */
+[data-option="2"] .info { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .state { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="2"] .dot[hidden] { display: none; }
+[data-option="2"] .progress { display: block; height: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); overflow: hidden; }
+[data-option="2"] .progress-fill { display: block; width: 80%; height: 100%; border-radius: inherit; background: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .extra { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .extra-slot { display: grid; align-items: center; min-height: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .extra-slot > * { grid-area: 1 / 1; }
+[data-option="2"] [hidden] { visibility: hidden; display: block; }
+[data-option="2"] .when { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-sm); }
+[data-option="2"] .time { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="2"] .rating { display: flex; align-items: center; justify-content: center; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-xs); }
+[data-option="3"] .o3-card {
+  position: relative; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  --o3-phase: var(--color-semantic-theme-dia-dark);
+}
+[data-option="3"] .o3-card[data-phase="1"] { --o3-phase: var(--color-semantic-theme-tarde-light); }
+[data-option="3"] .o3-card[data-phase="2"] { --o3-phase: var(--color-semantic-theme-tarde-dark); }
+/* foco do kit, desenhado quando o cartão tem o foco do teclado */
+[data-option="3"]:focus-visible .o3-card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+/* esqueleto fixo: imagem com título */
+[data-option="3"] .o3-poster {
+  position: relative; display: block; height: 144px; overflow: hidden; border-radius: var(--dimension-radius-core-lg);
+  background:
+    radial-gradient(circle at 50% 34%, var(--color-opacity-light-50) 0, transparent 38%),
+    var(--gradient-primary-noite);
+}
+[data-option="3"] .o3-mountain {
+  position: absolute; left: 0; right: 0; bottom: 0; display: block; height: 78%;
+  background: var(--color-semantic-functional-background-primary);
+  clip-path: polygon(0 100%, 0 62%, 26% 54%, 40% 30%, 46% 18%, 54% 18%, 60% 30%, 74% 54%, 100% 62%, 100% 100%);
+}
+[data-option="3"] .o3-poster::after { content: ''; position: absolute; inset: 0; background: var(--gradient-semantic-overlay-bottom); }
+[data-option="3"] .o3-title {
+  position: absolute; left: var(--dimension-spacing-core-sm); right: var(--dimension-spacing-core-sm); bottom: var(--dimension-spacing-core-sm); z-index: 1;
+  margin: 0; display: block; text-wrap: balance; color: var(--color-semantic-functional-text-primary);
+}
+/* zona variável: fase, barra, valor */
+[data-option="3"] .o3-zone { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-phase { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-dot {
+  display: block; width: 8px; height: 8px; flex: none; border-radius: var(--dimension-radius-core-full);
+  background: var(--o3-phase); transition: background-color var(--motion-semantic-duration) ease-out;
+}
+[data-option="3"] .o3-phase-name { margin: 0; display: block; }
+[data-option="3"] .o3-bar { display: flex; gap: var(--dimension-spacing-core-3xs); height: 8px; }
+[data-option="3"] .o3-seg {
+  display: block; flex: 1; border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-light-20); transition: background-color var(--motion-semantic-duration) ease-out;
+}
+[data-option="3"] .o3-seg[data-on] { background: var(--o3-phase); }
+[data-option="3"] .o3-value { margin: 0; display: block; font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-support { margin: 0; display: block; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-muted); }
+/* esqueleto fixo: subtítulo */
+[data-option="3"] .o3-meta { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-rating {
+  display: block; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs);
+  border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-radius: var(--dimension-radius-core-xs);
+}
+[data-option="3"] .o3-genre { margin: 0; display: block; color: var(--color-semantic-functional-text-muted); }
+@media (prefers-reduced-motion: reduce) { [data-option="3"] .o3-dot, [data-option="3"] .o3-seg { transition: none; } }
+[data-option="4"] .card { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .poster { position: relative; display: flex; align-items: flex-end; height: 120px; padding: var(--dimension-spacing-core-sm); border-radius: var(--dimension-radius-core-lg); overflow: hidden; background: var(--gradient-semantic-overlay-bottom), var(--gradient-primary-noite); }
+[data-option="4"] .volcano { position: absolute; inset: 0; display: block; background: var(--color-opacity-dark-30); clip-path: polygon(0 100%, 30% 46%, 40% 54%, 52% 30%, 62% 44%, 100% 100%); }
+[data-option="4"] .title { position: relative; display: block; margin: 0; text-wrap: balance; }
+[data-option="4"] .anchor { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .live { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="4"] .remain { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="4"] .chart { display: none; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .card[data-view="tempo"] .chart[data-part="view-tempo"], [data-option="4"] .card[data-view="horario"] .chart[data-part="view-horario"] { display: flex; }
+[data-option="4"] .bar { position: relative; display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs); height: var(--dimension-spacing-core-sm); }
+[data-option="4"] .seg { display: block; height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); }
+[data-option="4"] .seg.passed { flex: 112 1 0; background: var(--color-opacity-light-30); }
+[data-option="4"] .seg.left { flex: 28 1 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .track { display: block; width: 100%; height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); }
+[data-option="4"] .tick { position: absolute; top: 0; display: block; width: var(--dimension-border-width-core-thin); height: var(--dimension-spacing-core-sm); background: var(--color-opacity-light-50); }
+[data-option="4"] .tick.start { left: 0; }
+[data-option="4"] .tick.end { right: 0; }
+[data-option="4"] .tick.now { left: 80%; background: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .items { display: flex; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .item { position: relative; flex: 1 1 0; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-sm); min-width: 0; }
+[data-option="4"] .item .k { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .item .v { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="4"] .item.is-focus::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="4"] .foot { display: flex; align-items: center; justify-content: space-between; }
+[data-option="4"] .views { display: flex; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-light-10); }
+[data-option="4"] .views .opt-view { display: block; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .views .opt-view[aria-current="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="4"] .rating { display: block; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-xs); }
+[data-option="5"] .card { width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .poster { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: var(--dimension-spacing-core-xl); min-height: 176px; padding: var(--dimension-spacing-core-sm); border-radius: var(--dimension-radius-core-lg); background: linear-gradient(180deg, var(--color-semantic-theme-noite-light) 0%, var(--color-semantic-theme-noite-dark) 100%); }
+[data-option="5"] .poster::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--color-opacity-dark-70); clip-path: polygon(0 100%, 0 72%, 22% 60%, 38% 38%, 46% 30%, 54% 40%, 58% 34%, 70% 58%, 100% 66%, 100% 100%); }
+[data-option="5"] .poster::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 35%, var(--color-opacity-dark-60) 100%); }
+[data-option="5"] .rating { display: flex; align-items: center; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-dark-50); color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="5"] .title { margin: 0; text-wrap: balance; color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .live { margin: 0; display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="5"] .live-dot { display: block; flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="5"] .live-tag { color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--dimension-spacing-core-2xs); }
+[data-option="5"] .choice { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--dimension-spacing-core-2xs); min-width: 0; padding: var(--dimension-spacing-core-sm) var(--dimension-spacing-core-xs); border-radius: var(--dimension-radius-core-lg); background: var(--color-opacity-light-10); color: var(--color-semantic-functional-text-primary); transition: background-color var(--motion-semantic-duration); }
+[data-option="5"] .choice .icon { display: block; flex: none; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); }
+[data-option="5"] .choice .icon svg { display: block; width: 100%; height: 100%; }
+[data-option="5"] .choice .icon .ic-done { display: none; }
+[data-option="5"] .choice-text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="5"] .choice-name { margin: 0; text-wrap: balance; }
+[data-option="5"] .choice-time { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+[data-option="5"] .choice[aria-checked="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="5"] .choice[aria-checked="true"] .choice-time { color: var(--color-semantic-functional-text-inverse); }
+[data-option="5"] .choice[aria-checked="true"] .icon .ic-idle { display: none; }
+[data-option="5"] .choice[aria-checked="true"] .icon .ic-done { display: block; }
+[data-option="5"] .choice[data-focused]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { [data-option="5"] .choice { transition: none; } }
+[data-option="6"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* image with title: the one focal point */
+[data-option="6"] .media {
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--dimension-spacing-core-3xs);
+  aspect-ratio: 16 / 10; padding: var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--gradient-semantic-overlay-bottom), var(--gradient-inverse-noite);
+}
+[data-option="6"] .title { margin: 0; text-wrap: balance; }
+[data-option="6"] .genre { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .rating {
+  position: absolute; top: var(--dimension-spacing-core-xs); right: var(--dimension-spacing-core-xs);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--color-opacity-dark-60); color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+/* rail: tray one step darker, houses equal */
+[data-option="6"] .rail {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="6"] .house {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-md);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="6"] .house .when { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .house .at { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="6"] .house[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="6"] .house[aria-selected="true"] .when { color: var(--color-semantic-functional-text-inverse); }
+/* the kit ring, on the one focused house */
+[data-option="6"] .house[aria-selected="true"]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+/* detail: closed = one line; Enter swaps it for the full detail and the card grows */
+[data-option="6"] .detail > div { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="6"] .detail p { margin: 0; text-wrap: pretty; }
+[data-option="6"] .detail .main { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); font-variant-numeric: tabular-nums; }
+[data-option="6"] .detail .support { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="6"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); flex: none; }
+[data-option="6"] .bar { display: block; height: var(--dimension-spacing-core-2xs); margin-top: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); overflow: hidden; }
+[data-option="6"] .bar > span { display: block; height: 100%; width: 80%; border-radius: inherit; background: var(--color-semantic-functional-text-primary); }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: a imagem chama e o título ancora; o foco abre o detalhe no próprio card, sem sair dele. -->
+  <p class="opt-label" data-part="label">Opção 1 - Expandir no lugar</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <section class="piece media" data-piece data-focus data-open="false" role="button" aria-expanded="false" data-part="image-title" data-stack>
+        <span class="vol" aria-hidden="true" data-part="image"></span>
+        <h3 class="title text-heading-3-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+        <p class="genre text-body-sm-medium" data-part="genre" aria-live="polite">Aventura histórica</p>
+      </section>
+
+      <section class="piece row" data-piece data-open="false" role="button" aria-expanded="false" data-part="time-rating">
+        <div class="head">
+          <span class="grow text-body-sm-bold" data-part="time">20h30 – 22h50</span>
+          <span class="rating text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+          <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="detail text-body-sm-medium" data-part="time-detail" aria-live="polite">
+          <dl class="kv">
+            <dt>Duração</dt><dd>2 h 20</dd>
+            <dt>Reprise</dt><dd>01h10 – 03h30</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="piece row" data-piece data-open="false" role="button" aria-expanded="false" data-part="live">
+        <div class="head">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="grow text-body-sm-bold" data-part="live-label">Ao vivo · restam 28 min</span>
+          <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="detail text-body-sm-medium" data-part="live-detail" aria-live="polite">
+          <span class="bar" aria-hidden="true"><i></i></span>
+          <p class="span2"><span>Passaram 1 h 52</span><span>São 22h22</span></p>
+        </div>
+      </section>
+
+      <div class="piece go text-body-sm-bold" data-piece data-action data-selected="false" role="button" data-part="action">
+        <svg class="ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span data-part="action-label" aria-live="polite">Entrar agora</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: "Agora" e "Mais tarde" trocam o card inteiro; a imagem é o contexto fixo. -->
+  <p class="opt-label" data-part="label">Opção 2 - Seletor segmentado</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <span class="image" data-part="image" data-stack></span>
+      <h3 class="title text-heading-4-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      <div class="bottom">
+        <div class="selector" role="tablist" aria-label="Quando assistir" data-part="selector">
+          <span class="seg text-body-sm-bold" role="tab" aria-selected="true" data-part="segment-now">Agora</span>
+          <span class="seg text-body-sm-bold" role="tab" aria-selected="false" data-part="segment-later">Mais tarde</span>
+        </div>
+        <div class="info" aria-live="polite">
+          <div class="state text-footnote-medium" data-part="state">
+            <span class="dot" data-part="live-dot"></span>
+            <span class="state-text">Ao vivo · restam 28 min</span>
+          </div>
+          <div class="extra-slot">
+            <span class="progress" data-part="progress"><span class="progress-fill"></span></span>
+            <p class="extra text-footnote-medium" data-part="duration" hidden>Duração 2 h 20</p>
+          </div>
+          <div class="when" data-part="when">
+            <p class="time text-body-md-bold" data-part="time">20h30 – 22h50</p>
+            <span class="rating text-footnote-bold" data-part="rating">14</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <!-- tese: o card conta em que ponto o filme está (começou, no meio, quase no fim) e muda a peça de estado (barra e rótulo), não o fundo. -->
+  <p class="opt-label" data-part="label">Opção 3 - Estado muda o card</p>
+  <div class="opt-content" data-part="content">
+    <div class="o3-card" data-phase="2" data-part="card">
+      <div class="o3-poster" data-part="image">
+        <span class="o3-mountain"></span>
+        <h3 class="o3-title text-heading-5-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <div class="o3-zone" data-part="phase" aria-live="polite">
+        <div class="o3-phase">
+          <span class="o3-dot"></span>
+          <p class="o3-phase-name text-body-sm-bold" data-part="phase-name">Quase no fim</p>
+        </div>
+        <div class="o3-bar" data-part="phase-bar" aria-hidden="true">
+          <span class="o3-seg" data-on></span><span class="o3-seg" data-on></span><span class="o3-seg" data-on></span>
+        </div>
+        <p class="o3-value text-heading-4-bold" data-part="remaining">restam 28 min</p>
+        <p class="o3-support text-footnote-medium" data-part="phase-detail">Ao vivo · são 22h22</p>
+      </div>
+      <div class="o3-meta" data-part="rating">
+        <span class="o3-rating text-body-sm-bold" aria-label="Classificação indicativa 14">14</span>
+        <p class="o3-genre text-footnote-medium">Aventura histórica</p>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4" tabindex="0">
+  <!-- tese: o mesmo tempo do filme em duas visões: quanto falta e a que horas começa e termina. -->
+  <p class="opt-label" data-part="label">Opção 4 - Duas visões do tempo</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-surface="content-card" data-view="tempo">
+      <div class="poster" data-part="poster">
+        <span class="volcano"></span>
+        <p class="title text-heading-5-bold" data-part="title">Os Últimos Dias de Pompeia</p>
+      </div>
+      <div class="anchor" data-part="anchor">
+        <p class="live text-footnote-medium"><span class="dot"></span>Ao vivo</p>
+        <p class="remain text-heading-3-bold">Restam 28 min</p>
+      </div>
+      <div aria-live="polite" data-part="chart">
+        <div class="chart" data-part="view-tempo">
+          <div class="bar"><span class="seg passed"></span><span class="seg left"></span></div>
+          <div class="items">
+            <div class="item" data-i="0"><p class="k text-footnote-medium">Passou</p><p class="v text-body-sm-bold">1 h 52</p></div>
+            <div class="item" data-i="1"><p class="k text-footnote-medium">Restam</p><p class="v text-body-sm-bold">28 min</p></div>
+          </div>
+        </div>
+        <div class="chart" data-part="view-horario">
+          <div class="bar"><span class="track"></span><span class="tick start"></span><span class="tick now"></span><span class="tick end"></span></div>
+          <div class="items">
+            <div class="item" data-i="0"><p class="k text-footnote-medium">Início</p><p class="v text-body-sm-bold">20h30</p></div>
+            <div class="item" data-i="1"><p class="k text-footnote-medium">Agora</p><p class="v text-body-sm-bold">22h22</p></div>
+            <div class="item" data-i="2"><p class="k text-footnote-medium">Fim</p><p class="v text-body-sm-bold">22h50</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="views" data-part="view-mark">
+          <span class="opt-view text-footnote-bold" data-v="tempo" aria-current="true">Tempo</span>
+          <span class="opt-view text-footnote-bold" data-v="horario">Horário</span>
+        </div>
+        <span class="rating text-body-sm-bold" data-part="rating">14</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="5" tabindex="0">
+  <!-- tese: duas escolhas iguais, no mesmo molde, em que o foco (anel) e o escolhido (inversão com check) têm linguagens diferentes. -->
+  <p class="opt-label" data-part="label">Opção 5 - Fileira de escolha</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="poster" data-part="poster" role="img" aria-label="Imagem do filme Os Últimos Dias de Pompeia">
+        <span class="rating text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14">14</span>
+        <h3 class="title text-heading-4-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <p class="live text-footnote-medium" data-part="live"><span class="live-dot"></span><span class="live-tag text-footnote-bold">Ao vivo</span> · restam 28 min</p>
+      <div class="choices" data-part="choices" role="radiogroup" aria-label="Como assistir">
+        <div class="choice" role="radio" aria-checked="false" data-part="choice-now" data-focused>
+          <span class="icon"><svg class="ic-idle" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.900 2.700A.6.6 0 0 0 5 3.200Z" fill="currentColor"/></svg><svg class="ic-done" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.500 6.500 12 13 4.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="choice-text">
+            <span class="choice-name text-body-sm-bold">Assistir agora</span>
+            <span class="choice-time text-footnote-medium">20h30 – 22h50</span>
+          </span>
+        </div>
+        <div class="choice" role="radio" aria-checked="false" data-part="choice-later">
+          <span class="icon"><svg class="ic-idle" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.800V8l2.200 1.400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ic-done" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.500 6.500 12 13 4.500" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="choice-text">
+            <span class="choice-name text-body-sm-bold">Ver mais tarde</span>
+            <span class="choice-time text-footnote-medium">01h10 – 03h30</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="6" tabindex="0">
+  <!-- tese: o filme visto como horários de exibição numa fileira; o horário selecionado inverte a cor e mostra o detalhe. -->
+  <p class="opt-label" data-part="label">Opção 6 - Trilho de passos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-open="false">
+      <div class="media" data-part="image-title">
+        <p class="title text-heading-4-bold" data-part="title">Os Últimos Dias de Pompeia</p>
+        <p class="genre text-footnote-medium" data-part="genre">Aventura histórica</p>
+        <span class="rating text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+      </div>
+      <div class="rail" role="listbox" aria-label="Horários de exibição" data-part="rail">
+        <div class="house" role="option" aria-selected="true" data-part="house">
+          <p class="when text-caption-bold">Agora</p>
+          <p class="at text-body-md-bold">20h30</p>
+        </div>
+        <div class="house" role="option" aria-selected="false" data-part="house">
+          <p class="when text-caption-medium">Mais tarde</p>
+          <p class="at text-body-md-bold">01h10</p>
+        </div>
+      </div>
+      <div class="detail" data-part="detail" aria-live="polite">
+        <div>
+          <p class="main text-body-sm-medium"><span class="dot"></span>Ao vivo · restam 28 min</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const pieces = [...root.querySelectorAll('[data-piece]')]
+  const action = root.querySelector('[data-action]')
+  const label = action.querySelector('[data-part="action-label"]')
+  let i = 0
+  const focusAt = (n) => { i = n; pieces.forEach((p, k) => k === i ? p.setAttribute('data-focus', '') : p.removeAttribute('data-focus')) }
+  const setOpen = (p, v) => { p.dataset.open = String(v); p.setAttribute('aria-expanded', String(v)) }
+  const closeAll = () => pieces.forEach((p) => { if (!p.hasAttribute('data-action')) setOpen(p, false) })
+  const setSelected = (v) => { action.dataset.selected = String(v); label.textContent = v ? 'Entrando' : 'Entrar agora' }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') focusAt(Math.max(0, i - 1))
+    else if (e.key === 'ArrowRight') focusAt(Math.min(pieces.length - 1, i + 1))
+    else if (e.key === 'Enter') {
+      const p = pieces[i]
+      if (p === action) setSelected(action.dataset.selected !== 'true')
+      else { const was = p.dataset.open === 'true'; closeAll(); setOpen(p, !was) }
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (action.dataset.selected === 'true') setSelected(false)
+      else if (pieces.some((p) => p.dataset.open === 'true')) closeAll()
+      else if (i !== 0) focusAt(0)
+      else return
+    } else return // ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const segs = root.querySelectorAll('.seg')
+  const dot = root.querySelector('.dot'), stateText = root.querySelector('.state-text')
+  const progress = root.querySelector('.progress'), duration = root.querySelector('.extra')
+  const time = root.querySelector('.time')
+  const views = [
+    { live: true, state: 'Ao vivo · restam 28 min', time: '20h30 – 22h50' },
+    { live: false, state: 'Reprise', time: '01h10 – 03h30' },
+  ]
+  let i = 0
+  const show = (n) => {
+    i = n
+    segs.forEach((s, k) => s.setAttribute('aria-selected', String(k === n)))
+    const v = views[n]
+    dot.hidden = !v.live; progress.hidden = !v.live; duration.hidden = v.live
+    stateText.textContent = v.state; time.textContent = v.time
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) show(i - 1) }
+    else if (e.key === 'ArrowRight') { if (i < views.length - 1) show(i + 1) }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (i === 0) return; show(0) }
+    else return // Enter does nothing; ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const card = root.querySelector('.o3-card')
+  const segs = root.querySelectorAll('.o3-seg')
+  const name = root.querySelector('.o3-phase-name')
+  const value = root.querySelector('.o3-value')
+  const detail = root.querySelector('.o3-support')
+  const phases = [
+    { name: 'Começou', value: 'restam 2 h 20', detail: 'Começou às 20h30' },
+    { name: 'No meio', value: 'restam 1 h 10', detail: 'Metade do filme · 21h40' },
+    { name: 'Quase no fim', value: 'restam 28 min', detail: 'Ao vivo · são 22h22' },
+  ]
+  const NOW = 2
+  let i = NOW
+  const show = (n) => {
+    i = n
+    const p = phases[i]
+    card.dataset.phase = i
+    name.textContent = p.name
+    value.textContent = p.value
+    detail.textContent = p.detail
+    segs.forEach((s, k) => s.toggleAttribute('data-on', k <= i))
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(Math.max(0, i - 1))
+    else if (e.key === 'ArrowRight') show(Math.min(NOW, i + 1))
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && i !== NOW) show(NOW)
+    else return // Enter não faz nada; ↑/↓ saem do card; Voltar no estado inicial sai do card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const card = root.querySelector('.card')
+  let view = 'tempo', idx = 0
+  const items = () => [...card.querySelectorAll('.chart[data-part="view-' + view + '"] .item')]
+  const marks = [...card.querySelectorAll('.opt-view')]
+  const paint = () => {
+    card.dataset.view = view
+    card.querySelectorAll('.item').forEach((el) => el.classList.remove('is-focus'))
+    items()[idx].classList.add('is-focus')
+    marks.forEach((m) => m.setAttribute('aria-current', String(m.dataset.v === view)))
+  }
+  paint()
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') idx = Math.max(0, idx - 1)
+    else if (e.key === 'ArrowRight') idx = Math.min(items().length - 1, idx + 1)
+    else if (e.key === 'Enter') { view = view === 'tempo' ? 'horario' : 'tempo'; idx = Math.min(idx, items().length - 1) }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (view !== 'tempo' || idx !== 0)) { view = 'tempo'; idx = 0 }
+    else return // ↑/↓ and Back at rest leave the card
+    e.preventDefault()
+    paint()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  const cards = [...root.querySelectorAll('.choice')]
+  let focus = 0, chosen = -1
+  const draw = () => cards.forEach((c, i) => {
+    c.toggleAttribute('data-focused', i === focus)
+    c.setAttribute('aria-checked', String(i === chosen))
+  })
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') focus = Math.max(0, focus - 1)
+    else if (e.key === 'ArrowRight') focus = Math.min(cards.length - 1, focus + 1)
+    else if (e.key === 'Enter') chosen = focus
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (chosen < 0 && focus === 0) return // estado inicial: Voltar sai do card
+      chosen = -1; focus = 0
+    }
+    else return // ↑/↓ leave the card
+    e.preventDefault()
+    draw()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  const card = root.querySelector('.card')
+  const houses = [...root.querySelectorAll('.house')]
+  const detail = root.querySelector('.detail')
+  const data = [
+    { brief: '<p class="main text-body-sm-medium"><span class="dot"></span>Ao vivo · restam 28 min</p>',
+      full: '<p class="main text-body-md-bold"><span class="dot"></span>Ao vivo · restam 28 min</p><p class="support text-footnote-medium">20h30 – 22h50 · 2 h 20</p><span class="bar" aria-hidden="true"><span></span></span><p class="support text-footnote-medium">Já passaram 1 h 52</p>' },
+    { brief: '<p class="main text-body-sm-medium">Reprise às 01h10</p>',
+      full: '<p class="main text-body-md-bold">Reprise às 01h10</p><p class="support text-footnote-medium">01h10 – 03h30 · 2 h 20</p>' },
+  ]
+  let i = 0
+  const render = () => {
+    houses.forEach((h, k) => {
+      h.setAttribute('aria-selected', String(k === i))
+      h.querySelector('.when').className = 'when ' + (k === i ? 'text-caption-bold' : 'text-caption-medium')
+    })
+    detail.firstElementChild.innerHTML = card.dataset.open === 'true' ? data[i].full : data[i].brief
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) { i--; card.dataset.open = 'false'; render() } }
+    else if (e.key === 'ArrowRight') { if (i < houses.length - 1) { i++; card.dataset.open = 'false'; render() } }
+    else if (e.key === 'Enter') { card.dataset.open = card.dataset.open === 'true' ? 'false' : 'true'; render() }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (card.dataset.open === 'true') { card.dataset.open = 'false'; render() } else return }
+    else return // ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+</body>
+</html>

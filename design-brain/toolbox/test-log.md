@@ -85,3 +85,26 @@ Three rounds produced options where Enter does something else (switches a view, 
 ## Enter and focus rule (designer's decision)
 
 The designer wrote a rule for cards: direct focus, Enter fires only the focused node, four card types, D-pad resolution, no long press, no nested horizontal controls. Scope chosen: **grid cards only**; the Content Card of a contextual interactivity (the Pompeia card) keeps its internal ←/→, so the saved good card and the segmented selector stay valid. Added to `playbook.md` ("Focus and Enter in grid cards") and to the judge's checks. The repo's key table (`--teclas`) is correct and stays: in a prototype Down from a card with nothing below focuses the Back button, Up with nothing above does nothing. The playbook's vertical order applies only to type 4 (two buttons inside one card), rare but possible; the playbook text was changed to say "the nearest element" instead of "the adjacent row". `rules.ts` was not compared. The rounds so far were Content Cards, so none was tested against the grid-card table.
+
+## Round 4: the two commands on the same brief (`cmp-1-explore`, `cmp-1-playbook`)
+
+`/explore` (as it is) against the new `/explore-playbook` (`.claude/commands/explore-playbook.md`: the same flow, plus each `proto-explorer` reads `playbook.md` and `judge.md`, and the independent judge runs at the end). Same brief with the fixed data, same 6 directions written by the command, same judge (`judge.md` with the round 3 checks). Single run of each; the 6 explorers of each side ran in parallel.
+
+| | `/explore` | `/explore-playbook` |
+|---|---|---|
+| Check scripts | ok | ok |
+| Options with a Critical | 6 of 6 | 0 of 6 |
+| Why | type of 10 and 12px and `#000000` (`text-inverse`) in every option; a disclosure chevron in option 1 | none |
+| Closer to the good set | 1, 2, 3, 5, 6 | 2, 5 |
+| Closer to the crowded set | 4 (in part) | 1, 3, 4, 6 |
+| Title breaks with "de" opening line 2 | all 6 | 2 (options 3, 5); 4 and 6 break after "de" but leave "Pompeia" alone |
+| Loose element (rating, status line) | options 4, 5, 6 | options 3, 5, 6 |
+| Selector that does not change the content | none | option 5 (the sentence follows the focus, not the choice) |
+| Focus ring always drawn, no resting state | not judged | options 1, 3, 4, 5, 6 |
+
+How to read it:
+- The Criticals disappear with the playbook because the explorers read `judge.md`, the same checklist the judge uses. That part is coached, not independent evidence.
+- On the closeness to the good set, which the explorers were not coached on, the judge put the playbook side **further** from it (4 of 6 near the crowded set against 1 of 6). The playbook side added more pieces and groups (genre, derived data, a status number larger than the title). One judge, one run: treat it as a signal, not a verdict.
+- Independence break: option 4 of `/explore-playbook` opened another option's part file to learn the format; the agent said it only used the token names.
+- The explorers of `/explore` share a screenshot folder; option 1 of `/explore` saw another option's image and redid its captures.
+- The designer's own reading of the two pages is still needed.
