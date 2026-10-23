@@ -170,3 +170,16 @@ New brief: an informational card with no interaction (photo, name, age, estaleca
 | estalecas split from the participant info | not found as such (only option 4's loose estalecas) |
 
 `judge.md` now: a bottom gradient scrim over a full-bleed photo is not a finding; a new check "related data split apart"; and a card is not called crowded only because its information sits together on a full-bleed photo. `playbook.md` has a matching preference. Not re-run: the judge on the BBB pages with these changes.
+
+### Round 5, judge run again with the updated `judge.md`
+
+| | `/explore` | `/explore-playbook` |
+|---|---|---|
+| Options with a Critical | 3 of 4 (1, 2, 4: `text-footnote` of 12px) | 0 of 4 |
+| Closer to the good set | all 4 | all 4 (option 4 at the limit) |
+| Related data split apart (Warning) | 2, 3, 4 (option 1: none, "one stack") | all 4 |
+| Scrim over the photo | not a finding | a Note, not measured |
+
+- **Now agrees with the designer:** the 12px text in `/explore` (Critical); `/explore` option 1 is no longer "closer to the crowded set"; the bottom gradient in `/explore-playbook` option 1 is a Note, not a Warning; the estalecas split from the participant's info is found in all four `/explore-playbook` options.
+- **Still differs:** the designer also wants the estalecas closer to the participant info in `/explore` option 1; the judge found nothing there ("one stack"). The judge's "closer to" is now generous (8 of 8 near the good set), so it no longer separates the two sides; the designer's own reading did.
+- The judge changed after the review it is being checked against, so this agreement is partly tuned, not independent.

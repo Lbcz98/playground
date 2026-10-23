@@ -1,53 +1,63 @@
 # Juiz: bbb-1-playbook
 
 Fatos medidos:
-- `check-explore-tokens.mjs`: ok, com 2 avisos (opção 1: `width: 168px` equivale ao token `notification-text-width`; `height: 160px` equivale a `card-expanded-height`; o script pede `var(--dimension-size-semantic-<nome>)`).
+- `check-explore-tokens.mjs`: ok, com 2 avisos (opção 1: `width: 168px` e `height: 160px` valem tokens do kit, `notification-text-width` e `card-expanded-height`; são o corpo da silhueta da foto, e a opção 4 também desenha a silhueta com px soltos).
 - `check-explore-layout.mjs`: ok.
-- Servidor (`explore:serve`): a página renderiza estilizada (tokens.css, inter.css 200). Só `../../../src/styles/global.css` dá 404 (conhecido e inofensivo). Nada mais linkado dá 404. Servidor que eu subi foi parado.
-- Medido no navegador: os 4 cards têm 288px de largura (`content-card-width`) e alturas de 378, 189, 371 e 400px (teto do Content Card: 456px). Menor fonte dentro de cada card: 14px. Nenhum elemento com `cursor: pointer`, `tabindex`, `a` ou `button`. Nenhum handler de tecla, hover, animação ou transição no card.
+- Servidor de exploração: a página carrega estilizada (tokens.css e inter.css 200, fonte Inter aplicada). Único 404: `../../../../src/styles/global.css` (conhecido e inofensivo). Nenhum outro link falha.
+- Medido no navegador: nenhum elemento focável (`a`, `button`, `[tabindex]`) dentro dos cards, nenhum cursor de clique, nenhum handler de tecla no card (o único script da página é o seletor grade/lista da moldura, fora dos cards). Menor texto dentro dos cards: 14px (todas as opções). Cards com 288px de largura (token) e 188 a 400px de altura, abaixo dos 456px do Content Card.
 
-Interação nas 4 opções: nenhuma (só visual), como o brief pede. Não há padrão de catálogo a contar, e ↑/↓ passam (nada é capturado).
+Interação, para todas as opções: nenhuma, como pedido. Sem hover, clique, tecla, animação, seta, aba ou campo. Enter no card é o padrão de todo card e não conta. ↑/↓ passam, pois não há script no card.
 
 ## Opção 1: Foto como contexto
-Mais perto de: bom (uma tese, a foto é a isca e o nome ancora sobre ela, respiro generoso, estalecas e emojis como apoio curto embaixo).
+Mais perto de: bom (uma tese só, a foto é a isca, nome sobre a imagem, respiro generoso e nenhuma cor de destaque; é o layout de foto cheia com informação na borda, que o designer aprovou).
 Padrão de interação: nenhum (só visual)
 | Nível | Elemento | Regra ou token | Valor documentado | Encontrado |
 | --- | --- | --- | --- | --- |
-| Warning | Escrim sobre a foto (`.scrim`) | Cor, preto puro / escrim (playbook seção 3 e judge.md); token compatível `--gradient-complementary-dark` (#34343C00 a #17161B) | sem preto puro; escrim com `gradient-complementary-dark` | usa `--gradient-semantic-overlay-bottom` (termina em #000000E6). O composto sobre a foto (light-10 sobre #3F3F3F) fica em torno de #080808 (calculado, não medido na tela): quase preto, mas não #000000. Existe token compatível |
-| Warning | Estalecas (`.coins`, 14px bold) | Hierarquia / proximidade (seção 3) | estalecas é o 2º dado na prioridade | o número tem o mesmo peso e tamanho das contagens de emoji (14px bold); o 2º dado não se distingue dos emojis (3º) |
-| Note | `.head` 76px, `.body` 168px x 160px, foto 264px | Tokens de tamanho do kit | `var(--dimension-size-semantic-*)` | px soltos na silhueta do espaço reservado; o script avisa 168 e 160 |
+| Warning | Nome e idade sobre a foto; estalecas abaixo da foto | Dados do mesmo assunto ficam juntos (playbook 3, preferências, rodada 5) | nome, idade e estalecas lidos como um grupo | A foto separa nome/idade de estalecas e emojis por um vão de 16px (`spacing-core-sm`) e pela borda da foto; estalecas lê como dado solto do grupo de apoio |
+| Note | Silhueta da foto (`.head`, `.body`) | Tamanhos do kit | `notification-text-width`, `card-expanded-height` | 168px e 160px escritos à mão; é espaço reservado e some com a foto real |
+| Note | Idade (`text-muted`, #FFFFFFB3) sobre o gradiente `overlay-bottom` | Cinza sobre preto; scrim aprovado na rodada 5 | sem cinza escuro sobre preto | Composição sobre a foto não medida; o scrim é do tipo aprovado, então só Note |
+| Note | Estalecas em 14px bold, abaixo do nome em 28px | Conteúdo é o protagonista | nome mais forte que o status | Nome mais forte que o número; coerente com a prioridade do brief (quem é primeiro) |
+
+Aparência de web, falsa affordance, quebra de linha, capitalização, elemento solto, eixo, status mais alto que o conteúdo: nada encontrado. "Camila Duarte" cabe numa linha; "estalecas" e "27 anos" em minúscula.
 
 ## Opção 2: Estalecas em destaque
-Mais perto de: bom (o card mais enxuto, 189px; uma tese clara, o número em 28px é o primeiro, muito respiro, nada disputa).
+Mais perto de: bom (uma interação nula, uma hierarquia clara com o número como único forte, três grupos com respiro e nenhuma cor de destaque; é o card mais leve e mais baixo, 189px).
 Padrão de interação: nenhum (só visual)
 | Nível | Elemento | Regra ou token | Valor documentado | Encontrado |
 | --- | --- | --- | --- | --- |
-| Note | Número `3.250` (28px bold) maior que o nome (14px bold) | Status mais alto que o conteúdo (judge.md, round 4) | o conteúdo é o protagonista | a tese do brief pede estalecas como âncora, então é deslocamento justificado; o nome fica pequeno ao lado da foto, mas ainda legível (14px) |
-| Note | Foto 56px redonda com ícone de 40px | Respiro / tamanhos | tokens `icon-2xl` usado | ok; a foto é pequena para "quem é" (prioridade 1 do brief), por escolha da tese |
+| Warning | Linha foto, nome e idade; linha de estalecas | Dados do mesmo assunto ficam juntos (rodada 5) | nome, idade e estalecas como um grupo | Estalecas fica num grupo à parte, a 16px (`spacing-core-sm`) da identidade, tão distante dela quanto dos emojis |
+| Note | Estalecas `text-heading-3-bold` 28px contra nome `text-body-sm-bold` 14px | Status mais alto que o conteúdo (Warning, rodada 4) | o título não perde para o número | O número é bem maior que o nome. A tese da opção e do brief é o número como âncora, então fica como Note. O designer decide se vale |
+| Note | Nome em 14px | Mínimo de 14px; 16 a 18px confortável | 16 a 18px | No mínimo do mínimo; o nome é o dado mais fraco do card apesar de ser "quem é" |
 
-Sem aparência web, sem falsa affordance, sem peça solta, sem quebra de linha ruim (nome em 1 linha), caixa em frase.
+Aparência de web, falsa affordance, quebra de linha, capitalização, elemento solto, eixo: nada encontrado. Emojis em fileira horizontal sem moldura, contagens em cinza suave, nada parece clicável.
 
 ## Opção 3: Ficha em dois grupos
-Mais perto de: bom (dois grupos separados só pelo espaço, nome em 28px como âncora, respiro bom), com um deslize de olhar web nos emojis.
+Mais perto de: bom (dois grupos separados só por espaço, foto em cima e dado âncora embaixo, uma só tonalidade; o cuidado é o conjunto de 4 peças com fundo, que adensa a base).
 Padrão de interação: nenhum (só visual)
 | Nível | Elemento | Regra ou token | Valor documentado | Encontrado |
 | --- | --- | --- | --- | --- |
-| Warning | Fileira de 4 blocos de emoji (`.emoji`, fundo `light-10`, raio `md`, 4 colunas) | Falsa affordance (judge.md): o que parece clicável sem tecla | nada deve parecer botão, pílula ou aba | os blocos preenchidos em fileira horizontal parecem chips/botões de seleção; nenhuma tecla os alcança (o brief proíbe isso) |
-| Warning | Estalecas (`.estalecas`, 16px bold) | Hierarquia (seção 3) | estalecas é o 2º dado | é menor que o nome (28px) e quase igual aos emojis (24px glifo); o 2º dado fica fraco, perto dos blocos de emoji |
-| Note | Foto 148px fixo | Tokens de tamanho | `var(--dimension-size-semantic-*)` | px solto |
+| Warning | Grupo "quem é" (foto, nome, idade) e grupo "o que recebeu" (estalecas e emojis) | Dados do mesmo assunto ficam juntos (rodada 5) | nome, idade e estalecas como um grupo | O brief manda dois grupos e a opção cumpre: estalecas fica no grupo de baixo, a 16px do nome e da idade. É a separação que o designer pediu para aproximar em toda opção BBB que a fez |
+| Warning | Quatro peças de emoji (`.emoji`, fundo `opacity-light-10`, raio `md`, lado a lado) | Falsa affordance (aparência de botão ou pílula sem tecla) | nada que pareça clicável | Quatro ladrilhos iguais e preenchidos têm cara de fileira de escolha; nenhuma tecla os alcança (o brief proíbe interação) |
+| Note | Estalecas em `text-body-md-bold` 16px | Hierarquia | o dado âncora do grupo | Número mais fraco que o nome (28px); o nome lidera, coerente com a prioridade do brief |
 
-Sem quebra de linha ruim, sem caixa alta indevida.
+Quebra de linha, capitalização, elemento solto, eixo, status mais alto que o conteúdo: nada encontrado.
 
 ## Opção 4: Emojis como protagonista
-Mais perto de: claustrofóbico em parte (o card mais denso: título "Emojis recebidos", quatro blocos grandes em 2x2 e ainda a linha de estalecas, 400px de 456px; os blocos pesam mais que o resto).
+Mais perto de: bom, no limite (uma tese e sem cor de destaque, mas é o card mais alto, 400px, com quatro células grandes e a identidade reduzida a 56px e nome em 14px; ainda tem respiro entre as peças, sem chegar ao claustrofóbico).
 Padrão de interação: nenhum (só visual)
 | Nível | Elemento | Regra ou token | Valor documentado | Encontrado |
 | --- | --- | --- | --- | --- |
-| Warning | Estalecas (`.coins`, 14px bold) no fim do card | Peça solta (judge.md) | cada peça pertence a um grupo | fica sozinha embaixo, fora do grupo de identidade e do grupo de emojis, e é a peça mais fraca embora o brief a trate como dado principal |
-| Warning | Blocos de emoji 2x2 (`.cell`, `light-10`, raio `lg`) | Falsa affordance (judge.md) | nada deve parecer botão ou cartão escolhível | quatro blocos preenchidos, do tamanho de botões, lembram uma grade de escolha; nenhuma tecla os alcança |
-| Note | Contagens (28px bold) maiores que o nome (14px bold) | Status mais alto que o conteúdo | o conteúdo é o protagonista | justificado pela tese (a reação do público é o assunto); o nome e a foto ficam pequenos (foto 56px) |
-| Warning | Respiro | Respiro (seção 3) | "claustrofóbico" é rejeição | o card usa 400px dos 456px possíveis, quatro blocos com gap de `2xs` e pouca folga entre o título "Emojis recebidos", os blocos e a linha de estalecas |
-| Note | `.head` 20px / `.shoulders` 36x22 / foto 56px, `top`/`left` em px | Tokens de tamanho | `var(--dimension-size-semantic-*)` | px soltos na silhueta |
+| Warning | Nome e idade (topo) e estalecas (rodapé, abaixo da grade de emojis) | Dados do mesmo assunto ficam juntos (rodada 5) | nome, idade e estalecas como um grupo | A grade de emojis fica entre os dois: estalecas está a mais de 250px do nome e lê como dado solto |
+| Warning | Estalecas (`.coins`, 14px, sozinho no rodapé) | Elemento solto: peça que não pertence a um grupo | metadado junto de um grupo, perto do título | Fica sob a grade, sem grupo e sem título próprio, depois do título "Emojis recebidos" que não o cobre |
+| Warning | Quatro células preenchidas em grade 2x2 (`.cell`, `opacity-light-10`, raio `lg`) | Falsa affordance; eixo: o arranjo segue o eixo das teclas | nada que pareça clicável; sem grade de duas dimensões | As células têm o molde de cartões de escolha (o brief pediu o molde), e a grade 2x2 pareceria navegar nos dois eixos; nenhuma tecla as alcança |
+| Note | Contagem em `text-heading-3-bold` 28px contra nome em 14px | Status mais alto que o conteúdo (rodada 4) | o conteúdo é o protagonista | A tese é "reação do público como assunto", então os números lideram, justificado; mas o nome e a foto ficam como o elemento mais fraco |
+| Note | Rótulo "Emojis recebidos" | Elementos por card; o conteúdo fala por si | falar muito com pouco | Rótulo extra que repete o que os emojis já mostram; sentença em minúscula, correta |
+
+Quebra de linha e capitalização: nada encontrado.
 
 ## Resumo
-Nenhuma opção carrega Critical. Warnings: opção 1 (escrim com token quase preto e estalecas fraca), opção 3 (blocos de emoji com cara de botão, estalecas fraca), opção 4 (estalecas solta, blocos com cara de botão, pouco respiro). A opção 2 só tem Notes.
+- Nenhuma opção tem Critical: nada de pure white/black medido, sem texto abaixo de 14px, sem tecla consumida, sem mais de um padrão, sem hover ou animação.
+- Opção 1: só Warning (dado relacionado separado: nome e idade na foto, estalecas abaixo).
+- Opção 2: só Warning (estalecas separada da identidade).
+- Opção 3: só Warning (grupos separam estalecas do nome, como o brief manda; ladrilhos de emoji com cara de botão).
+- Opção 4: só Warning (estalecas longe do nome e solta no rodapé; células com cara de cartão de escolha em grade 2x2).
