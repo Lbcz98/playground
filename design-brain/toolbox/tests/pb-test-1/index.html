@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Pompeia — 6 opções</title>
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<style>
+:root {
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888; --explore-tile-bg: #232323; --explore-tile-label: #cccccc; --explore-line: #3f3a3a;
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--typography-font-family-primary), system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.page { padding: 24px; max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 24px; }
+h1 { margin: 0; font-size: 24px; font-weight: 600; }
+.sub { margin: 4px 0 0; font-size: 14px; color: var(--explore-label); }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.opt { display: flex; flex-direction: column; gap: 16px; padding: 16px; background: var(--explore-tile-bg); border-radius: 12px; cursor: pointer; border: 2px solid transparent; font: inherit; color: inherit; text-align: left; }
+.opt[aria-expanded="true"] { border-color: var(--explore-tile-label); }
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+.opt-label { font-size: 14px; font-weight: 500; color: var(--explore-tile-label); }
+.opt-content { display: flex; justify-content: center; }
+.hint { font-size: 12px; color: var(--explore-label); }
+.panel { background: var(--explore-tile-bg); border-radius: 12px; padding: 24px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+@media (max-width: 760px) { .panel { grid-template-columns: minmax(0, 1fr); } }
+.panel h2 { margin: 0 0 8px; font-size: 18px; }
+.panel h3 { margin: 16px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--explore-label); }
+.panel p, .panel li { font-size: 14px; line-height: 1.5; color: var(--explore-tile-label); margin: 0 0 8px; }
+.panel ul { margin: 0; padding-left: 18px; }
+.states { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.states figure { margin: 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.states figcaption { font-size: 12px; color: var(--explore-label); }
+.sev { display: inline-block; font-size: 12px; font-weight: 700; padding: 0 6px; border-radius: 4px; margin-right: 6px; }
+.sev.critical { background: #5a1d1d; color: #ffb4b4; } .sev.warning { background: #5a431d; color: #ffd9a0; } .sev.note { background: #2c3a4d; color: #b8d4f5; }
+.open { background: var(--explore-tile-bg); border-radius: 12px; padding: 24px; }
+.open h2 { margin: 0 0 12px; font-size: 18px; }
+.open li, .open p { font-size: 14px; line-height: 1.5; color: var(--explore-tile-label); margin: 0 0 8px; }
+
+/* Options */
+.card { width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); outline: none; }
+.card[data-state="focus"], .card:focus-visible { outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-glow); outline-offset: var(--dimension-spacing-semantic-focus-offset); }
+.img { position: relative; height: 150px; border-radius: var(--dimension-radius-core-2xl); background: var(--gradient-inverse-noite); overflow: hidden; }
+.img::before { content: ""; position: absolute; inset: 0; background: var(--color-opacity-light-30); clip-path: circle(22% at 72% 30%); } /* brasa / glow */
+.img::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 55%; background: var(--color-opacity-dark-50); clip-path: polygon(0 100%, 0 60%, 30% 25%, 48% 55%, 70% 10%, 100% 50%, 100% 100%); }
+.img > * { position: relative; z-index: 1; }
+.img.tall { height: 190px; } .img.full { height: 252px; }
+.img .shade { position: absolute; inset: 0; z-index: 1; background: var(--gradient-overlay-bottom); }
+.img .over { position: absolute; z-index: 2; left: var(--dimension-spacing-core-sm); right: var(--dimension-spacing-core-sm); bottom: var(--dimension-spacing-core-sm); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+.img .top { position: absolute; z-index: 2; left: var(--dimension-spacing-core-sm); right: var(--dimension-spacing-core-sm); top: var(--dimension-spacing-core-sm); display: flex; justify-content: space-between; align-items: center; }
+.title { margin: 0; text-wrap: balance; }
+.meta { margin: 0; display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); }
+.live { color: var(--color-semantic-functional-status-live); display: inline-flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+.live i { width: 8px; height: 8px; border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+.over .live { color: var(--color-semantic-functional-text-primary); }
+.rating { display: inline-grid; place-items: center; min-width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); padding-inline: var(--dimension-spacing-core-3xs); border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-sm); color: var(--color-semantic-functional-text-primary); }
+.chip { padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-dark-70); color: var(--color-semantic-functional-text-primary); }
+.chk { display: none; width: 18px; height: 18px; margin-right: var(--dimension-spacing-core-2xs); vertical-align: -3px; }
+.card[data-state="selected"] .chk { display: inline-block; }
+.seg { display: flex; gap: var(--dimension-spacing-core-xs); }
+.seg span { color: var(--color-semantic-functional-text-muted); }
+.seg span[aria-current="true"] { color: var(--color-semantic-functional-text-primary); font-weight: var(--typography-font-weight-bold); }
+.bar { height: 8px; border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-border-default); overflow: hidden; }
+.bar b { display: block; height: 100%; width: 72%; background: var(--gradient-semantic-status-live); }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--dimension-spacing-core-xs); }
+.head { display: flex; gap: var(--dimension-spacing-core-sm); align-items: center; }
+.thumb { flex: none; width: 56px; height: 56px; border-radius: var(--dimension-radius-core-lg); background: var(--gradient-inverse-noite); }
+.reveal { display: none; }
+.card[data-state="focus"] .reveal, .card[data-state="selected"] .reveal { display: flex; }
+.card[data-view="later"] .v-now, .card[data-view="now"] .v-later { display: none; }
+.hid { display: none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Card "Os Últimos Dias de Pompeia" — 6 opções</h1>
+    <p class="sub">Clique numa opção para abrir a justificativa, os estados e os avisos do juiz. A imagem é um espaço reservado (gradiente azul do kit).</p>
+  </header>
+  <main class="grid" id="grid"></main>
+  <section class="panel" id="panel" hidden></section>
+  <section class="open">
+    <h2>Perguntas em aberto</h2>
+    <ul>
+      <li><b>Horário e programação.</b> O brief não dá o horário. Suposição: o filme começou às 21h00 (restam 28 min, 72% exibido); "mais tarde" é um espaço reservado ("A seguir · 22h40 · Jornal da Noite"). Qual é o dado real?</li>
+      <li><b>Tamanho do card.</b> O brief fala de uma superfície de 1280×720; o kit só tem larguras fixas (Content Card 288). Suposição: o card é um Content Card de 288 de largura dentro do quadro 1280×720, e as 6 opções usam a mesma superfície. Ele deve ser maior?</li>
+      <li><b>Imagem.</b> Não há arte do filme. Suposição: gradiente azul do kit com silhueta e brilho, só como marcador. Qual é a imagem e como ela é recortada?</li>
+      <li><b>Interação.</b> Suposição: o card é o botão (Enter abre o detalhe, Voltar sai); só a opção 3 usa ←/→ dentro do card. Está certo trocar a visão com ←/→ ou o designer prefere sempre abrir o detalhe?</li>
+      <li><b>Estado selecionado.</b> Suposição: marcado por um check ao lado do título. Há outro sinal preferido?</li>
+      <li><b>Cor de destaque.</b> Suposição: o vermelho "ao vivo" (<code>status-live</code>) é a única cor de destaque além do azul da imagem. Confirmar.</li>
+    </ul>
+  </section>
+</div>
+<script>
+const CHK = '<svg class="chk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const T = (t) => `<h3 class="title text-heading-5-bold">${CHK}${t}</h3>`;
+const NAME = 'Os Últimos Dias de Pompeia';
+const LIVE = (cls = 'text-body-sm-medium') => `<span class="live ${cls}"><i></i>Ao vivo · restam 28 min</span>`;
+const R = '<span class="rating text-body-sm-bold">14</span>';
+
+const CARDS = {
+  1: () => `<div class="img"></div>${T(NAME)}<p class="meta text-body-sm-medium">21h00 ${R}</p>${LIVE()}`,
+  2: () => `<div class="img tall"><div class="shade"></div><div class="top"><span class="chip live text-body-sm-bold"><i></i>Ao vivo</span><span class="chip text-body-sm-bold">restam 28 min</span></div></div>${T(NAME)}<p class="meta text-body-sm-medium">21h00 ${R}</p>`,
+  3: () => `<div class="img"></div><div class="seg text-body-sm-medium"><span data-v="now" aria-current="true">Agora</span><span data-v="later">Mais tarde</span></div>${T(NAME)}<div class="v-now">${LIVE()}<p class="meta text-body-sm-medium" style="margin-top:var(--dimension-spacing-core-3xs)">21h00 ${R}</p></div><div class="v-later"><p class="meta text-body-sm-medium">A seguir · 22h40 · Jornal da Noite</p></div>`,
+  4: () => `<div class="img tall"><div class="shade"></div><div class="over"><h3 class="title text-heading-5-bold">${CHK}${NAME}</h3><p class="meta text-body-sm-medium reveal">${LIVE()}</p><p class="meta text-body-sm-medium reveal">21h00 ${R}</p></div></div>`,
+  5: () => `<div class="head"><div class="thumb"></div>${T(NAME)}</div><div class="bar" aria-label="72% exibido"><b></b></div><div class="row text-body-sm-medium"><span class="meta">21h00</span>${LIVE()}</div><p class="meta text-body-sm-medium">${R}</p>`,
+  6: () => `<div class="img full"><div class="shade"></div><div class="top"><span></span>${R}</div><div class="over"><h3 class="title text-heading-3-bold">${CHK}${NAME}</h3><p class="meta text-body-sm-medium">${LIVE()}<span>21h00</span></p></div></div>`,
+};
+
+const OPTS = [
+  { n: 1, name: 'Pôster claro',
+    thesis: 'A base honesta: imagem, título, uma linha de horário e classificação, uma linha de "ao vivo". Nada além do brief.',
+    why: ['Imagem no topo, maior elemento: é o chamariz (prioridade 1).', 'Título em heading-5-bold, a única voz forte do texto (prioridade 2).', 'Horário e 14 numa linha só, em text-muted: mais suave que o título, sem competir (contraste de cor).', 'O vermelho "ao vivo" é a única cor de destaque; vem por último, como no brief (prioridade 4).', 'Interação: o card é o botão, Enter abre o detalhe. Um padrão só.'],
+    judge: [['note', 'Imagem é gradiente de marcador (<code>gradient-inverse-noite</code>); a arte real muda o contraste, rever com ela.'], ['warning', 'Quatro grupos de texto sob a imagem (título, horário+14, ao vivo): é a opção mais densa das seis; comparar com o conjunto "claustrofóbico" em palavras: longe, mas é a que chega mais perto.']] },
+  { n: 2, name: 'Ao vivo no chamariz',
+    thesis: 'O estado "ao vivo" e o tempo restante viram parte da imagem, e o texto embaixo fica mínimo.',
+    why: ['O que muda a decisão do espectador (entrar agora ou depois) está sobre a imagem, onde o olho já está.', 'Chips com <code>dark-70</code> sobre o gradiente garantem leitura sem gradiente sutil.', 'Imagem mais alta (190) para reforçar que o filme é o protagonista.', 'Embaixo só título e "21h00 14": menos texto que a opção 1.', 'Interação: Enter abre o detalhe. Um padrão.'],
+    judge: [['warning', 'Duas informações sobre a imagem (ao vivo e minutos) são dois chips lado a lado; se a arte real for clara, a leitura depende do gradiente <code>overlay-bottom</code> não estar nele (ele só cobre embaixo).'], ['note', 'Segue a ordem de prioridade do brief só em parte: o estado (prioridade 4) aparece acima do título (2). Ligado ao objetivo "decidir se entra".']] },
+  { n: 3, name: 'Agora / Mais tarde',
+    thesis: 'As duas visões do tempo do programa vivem no mesmo card: ←/→ troca entre o que está no ar e o que vem depois.',
+    why: ['Atende o item "duas visões do tempo" do brief sem empilhar tudo: divulgação progressiva em vez de um card cheio.', 'A visão escolhida é marcada pelo peso e pela cor do rótulo (negrito; os outros em regular, muted), sem outra cor.', 'Só ←/→ dentro do card; ↑/↓ ficam para a navegação entre cards. Enter abre o detalhe da visão atual.', 'Teste: foque o estado "foco" ao abrir a opção e use as setas.'],
+    judge: [['note', 'Padrão único = seletor horizontal; Enter só confirma. Se o designer ler isso como dois padrões, a opção quebra uma lei (crítico). Pergunta em aberto.'], ['warning', 'A visão "mais tarde" é um espaço reservado, sem dado real; a altura do card muda pouco entre visões, mas o texto muda de lugar.']] },
+  { n: 4, name: 'Foco revela',
+    thesis: 'Em repouso o card é imagem e título; o foco mostra o resto. Sem hover: a revelação é do estado de foco do controle.',
+    why: ['Máximo de respiro e de imagem em repouso: o card some da frente do filme.', 'O texto sobre a imagem usa o gradiente <code>overlay-bottom</code> do kit para ficar legível.', 'Altura fixa nos dois estados: o foco não empurra o vizinho.', 'Interação: foco + Enter. Um padrão. A informação extra não depende de animação.'],
+    judge: [['warning', 'Horário, 14 e "ao vivo" ficam invisíveis em repouso: um espectador que só passa pelo card não vê o estado (prioridades 3 e 4 do brief somem sem foco). Decisão do designer.'], ['note', 'A informação de repouso depende só do título; testar com a arte real se o título legível passa do mínimo de contraste.']] },
+  { n: 5, name: 'Linha do tempo',
+    thesis: 'O tempo é o protagonista: uma barra mostra quanto do filme já passou e quanto resta; a imagem vira miniatura.',
+    why: ['Torna "restam 28 min" visual, sem o número sozinho; é o único dado que muda com o tempo.', 'A barra usa o gradiente <code>status-live</code>; é a única cor forte, então há um elemento mais forte que os outros.', 'Contraria a prioridade 1 do brief (a imagem é o chamariz): é a hipótese oposta, para comparar.', 'Interação: Enter abre o detalhe. Um padrão.'],
+    judge: [['warning', 'Imagem em 56×56 deixa de ser "extremamente visual" e contraria a prioridade 1 do brief; só vale se o designer quiser testar o tempo como tese.'], ['warning', 'Barra de dados ligada à intenção (tempo restante), não decorativa; a leitura do percentual depende só da barra, sem número (acessibilidade parcial: <code>aria-label</code>).']] },
+  { n: 6, name: 'Tipográfico sobre a imagem',
+    thesis: 'Uma imagem alta de ponta a ponta e o título em heading-3-bold sobre ela: um único elemento mais forte que todos.',
+    why: ['A hierarquia vem do tamanho do título (28), a escala mais alta do kit; o resto cai para 14.', 'Horário e "ao vivo" juntos em uma linha; 14 sozinho no canto: nenhum bloco de texto separado da imagem.', 'Respiro: o card é quase só imagem; sem linhas extras abaixo.', 'Interação: Enter abre o detalhe. Um padrão.'],
+    judge: [['warning', 'Título em 3 linhas a 28px na largura de 288 (240 úteis): ocupa boa parte da imagem; testar com a arte real.'], ['note', 'Altura 252 + inset 24 fica abaixo do limite de 456 do kit, mas é a mais alta das seis.']] },
+];
+
+const grid = document.getElementById('grid'), panel = document.getElementById('panel');
+const SEV = { critical: 'Crítico', warning: 'Aviso', note: 'Nota' };
+const mk = (n, state) => { const el = document.createElement('div'); el.className = 'card'; el.dataset.opt = n; el.dataset.state = state; if (n === 3) el.dataset.view = 'now'; el.innerHTML = CARDS[n](); return el; };
+
+function open(n) {
+  const o = OPTS[n - 1];
+  grid.querySelectorAll('.opt').forEach((b) => b.setAttribute('aria-expanded', String(+b.dataset.n === n)));
+  panel.hidden = false;
+  panel.innerHTML = `<div><h2>Opção ${o.n} — ${o.name}</h2><p>${o.thesis}</p><h3>Por que cada escolha</h3><ul>${o.why.map((w) => `<li>${w}</li>`).join('')}</ul><h3>Achados do juiz (checagem de tokens do explorador)</h3><ul>${o.judge.map(([s, t]) => `<li><span class="sev ${s}">${SEV[s]}</span>${t}</li>`).join('')}</ul></div><div class="states"></div>`;
+  const box = panel.querySelector('.states');
+  for (const [s, label] of [['default', 'Padrão'], ['focus', 'Foco'], ['selected', 'Selecionado']]) {
+    const f = document.createElement('figure'), c = mk(n, s);
+    if (s === 'focus') c.tabIndex = 0;
+    f.append(c); f.insertAdjacentHTML('beforeend', `<figcaption>${label}${n === 3 && s === 'focus' ? ' (←/→ troca a visão)' : ''}</figcaption>`);
+    box.append(f);
+  }
+  if (n === 3) {
+    const c = box.querySelector('[data-state="focus"]');
+    c.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const v = e.key === 'ArrowRight' ? 'later' : 'now';
+      c.dataset.view = v;
+      c.querySelectorAll('.seg span').forEach((s) => s.setAttribute('aria-current', String(s.dataset.v === v)));
+    });
+  }
+  panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+OPTS.forEach((o) => {
+  const b = document.createElement('button');
+  b.className = 'opt'; b.dataset.n = o.n; b.setAttribute('aria-expanded', 'false');
+  b.innerHTML = `<span class="opt-label">Opção ${o.n} - ${o.name}</span><div class="opt-content"></div><span class="hint">Clique para ver a justificativa</span>`;
+  b.querySelector('.opt-content').append(mk(o.n, 'default'));
+  b.addEventListener('click', () => open(o.n));
+  grid.append(b);
+});
+</script>
+</body>
+</html>

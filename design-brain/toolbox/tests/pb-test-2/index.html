@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card de programação: Pompeia</title>
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+body { margin: 0; background: var(--color-semantic-functional-background-primary); color: var(--color-semantic-functional-text-primary); font-family: var(--typography-font-family-primary), sans-serif; }
+.page { padding: var(--dimension-spacing-core-2xl); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xl); }
+.page h1 { margin: 0; }
+.page p { margin: 0; text-wrap: pretty; }
+.muted { color: var(--color-semantic-functional-text-muted); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--dimension-spacing-core-2xl); }
+.cell { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-lg); min-width: 0; }
+.why { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.why h2 { margin: 0; }
+.why dl { margin: 0; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.why dt { color: var(--color-semantic-functional-text-muted); }
+.why dd { margin: 0; text-wrap: pretty; }
+.why dl > div { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+.hint { color: var(--color-semantic-functional-text-muted); }
+.questions { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); max-width: 880px; }
+.questions ul { margin: 0; padding-left: var(--dimension-spacing-core-lg); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.questions li { text-wrap: pretty; }
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+/* The stage: the TV behind the card */
+.opt { display: flex; justify-content: center; padding: var(--dimension-spacing-core-xl); background: var(--color-semantic-functional-background-primary); border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-subtle); border-radius: var(--dimension-radius-core-lg); outline: none; }
+.opt-content { display: flex; }
+
+/* The kit's Content Card */
+.card { flex: none; width: var(--dimension-size-semantic-content-card-width); box-sizing: border-box; padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); position: relative; }
+.opt[data-ring="card"]:focus .card { outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline); outline-offset: var(--dimension-spacing-semantic-focus-offset); }
+.opt:not([data-ring="card"]):focus [data-f] { outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline); outline-offset: var(--dimension-spacing-semantic-focus-offset); }
+.card h3 { margin: 0; text-wrap: balance; }
+.card p { margin: 0; }
+.sent { text-wrap: pretty; }
+
+/* Pieces shared by the options */
+.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.poster { position: relative; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+.scrim { position: absolute; inset: 0; background: var(--gradient-complementary-dark); opacity: var(--opacity-semantic-illumination-strong); }
+.rating { position: absolute; left: var(--dimension-spacing-core-xs); top: var(--dimension-spacing-core-xs); box-sizing: border-box; min-width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); padding: 0 var(--dimension-spacing-core-3xs); display: grid; place-items: center; border: var(--dimension-border-width-semantic-button) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-xs); background: var(--color-opacity-dark-50); color: var(--color-semantic-functional-text-primary); }
+.live { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+.dot { flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+.dot.off { background: none; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-muted); box-sizing: border-box; }
+.t-muted { color: var(--color-semantic-functional-text-muted); }
+[data-view="0"] .v1, [data-view="1"] .v0 { display: none; }
+
+/* Segmented control (options 1 and 5) */
+.seg { display: flex; box-sizing: border-box; height: var(--dimension-size-semantic-control-height); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-semantic-pill); background: var(--color-opacity-dark-50); border: var(--dimension-border-width-semantic-button) solid var(--color-semantic-functional-border-subtle); }
+.seg span { flex: 1; display: grid; place-items: center; border-radius: var(--dimension-radius-semantic-pill); color: var(--color-semantic-functional-text-muted); font-weight: var(--typography-font-weight-regular); }
+.seg span.on { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-background-primary); font-weight: var(--typography-font-weight-bold); }
+.seg.flat { background: var(--color-semantic-functional-background-tint); }
+
+/* Option 1 */
+.bleed { overflow: hidden; }
+.bleed .hero { position: relative; margin: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)); min-height: 408px; box-sizing: border-box; padding: var(--dimension-spacing-semantic-card-inset-expanded); display: flex; flex-direction: column; justify-content: space-between; }
+.bleed .rating { position: relative; left: 0; top: 0; align-self: flex-start; }
+.bleed .info { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+.bleed .lines { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+
+/* Option 2 */
+.poster.p160 { height: 160px; }
+.bar { position: relative; height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; width: 80%; background: var(--gradient-semantic-status-live); border-radius: var(--dimension-radius-core-full); }
+[data-view="1"] .bar i { width: 0; }
+.time { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+.ends { display: flex; justify-content: space-between; }
+
+/* Option 3 */
+.poster.p120 { height: 120px; }
+.tiles { display: flex; gap: var(--dimension-spacing-core-3xs); }
+.tile { flex: 1; min-width: 0; box-sizing: border-box; padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-md); background: var(--color-semantic-functional-background-tint); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); position: relative; white-space: nowrap; }
+.tile .head { display: flex; align-items: center; justify-content: space-between; }
+.tile .chk { display: none; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); }
+.tile[data-sel] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-background-primary); }
+.tile[data-sel] .t-muted { color: var(--color-semantic-functional-background-primary); }
+.tile[data-sel] .chk { display: block; }
+
+/* Option 4 */
+.poster.p150 { height: 150px; }
+.piece { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.piece .row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs); }
+.piece .chev { flex: none; width: var(--dimension-size-semantic-icon-md); height: var(--dimension-size-semantic-icon-md); }
+.piece[data-open] .chev { transform: rotate(180deg); }
+.piece .detail { display: none; flex-direction: column; gap: var(--dimension-spacing-core-xs); padding-top: var(--dimension-spacing-core-xs); border-top: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-default); }
+.piece[data-open] .detail { display: flex; }
+.detail div { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+
+/* Option 5 */
+.poster.p96 { height: 96px; }
+.clock { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+
+/* Option 6 */
+.rows { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+.rowi { box-sizing: border-box; padding: var(--dimension-spacing-core-xs); border-radius: var(--dimension-radius-core-md); background: var(--color-semantic-functional-background-tint); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+.rowi .top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--dimension-spacing-core-xs); white-space: nowrap; }
+.rowi .more { display: none; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding-top: var(--dimension-spacing-core-2xs); }
+.rowi[data-open] .more { display: flex; }
+.rowi[data-open] { background: var(--color-opacity-light-20); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A1A5C"/><stop offset="0.6" stop-color="#2450C8"/><stop offset="1" stop-color="#4C8BEB"/></linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#9CC6FF" stop-opacity="0.9"/><stop offset="1" stop-color="#9CC6FF" stop-opacity="0"/></radialGradient>
+  </defs>
+  <symbol id="poster" viewBox="0 0 288 400" preserveAspectRatio="xMidYMid slice">
+    <rect width="288" height="400" fill="url(#sky)"/>
+    <ellipse cx="150" cy="150" rx="120" ry="90" fill="url(#glow)"/>
+    <path d="M110 170 C100 120 130 90 120 50 C150 80 170 60 160 20 C200 70 190 120 175 170 Z" fill="#7FA9F0" opacity="0.55"/>
+    <path d="M0 400 L0 262 L96 232 L128 178 L172 178 L206 232 L288 250 L288 400 Z" fill="#0B1646"/>
+    <path d="M0 400 L0 318 L80 296 L288 330 L288 400 Z" fill="#070E30"/>
+    <g fill="#070E30"><rect x="36" y="300" width="14" height="70"/><rect x="66" y="308" width="14" height="62"/><rect x="30" y="292" width="56" height="10"/></g>
+  </symbol>
+</svg>
+
+<main class="page">
+  <header class="why">
+    <h1 class="text-heading-3-bold">Card de programação: "Os Últimos Dias de Pompeia"</h1>
+    <p class="text-body-md-regular muted">Seis opções, todas no Content Card do kit (288 de largura, raio 40, respiro 24), com os mesmos dados fixos do brief. Clique ou use Tab para focar um card; dentro dele valem só ←/→, Enter e Esc (ou Backspace). ↑/↓ passam direto.</p>
+  </header>
+
+  <section class="grid">
+
+    <!-- 1 -->
+    <div class="cell">
+      <article class="opt" data-option="1" data-pattern="seg" data-ring="card" data-view="0" tabindex="0" aria-label="Opção 1: pôster inteiro">
+        <div class="opt-content">
+          <div class="card bleed">
+            <div class="hero">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <div class="scrim"></div>
+              <span class="rating text-body-sm-bold">14</span>
+              <div class="info">
+                <h3 class="text-heading-4-bold">Os Últimos Dias de Pompeia</h3>
+                <div class="lines" aria-live="polite">
+                  <p class="live text-body-md-medium v0"><i class="dot"></i>Ao vivo · restam 28 min</p>
+                  <p class="text-body-md-regular t-muted v0">20h30 – 22h50</p>
+                  <p class="live text-body-md-medium v1"><i class="dot off"></i>Reprise</p>
+                  <p class="text-body-md-regular t-muted v1">01h10 – 03h30</p>
+                </div>
+                <div class="seg text-body-sm-medium"><span class="on">Agora</span><span>Mais tarde</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">1 · Pôster inteiro</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>A imagem ocupa o card todo; o resto é uma legenda sobre ela. É a leitura mais direta do "o filme é o protagonista".</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster, título (24), estado ao vivo, horário em cinza claro, e só por último o seletor. Um único acento de cor: o ponto vermelho do ao vivo.</dd></div>
+          <div><dt>Interação</dt><dd>Seletor segmentado. ← / → trocam Agora / Mais tarde e o texto inteiro muda junto. Esc volta para Agora. Sem laço nas pontas.</dd></div>
+          <div><dt>Estados</dt><dd>Padrão: sem contorno. Foco: anel de 4 do kit ao redor do card. Selecionado: o segmento ativo inverte a cor.</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Cobre as duas visões do tempo sem mostrar as duas ao mesmo tempo. Gênero e duração ficam de fora (página de detalhe).</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <!-- 2 -->
+    <div class="cell">
+      <article class="opt" data-option="2" data-pattern="toggle" data-ring="card" data-view="0" tabindex="0" aria-label="Opção 2: barra do tempo">
+        <div class="opt-content">
+          <div class="card">
+            <div class="poster p160">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <span class="rating text-body-sm-bold">14</span>
+            </div>
+            <h3 class="text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+            <div class="time" aria-live="polite">
+              <p class="live text-body-md-medium v0"><i class="dot"></i>Ao vivo · restam 28 min</p>
+              <p class="live text-body-md-medium v1"><i class="dot off"></i>Reprise</p>
+              <div class="bar"><i></i></div>
+              <div class="ends text-body-sm-medium t-muted">
+                <span class="v0">20h30</span><span class="v0">22h50</span>
+                <span class="v1">01h10</span><span class="v1">03h30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">2 · Barra do tempo</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>"Quanto falta" é o que decide se o espectador entra agora. A barra mostra isso sem número: 80% já passou (1 h 52 de 2 h 20).</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster, título (20), depois a barra com o ao vivo. A barra é o segundo elemento mais forte; o horário fica pequeno nas pontas.</dd></div>
+          <div><dt>Interação</dt><dd>Alternar visão. Enter troca entre "agora" e "mais tarde" do mesmo dado (a barra esvazia na reprise). Esc volta. ←/→ não fazem nada: há uma peça só.</dd></div>
+          <div><dt>Estados</dt><dd>Foco: anel no card. Selecionado: a visão "mais tarde" (ponto vazio em vez do vermelho).</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Mostra o estado ao vivo como forma, não como mais texto. Risco: quem não decodifica a barra perde o "28 min"; por isso o texto fica.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <!-- 3 -->
+    <div class="cell">
+      <article class="opt" data-option="3" data-pattern="choice" data-ring="piece" tabindex="0" aria-label="Opção 3: dois botões">
+        <div class="opt-content">
+          <div class="card">
+            <div class="poster p120">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <span class="rating text-body-sm-bold">14</span>
+            </div>
+            <h3 class="text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+            <div class="tiles" aria-live="polite">
+              <div class="tile" data-i="0">
+                <div class="head"><span class="text-body-sm-bold">Agora</span><svg class="chk" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="text-body-sm-medium">20h30 – 22h50</span>
+                <span class="live text-body-sm-medium t-muted"><i class="dot"></i>restam 28 min</span>
+              </div>
+              <div class="tile" data-i="1">
+                <div class="head"><span class="text-body-sm-bold">Mais tarde</span><svg class="chk" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="text-body-sm-medium">01h10 – 03h30</span>
+                <span class="text-body-sm-medium t-muted">Reprise</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">3 · Dois botões</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>A decisão do espectador é "agora ou depois". O card entrega as duas respostas lado a lado e o espectador escolhe uma.</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster menor (120), título (20), dois botões iguais. Nenhum domina: a escolha é o elemento forte do card.</dd></div>
+          <div><dt>Interação</dt><dd>Fileira de escolha. ←/→ movem o foco entre os dois; Enter escolhe; Esc desfaz a escolha. Foco = anel. Escolhido = fundo claro e check, bem diferente do foco.</dd></div>
+          <div><dt>Estados</dt><dd>Padrão, foco (anel de 4 no botão) e selecionado (invertido com check).</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>É a opção em que "o card é o botão" é mais literal. Risco: a imagem perde peso (menor) e há dois alvos em vez de um.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <!-- 4 -->
+    <div class="cell">
+      <article class="opt" data-option="4" data-pattern="expand" data-ring="card" tabindex="0" aria-label="Opção 4: título e um toque">
+        <div class="opt-content">
+          <div class="card">
+            <div class="poster p150">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <span class="rating text-body-sm-bold">14</span>
+            </div>
+            <h3 class="text-heading-4-bold">Os Últimos Dias de Pompeia</h3>
+            <div class="piece" aria-live="polite">
+              <div class="row">
+                <p class="live text-body-md-medium"><i class="dot"></i>Ao vivo · restam 28 min</p>
+                <svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="detail text-body-md-regular">
+                <div><span class="text-body-sm-bold">Agora</span><span class="t-muted">20h30 – 22h50 · 2 h 20</span></div>
+                <div><span class="text-body-sm-bold">Mais tarde</span><span class="t-muted">Reprise 01h10 – 03h30</span></div>
+                <div><span class="text-body-sm-bold">Gênero</span><span class="t-muted">Aventura histórica</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">4 · Título e um toque</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>Fechado, o card diz só o essencial: imagem, título e se está no ar. O resto existe, mas só aparece se o espectador pedir.</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster, título (24), uma linha de estado. Fechado é a opção com mais respiro das seis.</dd></div>
+          <div><dt>Interação</dt><dd>Expandir no lugar. Enter abre os dois horários e o gênero dentro do card; Esc recolhe. ←/→ não fazem nada (uma peça só).</dd></div>
+          <div><dt>Estados</dt><dd>Padrão fechado, foco (anel no card), selecionado = expandido (seta virada).</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Progressive disclosure da playbook: o horário de depois e o gênero não disputam espaço com o chamariz. Risco: a reprise fica escondida atrás de um toque.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <!-- 5 -->
+    <div class="cell">
+      <article class="opt" data-option="5" data-pattern="seg" data-ring="card" data-view="0" tabindex="0" aria-label="Opção 5: relógio primeiro">
+        <div class="opt-content">
+          <div class="card">
+            <div class="poster p96">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <span class="rating text-body-sm-bold">14</span>
+            </div>
+            <div class="clock" aria-live="polite">
+              <p class="live text-body-sm-bold t-muted v0"><i class="dot"></i>Ao vivo</p>
+              <p class="text-heading-3-bold v0">restam 28 min</p>
+              <p class="text-body-sm-medium t-muted v0">Agora são 22h22 · 20h30 – 22h50</p>
+              <p class="text-body-sm-bold t-muted v1">Reprise</p>
+              <p class="text-heading-3-bold v1">01h10 – 03h30</p>
+              <p class="text-body-sm-medium t-muted v1">Depois do que está no ar</p>
+            </div>
+            <h3 class="text-body-lg-bold">Os Últimos Dias de Pompeia</h3>
+            <div class="seg flat text-body-sm-medium"><span class="on">Agora</span><span>Mais tarde</span></div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">5 · Relógio primeiro</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>Teste invertido: se o espectador decide por tempo, o tempo é o protagonista e o pôster vira uma faixa.</dd></div>
+          <div><dt>Hierarquia</dt><dd>"restam 28 min" (28, o maior tamanho da escala) manda; título (18) em segundo; pôster em terceiro. Contraria a prioridade do brief de propósito.</dd></div>
+          <div><dt>Interação</dt><dd>Seletor segmentado, igual à opção 1: ←/→ trocam Agora / Mais tarde, Esc volta.</dd></div>
+          <div><dt>Estados</dt><dd>Padrão, foco (anel no card), selecionado = segmento ativo invertido.</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Serve como contraste para as outras cinco: mostra o que se perde quando a imagem deixa de ser o chamariz. É a opção com maior chance de ser descartada.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <!-- 6 -->
+    <div class="cell">
+      <article class="opt" data-option="6" data-pattern="list" data-ring="piece" tabindex="0" aria-label="Opção 6: duas linhas de grade">
+        <div class="opt-content">
+          <div class="card">
+            <div class="poster p96">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <span class="rating text-body-sm-bold">14</span>
+            </div>
+            <h3 class="text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+            <div class="rows" aria-live="polite">
+              <div class="rowi" data-i="0">
+                <div class="top"><span class="text-body-sm-bold">Agora</span><span class="text-body-sm-medium">20h30 – 22h50</span></div>
+                <p class="live text-body-sm-medium t-muted"><i class="dot"></i>Ao vivo · restam 28 min</p>
+                <div class="more text-body-sm-medium t-muted"><span>Já passaram 1 h 52 de 2 h 20</span><span>Agora são 22h22</span></div>
+              </div>
+              <div class="rowi" data-i="1">
+                <div class="top"><span class="text-body-sm-bold">Mais tarde</span><span class="text-body-sm-medium">01h10 – 03h30</span></div>
+                <div class="more text-body-sm-medium t-muted"><span>Reprise</span><span>Aventura histórica</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">6 · Duas linhas de grade</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>Imita a leitura de uma grade de programação, que o espectador de TV já conhece: uma linha por exibição.</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster pequeno (96), título (20), duas linhas iguais com o mesmo peso. É a mais informativa e a mais próxima do card cheio.</dd></div>
+          <div><dt>Interação</dt><dd>Lista de métricas. ←/→ vão à linha anterior ou à próxima, sem laço; Enter abre o detalhe da linha no lugar; Esc fecha.</dd></div>
+          <div><dt>Estados</dt><dd>Padrão, foco (anel na linha), selecionado = linha aberta com fundo mais claro.</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Mostra as duas visões do tempo ao mesmo tempo, sem trocar nada. Risco: ←/→ numa pilha vertical de linhas; a catálogo permite, mas o eixo da leitura é outro.</dd></div>
+        </dl>
+      </section>
+    </div>
+
+  </section>
+
+  <section class="questions">
+    <h2 class="text-heading-4-bold">Open questions</h2>
+    <p class="text-body-md-regular muted">Premissas assumidas, porque ninguém respondeu.</p>
+    <ul class="text-body-md-regular">
+      <li>O card aparece enquanto o filme está no ar e o espectador decide entre entrar agora ou ver a reprise (suposição do brief). Se o card também deve aparecer fora do ar, a opção 1 e a 5 precisam de uma terceira visão.</li>
+      <li>O brief não diz qual é a ação do Enter no card inteiro (entrar no filme? abrir o detalhe?). Assumi que a página de detalhe abre fora do card, por uma tela acima; dentro do card cada opção só mostra ou escolhe um horário.</li>
+      <li>O pôster é um desenho em SVG, em tons de azul, porque o repositório não tem a imagem do filme. Troque pelo asset real quando houver.</li>
+      <li>Todas as opções usam o Content Card (288 de largura, raio 40, respiro 24). Não há uma largura de card pensada para 1280×720 inteiro; confirmar se o card é mesmo desse tamanho na interatividade contextual.</li>
+      <li>Gênero (Aventura histórica) aparece só nas opções 4 e 6, dentro do detalhe. Nas outras fica fora, como o brief pede ("metadados longos ficam fora").</li>
+      <li>Classificação 14 aparece em caixa neutra, sem a cor oficial da faixa, para não abrir um segundo acento de cor. Confirmar se a faixa colorida é obrigatória.</li>
+      <li>Duas opções (1 e 5) usam o mesmo padrão de interação por escolha de contraste; as outras quatro usam padrões diferentes do catálogo.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+// Inside a card only ←/→, Enter and Esc/Backspace act. ↑/↓ are never handled, so the screen gets them.
+const $ = (o, s) => [...o.querySelectorAll(s)];
+const handlers = {
+  seg(o, k) {
+    const view = +o.dataset.view
+    const next = k === 'ArrowLeft' ? 0 : k === 'ArrowRight' ? 1 : k === 'Escape' || k === 'Backspace' ? 0 : view
+    if (next === view) return false
+    o.dataset.view = next
+    $(o, '.seg span').forEach((s, i) => s.classList.toggle('on', i === next))
+    return true
+  },
+  toggle(o, k) {
+    const view = +o.dataset.view
+    const next = k === 'Enter' ? 1 - view : k === 'Escape' || k === 'Backspace' ? 0 : view
+    if (next === view) return k === 'Enter'
+    o.dataset.view = next
+    return true
+  },
+  choice(o, k) {
+    const t = $(o, '.tile'); let f = t.findIndex(x => x.hasAttribute('data-f'))
+    if (f < 0) f = 0
+    if (k === 'ArrowLeft') f = Math.max(0, f - 1)
+    else if (k === 'ArrowRight') f = Math.min(t.length - 1, f + 1)
+    else if (k === 'Enter') { t.forEach((x, i) => i === f ? x.setAttribute('data-sel', '') : x.removeAttribute('data-sel')) }
+    else if (k === 'Escape' || k === 'Backspace') {
+      if (t.some(x => x.hasAttribute('data-sel'))) t.forEach(x => x.removeAttribute('data-sel')); else if (f === 0) return false; else f = 0
+    } else return false
+    t.forEach((x, i) => i === f ? x.setAttribute('data-f', '') : x.removeAttribute('data-f'))
+    return true
+  },
+  expand(o, k) {
+    const p = o.querySelector('.piece')
+    if (k === 'Enter') p.toggleAttribute('data-open')
+    else if ((k === 'Escape' || k === 'Backspace') && p.hasAttribute('data-open')) p.removeAttribute('data-open')
+    else return false
+    return true
+  },
+  list(o, k) {
+    const r = $(o, '.rowi'); let f = r.findIndex(x => x.hasAttribute('data-f'))
+    if (f < 0) f = 0
+    if (k === 'ArrowLeft') f = Math.max(0, f - 1)
+    else if (k === 'ArrowRight') f = Math.min(r.length - 1, f + 1)
+    else if (k === 'Enter') r[f].toggleAttribute('data-open')
+    else if ((k === 'Escape' || k === 'Backspace') && r.some(x => x.hasAttribute('data-open'))) r.forEach(x => x.removeAttribute('data-open'))
+    else return false
+    r.forEach((x, i) => i === f ? x.setAttribute('data-f', '') : x.removeAttribute('data-f'))
+    return true
+  },
+}
+document.querySelectorAll('.opt').forEach(o => {
+  const mark = (sel) => { const e = $(o, sel); if (e[0] && !e.some(x => x.hasAttribute('data-f'))) e[0].setAttribute('data-f', '') }
+  if (o.dataset.pattern === 'choice') o.addEventListener('focus', () => mark('.tile'))
+  if (o.dataset.pattern === 'list') o.addEventListener('focus', () => mark('.rowi'))
+  o.addEventListener('keydown', e => { if (handlers[o.dataset.pattern](o, e.key)) e.preventDefault() })
+})
+</script>
+</body>
+</html>

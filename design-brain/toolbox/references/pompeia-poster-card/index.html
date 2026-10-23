@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referência boa: card de programação, pôster inteiro</title>
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+body { margin: 0; background: var(--color-semantic-functional-background-primary); color: var(--color-semantic-functional-text-primary); font-family: var(--typography-font-family-primary), sans-serif; }
+.page { padding: var(--dimension-spacing-core-2xl); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xl); }
+.page h1 { margin: 0; }
+.page p { margin: 0; text-wrap: pretty; }
+.muted { color: var(--color-semantic-functional-text-muted); }
+.why { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.why h2 { margin: 0; }
+.why dl { margin: 0; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+.why dt { color: var(--color-semantic-functional-text-muted); }
+.why dd { margin: 0; text-wrap: pretty; }
+.why dl > div { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+.hint { color: var(--color-semantic-functional-text-muted); }
+/* The stage: the TV behind the card */
+.opt { display: flex; justify-content: center; padding: var(--dimension-spacing-core-xl); background: var(--color-semantic-functional-background-primary); border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-subtle); border-radius: var(--dimension-radius-core-lg); outline: none; }
+.opt-content { display: flex; }
+
+/* The kit's Content Card */
+.card { flex: none; width: var(--dimension-size-semantic-content-card-width); box-sizing: border-box; padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); position: relative; }
+.opt[data-ring="card"]:focus .card { outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline); outline-offset: var(--dimension-spacing-semantic-focus-offset); }
+.opt:not([data-ring="card"]):focus [data-f] { outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline); outline-offset: var(--dimension-spacing-semantic-focus-offset); }
+.card h3 { margin: 0; text-wrap: balance; }
+.card p { margin: 0; }
+.sent { text-wrap: pretty; }
+.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scrim { position: absolute; inset: 0; background: var(--gradient-complementary-dark); opacity: var(--opacity-semantic-illumination-strong); }
+.rating { position: absolute; left: var(--dimension-spacing-core-xs); top: var(--dimension-spacing-core-xs); box-sizing: border-box; min-width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); padding: 0 var(--dimension-spacing-core-3xs); display: grid; place-items: center; border: var(--dimension-border-width-semantic-button) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-xs); background: var(--color-opacity-dark-50); color: var(--color-semantic-functional-text-primary); }
+.live { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+.dot { flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+.dot.off { background: none; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-muted); box-sizing: border-box; }
+.t-muted { color: var(--color-semantic-functional-text-muted); }
+[data-view="0"] .v1, [data-view="1"] .v0 { display: none; }
+/* Segmented control (options 1 and 5) */
+.seg { display: flex; box-sizing: border-box; height: var(--dimension-size-semantic-control-height); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-semantic-pill); background: var(--color-opacity-dark-50); border: var(--dimension-border-width-semantic-button) solid var(--color-semantic-functional-border-subtle); }
+.seg span { flex: 1; display: grid; place-items: center; border-radius: var(--dimension-radius-semantic-pill); color: var(--color-semantic-functional-text-muted); font-weight: var(--typography-font-weight-regular); }
+.seg span.on { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-background-primary); font-weight: var(--typography-font-weight-bold); }
+.seg.flat { background: var(--color-semantic-functional-background-tint); }
+/* Option 1 */
+.bleed { overflow: hidden; }
+.bleed .hero { position: relative; margin: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)); min-height: 408px; box-sizing: border-box; padding: var(--dimension-spacing-semantic-card-inset-expanded); display: flex; flex-direction: column; justify-content: space-between; }
+.bleed .rating { position: relative; left: 0; top: 0; align-self: flex-start; }
+.bleed .info { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+.bleed .lines { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+.page { max-width: 640px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A1A5C"/><stop offset="0.6" stop-color="#2450C8"/><stop offset="1" stop-color="#4C8BEB"/></linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#9CC6FF" stop-opacity="0.9"/><stop offset="1" stop-color="#9CC6FF" stop-opacity="0"/></radialGradient>
+  </defs>
+  <symbol id="poster" viewBox="0 0 288 400" preserveAspectRatio="xMidYMid slice">
+    <rect width="288" height="400" fill="url(#sky)"/>
+    <ellipse cx="150" cy="150" rx="120" ry="90" fill="url(#glow)"/>
+    <path d="M110 170 C100 120 130 90 120 50 C150 80 170 60 160 20 C200 70 190 120 175 170 Z" fill="#7FA9F0" opacity="0.55"/>
+    <path d="M0 400 L0 262 L96 232 L128 178 L172 178 L206 232 L288 250 L288 400 Z" fill="#0B1646"/>
+    <path d="M0 400 L0 318 L80 296 L288 330 L288 400 Z" fill="#070E30"/>
+    <g fill="#070E30"><rect x="36" y="300" width="14" height="70"/><rect x="66" y="308" width="14" height="62"/><rect x="30" y="292" width="56" height="10"/></g>
+  </symbol>
+</svg>
+
+<main class="page">
+  <header class="why">
+    <h1 class="text-heading-3-bold">Referência boa: pôster inteiro</h1>
+    <p class="text-body-md-regular muted">Opção 1 da rodada 2 do playbook (<code>design-brain/toolbox/tests/pb-test-2</code>), escolhida pelo designer como o melhor exemplo gerado até agora. Serve de exemplo "bom" para o juiz comparar com palavras. Foque o card (clique ou Tab) e use ←/→ e Esc.</p>
+  </header>
+    <div class="cell">
+      <article class="opt" data-option="1" data-pattern="seg" data-ring="card" data-view="0" tabindex="0" aria-label="Opção 1: pôster inteiro">
+        <div class="opt-content">
+          <div class="card bleed">
+            <div class="hero">
+              <svg class="art" aria-hidden="true"><use href="#poster" width="100%" height="100%"/></svg>
+              <div class="scrim"></div>
+              <span class="rating text-body-sm-bold">14</span>
+              <div class="info">
+                <h3 class="text-heading-4-bold">Os Últimos Dias de Pompeia</h3>
+                <div class="lines" aria-live="polite">
+                  <p class="live text-body-md-medium v0"><i class="dot"></i>Ao vivo · restam 28 min</p>
+                  <p class="text-body-md-regular t-muted v0">20h30 – 22h50</p>
+                  <p class="live text-body-md-medium v1"><i class="dot off"></i>Reprise</p>
+                  <p class="text-body-md-regular t-muted v1">01h10 – 03h30</p>
+                </div>
+                <div class="seg text-body-sm-medium"><span class="on">Agora</span><span>Mais tarde</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      <section class="why">
+        <h2 class="text-heading-5-bold">1 · Pôster inteiro</h2>
+        <dl class="text-body-md-regular">
+          <div><dt>Tese</dt><dd>A imagem ocupa o card todo; o resto é uma legenda sobre ela. É a leitura mais direta do "o filme é o protagonista".</dd></div>
+          <div><dt>Hierarquia</dt><dd>Pôster, título (24), estado ao vivo, horário em cinza claro, e só por último o seletor. Um único acento de cor: o ponto vermelho do ao vivo.</dd></div>
+          <div><dt>Interação</dt><dd>Seletor segmentado. ← / → trocam Agora / Mais tarde e o texto inteiro muda junto. Esc volta para Agora. Sem laço nas pontas.</dd></div>
+          <div><dt>Estados</dt><dd>Padrão: sem contorno. Foco: anel de 4 do kit ao redor do card. Selecionado: o segmento ativo inverte a cor.</dd></div>
+          <div><dt>Ligação com o brief</dt><dd>Cobre as duas visões do tempo sem mostrar as duas ao mesmo tempo. Gênero e duração ficam de fora (página de detalhe).</dd></div>
+        </dl>
+      </section>
+    </div>
+</main>
+
+<script>
+// Inside a card only ←/→, Enter and Esc/Backspace act. ↑/↓ are never handled, so the screen gets them.
+const $ = (o, s) => [...o.querySelectorAll(s)];
+const handlers = {
+  seg(o, k) {
+    const view = +o.dataset.view
+    const next = k === 'ArrowLeft' ? 0 : k === 'ArrowRight' ? 1 : k === 'Escape' || k === 'Backspace' ? 0 : view
+    if (next === view) return false
+    o.dataset.view = next
+    $(o, '.seg span').forEach((s, i) => s.classList.toggle('on', i === next))
+    return true
+  },
+}
+document.querySelectorAll('.opt').forEach(o => {
+  o.addEventListener('keydown', e => { if (handlers.seg(o, e.key)) e.preventDefault() })
+})
+</script>
+</body>
+</html>

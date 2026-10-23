@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card de programação: Pompeia</title>
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* Chrome da página */
+*{box-sizing:border-box;margin:0}
+body{background:var(--color-semantic-functional-background-primary);color:var(--color-semantic-functional-text-primary);font-family:var(--typography-font-family-primary),sans-serif;text-wrap:pretty}
+main{padding:var(--dimension-spacing-core-2xl);display:flex;flex-direction:column;gap:var(--dimension-spacing-core-2xl)}
+header{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-2xs)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--dimension-spacing-core-2xl)}
+.opt{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-sm)}
+.opt-content{display:flex;justify-content:center;padding:var(--dimension-spacing-core-lg) 0}
+.rationale{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-2xs);color:var(--color-semantic-functional-text-muted)}
+.rationale b{color:var(--color-semantic-functional-text-primary)}
+.rationale p{text-wrap:pretty}
+.open{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-xs);color:var(--color-semantic-functional-text-muted);border-top:var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-default);padding-top:var(--dimension-spacing-core-lg)}
+.open ul{padding-left:var(--dimension-spacing-core-lg);display:flex;flex-direction:column;gap:var(--dimension-spacing-core-2xs)}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}}
+
+/* Card: Content Card do kit (288, raio 40, respiro 24) */
+.card{width:var(--dimension-size-semantic-content-card-width);background:var(--color-semantic-functional-background-elevated);border-radius:var(--dimension-radius-semantic-content-card);padding:var(--dimension-spacing-semantic-card-inset-expanded);display:flex;flex-direction:column;gap:var(--dimension-spacing-core-xs);color:var(--color-semantic-functional-text-primary)}
+.card *{text-wrap:pretty}
+.card .title{text-wrap:balance}
+.card:focus{outline:none}
+.card.ring:is(:focus,.show){outline:var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);outline-offset:var(--dimension-spacing-semantic-focus-offset)}
+.piece.on{outline:none}
+.card:is(:focus,.show) .piece.on{outline:var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);outline-offset:var(--dimension-spacing-semantic-focus-offset)}
+.muted{color:var(--color-semantic-functional-text-muted)}
+.grp{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-3xs)}
+.line{display:flex;align-items:center;gap:var(--dimension-spacing-core-2xs)}
+.between{justify-content:space-between}
+.dot{width:var(--dimension-spacing-core-2xs);height:var(--dimension-spacing-core-2xs);border-radius:var(--dimension-radius-core-full);background:var(--color-semantic-functional-status-live);flex:none}
+.age{border:var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-border-default);border-radius:var(--dimension-radius-core-xs);padding:0 var(--dimension-spacing-core-2xs);flex:none}
+.sel .title::before{content:"\2713\00a0"}
+
+/* Imagem do filme (placeholder, dominante azul) */
+.img{position:relative;overflow:hidden;border-radius:var(--dimension-radius-core-2xl);background:var(--gradient-primary-noite)}
+.img svg{position:absolute;left:0;bottom:0;width:100%;height:100%}
+.i1{height:220px}.i2{height:120px}.i3{height:112px}.i4{height:128px}.i5{height:96px}
+.thumb{width:72px;height:72px;border-radius:var(--dimension-radius-core-md);flex:none}
+
+/* 2 segmentado */
+.seg{display:flex;padding:var(--dimension-spacing-core-3xs);border-radius:var(--dimension-radius-core-full);background:var(--color-semantic-functional-background-tint)}
+.seg span{flex:1;text-align:center;padding:var(--dimension-spacing-core-2xs) 0;border-radius:var(--dimension-radius-core-full);color:var(--color-semantic-functional-text-muted)}
+.seg span.on{background:var(--color-semantic-functional-background-primary);color:var(--color-semantic-functional-text-primary)}
+.card:is(:focus,.show) .seg span.on{outline:none}
+
+/* 3 expandir / 4 escolha */
+.pieces{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-2xs)}
+.piece{background:var(--color-semantic-functional-background-tint);border-radius:var(--dimension-radius-core-md);padding:var(--dimension-spacing-core-xs);display:flex;flex-direction:column;gap:var(--dimension-spacing-core-3xs)}
+.piece .more{display:none}
+.piece.open .more{display:flex;flex-direction:column;gap:var(--dimension-spacing-core-3xs);padding-top:var(--dimension-spacing-core-2xs)}
+.tiles{display:flex;gap:var(--dimension-spacing-core-2xs)}
+.tiles .piece{flex:1;padding:var(--dimension-spacing-core-xs) var(--dimension-spacing-core-2xs)}
+.tiles .piece.chosen{background:var(--color-opacity-light-30)}
+.nowrap{white-space:nowrap}
+
+/* 5 barra */
+.bar{height:var(--dimension-spacing-core-2xs);border-radius:var(--dimension-radius-core-full);background:var(--color-semantic-functional-background-tint);overflow:hidden}
+.bar i{display:block;height:100%;width:80%;background:var(--color-semantic-functional-status-live)}
+[data-view="1"] .v0,[data-view="0"] .v1{display:none}
+
+/* 6 interruptor */
+.sw{width:var(--dimension-size-semantic-control-height-lg);height:var(--dimension-spacing-core-lg);border-radius:var(--dimension-radius-core-full);background:var(--color-semantic-functional-background-tint);padding:var(--dimension-spacing-core-3xs);flex:none;display:flex}
+.sw i{width:var(--dimension-spacing-core-sm);height:var(--dimension-spacing-core-sm);border-radius:var(--dimension-radius-core-full);background:var(--color-semantic-functional-text-muted)}
+.card[aria-checked="true"] .sw{background:var(--color-semantic-functional-text-primary);justify-content:flex-end}
+.card[aria-checked="true"] .sw i{background:var(--color-semantic-functional-background-primary)}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1 class="text-heading-3-bold">Os Últimos Dias de Pompeia: 6 cards</h1>
+  <p class="text-body-md-regular muted">Card de interatividade contextual (1280×720, área segura 40/32). Todos são Content Cards do kit (288, raio 40, respiro 24) e usam só os dados do brief. Clique no card ou use Tab para focar; ←/→, Enter e Esc agem dentro dele; ↑/↓ passam. A imagem é um espaço reservado azul. Sem foco: padrão. Anel azul: foco.</p>
+</header>
+
+<div class="grid">
+
+<!-- 1 -->
+<section class="opt" data-option="1">
+  <h2 class="text-heading-5-bold">1. Cartaz</h2>
+  <div class="opt-content">
+    <div class="card ring" tabindex="0" id="c1" aria-label="Os Últimos Dias de Pompeia, ao vivo, restam 28 minutos">
+      <div class="img i1"><svg viewBox="0 0 240 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="120" cy="62" rx="70" ry="46" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 220V150L60 120L96 70L120 52L146 84L190 128L240 140V220Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+      <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+      <div class="grp">
+        <div class="line text-body-sm-bold"><span class="dot"></span><span>Ao vivo · restam 28 min</span></div>
+        <div class="line between text-body-sm-medium muted"><span>20h30 – 22h50</span><span class="age text-body-sm-bold">14</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> o filme é o protagonista; a imagem ocupa quase metade do card e o resto é um título e duas linhas.</p>
+    <p><b>Hierarquia:</b> imagem, título, estado ao vivo (único ponto vermelho), horário e classificação em cinza suave. Sem gênero e sem reprise: a segunda visão do tempo (01h10 – 03h30) vai para a página de detalhe. Isso é um corte deliberado, pela ordem de sacrifício do playbook.</p>
+    <p><b>Interação:</b> nenhuma além de Enter, que abre o filme (o card é o botão). Selecionado: um check antes do título.</p>
+    <p><b>Risco:</b> quem quer "mais tarde" não encontra aqui; depende da página de detalhe.</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="opt" data-option="2">
+  <h2 class="text-heading-5-bold">2. Agora e Mais tarde</h2>
+  <div class="opt-content">
+    <div class="card ring" tabindex="0" id="c2" aria-label="Os Últimos Dias de Pompeia">
+      <div class="img i2"><svg viewBox="0 0 240 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="120" cy="36" rx="60" ry="26" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 120V84L60 68L96 40L120 28L146 46L190 72L240 78V120Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+      <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+      <div class="seg text-body-sm-bold" role="tablist"><span class="on">Agora</span><span>Mais tarde</span></div>
+      <div class="p grp" aria-live="polite">
+        <div class="line text-body-sm-bold"><span class="dot"></span><span>Ao vivo · restam 28 min</span></div>
+        <div class="line between text-body-sm-medium muted"><span>20h30 – 22h50</span><span class="age text-body-sm-bold">14</span></div>
+      </div>
+      <div class="p grp" hidden aria-live="polite">
+        <div class="text-body-sm-bold">Reprise às 01h10</div>
+        <div class="line between text-body-sm-medium muted"><span>01h10 – 03h30</span><span class="age text-body-sm-bold">14</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> as duas visões do tempo são os dois lados de uma decisão: entrar agora ou ver depois. O card mostra uma por vez.</p>
+    <p><b>Hierarquia:</b> imagem menor, título, o segmento como segundo elemento mais forte, e só então os dados da visão ativa. O vermelho aparece só em "Agora".</p>
+    <p><b>Interação:</b> Seletor segmentado. ←/→ troca o segmento (2) e o conteúdo inteiro muda junto; Enter abre o filme. Esc volta para "Agora". Selecionado: check no título.</p>
+    <p><b>Risco:</b> o estado ao vivo some quando se olha "Mais tarde"; o gênero ficou de fora (vai ao detalhe).</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="opt" data-option="3">
+  <h2 class="text-heading-5-bold">3. Linhas que crescem</h2>
+  <div class="opt-content">
+    <div class="card" tabindex="0" id="c3" aria-label="Os Últimos Dias de Pompeia">
+      <div class="img i3"><svg viewBox="0 0 240 112" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="120" cy="34" rx="60" ry="24" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 112V80L60 64L96 38L120 26L146 44L190 68L240 74V112Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+      <div class="grp">
+        <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+        <div class="line text-body-sm-medium muted"><span>Aventura histórica</span><span class="age text-body-sm-bold">14</span></div>
+      </div>
+      <div class="pieces" aria-live="polite">
+        <div class="piece on">
+          <div class="text-body-sm-bold">Agora</div>
+          <div class="line text-body-sm-medium"><span class="dot"></span><span>Ao vivo · restam 28 min</span></div>
+          <div class="more text-body-sm-medium muted"><span>20h30 – 22h50 · 2 h 20</span><span>Já passaram 1 h 52</span></div>
+        </div>
+        <div class="piece">
+          <div class="text-body-sm-bold">Mais tarde</div>
+          <div class="text-body-sm-medium muted">Reprise às 01h10</div>
+          <div class="more text-body-sm-medium muted"><span>01h10 – 03h30</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> o card abre em silêncio (imagem, título, gênero, classificação) e entrega o tempo em duas linhas que o espectador escolhe aprofundar.</p>
+    <p><b>Hierarquia:</b> título, depois a linha "Agora" com o ponto vermelho; "Mais tarde" fica mais baixa em contraste. O detalhe (horário, duração, 1 h 52) só existe quando pedido: divulgação progressiva.</p>
+    <p><b>Interação:</b> Expandir no lugar. ←/→ move entre as duas linhas, Enter expande ou recolhe, Esc recolhe. A pista é o anel de foco e a linha que cresce; sem seta desenhada.</p>
+    <p><b>Risco:</b> mais elementos que as opções 1 e 5; é a mais densa das seis.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="opt" data-option="4">
+  <h2 class="text-heading-5-bold">4. Entrar ou ver depois</h2>
+  <div class="opt-content">
+    <div class="card" tabindex="0" id="c4" aria-label="Os Últimos Dias de Pompeia">
+      <div class="img i4"><svg viewBox="0 0 240 128" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="120" cy="38" rx="60" ry="26" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 128V90L60 74L96 44L120 30L146 50L190 76L240 82V128Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+      <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+      <div class="tiles" aria-live="polite">
+        <div class="piece on">
+          <div class="text-body-sm-bold nowrap">Ver agora</div>
+          <div class="line text-body-sm-medium"><span class="dot"></span><span>restam 28 min</span></div>
+        </div>
+        <div class="piece">
+          <div class="text-body-sm-bold nowrap">Ver depois</div>
+          <div class="text-body-sm-medium muted nowrap">01h10 – 03h30</div>
+        </div>
+      </div>
+      <div class="line text-body-sm-medium muted"><span class="age text-body-sm-bold">14</span><span>Aventura histórica</span></div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> o card existe para uma decisão; as duas escolhas são os dois únicos cartões e têm o mesmo peso.</p>
+    <p><b>Hierarquia:</b> imagem, título, dois cartões iguais, e uma linha de metadado. O horário completo de agora (20h30 – 22h50) fica fora; vai ao detalhe.</p>
+    <p><b>Interação:</b> Fileira de escolha. ←/→ move o foco entre os cartões iguais, Enter escolhe. Foco = anel azul; escolhido = fundo mais claro e um check, outro jeito. Esc devolve o foco ao primeiro.</p>
+    <p><b>Risco:</b> escolher "Ver depois" tem efeito que o brief não define (ver perguntas abertas).</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="opt" data-option="5">
+  <h2 class="text-heading-5-bold">5. O tempo como protagonista</h2>
+  <div class="opt-content">
+    <div class="card ring" tabindex="0" id="c5" data-view="0" aria-label="Os Últimos Dias de Pompeia, ao vivo">
+      <div class="img i5"><svg viewBox="0 0 240 96" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="120" cy="28" rx="60" ry="20" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 96V68L60 54L96 32L120 22L146 38L190 58L240 62V96Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+      <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+      <div class="grp" aria-live="polite">
+        <div class="v0 text-heading-3-bold">28 min</div>
+        <div class="v1 text-heading-3-bold">1 h 52</div>
+        <div class="v0 line text-body-sm-bold"><span class="dot"></span><span>Ao vivo · restam</span></div>
+        <div class="v1 line text-body-sm-bold"><span class="dot"></span><span>Ao vivo · já passaram</span></div>
+      </div>
+      <div class="grp">
+        <div class="bar"><i></i></div>
+        <div class="line between text-body-sm-medium muted"><span>20h30</span><span>22h50</span></div>
+      </div>
+      <div class="line between text-body-sm-medium muted"><span>Reprise 01h10</span><span class="age text-body-sm-bold">14</span></div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> "quanto falta" é o que decide entrar; vira o maior elemento do card, em vez de o título.</p>
+    <p><b>Hierarquia:</b> o número (28 min) em 28px, a barra de 80% (1 h 52 de 2 h 20) e as duas pontas 20h30 e 22h50. O título fica em segundo plano. A barra tem a ver com a intenção (decidir com quanto falta), não é enfeite.</p>
+    <p><b>Interação:</b> Alternar visão. Enter troca entre "restam 28 min" e "já passaram 1 h 52"; a barra e as pontas não mudam. Esc volta à primeira visão. ←/→ não faz nada (só há uma visão a percorrer).</p>
+    <p><b>Risco:</b> o filme sai do centro; imagem pequena é o chamariz mais fraco das seis. Sem gênero.</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="opt" data-option="6">
+  <h2 class="text-heading-5-bold">6. Texto primeiro, lembrar da reprise</h2>
+  <div class="opt-content">
+    <div class="card ring" tabindex="0" id="c6" role="switch" aria-checked="false" aria-label="Avisar na reprise das 01h10">
+      <div class="line">
+        <div class="img thumb"><svg viewBox="0 0 72 72" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><ellipse cx="36" cy="20" rx="20" ry="12" style="fill:var(--color-semantic-theme-noite-light);opacity:.5"/><path d="M0 72V50L18 42L30 24L36 18L44 28L56 44L72 48V72Z" style="fill:var(--color-opacity-dark-50)"/></svg></div>
+        <h3 class="title text-heading-5-bold">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <div class="grp">
+        <div class="line text-body-sm-bold"><span class="dot"></span><span>Ao vivo · restam 28 min</span></div>
+        <div class="line between text-body-sm-medium muted"><span>20h30 – 22h50</span><span class="age text-body-sm-bold">14</span></div>
+        <div class="text-body-sm-medium muted">Aventura histórica</div>
+      </div>
+      <div class="line between">
+        <div class="grp"><span class="text-body-sm-bold">Avisar na reprise</span><span class="text-body-sm-medium muted sw-l" aria-live="polite">Desligado · 01h10 – 03h30</span></div>
+        <div class="sw"><i></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="rationale text-body-sm-medium">
+    <p><b>Tese:</b> quando só restam 28 min, o espectador provavelmente vai ver depois; o card oferece a reprise em vez de empurrar o ao vivo. A imagem vira miniatura e o texto lidera.</p>
+    <p><b>Hierarquia:</b> título ao lado da miniatura, estado ao vivo, dados, e a ação única embaixo. É a opção que menos "vende" a imagem.</p>
+    <p><b>Interação:</b> Interruptor. Enter liga e desliga "Avisar na reprise"; o texto confirma "Ligado" ou "Desligado", não só a cor. Esc desliga.</p>
+    <p><b>Risco:</b> o brief diz que o card é o botão que abre o filme; aqui Enter faz outra coisa. Precisa de decisão.</p>
+  </div>
+</section>
+
+</div>
+
+<section class="open">
+  <h2 class="text-heading-5-bold">Perguntas abertas e suposições</h2>
+  <ul class="text-body-sm-medium">
+    <li>A imagem é um espaço reservado: gradiente azul do kit e uma silhueta. Nenhuma imagem real foi usada.</li>
+    <li>Todas usam o Content Card (288, raio 40, respiro 24). Num palco de 1280×720 isso é um card pequeno; a largura real do card de interatividade contextual está por confirmar.</li>
+    <li>As opções 1, 4 e 5 omitem de propósito parte dos dados fixos (reprise, gênero, horário de agora) para manter o card leve; o brief manda esses dados irem ao detalhe. Confirmar se alguma opção precisa carregar os dois horários.</li>
+    <li>Opção 6: Enter liga o aviso, não abre o filme. O brief diz que o card é o botão. Qual dos dois vale? "Avisar na reprise" é uma função que o brief não pede; foi inventada para testar a tese.</li>
+    <li>Opção 4: o que "Ver depois" faz (agendar, lembrar, abrir a reprise) não está no brief.</li>
+    <li>Selecionado, nas opções 1 e 2, é um check antes do título (o playbook diz que o check é só um jeito). Nas outras, a seleção é a linha aberta (3), o cartão escolhido (4), a visão trocada (5) e o interruptor ligado (6).</li>
+    <li>Estados desabilitado e carregando ficaram fora, como no brief.</li>
+    <li>Vermelho (status ao vivo) é a única cor de destaque além do azul da imagem. Texto de estado fica em branco suave, nunca sobre a imagem.</li>
+    <li>Porcentagem da barra (80%): 1 h 52 de 2 h 20, conta feita com os dados do brief.</li>
+  </ul>
+</section>
+</main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)]
+const cards = $$('.card')
+cards.forEach(c => {
+  c.classList.add('show')
+  c.addEventListener('focus', () => cards.forEach(o => o.classList.toggle('show', o === c)))
+  c.addEventListener('click', () => c.focus())
+})
+const clamp = (i, d, n) => Math.min(n - 1, Math.max(0, i + d))
+// handle(card, fn): fn(key) returns true when it used the key. ↑/↓ are never touched.
+const on = (c, fn) => c.addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'].includes(e.key)) return
+  if (fn(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0, e.key)) e.preventDefault()
+})
+const back = k => k === 'Escape' || k === 'Backspace'
+
+// 1 e 2: Enter marca como selecionado
+const c1 = $('#c1'); on(c1, (d, k) => k === 'Enter' ? (c1.classList.toggle('sel'), true) : back(k) && c1.classList.contains('sel') ? (c1.classList.remove('sel'), true) : false)
+
+const c2 = $('#c2'); let s2 = 0
+const segs = $$('.seg span', c2), panes = $$('.p', c2)
+const show2 = i => { s2 = i; segs.forEach((s, j) => s.classList.toggle('on', j === i)); panes.forEach((p, j) => p.hidden = j !== i) }
+on(c2, (d, k) => d ? (show2(clamp(s2, d, 2)), true) : k === 'Enter' ? (c2.classList.toggle('sel'), true) : back(k) && s2 ? (show2(0), true) : false)
+
+// 3: expandir no lugar
+const c3 = $('#c3'); let s3 = 0; const rows = $$('.piece', c3)
+on(c3, (d, k) => {
+  if (d) { s3 = clamp(s3, d, rows.length); rows.forEach((r, j) => r.classList.toggle('on', j === s3)); return true }
+  if (k === 'Enter') { rows[s3].classList.toggle('open'); return true }
+  const open = rows.find(r => r.classList.contains('open'))
+  return back(k) && open ? (open.classList.remove('open'), true) : false
+})
+
+// 4: fileira de escolha
+const c4 = $('#c4'); let s4 = 0; const tiles = $$('.piece', c4)
+const label = ['Ver agora', 'Ver depois']
+on(c4, (d, k) => {
+  if (d) { s4 = clamp(s4, d, 2); tiles.forEach((t, j) => t.classList.toggle('on', j === s4)); return true }
+  if (k === 'Enter') { tiles.forEach((t, j) => { t.classList.toggle('chosen', j === s4); $('div', t).textContent = (j === s4 ? '✓ ' : '') + label[j] }); return true }
+  if (back(k) && s4) { s4 = 0; tiles.forEach((t, j) => t.classList.toggle('on', j === 0)); return true }
+  return false
+})
+
+// 5: alternar visão
+const c5 = $('#c5')
+on(c5, (d, k) => k === 'Enter' ? (c5.dataset.view = c5.dataset.view === '0' ? '1' : '0', true) : back(k) && c5.dataset.view === '1' ? (c5.dataset.view = '0', true) : false)
+
+// 6: interruptor
+const c6 = $('#c6'), setSw = v => { c6.setAttribute('aria-checked', v); $('.sw-l', c6).textContent = (v ? 'Ligado' : 'Desligado') + ' · 01h10 – 03h30' }
+on(c6, (d, k) => k === 'Enter' ? (setSw(c6.getAttribute('aria-checked') !== 'true'), true) : back(k) && c6.getAttribute('aria-checked') === 'true' ? (setSw(false), true) : false)
+</script>
+</body>
+</html>

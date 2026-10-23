@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Ficha do participante BBB (bbb-1-explore)</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] .card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-xs);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  box-sizing: border-box;
+}
+[data-option="1"] .photo {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: var(--color-opacity-light-20);
+}
+[data-option="1"] .photo svg { display: block; width: 100%; height: 100%; }
+[data-option="1"] .veil {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--gradient-semantic-overlay-bottom);
+}
+[data-option="1"] .zone { display: block; height: 200px; }
+[data-option="1"] .who { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="1"] .name { margin: 0; text-wrap: balance; }
+[data-option="1"] .muted { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .coins { position: relative; margin: 0; display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .coins b { font-variant-numeric: tabular-nums; }
+[data-option="1"] .emojis { position: relative; display: flex; gap: var(--dimension-spacing-core-3xs); }
+[data-option="1"] .emoji {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--color-opacity-light-10);
+}
+[data-option="1"] .emoji b { font-variant-numeric: tabular-nums; }
+[data-option="2"] .card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  box-sizing: border-box;
+}
+[data-option="2"] .group { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .who { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); }
+[data-option="2"] .photo {
+  display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  flex: none;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .photo svg { display: block; width: 100%; height: 100%; }
+[data-option="2"] .id { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .muted { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .name { margin: 0; text-wrap: balance; }
+[data-option="2"] .hero { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="2"] .emojis { display: flex; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .emoji {
+  display: flex; flex: 1 1 0; align-items: center; justify-content: center;
+  gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-2xs) 0;
+  border-radius: var(--dimension-radius-core-md);
+  background: var(--color-opacity-light-10);
+}
+[data-option="2"] .emoji b { font-variant-numeric: tabular-nums; font-weight: inherit; }
+[data-option="3"] .card { box-sizing: border-box; width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .who { display: flex; flex-direction: column; align-items: flex-start; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .photo { width: 72px; height: 72px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-10); color: var(--color-opacity-light-30); }
+[data-option="3"] .photo svg { display: block; width: 56px; height: 56px; }
+[data-option="3"] .id { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .name { margin: 0; text-wrap: balance; }
+[data-option="3"] .age { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .given { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .coins { margin: 0; display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .coins-unit { color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .coins-value { font-variant-numeric: tabular-nums; }
+[data-option="3"] .emojis { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .emoji { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-2xs) 0; border-radius: var(--dimension-radius-core-lg); background: var(--color-opacity-light-10); }
+[data-option="3"] .emoji-glyph { display: block; }
+[data-option="3"] .emoji-count { display: block; font-variant-numeric: tabular-nums; }
+[data-option="4"] .card {
+  display: flex; flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  text-align: left;
+}
+[data-option="4"] .who { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .id { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .photo {
+  flex: none; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="4"] .photo svg { display: block; width: 80%; height: 80%; }
+[data-option="4"] .name-age { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .name { margin: 0; text-wrap: balance; color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .age, [data-option="4"] .coins-label { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .coins { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .coins-value { margin: 0; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .reactions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--dimension-spacing-core-xs);
+  margin: 0; padding: 0; list-style: none;
+}
+[data-option="4"] .cell {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  gap: var(--dimension-spacing-core-sm);
+  padding: var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-opacity-light-10);
+}
+[data-option="4"] .emoji { display: block; margin: 0; font-size: var(--typography-font-size-3xl); line-height: 1; }
+[data-option="4"] .count { display: block; margin: 0; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1">
+  <!-- tese: a foto ocupa o card e o nome ancora; idade, estalecas e emojis são apoio curto sobre ela. -->
+  <p class="opt-label" data-part="label">Opção 1 - Foto como contexto</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="photo" data-part="photo" data-stack aria-hidden="true">
+        <svg viewBox="0 0 288 456" preserveAspectRatio="xMidYMin slice" fill="currentColor">
+          <circle cx="144" cy="104" r="46"/>
+          <path d="M44 456V300c0-62 44-96 100-96s100 34 100 96v156z"/>
+        </svg>
+        <span class="veil"></span>
+      </div>
+      <span class="zone" aria-hidden="true"></span>
+      <div class="who" data-part="who">
+        <h3 class="name text-heading-3-bold" data-part="name">Camila Duarte</h3>
+        <p class="muted text-footnote-medium" data-part="age">27 anos</p>
+      </div>
+      <p class="coins" data-part="coins"><b class="text-body-sm-bold">3.250</b><span class="muted text-footnote-medium">estalecas</span></p>
+      <div class="emojis" data-part="emojis">
+        <span class="emoji"><span class="text-body-sm-medium">🐍</span><b class="text-footnote-bold">12</b></span>
+        <span class="emoji"><span class="text-body-sm-medium">💔</span><b class="text-footnote-bold">7</b></span>
+        <span class="emoji"><span class="text-body-sm-medium">🌱</span><b class="text-footnote-bold">5</b></span>
+        <span class="emoji"><span class="text-body-sm-medium">🎯</span><b class="text-footnote-bold">3</b></span>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2">
+  <!-- tese: o número de estalecas é o dado âncora; foto, nome e idade são identidade, e os emojis são apoio. -->
+  <p class="opt-label" data-part="label">Opção 2 - Estalecas em destaque</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="identity">
+        <span class="photo" data-part="photo" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="currentColor"><circle cx="20" cy="15" r="7"/><path d="M6 40c0-9 6-14 14-14s14 5 14 14z"/></svg>
+        </span>
+        <div class="id">
+          <p class="name text-body-sm-bold" data-part="name">Camila Duarte</p>
+          <p class="muted text-footnote-medium" data-part="age">27 anos</p>
+        </div>
+      </div>
+      <div class="group" data-part="stalecas">
+        <p class="muted text-footnote-medium">Estalecas</p>
+        <p class="hero text-heading-3-bold" data-part="stalecas-value">3.250</p>
+      </div>
+      <div class="emojis text-body-sm-bold" data-part="emojis" aria-label="Emojis recebidos">
+        <span class="emoji"><span class="text-body-md-medium" aria-hidden="true">🐍</span><b>12</b></span>
+        <span class="emoji"><span class="text-body-md-medium" aria-hidden="true">💔</span><b>7</b></span>
+        <span class="emoji"><span class="text-body-md-medium" aria-hidden="true">🌱</span><b>5</b></span>
+        <span class="emoji"><span class="text-body-md-medium" aria-hidden="true">🎯</span><b>3</b></span>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3">
+  <!-- tese: em cima, quem é (foto, nome, idade); embaixo, o que o público deu (estalecas e emojis); o espaço, não divisores, separa os grupos. -->
+  <p class="opt-label" data-part="label">Opção 3 - Ficha em dois grupos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="identity">
+        <div class="photo" data-part="photo" role="img" aria-label="Foto de Camila Duarte (espaço reservado)">
+          <svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="22" r="10" fill="currentColor"/><path d="M6 56c0-13 10-20 22-20s22 7 22 20z" fill="currentColor"/></svg>
+        </div>
+        <div class="id">
+          <p class="name text-heading-3-bold" data-part="name">Camila Duarte</p>
+          <p class="age text-body-sm-medium" data-part="age">27 anos</p>
+        </div>
+      </div>
+      <div class="given" data-part="given">
+        <p class="coins" data-part="coins"><span class="coins-value text-body-md-bold">3.250</span><span class="coins-unit text-body-sm-medium">estalecas</span></p>
+        <ul class="emojis" data-part="emojis">
+          <li class="emoji"><span class="emoji-glyph text-heading-5-bold" aria-hidden="true">🐍</span><span class="emoji-count text-body-sm-bold">12</span></li>
+          <li class="emoji"><span class="emoji-glyph text-heading-5-bold" aria-hidden="true">💔</span><span class="emoji-count text-body-sm-bold">7</span></li>
+          <li class="emoji"><span class="emoji-glyph text-heading-5-bold" aria-hidden="true">🌱</span><span class="emoji-count text-body-sm-bold">5</span></li>
+          <li class="emoji"><span class="emoji-glyph text-heading-5-bold" aria-hidden="true">🎯</span><span class="emoji-count text-body-sm-bold">3</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4">
+  <!-- tese: a reação do público é o assunto; os emojis recebidos, com suas contagens, ficam em evidência, e o resto identifica o participante. -->
+  <p class="opt-label" data-part="label">Opção 4 - Emojis como protagonista</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="who">
+        <div class="id" data-part="identity">
+          <div class="photo" data-part="photo" role="img" aria-label="Foto de Camila Duarte (espaço reservado)">
+            <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><circle cx="16" cy="12" r="6"/><path d="M4 32c0-8 5-12 12-12s12 4 12 12z"/></svg>
+          </div>
+          <div class="name-age">
+            <p class="name text-body-sm-bold" data-part="name">Camila Duarte</p>
+            <p class="age text-footnote-medium" data-part="age">27 anos</p>
+          </div>
+        </div>
+        <p class="coins" data-part="coins"><span class="coins-value text-body-sm-bold">3.250</span><span class="coins-label text-footnote-medium">estalecas</span></p>
+      </div>
+      <ul class="reactions" data-part="emojis">
+        <li class="cell" data-part="emoji-cell" aria-label="12 cobras"><span class="emoji" aria-hidden="true">🐍</span><span class="count text-heading-3-bold">12</span></li>
+        <li class="cell" data-part="emoji-cell" aria-label="7 corações partidos"><span class="emoji" aria-hidden="true">💔</span><span class="count text-heading-3-bold">7</span></li>
+        <li class="cell" data-part="emoji-cell" aria-label="5 plantas"><span class="emoji" aria-hidden="true">🌱</span><span class="count text-heading-3-bold">5</span></li>
+        <li class="cell" data-part="emoji-cell" aria-label="3 alvos"><span class="emoji" aria-hidden="true">🎯</span><span class="count text-heading-3-bold">3</span></li>
+      </ul>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+
+</body>
+</html>

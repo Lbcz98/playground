@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Card do filme Os Últimos Dias de Pompeia (baseline)</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] .card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .group { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .piece { position: relative; display: flex; flex-direction: column; border-radius: var(--dimension-radius-core-lg); }
+[data-option="1"] .piece[data-focus]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="1"] .chev { display: block; flex: none; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .piece[data-open] .chev { transform: rotate(180deg); }
+
+/* Imagem com título: a peça âncora */
+[data-option="1"] .media { overflow: hidden; justify-content: flex-end; min-height: 136px; padding: var(--dimension-spacing-core-sm); }
+[data-option="1"] .media[data-open] { min-height: 176px; }
+[data-option="1"] .art {
+  position: absolute; inset: 0;
+  background:
+    var(--gradient-semantic-overlay-bottom),
+    radial-gradient(ellipse at 52% 34%, var(--color-opacity-light-30), transparent 55%),
+    var(--gradient-primary-noite);
+}
+[data-option="1"] .art::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--color-semantic-functional-background-primary); opacity: var(--opacity-semantic-statistics-vector);
+  clip-path: polygon(0 100%, 0 66%, 24% 58%, 40% 40%, 47% 30%, 53% 30%, 60% 40%, 76% 58%, 100% 64%, 100% 100%);
+}
+[data-option="1"] .media-text { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="1"] .title { margin: 0; text-wrap: pretty; color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .media .chev { position: absolute; top: var(--dimension-spacing-core-sm); right: var(--dimension-spacing-core-sm); color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .genre { margin: 0; text-wrap: pretty; color: var(--color-semantic-functional-text-primary); }
+
+/* Linhas expansíveis */
+[data-option="1"] .row { justify-content: center; min-height: var(--dimension-size-semantic-control-height-lg); padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-sm); }
+[data-option="1"] .row[data-open] { background: var(--color-opacity-light-10); }
+[data-option="1"] .line { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .line-main { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .line-end { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .strong { color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="1"] .soft { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="1"] .age {
+  display: block; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-light-20); color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .dot { display: block; flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--gradient-semantic-status-live); }
+[data-option="1"] .detail { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding-top: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .detail[hidden] { display: none; }
+[data-option="1"] .when { display: grid; grid-template-columns: auto 1fr; column-gap: var(--dimension-spacing-core-sm); row-gap: var(--dimension-spacing-core-3xs); margin: 0; }
+[data-option="1"] .when dt, [data-option="1"] .when dd { margin: 0; }
+[data-option="1"] .bar { display: block; height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); overflow: hidden; }
+[data-option="1"] .bar-fill { display: block; width: 74%; height: 100%; border-radius: inherit; background: var(--gradient-semantic-status-live); }
+[data-option="1"] .bar-caption { display: flex; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+
+/* Ação de entrar: a única peça cheia */
+[data-option="1"] .go { justify-content: center; min-height: var(--dimension-size-semantic-control-height); padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-sm); background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="1"] .go .chev { color: var(--color-semantic-functional-text-inverse); }
+[data-option="1"] .go .detail { padding-top: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .go-note { margin: 0; text-wrap: pretty; color: var(--color-semantic-functional-text-inverse); font-variant-numeric: tabular-nums; }
+[data-option="2"] .card { position: relative; display: block; width: var(--dimension-size-semantic-content-card-width); overflow: hidden; padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .poster { position: relative; display: flex; align-items: flex-end; height: 216px; margin: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)) calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)) 0; padding: var(--dimension-spacing-semantic-card-inset-expanded); background: var(--gradient-primary-noite); }
+[data-option="2"] .poster::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 70%; background: var(--color-opacity-dark-30); clip-path: polygon(0 100%, 0 78%, 22% 62%, 38% 30%, 46% 22%, 54% 30%, 70% 58%, 100% 74%, 100% 100%); }
+[data-option="2"] .poster::after { content: ''; position: absolute; inset: 0; background: var(--gradient-semantic-overlay-bottom); }
+[data-option="2"] .title { position: relative; z-index: 1; display: block; margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="2"] .body { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); padding-top: var(--dimension-spacing-semantic-card-inset-expanded); }
+[data-option="2"] .tabs { display: flex; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-lg); background: var(--color-opacity-light-10); }
+[data-option="2"] .tab { position: relative; flex: 1 1 0; display: flex; align-items: center; justify-content: center; height: var(--dimension-size-semantic-control-height); border-radius: var(--dimension-radius-core-md); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .tab[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="2"] .tab[aria-selected="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="2"] .info { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-sm); }
+[data-option="2"] .time { display: block; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .rating { display: flex; align-items: center; justify-content: center; min-width: var(--dimension-size-semantic-icon-sm); padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-sm); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .state { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="2"] .dot { display: block; flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="2"] .dot[data-later] { background: transparent; border: var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-text-muted); }
+[data-option="2"] .state-text { display: block; text-wrap: pretty; }
+[data-option="3"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .card[data-phase="0"] { --hue: var(--color-semantic-theme-dia-dark); }
+[data-option="3"] .card[data-phase="1"] { --hue: var(--color-semantic-theme-tarde-light); }
+[data-option="3"] .card[data-phase="2"] { --hue: var(--color-semantic-theme-tarde-dark); }
+
+/* Peça 1: imagem (céu azul, vulcão em silhueta) com título e classificação. Nunca muda. */
+[data-option="3"] .media {
+  position: relative; display: block; height: 152px; overflow: hidden;
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--gradient-primary-noite);
+}
+[data-option="3"] .media::before {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 62%;
+  background: var(--color-semantic-functional-background-primary);
+  clip-path: polygon(0 100%, 0 78%, 22% 70%, 40% 34%, 46% 28%, 54% 28%, 60% 34%, 78% 72%, 100% 66%, 100% 100%);
+}
+[data-option="3"] .media::after {
+  content: ''; position: absolute; inset: 0; background: var(--gradient-semantic-overlay-bottom);
+}
+[data-option="3"] .title {
+  position: absolute; z-index: 1; inset: auto var(--dimension-spacing-core-sm) var(--dimension-spacing-core-sm) var(--dimension-spacing-core-sm);
+  margin: 0; display: block; text-wrap: balance; color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .rating {
+  position: absolute; z-index: 1; top: var(--dimension-spacing-core-xs); right: var(--dimension-spacing-core-xs);
+  display: flex; align-items: center; justify-content: center; width: var(--dimension-size-semantic-icon-round-rest); height: var(--dimension-size-semantic-icon-round-rest);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--color-opacity-dark-60); border: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-default);
+  color: var(--color-semantic-functional-text-primary);
+}
+
+/* Peça 2: a zona de estado, a única que muda. A cor muda só na barra. */
+[data-option="3"] .zone {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs);
+  padding: var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-opacity-light-10);
+}
+[data-option="3"] .bar { display: flex; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .seg {
+  display: block; flex: 1 1 0; height: var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+  transition: background-color var(--motion-semantic-duration) ease-out;
+}
+[data-option="3"] .seg[data-on] { background: var(--hue); }
+[data-option="3"] .text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .phase { display: block; margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .left { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+
+/* Foco do kit, na zona de estado (a peça que as setas percorrem). */
+[data-option="3"] .zone::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; display: none;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="3"]:focus .zone::after { display: block; }
+@media (prefers-reduced-motion: reduce) { [data-option="3"] .seg { transition: none; } }
+[data-option="4"] .card { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); background: var(--color-semantic-functional-background-elevated); border-radius: var(--dimension-radius-semantic-content-card); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .poster { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--dimension-radius-core-lg); background: var(--gradient-primary-noite); }
+[data-option="4"] .volcano { position: absolute; display: block; inset-inline: 22% 4%; inset-block: 18% 0; background: var(--color-opacity-dark-30); clip-path: polygon(0 100%, 38% 12%, 48% 0, 58% 12%, 100% 100%); }
+[data-option="4"] .poster::after { content: ''; position: absolute; inset: 0; background: var(--gradient-semantic-overlay-bottom); }
+[data-option="4"] .title { position: absolute; z-index: 1; inset-inline: var(--dimension-spacing-core-xs); inset-block-end: var(--dimension-spacing-core-xs); margin: 0; text-wrap: balance; }
+[data-option="4"] .age { position: absolute; z-index: 1; inset-block-start: var(--dimension-spacing-core-xs); inset-inline-end: var(--dimension-spacing-core-xs); display: block; padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-xs); background: var(--color-opacity-dark-60); font-variant-numeric: tabular-nums; }
+[data-option="4"] .head { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .live { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="4"] .tabs { display: flex; gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .tab { display: block; padding-block-end: var(--dimension-spacing-core-3xs); border-bottom: var(--dimension-border-width-core-thin) solid transparent; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .tab.is-on { border-bottom-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .view { display: none; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"][data-view="falta"] .view[data-part="view-falta"],
+[data-option="4"][data-view="horario"] .view[data-part="view-horario"] { display: flex; }
+[data-option="4"] .cells { display: grid; grid-template-columns: 1fr 1fr; margin-inline: calc(-1 * var(--dimension-spacing-core-2xs)); }
+[data-option="4"] .cell { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-sm); font-variant-numeric: tabular-nums; }
+[data-option="4"] .cell.is-on::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="4"] .label { color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .foot { display: flex; align-items: center; min-block-size: var(--dimension-size-semantic-icon-sm); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="4"] .bar { display: flex; flex: 1; gap: var(--dimension-spacing-core-3xs); height: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .seg { display: block; border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-30); }
+[data-option="4"] .seg.is-on { background: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .seg[data-seg="0"] { flex: 77; }
+[data-option="4"] .seg[data-seg="1"] { flex: 28; }
+[data-option="5"] .card { position: relative; width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .poster { position: relative; display: block; height: 192px; border-radius: var(--dimension-radius-core-lg); overflow: hidden; background: var(--gradient-primary-noite); }
+[data-option="5"] .volcano { position: absolute; display: block; left: 20%; right: 0; bottom: 0; height: 62%; background: var(--color-semantic-theme-noite-dark); opacity: var(--opacity-semantic-statistics-vector); clip-path: polygon(0 100%, 42% 0, 58% 8%, 100% 100%); }
+[data-option="5"] .shade { position: absolute; display: block; inset: 0; background: var(--gradient-overlay-bottom); }
+[data-option="5"] .rating { position: absolute; top: var(--dimension-spacing-core-xs); left: var(--dimension-spacing-core-xs); display: flex; align-items: center; justify-content: center; width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-dark-60); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .caption { position: absolute; left: var(--dimension-spacing-core-sm); right: var(--dimension-spacing-core-sm); bottom: var(--dimension-spacing-core-sm); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="5"] .title { margin: 0; text-wrap: balance; color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .when { margin: 0; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .live { margin: 0; display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="5"] .choices { display: flex; gap: var(--dimension-spacing-core-xs); }
+[data-option="5"] .choice { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-xs); border-radius: var(--dimension-radius-core-lg); background: var(--color-opacity-light-10); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .choice .name-row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-3xs); }
+[data-option="5"] .choice .name { margin: 0; white-space: nowrap; }
+[data-option="5"] .choice .hint { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .choice .check { display: block; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); visibility: hidden; }
+[data-option="5"] .choice[aria-checked="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="5"] .choice[aria-checked="true"] .hint { color: var(--color-semantic-functional-text-inverse); }
+[data-option="5"] .choice[aria-checked="true"] .check { visibility: visible; }
+[data-option="5"] .choice::after { content: none; }
+[data-option="5"] .choice[data-focus]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="6"] .card { width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .poster { position: relative; display: flex; flex-direction: column; justify-content: flex-end; aspect-ratio: 3 / 2; padding: var(--dimension-spacing-core-sm); border-radius: var(--dimension-radius-core-lg); overflow: hidden; background: var(--gradient-primary-noite); }
+[data-option="6"] .poster::after { content: ''; position: absolute; inset: auto 0 0 0; height: 80%; background: var(--color-opacity-dark-70); clip-path: polygon(0 100%, 34% 38%, 42% 30%, 50% 40%, 58% 34%, 100% 100%); }
+[data-option="6"] .poster::before { content: ''; position: absolute; inset: 0; background: var(--gradient-semantic-overlay-bottom); }
+[data-option="6"] .rating { position: absolute; top: var(--dimension-spacing-core-xs); left: var(--dimension-spacing-core-xs); z-index: 1; display: flex; align-items: center; justify-content: center; width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); border-radius: var(--dimension-radius-core-sm); background: var(--color-opacity-dark-60); color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .title { position: relative; z-index: 1; margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="6"] .rail { display: flex; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-lg); background: var(--color-semantic-functional-background-primary); }
+[data-option="6"] .slot { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-2xs) var(--dimension-spacing-core-none); border-radius: var(--dimension-radius-core-md); color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="6"] .slot[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="6"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); }
+[data-option="6"] .slot[data-live] .dot { background: var(--color-semantic-functional-status-live); }
+[data-option="6"] .opt:focus .slot[aria-selected="true"]::after, [data-option="6"].opt:focus .slot[aria-selected="true"]::after { content: ''; position: absolute; inset: calc(-1 * var(--dimension-spacing-semantic-focus-offset)); border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="6"] .detail { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="6"] .detail[hidden] { display: none; }
+[data-option="6"] .detail-status { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: pretty; }
+[data-option="6"] .detail-time { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: a imagem chama e o título ancora; o foco abre o detalhe no próprio card, sem sair dele. -->
+  <p class="opt-label" data-part="label">Opção 1 - Expandir no lugar</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="piece media" data-part="media">
+        <div class="art" data-part="image" data-stack></div>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="media-text">
+          <h3 class="title text-heading-3-bold" data-part="title">Os Últimos Dias&nbsp;de Pompeia</h3>
+          <div class="detail" data-detail aria-live="polite" hidden>
+            <p class="genre text-body-sm-medium" data-part="genre">Aventura histórica · Dublado</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="piece row" data-part="schedule">
+          <div class="line">
+            <span class="strong text-body-sm-bold" data-part="time">20h15 – 22h03</span>
+            <span class="line-end">
+              <span class="age text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14 anos</span>
+              <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+          <div class="detail" data-detail aria-live="polite" hidden>
+            <dl class="when text-body-sm-medium" data-part="when">
+              <dt class="soft">Agora</dt><dd class="strong">20h15 – 22h03</dd>
+              <dt class="soft">Mais tarde</dt><dd class="strong">Sáb · 15h30</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="piece row" data-part="live">
+          <div class="line">
+            <span class="line-main text-body-sm-bold">
+              <span class="dot" aria-hidden="true"></span>
+              <span><span class="strong" data-part="live-label">Ao vivo</span> <span class="soft text-body-sm-medium" data-part="remaining">· restam 28 min</span></span>
+            </span>
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="detail" data-detail aria-live="polite" hidden>
+            <span class="bar" data-part="progress"><span class="bar-fill"></span></span>
+            <span class="bar-caption text-footnote-medium"><span class="soft">1h 20 exibidos</span><span class="soft">28 min</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="piece go" data-part="enter">
+        <div class="line">
+          <span class="text-body-sm-bold">Entrar</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="detail" data-detail aria-live="polite" hidden>
+          <p class="go-note text-body-sm-medium">Abre no ponto em que o filme está: 1h 20.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: "Agora" e "Mais tarde" trocam o card inteiro; a imagem é o contexto fixo. -->
+  <p class="opt-label" data-part="label">Opção 2 - Seletor segmentado</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="poster" data-part="poster" data-stack>
+        <h3 class="title text-heading-3-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <div class="body">
+        <div class="tabs" role="tablist" data-part="selector">
+          <div class="tab text-body-sm-bold" role="tab" aria-selected="true" data-part="segment-now">Agora</div>
+          <div class="tab text-body-sm-bold" role="tab" aria-selected="false" data-part="segment-later">Mais tarde</div>
+        </div>
+        <div class="info" aria-live="polite">
+          <div class="row">
+            <span class="time text-body-md-medium" data-part="time">20h30 – 22h50</span>
+            <span class="rating text-caption-bold" data-part="rating">14</span>
+          </div>
+          <div class="state text-footnote-medium" data-part="state">
+            <span class="dot"></span>
+            <span class="state-text">Ao vivo · restam 28 min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <!-- tese: o card conta em que ponto o filme está (começou, no meio, quase no fim) e muda a peça de estado, não o fundo. -->
+  <p class="opt-label" data-part="label">Opção 3 - Estado muda o card</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-phase="2" data-part="card">
+      <div class="media" data-part="image">
+        <p class="title text-heading-5-bold" data-part="title">Os Últimos Dias de Pompeia</p>
+        <span class="rating text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+      </div>
+      <div class="zone" data-part="state">
+        <div class="bar" data-part="phase-bar" aria-hidden="true">
+          <span class="seg" data-on></span><span class="seg" data-on></span><span class="seg" data-on></span>
+        </div>
+        <div class="text" aria-live="polite">
+          <p class="phase text-body-md-bold" data-part="phase-name">Quase no fim</p>
+          <p class="left text-footnote-medium" data-part="time-left">Ao vivo · restam 28 min</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4" tabindex="0">
+  <!-- tese: o mesmo tempo do filme em duas visões, quanto falta e a que horas começa e termina; o título, a idade e o "ao vivo" não mudam. -->
+  <p class="opt-label" data-part="label">Opção 4 - Alternar visão</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-view="falta" data-part="card">
+      <div class="poster" data-part="image">
+        <span class="volcano"></span>
+        <span class="age text-footnote-bold" data-part="rating">14</span>
+        <h3 class="title text-heading-5-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <div class="head" data-part="status">
+        <span class="live text-footnote-bold"><span class="dot"></span>Ao vivo</span>
+        <span class="tabs text-footnote-medium" aria-hidden="true">
+          <span class="tab is-on" data-tab="falta">Falta</span>
+          <span class="tab" data-tab="horario">Horário</span>
+        </span>
+      </div>
+      <div aria-live="polite" data-part="time">
+        <div class="view" data-part="view-falta">
+          <div class="cells">
+            <div class="cell"><span class="text-heading-5-bold">1h 17</span><span class="label text-footnote-medium">no ar</span></div>
+            <div class="cell is-on"><span class="text-heading-5-bold">28 min</span><span class="label text-footnote-medium">restam</span></div>
+          </div>
+          <div class="foot"><div class="bar" data-part="bar"><span class="seg" data-seg="0"></span><span class="seg is-on" data-seg="1"></span></div></div>
+        </div>
+        <div class="view" data-part="view-horario">
+          <div class="cells">
+            <div class="cell"><span class="text-heading-5-bold">19:30</span><span class="label text-footnote-medium">começou</span></div>
+            <div class="cell is-on"><span class="text-heading-5-bold">21:15</span><span class="label text-footnote-medium">termina</span></div>
+          </div>
+          <div class="foot text-footnote-medium">Agora 20:47</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="5" tabindex="0">
+  <!-- tese: duas escolhas iguais ("Ver agora", "Ver depois") em cartões do mesmo molde, com foco (anel) e escolhido (inversão com check) em linguagens diferentes. -->
+  <p class="opt-label" data-part="label">Opção 5 - Fileira de escolha</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-surface="content-card" data-part="card">
+      <div class="poster" data-part="poster">
+        <span class="volcano"></span>
+        <span class="shade"></span>
+        <span class="rating text-body-sm-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+        <div class="caption" data-part="title-block">
+          <h3 class="title text-heading-3-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+          <p class="when text-footnote-medium" data-part="schedule">21:00 – 23:10</p>
+        </div>
+      </div>
+      <p class="live text-body-sm-medium" data-part="live-status"><span class="dot"></span>Ao vivo · restam 28 min</p>
+      <div class="choices" role="radiogroup" aria-label="Como assistir" data-part="choices">
+        <div class="choice" role="radio" aria-checked="false" data-part="choice-now" data-focus>
+          <div class="name-row">
+            <p class="name text-body-sm-bold">Ver agora</p>
+            <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="hint text-footnote-medium">No ar agora</p>
+        </div>
+        <div class="choice" role="radio" aria-checked="true" data-part="choice-later">
+          <div class="name-row">
+            <p class="name text-body-sm-bold">Ver depois</p>
+            <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="hint text-footnote-medium">Reprise 22:40</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="6" tabindex="0">
+  <!-- tese: o filme visto como horários de exibição numa fileira; o horário selecionado inverte a cor e mostra o detalhe. -->
+  <p class="opt-label" data-part="label">Opção 6 - Trilho de passos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="poster" data-stack data-part="image">
+        <span class="rating text-footnote-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+        <h3 class="title text-heading-4-bold" data-part="title">Os Últimos Dias de Pompeia</h3>
+      </div>
+      <div class="rail" role="listbox" aria-label="Horários de exibição" data-part="rail">
+        <div class="slot text-footnote-bold" role="option" aria-selected="true" data-live data-i="0"><span>17:30</span><span class="dot"></span></div>
+        <div class="slot text-footnote-bold" role="option" aria-selected="false" data-i="1"><span>19:30</span><span class="dot"></span></div>
+        <div class="slot text-footnote-bold" role="option" aria-selected="false" data-i="2"><span>21:30</span><span class="dot"></span></div>
+        <div class="slot text-footnote-bold" role="option" aria-selected="false" data-i="3"><span>23:30</span><span class="dot"></span></div>
+        <div class="slot text-footnote-bold" role="option" aria-selected="false" data-i="4"><span>01:30</span><span class="dot"></span></div>
+      </div>
+      <div class="detail" data-part="detail" aria-live="polite" hidden>
+        <p class="detail-status text-body-sm-bold" data-part="detail-status"></p>
+        <p class="detail-time text-footnote-medium" data-part="detail-time"></p>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const pieces = [...root.querySelectorAll('.piece')]
+  let focus = 0, open = -1
+  const render = () => pieces.forEach((p, i) => {
+    p.toggleAttribute('data-focus', i === focus)
+    p.toggleAttribute('data-open', i === open)
+    p.querySelector('[data-detail]').hidden = i !== open
+  })
+  render()
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') focus = Math.max(0, focus - 1)
+    else if (e.key === 'ArrowRight') focus = Math.min(pieces.length - 1, focus + 1)
+    else if (e.key === 'Enter') open = open === focus ? -1 : focus
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (open >= 0) open = -1
+      else if (focus > 0) focus = 0
+      else return // estado inicial: Voltar sai do card
+    } else return // ↑/↓ saem do card
+    e.preventDefault()
+    render()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const tabs = [...root.querySelectorAll('.tab')]
+  const time = root.querySelector('.time'), text = root.querySelector('.state-text'), dot = root.querySelector('.dot')
+  const views = [
+    { time: '20h30 – 22h50', state: 'Ao vivo · restam 28 min', later: false },
+    { time: '23h40 – 01h55', state: 'Começa em 1 h 12 min', later: true },
+  ]
+  let i = 0
+  const show = (n) => {
+    i = n
+    tabs.forEach((t, k) => t.setAttribute('aria-selected', String(k === n)))
+    time.textContent = views[n].time
+    text.textContent = views[n].state
+    dot.hidden = false
+    dot.toggleAttribute('data-later', views[n].later)
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(0)
+    else if (e.key === 'ArrowRight') show(1)
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && i !== 0) show(0)
+    else return // Enter does nothing; ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const card = root.querySelector('.card')
+  const segs = root.querySelectorAll('.seg')
+  const name = root.querySelector('.phase')
+  const left = root.querySelector('.left')
+  const NOW = 2
+  const phases = [
+    { name: 'Começou', left: 'restavam 1 h 38 min' },
+    { name: 'No meio', left: 'restavam 55 min' },
+    { name: 'Quase no fim', left: 'Ao vivo · restam 28 min' },
+  ]
+  let i = NOW
+  const show = (n) => {
+    i = n
+    card.dataset.phase = n
+    segs.forEach((s, k) => s.toggleAttribute('data-on', k <= n))
+    name.textContent = phases[n].name
+    left.textContent = phases[n].left
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) show(i - 1) }
+    else if (e.key === 'ArrowRight') { if (i < NOW) show(i + 1) }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (i === NOW) return; show(NOW) }
+    else return // Enter não faz nada; ↑/↓ saem do card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const card = root.querySelector('.card')
+  let i = 1
+  const paint = () => {
+    root.querySelectorAll('.cell').forEach((c, n) => c.classList.toggle('is-on', n % 2 === i))
+    root.querySelectorAll('.seg').forEach((s) => s.classList.toggle('is-on', Number(s.dataset.seg) === i))
+    root.querySelectorAll('.tab').forEach((t) => t.classList.toggle('is-on', t.dataset.tab === card.dataset.view))
+  }
+  const setView = (v) => { card.dataset.view = v; root.setAttribute('data-view', v); paint() }
+  root.setAttribute('data-view', 'falta')
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { i = Math.max(0, i - 1); paint() }
+    else if (e.key === 'ArrowRight') { i = Math.min(1, i + 1); paint() }
+    else if (e.key === 'Enter') setView(card.dataset.view === 'falta' ? 'horario' : 'falta')
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (card.dataset.view === 'falta') return
+      setView('falta')
+    } else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  const items = [...root.querySelectorAll('.choice')]
+  let focus = 0
+  let chosen = 1
+  let before = null // escolha anterior, para o Voltar desfazer
+  const paint = () => items.forEach((el, i) => {
+    el.toggleAttribute('data-focus', i === focus)
+    el.setAttribute('aria-checked', String(i === chosen))
+  })
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') focus = Math.max(0, focus - 1)
+    else if (e.key === 'ArrowRight') focus = Math.min(items.length - 1, focus + 1)
+    else if (e.key === 'Enter') { if (chosen !== focus) { before = chosen; chosen = focus } }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (before === null) return // estado inicial: Voltar sai do card
+      chosen = before; before = null; focus = 0
+    }
+    else return // ↑/↓ saem do card
+    e.preventDefault()
+    paint()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  const slots = [...root.querySelectorAll('.slot')]
+  const detail = root.querySelector('.detail')
+  const status = root.querySelector('.detail-status')
+  const time = root.querySelector('.detail-time')
+  const info = [
+    ['Ao vivo · restam 28 min', '17:30 – 19:14 · 1 h 44 min'],
+    ['Começa em 44 min', '19:30 – 21:14 · 1 h 44 min'],
+    ['Começa em 2 h 44 min', '21:30 – 23:14 · 1 h 44 min'],
+    ['Começa em 4 h 44 min', '23:30 – 01:14 · 1 h 44 min'],
+    ['Começa em 6 h 44 min', '01:30 – 03:14 · 1 h 44 min'],
+  ]
+  let cur = 0
+  const show = () => { status.textContent = info[cur][0]; time.textContent = info[cur][1] }
+  const go = (i) => {
+    cur = Math.max(0, Math.min(slots.length - 1, i)) // sem laço nas pontas
+    slots.forEach((s, k) => s.setAttribute('aria-selected', String(k === cur)))
+    show()
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') go(cur - 1)
+    else if (e.key === 'ArrowRight') go(cur + 1)
+    else if (e.key === 'Enter') { show(); detail.hidden = false }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (detail.hidden) return; detail.hidden = true }
+    else return // ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+</body>
+</html>

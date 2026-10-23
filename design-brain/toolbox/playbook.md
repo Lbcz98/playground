@@ -12,7 +12,7 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 
 1. **Ask (questioner, "PO hat").** Read the brief and any PRD. Ask about the goal, the screen's role in the flow, the audience and the tone of the product until the objective is clear. Ask what the component is *for* before how it looks. Stop and ask again whenever a rule is missing.
 2. **Collect references (designer hat).** The designer brings references and says what they like in each. The agent extracts the parts that build the component (layout, hierarchy, colour logic, behaviour), never the whole. A reference is "um ponto de partida, nunca a chegada".
-3. **Explore, 4 to 6 options.** Different concepts, not variations of one. Before showing, the explorer runs the judge's token check on its own work and fixes what is clear. For each option, write the rationale: what each choice is for and how it ties to the objective or brief. Options sit side by side; clicking one opens its rationale. Above 6 options in a round, warn the designer that quality may drop.
+3. **Explore, 4 to 6 options.** Different concepts, not variations of one. Before drawing, read the repo's design concepts that apply to the element: `node scripts/explore-ref.mjs --conceitos` lists them (type details such as balanced line breaks, grouping by proximity, one colour one meaning, focus and selection). Before showing, the explorer runs the judge's token check on its own work and fixes what is clear. For each option, write the rationale: what each choice is for and how it ties to the objective or brief. Options sit side by side; clicking one opens its rationale. Above 6 options in a round, warn the designer that quality may drop.
 4. **Judge (warns, never intervenes).** The judge lists, with precision, which elements break which token or rule, with a severity level, citing the documented rule. It never repaints, retunes or blocks. The designer can explore as far as they want, always with visibility.
 5. **Designer decides.** Compare options: what draws attention in each (layout and hierarchy, or colour)? If two are close, build a **hybrid** of their strengths. The designer, not the agent, decides what is done.
 6. **Fix (surgical).** The designer's feedback has four parts: what went wrong, which principle was misused, how it felt to see it, and the change history. The fixer changes *only* the aspect pointed at; the rest of the component stays as it is.
@@ -22,7 +22,7 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 ## 3. Rules
 
 ### Laws (must never fail)
-- Inside a card with internal navigation, only ←/→. ↑/↓ belong to navigation between page elements. "É inaceitável que um comando conflite com o outro."
+- Inside a Content Card with internal navigation (a contextual interactivity), only ←/→. (Cards in a grid or row follow "Focus and Enter in grid cards" below.) ↑/↓ belong to navigation between page elements. "É inaceitável que um comando conflite com o outro."
 - One interaction pattern per card. Cards with 2 or 3 different patterns "não pode acontecer". Do not invent a pattern; if one is needed, justify it.
 - States are few: focused, default, disabled, plus selected. No hover. Every button can be focused, selected or not.
 - Colour: no pure white or pure black (white drops to about `#EEEEEE`). No dark grey text on black, no subtle gradients that vanish on TVs that crush shadows. Never judge contrast only from the monitor render.
@@ -30,6 +30,33 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 - Motion: simple dissolve only, used to show a transition between screens or states. The screen must work without it.
 - Safe area: 40 on the sides, 32 on the top and bottom; assets thought for 1280×720. The background fills the full screen.
 - Hierarchy, spacing, type scale, colour and accessibility are the floor: never deliver options with these wrong.
+
+### Focus and Enter in grid cards (decided by the designer)
+
+Scope: cards that sit in a row or grid of the TV (poster, toggle, banner, double action). A Content Card of a contextual interactivity keeps its internal ←/→ navigation (the law above). The Enter and focus rule in 1 holds for every card.
+
+**1. Focus and trigger.**
+- **Direct focus:** the focus ring lands at once on the functionally primary element when the card is reached. The container never takes an intermediate focus that has no direct function.
+- **Enter** triggers only the node that holds the focus at the moment of the press.
+
+**2. Behaviour by card type.**
+
+| Card type | Focus target | Visual feedback | Enter | D-pad Up / Down |
+|---|---|---|---|---|
+| 1. Direct action (poster, a single detail) | the card container | border or scale on the whole container | runs the main navigation (Play, See more) | leaves the card toward the nearest element in that direction (see "Up and Down leave the card") |
+| 2. Selection / toggle (mark watched, favourite) | the card container | border or scale on the container; the icon or checkbox only changes its visual state | flips the active / inactive state | leaves the card toward the nearest element in that direction |
+| 3. Single action with an inner button (a subscription banner) | the primary inner button | focus border on the button only | runs the button's action | leaves the card toward the nearest element in that direction |
+| 4. Double vertical action (primary "Watch" plus secondary "Trailer") | the primary button (top) | focus border on the active button | runs the focused button's action | **Down** moves focus to the secondary button; Down again leaves the card toward the nearest element below |
+
+**3. D-pad resolution.**
+- Types 1, 2 and 3: all four directions leave the card at once, to the neighbouring card in the grid.
+- Type 4: Left and Right leave the card at once toward the side card (if any), keeping the horizontal line. Vertically: focus lands first on the top button; Down moves to the bottom button (if any); Down from the bottom button releases focus to the nearest element below; Up from the bottom button returns to the primary one; Up from the primary button releases focus to the nearest element above, if there is one.
+
+**Up and Down leave the card.** In a prototype the nearest element below the last row is the Back button, so Down from a card with nothing under it focuses Back, and Up with nothing above does nothing. This is the repo's key table (`node scripts/explore-ref.mjs --teclas`) and it is correct. The vertical order of type 4 is the one case where Down and Up act inside the card first; it is a rare scenario (two buttons inside one card) but possible.
+
+**4. Reserved states.**
+- **No long press:** nothing is tied to holding Enter; a short and a long press are the same single activation.
+- **No nested horizontal controls:** the inside of a grid card has no parallel interactive elements on the horizontal axis (such as a row of chips), which would trap focus against the reading direction of the carousels.
 
 ### Principles (judge with them)
 - **Contrast** (softer colour for description against title, size differences), **proximity** (groups of one kind, actions next to actions, label next to its title, 4-point spacing), **hierarchy** (size, colour, type), **progressive disclosure** (segment; use paging or a rail of cards instead of one overloaded component).
@@ -41,6 +68,10 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 ### Preferences (apply, may bend)
 - A chosen item is marked by a check beside its name, but the check is only one way; a label change also works.
 - Gap 12 to 16 between groups, equal padding on all sides measured to what is visible, sentences in a softer white at reading size, regular weight on unselected options. These come from the repo's earlier rules; they follow from the principles above.
+- Type and grouping details (from the designer's round 3 review): a title breaks after the function word ("de"), not before it, and leaves no river of empty space; titles and labels use sentence case unless a name needs the capital; every piece belongs to a group (rating, genre and duration form one metadata group close to the title, or the rating sits on the image on purpose); a selector shows only the information of the chosen section.
+- Arrangement follows the keys: items that ←/→ move between sit side by side, not stacked; a status number is never louder than the title; the status line, the time left and the title belong to one group (round 4 review).
+- Data about the same subject stay together: a participant's name, age and estalecas read as one group (the designer asked for it on every BBB option that split them). A bottom gradient over a full-bleed photo, with the text on it, is welcome (round 5).
+- An invented function is allowed when it is justified in the rationale and fits the interaction (the reminder toggle on the rerun was praised). It is judged on that, not penalised for being new.
 - Order of sacrifice on a video card (home, "sell" fast): image, title, social proof (rating), genre. Description and action go to the detail page; the card is the button. The order depends on the screen's goal.
 
 ### Escalation
@@ -82,7 +113,7 @@ A questionnaire the agent runs with the designer, filling one topic at a time. C
 |---|---|---|
 | Questioner (PO hat) | brief, PRD | clear objective, open questions |
 | Reference collector (designer hat) | references and the designer's notes on them | extracted parts, not copies |
-| Explorer | answers, extracted references, kit tokens, judge's checks | 4 to 6 options with rationale |
+| Explorer | answers, extracted references, kit tokens, design concepts (`--conceitos`), judge's checks and page format (`judge.md`) | 4 to 6 options with rationale |
 | Writer | chosen option, `web/protos/CLAUDE.md` | the screen in the kit |
 | Judge | tokens, rules, option | findings with severity; never changes anything |
 | Fixer | the designer's four-part feedback | only the aspect pointed at |
@@ -102,10 +133,15 @@ Everything this playbook produces or uses lives in `design-brain/toolbox/`.
 | File | Type | Used by |
 |---|---|---|
 | [`playbook.md`](playbook.md) | doc | every role: the rules, the steps, the anti-patterns |
+| [`judge.md`](judge.md) | doc | the independent judge (step 4): read by the agent that judges an exploration |
+| [`test-log.md`](test-log.md) | doc | anyone adjusting the playbook: what each test round fixed, found and left open |
+| [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | example | the judge: the saved "good" card to compare against (not for the explorer, to avoid copying) |
+| [`references/pompeia-seletor-card/`](references/pompeia-seletor-card/index.html) | example | the judge: a second saved "good" card (segmented selector), the designer's pick of round 4; not for the explorer |
+| [`tests/`](tests/) | test rounds | anyone adjusting the playbook: the explorations of each round, with their briefs and judge reports (`test-log.md` says what each found) |
 | [`interview-notes.md`](interview-notes.md) | doc | anyone adjusting the playbook: the designer's own words, vocabulary and rejected things behind each rule |
 | [`README.md`](README.md) | index | humans: the same list, with what is approved |
 
-No scripts or templates exist yet.
+No scripts or templates exist yet. The judge is a doc run by a separate agent; it uses the repo's existing `check-explore-*` scripts.
 
 ## 10. Decided
 
