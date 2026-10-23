@@ -69,6 +69,7 @@ Scope: cards that sit in a row or grid of the TV (poster, toggle, banner, double
 - A chosen item is marked by a check beside its name, but the check is only one way; a label change also works.
 - Gap 12 to 16 between groups, equal padding on all sides measured to what is visible, sentences in a softer white at reading size, regular weight on unselected options. These come from the repo's earlier rules; they follow from the principles above.
 - Type and grouping details (from the designer's round 3 review): a title breaks after the function word ("de"), not before it, and leaves no river of empty space; titles and labels use sentence case unless a name needs the capital; every piece belongs to a group (rating, genre and duration form one metadata group close to the title, or the rating sits on the image on purpose); a selector shows only the information of the chosen section.
+- Arrangement follows the keys: items that ←/→ move between sit side by side, not stacked; a status number is never louder than the title; the status line, the time left and the title belong to one group (round 4 review).
 - An invented function is allowed when it is justified in the rationale and fits the interaction (the reminder toggle on the rerun was praised). It is judged on that, not penalised for being new.
 - Order of sacrifice on a video card (home, "sell" fast): image, title, social proof (rating), genre. Description and action go to the detail page; the card is the button. The order depends on the screen's goal.
 

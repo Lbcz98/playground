@@ -108,3 +108,25 @@ How to read it:
 - Independence break: option 4 of `/explore-playbook` opened another option's part file to learn the format; the agent said it only used the token names.
 - The explorers of `/explore` share a screenshot folder; option 1 of `/explore` saw another option's image and redid its captures.
 - The designer's own reading of the two pages is still needed.
+
+## Designer's review of round 4
+
+- **`/explore`, best: option 5** (two-button choice). The info inside the buttons improved a lot: excellent alignment, icon + text + time. To go further: put the live status and the time left above the title, in one group, and use the image on the whole card.
+- **`/explore-playbook`, best: option 2**, "even better than the option 1 we had saved": the best hierarchy, contrast, alignment, spacing, rounding and interaction.
+- **Honorable mention, `/explore-playbook` option 5:** the best use of the content section, and the buttons reveal the information below when they take focus: no click needed to see the data.
+- **Bad, `/explore`:** option 4, "nothing makes sense": the main interaction should be the time / schedule toggle, but navigation moves across the information of each section, a huge "restam 28 min" steals the attention from the content, and the rating is lost among the info. Option 1: the dropdown again, plus items stacked vertically while navigation uses ←/→, which conflicts with the arrangement.
+- **Bad, `/explore-playbook`:** option 3 has too much text; option 6 puts navigation on a timeline but the text is compressed, with no breathing room.
+
+### Designer against the judge
+
+| Designer | Judge |
+|---|---|
+| best: `/explore` 5, `/explore-playbook` 2 | both closer to the good set (2 with no Warning) |
+| bad: `/explore` 4 | closer to the crowded set (in part); web look, loose rating and a repeated "restam 28 min" found |
+| bad: `/explore` 1 | disclosure chevron found (Critical), but placed "closer to the good set" |
+| bad: `/explore-playbook` 3 and 6 | both closer to the crowded set; too much text and the invented figure found |
+| honorable: `/explore-playbook` 5 | closer to the good set, but a Warning for the sentence following the focus: the designer praised that |
+
+Where the judge differed: it flagged "the sentence follows the focus, not the choice" as a fault; the designer calls it the strength of option 5. `judge.md` now treats information that follows the focus as a strength. The judge also missed the axis mismatch in `/explore` option 1 (a vertical stack under ←/→) and the oversized status in `/explore` option 4; both checks are now in `judge.md`, and the playbook has a matching preference.
+
+The designer's "best" in `/explore-playbook` (option 2) is a candidate for the good set, replacing or joining the saved `pompeia-poster-card`. Not added yet.
