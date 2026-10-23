@@ -147,7 +147,7 @@ New brief: an informational card with no interaction (photo, name, age, estaleca
 | A number or status louder than the name | options 2 and 4 (Note, justified by the thesis) | options 2 and 4 (Note, justified by the thesis) |
 
 - The Criticals disappear on the playbook side for the same reason as in round 4: the explorers read `judge.md`. Not independent evidence.
-- This time the judge put the playbook side nearer the good set (3 of 4 against 3 of 4, with 1 Critical-free option more on the playbook side). One run each.
+- On closeness to the good set the two sides tie: 3 of 4 each. The playbook side has no Critical; the `/explore` side has 3. One run each.
 - Both sides drew the emojis as chips or blocks that look like controls in a card with no interaction. The brief said "nothing that looks clickable"; neither side avoided it fully.
-- Independence breaks: option 4 of `/explore-playbook` read the first lines of another option's part file (it says it drew its own); the judge notes the first run had the same kind of break in round 4.
+- Independence breaks: option 4 of `/explore-playbook` read the first lines of another option's part file (it says it drew its own). Round 4 had a similar break.
 - The designer's review of these pages is still needed.
