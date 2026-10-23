@@ -1,5 +1,7 @@
 # Playbook test log
 
+The explorations of each round live next to this file, in `tests/pb-test-N/` (brief, page and judge report). Serve one with `npm run explore:serve -- design-brain/toolbox/tests/pb-test-N`.
+
 One entry per round. The test is consistency across rounds (playbook section 8), so each entry says what was held fixed and what was not.
 
 ## Round 1: Pompeia card, baseline against playbook-only

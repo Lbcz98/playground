@@ -134,6 +134,7 @@ Everything this playbook produces or uses lives in `design-brain/toolbox/`.
 | [`judge.md`](judge.md) | doc | the independent judge (step 4): read by the agent that judges an exploration |
 | [`test-log.md`](test-log.md) | doc | anyone adjusting the playbook: what each test round fixed, found and left open |
 | [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | example | the judge: the saved "good" card to compare against (not for the explorer, to avoid copying) |
+| [`tests/`](tests/) | test rounds | anyone adjusting the playbook: the explorations of each round, with their briefs and judge reports (`test-log.md` says what each found) |
 | [`interview-notes.md`](interview-notes.md) | doc | anyone adjusting the playbook: the designer's own words, vocabulary and rejected things behind each rule |
 | [`README.md`](README.md) | index | humans: the same list, with what is approved |
 

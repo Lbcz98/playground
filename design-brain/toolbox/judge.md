@@ -2,11 +2,11 @@
 
 The independent judge of playbook step 4 and section 10 ("the independent judge runs again on what the designer chose"). Run it as a separate agent that reads this file; give it only the exploration slug, never the explorer's account of the work.
 
-It **warns, never intervenes**: it changes nothing in the exploration and blocks nothing. The only file it writes is `docs/explorations/<slug>/playbook-judge.md`.
+It **warns, never intervenes**: it changes nothing in the exploration and blocks nothing. The only file it writes is `<folder>/playbook-judge.md`.
 
 ## Inputs
 
-- `docs/explorations/<slug>/index.html` (the options) and `brief.md` (what was asked).
+- `<folder>/index.html` (the options) and `<folder>/brief.md` (what was asked). `<folder>` is `docs/explorations/<slug>`, or `design-brain/toolbox/tests/<slug>` for a playbook test round.
 - `design-brain/toolbox/playbook.md` (sections 3, 4 and 10 are the rules; cite them).
 - The kit: `web/protos/generated/explore-tokens.md` for token values.
 
@@ -19,7 +19,7 @@ One self-contained `index.html`. In `<head>`, in this order: `<link rel="stylesh
 ## Steps
 
 1. **Run the measuring scripts and keep their output as facts.**
-   `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` and `node scripts/check-explore-layout.mjs docs/explorations/<slug>`.
+   `node scripts/check-explore-tokens.mjs <folder>` and `node scripts/check-explore-layout.mjs <folder>`.
 2. **List, per option, what the source shows** (read each `.opt[data-option]` block, its `.opt-content` card, and the page CSS and script): the keys it handles and what each does; the smallest font size inside the card; the colors that are not neutral; any hover, click, drag, scroll, tooltip, dropdown, text input or animation; the states drawn.
 3. **Classify the interaction.** Get the catalog with `node scripts/explore-ref.mjs --padroes` and `--teclas`. Name the one catalog pattern each option follows. More than one pattern, or a behavior in no catalog row, is a law break.
 4. **TV, not web.** Anything the remote cannot do is a finding: hover, mouse click, drag, swipe, scroll wheel, tooltips, dropdowns, tabs that need a pointer, text fields. Inside the card only ←/→, Enter and Back act; ↑/↓ must pass through (no `preventDefault`).
@@ -55,7 +55,7 @@ Where the kit differs from the designer's numbers (14px minimum, 40/32 safe area
 
 ## Report
 
-`docs/explorations/<slug>/playbook-judge.md`, in Portuguese. Leave out: restating the brief, generic praise, the list of rules that passed.
+`<folder>/playbook-judge.md`, in Portuguese. Leave out: restating the brief, generic praise, the list of rules that passed.
 
 ```
 # Juiz: <slug>
