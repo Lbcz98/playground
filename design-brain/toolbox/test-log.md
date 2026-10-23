@@ -151,3 +151,22 @@ New brief: an informational card with no interaction (photo, name, age, estaleca
 - Both sides drew the emojis as chips or blocks that look like controls in a card with no interaction. The brief said "nothing that looks clickable"; neither side avoided it fully.
 - Independence breaks: option 4 of `/explore-playbook` read the first lines of another option's part file (it says it drew its own). Round 4 had a similar break.
 - The designer's review of these pages is still needed.
+
+## Designer's review of round 5 (the BBB card)
+
+- **`/explore-playbook` was closer to the good cards.** Options 1 and 3 were the best, with a very good layout. Option 1 used a gradient at the bottom of the photo that "was very, very good". Option 4 was also very good, except that the estalecas at the bottom were completely disconnected.
+- **Common fault in the playbook side:** the estalecas were separated from the participant's information. Closer together, the cards would be really good.
+- **`/explore`, best: option 1.** A very interesting layout: the name highlighted, the age below, the estalecas below. Same wish: the participant's information and the estalecas closer together. The `/explore` options have a font size that is not ideal, too small ("I imagine it is still using 10 and 12px"). The judge agreed: it found `text-footnote` (12px) in 3 of the 4.
+
+### Designer against the judge
+
+| Designer | Judge |
+|---|---|
+| playbook options 1 and 3 best | both closer to the good set (Warning at most) |
+| playbook option 4 very good except the estalecas | closer to the crowded set; found the loose estalecas |
+| `/explore` option 1 best | Critical (12px) and **closer to the crowded set**: the judge disagreed |
+| `/explore` fonts too small | Critical, 12px: agreed |
+| gradient at the bottom of the photo ("very, very good") | Warning for the scrim: the judge disagreed |
+| estalecas split from the participant info | not found as such (only option 4's loose estalecas) |
+
+`judge.md` now: a bottom gradient scrim over a full-bleed photo is not a finding; a new check "related data split apart"; and a card is not called crowded only because its information sits together on a full-bleed photo. `playbook.md` has a matching preference. Not re-run: the judge on the BBB pages with these changes.

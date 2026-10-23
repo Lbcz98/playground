@@ -36,8 +36,9 @@ One self-contained `index.html`. In `<head>`, in this order: `<link rel="stylesh
    Two more, from the round 4 review:
    - **Axis mismatch (Warning):** the visual arrangement runs on a different axis from the keys. Items stacked vertically while ←/→ move between them (or the reverse) conflicts with the control. The arrangement of the items should follow the axis the keys use.
    - **Status louder than the content (Warning):** a status or number (such as the time left) set larger or stronger than the title, so it takes the attention from the content. The content is the protagonist.
+   - **Related data split apart (Warning):** data about the same subject (a participant's name, age and estalecas) placed in separate groups with space between them, so they do not read as one. The designer asked for them closer in every BBB option that split them.
 5. **Check the laws and principles in playbook section 3**, option by option.
-6. **Compare in words** with the reference sets (section 10, "Respiro, density, elements per card"; the good card is also saved as `design-brain/toolbox/references/pompeia-poster-card/`, the designer's pick, read by the judge only; `design-brain/toolbox/references/pompeia-seletor-card/` is a second one, which the designer calls the better of the two): the good card (one interaction, one image as the lure, info on top and actions below, generous respiro) and the bad set (2 or 3 interaction types, several accent colors, no strongest element, crowded). Say which set each option is closer to and why. Do not invent numbers.
+6. **Compare in words** with the reference sets (section 10, "Respiro, density, elements per card"; the good card is also saved as `design-brain/toolbox/references/pompeia-poster-card/`, the designer's pick, read by the judge only; `design-brain/toolbox/references/pompeia-seletor-card/` is a second one, which the designer calls the better of the two): the good card (one interaction, one image as the lure, info on top and actions below, generous respiro) and the bad set (2 or 3 interaction types, several accent colors, no strongest element, crowded). Say which set each option is closer to and why. Do not invent numbers. Do not call a card crowded only because its information sits together at one edge of a full-bleed photo: the designer rated that layout among the best (round 5).
 7. **Write the report.**
 
 ## Severity (playbook section 10)
@@ -46,7 +47,7 @@ One self-contained `index.html`. In `<head>`, in this order: `<link rel="stylesh
 - **Warning:** a token or scale value is off, or a principle is weak: hierarchy, proximity, respiro, too many elements, a second accent color.
 - **Note:** a preference was bent, or a deviation was justified in the rationale.
 
-Pure white or black: look at the resolved color of every text and surface. A kit token that resolves to `#FFFFFF` or `#000000` counts. A translucent token (an overlay or scrim) is not pure black: compute its composite over what is behind it, or write "not measured" and make it a Warning at most. Never guess a value.
+Pure white or black: look at the resolved color of every text and surface. A kit token that resolves to `#FFFFFF` or `#000000` counts. A translucent token (an overlay or scrim) is not pure black: compute its composite over what is behind it, or write "not measured" and make it a Note at most. The designer approved a bottom gradient (`gradient-semantic-overlay-bottom`) over a full-bleed photo as "very, very good" in round 5, so a scrim of that kind is not a finding by itself. Never guess a value.
 
 When the break comes from a kit token or type style (for example `text-inverse` is `#000000`, the type scale has 10 and 12px):
 - **Critical** if the option chose it while a compliant kit token exists (text at 14px or more, `background-primary` as inverted text, `gradient-complementary-dark` as a scrim). Name the compliant token.
