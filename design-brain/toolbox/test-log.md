@@ -130,3 +130,24 @@ How to read it:
 Where the judge differed: it flagged "the sentence follows the focus, not the choice" as a fault; the designer calls it the strength of option 5. `judge.md` now treats information that follows the focus as a strength. The judge also missed the axis mismatch in `/explore` option 1 (a vertical stack under ←/→) and the oversized status in `/explore` option 4; both checks are now in `judge.md`, and the playbook has a matching preference.
 
 The designer's "best" in `/explore-playbook` (option 2) is a candidate for the good set, replacing or joining the saved `pompeia-poster-card`. Not added yet.
+
+## Round 5: a second brief, the BBB participant card (`bbb-1-explore`, `bbb-1-playbook`)
+
+New brief: an informational card with no interaction (photo, name, age, estalecas, emojis received; one participant per card), 4 options, fixed data (Camila Duarte, 27, 3.250 estalecas, 🐍 12 · 💔 7 · 🌱 5 · 🎯 3; the photo is a placeholder), the same 4 directions for both commands. Same judge. Also: `references/pompeia-seletor-card/` was saved as the second good card (the designer's pick from round 4).
+
+| | `/explore` | `/explore-playbook` |
+|---|---|---|
+| Check scripts | ok | ok |
+| Options with a Critical | 3 of 4 (1, 2, 4) | 0 of 4 |
+| Why | text of 12px (`text-footnote`) where 14px exists | none |
+| Closer to the good set | 2, 3, 4 (4 at the limit) | 1, 2, 3 |
+| Closer to the crowded set | 1 | 4 (in part) |
+| Looks clickable with no interaction | emoji pills in all 4 | emoji blocks in options 3 and 4 |
+| Loose element | option 4 (estalecas) | option 4 (estalecas) |
+| A number or status louder than the name | options 2 and 4 (Note, justified by the thesis) | options 2 and 4 (Note, justified by the thesis) |
+
+- The Criticals disappear on the playbook side for the same reason as in round 4: the explorers read `judge.md`. Not independent evidence.
+- This time the judge put the playbook side nearer the good set (3 of 4 against 3 of 4, with 1 Critical-free option more on the playbook side). One run each.
+- Both sides drew the emojis as chips or blocks that look like controls in a card with no interaction. The brief said "nothing that looks clickable"; neither side avoided it fully.
+- Independence breaks: option 4 of `/explore-playbook` read the first lines of another option's part file (it says it drew its own); the judge notes the first run had the same kind of break in round 4.
+- The designer's review of these pages is still needed.

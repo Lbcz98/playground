@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Referência boa: card de programação, seletor segmentado</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+[data-option="2"] .card { position: relative; display: flex; flex-direction: column; width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); overflow: hidden; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .art { position: absolute; inset: 0; display: block; background: radial-gradient(circle at 72% 20%, var(--color-semantic-theme-noite-light), transparent 50%), linear-gradient(180deg, var(--color-semantic-theme-noite-dark), var(--color-semantic-functional-background-primary)); }
+[data-option="2"] .mount { position: absolute; left: 0; right: 0; bottom: 18%; height: 44%; display: block; background: var(--color-semantic-functional-background-primary); clip-path: polygon(0 100%, 0 78%, 22% 62%, 38% 70%, 52% 30%, 60% 28%, 70% 52%, 84% 60%, 100% 72%, 100% 100%); }
+[data-option="2"] .scrim { position: absolute; inset: 0; display: block; background: var(--gradient-complementary-dark); }
+[data-option="2"] .body { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); padding-top: calc(var(--dimension-spacing-core-6xl) + var(--dimension-spacing-core-3xl)); }
+[data-option="2"] .title { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="2"] .info { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .when { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); }
+[data-option="2"] .time { font-variant-numeric: tabular-nums; }
+[data-option="2"] .rating { display: flex; align-items: center; justify-content: center; width: var(--dimension-size-semantic-icon-sm); box-sizing: content-box; padding: var(--dimension-spacing-core-3xs); border: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-default); border-radius: var(--dimension-radius-core-sm); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .state { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="2"] .state-key { color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .dot { display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-status-live); }
+[data-option="2"] .dot[hidden] { display: none; }
+[data-option="2"] .seg-bar { display: flex; gap: var(--dimension-spacing-core-3xs); padding: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-semantic-pill); background: var(--color-opacity-light-20); }
+[data-option="2"] .seg { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; height: var(--dimension-size-semantic-control-height); border-radius: var(--dimension-radius-core-xl); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-background-primary); }
+[data-option="2"] .opt:focus .seg[aria-selected="true"]::after,
+[data-option="2"]:focus .seg[aria-selected="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+@keyframes o3-fade { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Referência boa: seletor segmentado</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: "Agora" e "Mais tarde" trocam o card inteiro; a imagem é o contexto fixo. -->
+  <p class="opt-label" data-part="label">Opção 2 - Seletor segmentado</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <span class="art" data-part="image" data-stack aria-hidden="true"><span class="mount"></span><span class="scrim"></span></span>
+      <div class="body">
+        <h2 class="title text-heading-3-bold" data-part="title">Os Últimos<br>Dias de Pompeia</h2>
+        <div class="info" data-part="info" aria-live="polite">
+          <div class="when">
+            <span class="time text-body-sm-bold" data-part="time">20h30 – 22h50</span>
+            <span class="rating text-body-sm-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+          </div>
+          <div class="state text-body-sm-medium" data-part="state"><span class="dot" aria-hidden="true"></span><span><span class="state-key text-body-sm-bold">Ao vivo</span> · restam 28 min</span></div>
+        </div>
+        <div class="seg-bar" role="tablist" aria-label="Quando assistir" data-part="selector">
+          <div class="seg text-body-sm-bold" role="tab" aria-selected="true" data-part="segment-now">Agora</div>
+          <div class="seg text-body-sm-bold" role="tab" aria-selected="false" data-part="segment-later">Mais tarde</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const segs = [...root.querySelectorAll('.seg')]
+  const time = root.querySelector('.time'), dot = root.querySelector('.dot'), state = root.querySelector('.state > span:last-child')
+  const views = [
+    { time: '20h30 – 22h50', live: true, html: '<span class="state-key text-body-sm-bold">Ao vivo</span> · restam 28 min' },
+    { time: '01h10 – 03h30', live: false, html: '<span class="state-key text-body-sm-bold">Reprise</span>' },
+  ]
+  let i = 0
+  const show = (n) => {
+    if (n < 0 || n > 1 || n === i) return
+    i = n
+    segs.forEach((s, k) => s.setAttribute('aria-selected', String(k === i)))
+    time.textContent = views[i].time
+    dot.hidden = !views[i].live
+    state.innerHTML = views[i].html
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') show(i - 1)
+    else if (e.key === 'ArrowRight') show(i + 1)
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (i === 0) return; show(0) }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+</body>
+</html>
