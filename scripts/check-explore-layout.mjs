@@ -23,12 +23,14 @@ const result = await page.evaluate((whole) => {
   const px = (v) => parseFloat(v) || 0
   const visible = (e) => { const s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0' }
   const inStack = (e) => !!e.closest('[data-stack]')
-  // Every kit radius a card may have, and its inset (spacing-semantic-card-inset 20, card-inset-expanded / Content Card lg 24); read from the kit's own variables.
+  // Every kit radius a card may have, and its inset (spacing-semantic-card-inset 24 for a Card, resting or expanded; card-inset-expanded 32 for the Content Card); read from the kit's own variables.
+  // The expanded card and the Content Card share a radius: the width tells them apart, and an unknown width takes the Content Card's larger inset.
   const root = getComputedStyle(document.documentElement)
   const kit = (v) => px(root.getPropertyValue(v))
   const SURFACES = [
-    { label: 'card', radius: kit('--dimension-radius-semantic-card'), inset: kit('--dimension-spacing-semantic-card-inset'), widths: [kit('--dimension-size-semantic-card-width')] },
-    { label: 'card expandido / content card', radius: kit('--dimension-radius-semantic-content-card'), inset: kit('--dimension-spacing-semantic-card-inset-expanded'), widths: [kit('--dimension-size-semantic-card-expanded-width'), kit('--dimension-size-semantic-content-card-width')] },
+    { label: 'card', radius: kit('--dimension-radius-semantic-card'), inset: kit('--dimension-spacing-semantic-card-inset'), insetToken: '--dimension-spacing-semantic-card-inset', widths: [kit('--dimension-size-semantic-card-width')] },
+    { label: 'content card', radius: kit('--dimension-radius-semantic-content-card'), inset: kit('--dimension-spacing-semantic-card-inset-expanded'), insetToken: '--dimension-spacing-semantic-card-inset-expanded', widths: [kit('--dimension-size-semantic-content-card-width')] },
+    { label: 'card expandido', radius: kit('--dimension-radius-semantic-card-expanded'), inset: kit('--dimension-spacing-semantic-card-inset'), insetToken: '--dimension-spacing-semantic-card-inset', widths: [kit('--dimension-size-semantic-card-expanded-width')] },
   ]
   const CONTROL = kit('--dimension-size-semantic-control-height-lg')
   const MAX_HEIGHT = 456 // contentCardSpec.maxHeight in src/design-system/primitives.ts: the tallest a kit card may be
@@ -123,10 +125,11 @@ const result = await page.evaluate((whole) => {
 
   // superfície: against the kit's card recipes. A pill no taller than two controls is the kit's pill (a glance bar), not a card.
   for (const f of surfaces.filter((f) => !f.pill)) {
-    const r = SURFACES.find((x) => Math.abs(x.radius - f.radius) < 0.5)
+    const same = SURFACES.filter((x) => Math.abs(x.radius - f.radius) < 0.5)
+    const r = same.find((x) => x.widths.some((w) => Math.abs(w - f.w) < 1)) ?? same[0]
     const at = `Opção ${f.n}: superfície: ${f.name}`
-    if (!r) out.push(`${at} tem raio ${f.radius}px; os raios de card do kit são ${SURFACES.map((x) => x.radius + 'px (' + x.label + ')').join(' e ')}. Use var(--dimension-radius-semantic-card) ou var(--dimension-radius-semantic-content-card)`)
-    else if (f.inset < r.inset - 0.5) out.push(`${at} tem respiro de ${f.inset}px com raio ${f.radius}px; o kit usa ${r.inset}px (--dimension-spacing-semantic-card-inset${r.inset === 24 ? '-expanded' : ''})`)
+    if (!r) out.push(`${at} tem raio ${f.radius}px; os raios de card do kit são ${SURFACES.map((x) => x.radius + 'px (' + x.label + ')').join(', ')}. Use var(--dimension-radius-semantic-card) ou var(--dimension-radius-semantic-content-card)`)
+    else if (f.inset < r.inset - 0.5) out.push(`${at} tem respiro de ${f.inset}px com raio ${f.radius}px; o kit usa ${r.inset}px (${r.insetToken})`)
     // Width: the kit's cards have a fixed width. Narrower than declared means the page squeezed it (max-width); another number means it is not a kit card.
     const fixed = [...new Set(SURFACES.flatMap((x) => x.widths))]
     if (r && !fixed.some((w) => Math.abs(w - f.w) < 1)) out.push(`${at} tem ${Math.round(f.w)}px de largura; as larguras de card do kit são ${fixed.join(', ')}px (--dimension-size-semantic-card-width, -card-expanded-width, -content-card-width), sem max-width que o aperte`)

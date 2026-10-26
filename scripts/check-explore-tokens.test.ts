@@ -18,11 +18,11 @@ it('advises on literal sizes equal or near a kit size, and still passes', () => 
 
 it('ignores px inside calc(), uses a 5% band, and flags a family mismatch', () => {
   const dir = mkdtempSync(join(tmpdir(), 'explore-'))
-  writeFileSync(join(dir, 'index.html'), '<style>.a { width: calc(100% - 288px); } .b { height: 260px; } .c { width: 208px; border-radius: var(--dimension-radius-semantic-card); } .d { width: 208px; border-radius: var(--dimension-radius-semantic-card-expanded); }</style>')
+  writeFileSync(join(dir, 'index.html'), '<style>.a { width: calc(100% - 288px); } .b { height: 224px; } .c { width: 208px; border-radius: var(--dimension-radius-semantic-card); } .d { width: 208px; border-radius: var(--dimension-radius-semantic-card-expanded); }</style>')
   const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
   expect(run.status).toBe(0)
   expect(run.stdout).not.toContain('288px is kit size')
-  expect(run.stdout).not.toContain("260px")
+  expect(run.stdout).not.toContain("224px")
   expect(run.stdout).toContain('width 208px is the card-expanded family (radius 40px) but border-radius is 24px')
   expect(run.stdout.match(/the .* family/g)).toHaveLength(1)
 })

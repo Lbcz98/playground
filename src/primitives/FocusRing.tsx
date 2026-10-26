@@ -25,6 +25,12 @@ import './primitives.css'
 export interface FocusRingProps {
   /** The control's corner shape. The inner fill follows it, less the ring width. */
   shape: RadiusRole
+  /**
+   * Draws the inset fill under the glow and ring. Default `true`. A card whose
+   * artwork fills it sets `false`, so the focus light and ring sit over the
+   * image without darkening it.
+   */
+  fill?: boolean
 }
 
 const RING_WIDTH = token('--dimension-border-width-semantic-focus-ring')
@@ -62,11 +68,11 @@ const band: CSSProperties = {
   backgroundImage: token('--gradient-semantic-focus-ring'),
 }
 
-export function FocusRing({ shape }: FocusRingProps): ReactNode {
+export function FocusRing({ shape, fill: filled = true }: FocusRingProps): ReactNode {
   const outer = token(`--dimension-radius-semantic-${shape}`)
   return (
     <span aria-hidden data-focus-ring className="sfs-focus-in" style={{ ...shapeBox, borderRadius: outer }}>
-      <span style={fill} />
+      {filled ? <span style={fill} /> : null}
       <span className="sfs-focus-glow-cycle" style={glow} />
       <span className="sfs-focus-cycle sfs-ring-band" style={{ ...band, borderRadius: outer }} />
     </span>

@@ -26,7 +26,7 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 - One interaction pattern per card. Cards with 2 or 3 different patterns "não pode acontecer". Do not invent a pattern; if one is needed, justify it.
 - States are few: focused, default, disabled, plus selected. No hover. Every button can be focused, selected or not.
 - Colour: no pure white or pure black (white drops to about `#EEEEEE`). No dark grey text on black, no subtle gradients that vanish on TVs that crush shadows. Never judge contrast only from the monitor render.
-- Type: readable from 3 m. Minimum 14px (the minimum of the minimum), comfortable 16 to 18px. Use the kit's type scale; do not invent sizes, weights or fonts. Typography is "o principal dentro de um design".
+- Type: readable from 3 m. Minimum 14px for content, 12px (`.text-footnote-*`) only for secondary labels that carry no decision, comfortable 16 to 18px. Nothing smaller (the kit's 10px caption is not used). Full visual rules: `design-brain/DESIGN.md`. Use the kit's type scale; do not invent sizes, weights or fonts. Typography is "o principal dentro de um design".
 - Motion: simple dissolve only, used to show a transition between screens or states. The screen must work without it.
 - Safe area: 40 on the sides, 32 on the top and bottom; assets thought for 1280×720. The background fills the full screen.
 - Hierarchy, spacing, type scale, colour and accessibility are the floor: never deliver options with these wrong.
@@ -87,7 +87,7 @@ Scope: cards that sit in a row or grid of the TV (poster, toggle, banner, double
 4. Everything in one component (description, action, metadata) instead of another step, paging or a rail.
 5. Copying a reference 100%.
 6. Pure white or black; dark grey on black; subtle gradients.
-7. Type below 14px or outside the scale.
+7. Type below the floor (14px for content, 12px for secondary labels) or outside the scale.
 8. ↑/↓ consumed inside a card, or any command conflict.
 9. Changing what was not asked (asked for one spacing, the agent redoes the whole component).
 10. Depending on hover or animation to work.
@@ -133,6 +133,7 @@ Everything this playbook produces or uses lives in `design-brain/toolbox/`.
 | File | Type | Used by |
 |---|---|---|
 | [`playbook.md`](playbook.md) | doc | every role: the rules, the steps, the anti-patterns |
+| [`../DESIGN.md`](../DESIGN.md) | doc | every role that draws UI: the visual language (colour, gradients, shadows, type, imagery, insets); the judge cites it |
 | [`judge.md`](judge.md) | doc | the independent judge (step 4): read by the agent that judges an exploration |
 | [`test-log.md`](test-log.md) | doc | anyone adjusting the playbook: what each test round fixed, found and left open |
 | [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | example | the judge: the saved "good" card to compare against (not for the explorer, to avoid copying) |
@@ -146,7 +147,7 @@ No scripts or templates exist yet. The judge is a doc run by a separate agent; i
 ## 10. Decided
 
 ### Severity levels (the judge never blocks)
-- **Critical:** a law is broken (↑/↓ consumed in a card, more than one interaction pattern, pure white or black, grey on black, type under 14px, safe-area violation). Shown first; the option is marked "breaks a law". The designer still decides.
+- **Critical:** a law is broken (↑/↓ consumed in a card, more than one interaction pattern, pure white or black, grey on black, type under the floor in `DESIGN.md` §3.3, safe-area violation). Shown first; the option is marked "breaks a law". The designer still decides.
 - **Warning:** a token or scale value is off, or a principle is weak (hierarchy, proximity, respiro, too many elements). Cites the token or rule.
 - **Note:** a preference was bent (the check, a gap value) or a deviation was justified in the rationale.
 - Every finding names the element, the rule or token, the level and the documented value.
@@ -165,7 +166,7 @@ No scripts or templates exist yet. The judge is a doc run by a separate agent; i
 - The independent judge runs again on what the designer chose; the final report never depends on the explorer checking itself.
 
 ### Kit tokens against the designer's numbers
-- A check, not a design decision: compare the kit with 14px minimum, 16 to 18px comfortable, 40/32 safe area and 1280×720.
+- A check, not a design decision: compare the kit with the size floor of `DESIGN.md` §3.3 (14px, 12px for secondary labels), 16 to 18px comfortable, 40/32 safe area and 1280×720.
 - Where they differ, show the difference; the designer decides which side changes. The agent does not edit the kit.
 
 ### Respiro, density, elements per card

@@ -48,6 +48,10 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `dimension.size.semantic.card-height` | 122px | `SizeRole` `card-height` |
 | `dimension.size.semantic.card-width` | 158px | `SizeRole` `card-width` |
 | `dimension.size.semantic.channel-bug` | 64px | `SizeRole` `channel-bug` |
+| `dimension.size.semantic.content-card-image-g` | 320px | `SizeRole` `content-card-image-g` |
+| `dimension.size.semantic.content-card-image-height` | 380px | `SizeRole` `content-card-image-height` |
+| `dimension.size.semantic.content-card-image-m` | 264px | `SizeRole` `content-card-image-m` |
+| `dimension.size.semantic.content-card-image-p` | 176px | `SizeRole` `content-card-image-p` |
 | `dimension.size.semantic.content-card-width` | 288px | `SizeRole` `content-card-width` |
 | `dimension.size.semantic.control-height` | 40px | `SizeRole` `control-height` |
 | `dimension.size.semantic.control-height-lg` | 48px | `SizeRole` `control-height-lg` |

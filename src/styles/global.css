@@ -142,6 +142,10 @@
   /* Focused replay pill */
   --gradient-semantic-status-replay: var(--gradient-complementary-replay);
 
+  /* ===== Gradient · Semantic · Card ===== */
+  /* Card-level scrim: fades an image into the card at the edge where the text sits (DESIGN.md section 5.4). Figma: Extra Info, Gradiente Imagem, #17161B to transparent. */
+  --gradient-semantic-card-scrim: var(--gradient-complementary-dark);
+
   /* ===== Gradient · Semantic · Overlay ===== */
   /* Shade behind content anchored to the bottom edge (Figma Overlays: ↓) */
   --gradient-semantic-overlay-bottom: var(--gradient-overlay-bottom);
@@ -227,10 +231,10 @@
   --dimension-spacing-core-6xl: 96px;
 
   /* ===== Dimension · Spacing · Semantic ===== */
-  /* Resting card padding. Figma-exact and internal to the card, so it may sit off the layout grid. */
-  --dimension-spacing-semantic-card-inset: var(--dimension-spacing-core-md);
-  /* Focused or selected card padding */
-  --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-lg);
+  /* Card padding, 24px (DESIGN.md section 7.3): the same on all sides and in every state of a Card. */
+  --dimension-spacing-semantic-card-inset: var(--dimension-spacing-core-lg);
+  /* Content Card padding, 32px (DESIGN.md section 7.3): the same on all sides and in every state. The expanded (focused) Card keeps card-inset. */
+  --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-xl);
   /* Gap between a content-filled control's edge and its outside focus outline */
   --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
   /* Space between team and athlete rows in a Content Card table; scout rows cancel it and sit flush under their dividers */
@@ -267,6 +271,14 @@
   --dimension-size-semantic-card-expanded-height: 160px;
   /* Content Card — Figma UI Kit "Button Tall" (2472:120292). 36 columns of the 8pt grid; its height is a count of grid steps set per use. */
   --dimension-size-semantic-content-card-width: 288px;
+  /* Content Card image variant, total height: the same for P, M and G, Figma-exact (Extra Info 288×380), so it sits off the 8pt grid. */
+  --dimension-size-semantic-content-card-image-height: 380px;
+  /* Content Card image variant, step P (11rem): the image's height when the text is long. Figma: Extra Info (12390:103240), Tamanho Imagem=P. */
+  --dimension-size-semantic-content-card-image-p: 176px;
+  /* Content Card image variant, step M (16.5rem): a two-line title with a short description or up to five bullets. Figma: Extra Info, Tamanho Imagem=M. */
+  --dimension-size-semantic-content-card-image-m: 264px;
+  /* Content Card image variant, step G (20rem): a one-line title and one line of description. Figma: Extra Info, Tamanho Imagem=G. */
+  --dimension-size-semantic-content-card-image-g: 320px;
   /* Round button hit target — Figma UI Kit node 2273:96230 */
   --dimension-size-semantic-round-button: 88px;
   /* The visible circle inside a round button's hit target */

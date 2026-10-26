@@ -590,6 +590,14 @@
   min-width: 0;
 }
 
+/* CardScrim: the card-level scrim, over the image's own box; the gradient is the token's. */
+.sfs-card-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--gradient-semantic-card-scrim);
+}
+
 /*
  * ContentCard: the tall card and its three zones. `data-state` is the TV focus
  * the prop carries; `data-sized` says a height was set per use (`--_height`, a
@@ -603,7 +611,7 @@
   flex-shrink: 0;
   overflow: hidden;
   width: var(--dimension-size-semantic-content-card-width);
-  padding: var(--dimension-spacing-core-lg);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
   border-radius: var(--dimension-radius-semantic-content-card);
 }
 
@@ -622,6 +630,64 @@
 
 .sfs-content-card[data-pressable] {
   cursor: pointer;
+}
+
+/*
+ * The image variant: 380 tall, the picture across the top in a step (`data-image`
+ * carries the step; `--_image` is its height), the zones anchored to the bottom edge. The picture is shown
+ * as delivered in every state (DESIGN.md 6.4): at rest only the zones are muted; focused, the ring's light
+ * sits over it. It keeps the card's own fill in both states: its ring draws none, which would darken the
+ * picture, and the text under the picture still sits on the card (DESIGN.md 6.2).
+ */
+.sfs-content-card[data-image] {
+  height: var(--dimension-size-semantic-content-card-image-height);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-content-card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--_image);
+  overflow: hidden;
+}
+
+.sfs-content-card-image > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sfs-content-card[data-image] > .sfs-content-card-zones {
+  justify-content: flex-end;
+}
+
+.sfs-content-card[data-image] .sfs-content-card-body {
+  flex: 0 0 auto;
+}
+
+/* The stack is anchored by the zones' column, so the footer does not push itself to the far edge. */
+.sfs-content-card[data-image] .sfs-content-card-footer {
+  margin-top: 0;
+}
+
+.sfs-content-card[data-image] .sfs-content-card-text {
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+/*
+ * A card that holds a Wide Button (in its footer) is a container, not the control:
+ * the button takes the focus and the ring, the button spans the card's width, and the
+ * card is at full strength at rest instead of dimmed.
+ */
+.sfs-content-card-footer > .sfs-wide-button {
+  width: 100%;
+}
+
+.sfs-content-card:has(.sfs-content-card-footer .sfs-wide-button)[data-state='default'] > .sfs-content-card-zones {
+  opacity: var(--opacity-semantic-visible);
 }
 
 /* The zones' column. `--_gap` is the kit's gutter, or the `gap` set per use. */

@@ -18,7 +18,7 @@
  * only has to lay out what it is given.
  *
  * Geometry: Button Tall's own radius (`content-card`, 40), and the Content Card
- * spec's `lg` inset (24) on every side where Button Tall draws 36×32. The width is
+ * spec's `xl` inset (32, `card-inset-expanded`) on every side where Button Tall draws 36×32. The width is
  * fixed (288); by default the card hugs its content up to `contentCardSpec.maxHeight`
  * (456), or takes a height set per use as a count of 8pt grid steps. The body takes whatever height the
  * header and footer leave, and the footer is pinned to the bottom edge whether or
@@ -30,6 +30,13 @@
  *
  * Its own text spends at most three sizes (18, 14, 12) and two weights (bold,
  * medium), all in the kit's one face.
+ *
+ * Image variant (Figma "Extra Info", 12390:103240): give it an `image` and the
+ * card is 288×380 with the picture across the top, in one of three steps
+ * (`imageSize`: G 320, M 264, P 176) that shrink as the text grows. The card
+ * scrim (`CardScrim`) fades the picture into the card, the zones are anchored to
+ * the bottom edge with the card's expanded inset (`card-inset-expanded`), and the title drops to 16 bold.
+ * Focused, the ring and its light sit over the picture without darkening it.
  */
 
 import {
@@ -53,6 +60,7 @@ import {
   type InteractionState,
 } from '@/primitives'
 import './ui-kit.css'
+import { CardScrim } from './Overlay'
 import { contentCardSpec, frameSpec, spacingScale } from '@/design-system/primitives'
 
 type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
@@ -61,7 +69,7 @@ interface ContentCardProps {
   /** Default `default`. */
   interactionState?: ContentCardState
   /**
-   * Total height in px, from `48` to `456` in steps of `8` (the grid). Anything
+   * Total height in px, from `64` to `456` in steps of `8` (the grid). Anything
    * else is snapped onto the grid and held inside the range. Omitted: the card
    * hugs its content, up to 456, like the Figma cards built from it.
    */
@@ -77,11 +85,23 @@ interface ContentCardProps {
    */
   onClick?: () => void
   /**
-   * Rows per page, from `1` to `10` in steps of `1`: the body shows that many of its
+   * Rows per page, from `1` to `9` in steps of `1`: the body shows that many of its
    * rows, and a click on the card (or Enter / Space) shows the next ones, wrapping
    * back to the first. Omitted: every row at once.
    */
   rowsPerPage?: number
+  /**
+   * The picture of the image variant: its URL. Omitted or empty: the plain card. With a picture the card is
+   * 380 tall (`height` is ignored), the picture sits across the top under the card scrim, and the zones are
+   * anchored to the bottom edge.
+   */
+  image?: string
+  /**
+   * How tall the picture is: `G` 320 (a one-line title and one line of description), `M` 264 (a two-line
+   * title with up to two lines of description or five bullets), `P` 176 (a two-line title with a long
+   * list). Default `G`. Only with `image`.
+   */
+  imageSize?: 'P' | 'M' | 'G'
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -127,14 +147,21 @@ export function cardPress(onClick: () => void) {
   }
 }
 
+/** The picture's height by step: G 320, M 264, P 176. */
+const IMAGE_SIZE_TOKEN = {
+  G: '--dimension-size-semantic-content-card-image-g',
+  M: '--dimension-size-semantic-content-card-image-m',
+  P: '--dimension-size-semantic-content-card-image-p',
+} as const
+
 /** The token the body's gap is (BODY_GAP in TableCell.tsx), by name: a `gap` set per use redefines it. */
 const BODY_GAP_TOKEN = '--dimension-spacing-semantic-table-row-gap'
 
 /** Which page of rows the card is on, for its body. */
-const CardPage = createContext<{ page: number; rowsPerPage?: number }>({ page: 0 })
+const CardPage = createContext<{ page: number; rowsPerPage?: number; image?: boolean }>({ page: 0 })
 
-/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
-export function ContentCard({ interactionState, height, gap, onClick, rowsPerPage, children }: ContentCardProps): ReactNode {
+/** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 9 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
+export function ContentCard({ interactionState, height, gap, onClick, rowsPerPage, image, imageSize, children }: ContentCardProps): ReactNode {
   const state = (interactionState ?? 'default')
   const focus = state === 'focus'
   const [page, setPage] = useState(0)
@@ -159,13 +186,24 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
       data-state={state}
       data-sized={height === undefined ? undefined : ''}
       data-pressable={act ? '' : undefined}
+      data-image={image ? (imageSize ?? 'G') : undefined}
       // Omitted: hug the content, capped at the tallest card — what doesn't fit is
       // cut off by the body, where the render check sees it.
-      style={vars({ '--_height': gridHeight(height ?? contentCardSpec.maxHeight) })}
+      style={vars({
+        '--_height': gridHeight(height ?? contentCardSpec.maxHeight),
+        ...(image ? { '--_image': token(IMAGE_SIZE_TOKEN[imageSize ?? 'G']) } : {}),
+      })}
       {...(act && cardPress(act))}
     >
-      {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
-      <CardPage.Provider value={{ page, rowsPerPage }}>
+      {image ? (
+        // Under the ring: the focus light is drawn over the picture, not under it.
+        <div className="sfs-content-card-image">
+          <img src={image} alt="" draggable={false} />
+          <CardScrim />
+        </div>
+      ) : null}
+      {focus ? <FocusRing shape="content-card" fill={!image} /> : <RestingBorder shape="content-card" width="card" />}
+      <CardPage.Provider value={{ page, rowsPerPage, image: Boolean(image) }}>
         <div className="sfs-content-card-zones" style={vars({ '--_gap': gap === undefined ? spacing('sm') : `${gap}px` })}>
           {children}
         </div>
@@ -249,6 +287,8 @@ export function ContentCardHeader({
   partner,
   ad,
 }: ContentCardHeaderProps): ReactNode {
+  // On the image variant the title is 16 bold and the subtitle is the description.
+  const { image } = useContext(CardPage)
   const text = (
     <div className="sfs-content-card-text">
       {overline ? (
@@ -257,7 +297,7 @@ export function ContentCardHeader({
         </Text>
       ) : null}
       {title ? (
-        <Text as="span" variant="body-lg-bold">
+        <Text as="span" variant={image ? 'body-md-bold' : 'body-lg-bold'}>
           {title}
         </Text>
       ) : null}
@@ -380,7 +420,11 @@ export function ContentCardBody({ quote, gap, children }: ContentCardBodyProps):
 interface ContentCardFooterProps {
   /** A centred caption, drawn at 70% like Figma's. Omitted or empty: not drawn. */
   caption?: string
-  /** Text laid out beside the caption. Never a `<button>` or `<a>`: the card itself is the one control. */
+  /**
+   * Text laid out beside the caption — or one `WideButton`, when the card is not itself pressable: the button
+   * then spans the card's width, takes the focus and the ring, and the card is a container at full strength.
+   * Never a `<button>` or `<a>` inside a card that has an `onClick`: that card is the one control.
+   */
   children?: ReactNode
 }
 

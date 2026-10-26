@@ -50,6 +50,20 @@ export function Overlay({ direction = 'bottom' }: OverlayProps): ReactNode {
   return <div aria-hidden className="sfs-overlay" data-overlay={direction} />
 }
 
+/**
+ * CardScrim — the card-level scrim (DESIGN.md section 5.4). A shade that fades
+ * the artwork on a card into the card's own background at the edge where the
+ * text sits, so text over an image stays legible. It is the one gradient a
+ * card draws over its image: `--gradient-semantic-card-scrim`, charcoal at the
+ * text edge to transparent.
+ *
+ * It fills its nearest positioned ancestor, which is the image's box, and never
+ * takes pointer events. Use it only when text or a label sits on the image.
+ */
+export function CardScrim(): ReactNode {
+  return <div aria-hidden className="sfs-card-scrim" />
+}
+
 /** Every DTV screen model, in the order of the Figma Modelos table's levels. */
 export const SCREEN_MODEL_IDS: readonly string[] = DTV_SCREEN_LAYERS.models.map((model) => model.id)
 
