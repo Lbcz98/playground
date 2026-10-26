@@ -34,6 +34,7 @@ export function renderReport(input: LawsJson | LawsJson[], root = process.cwd())
   const legibility: string[] = []
   const flowWarnings: string[] = []
   const deviations: string[] = []
+  const trespasses: string[] = []
   const prims: string[] = []
   const notRead: string[] = []
   const edges: string[] = []
@@ -46,6 +47,7 @@ export function renderReport(input: LawsJson | LawsJson[], root = process.cwd())
     for (const p of r.problems) blocking.push(`- \`${p.file ? rel(p.file) : f}${p.line ? `:${p.line}` : ''}\` [${p.law}] ${oneLine(p.message)}`)
     for (const a of r.advisories) legibility.push(`- \`${f}\` [${a.law}] ${oneLine(a.message)}`)
     for (const d of r.deviations) deviations.push(`- \`${d.ruleId}\` — ${oneLine(d.why)} (\`${f}:${d.line}\`)`)
+    for (const t of r.trespasses) trespasses.push(`- \`${t.law}\` — ${oneLine(t.message)} (carries exploration \`${t.exploration}\`; \`${t.file ? rel(t.file) : f}${t.line ? `:${t.line}` : ''}\`)`)
     for (const u of r.reuses) prims.push(`- reuse \`${f}:${u.line}\` — \`${u.primitive}\` considered \`${u.considered}\`: ${oneLine(u.why)}`)
     for (const p of r.proposals) prims.push(`- proposal \`${rel(p.file)}\` — \`${p.name}\`: ${oneLine(p.why)} (API: ${Object.keys(p.api).sort().join(', ') || 'none'})`)
     for (const n of r.notRead) notRead.push(`- \`${f}:${n.line}\` [${n.kind}] ${oneLine(n.message)}`)
@@ -53,18 +55,20 @@ export function renderReport(input: LawsJson | LawsJson[], root = process.cwd())
     read += r.coverage.read
     unread += r.coverage.notRead
   }
+  const exploring = trespasses.length ? `${trespasses.length} exploration trespasses · ` : ''
   const reuses = prims.filter((p) => p.startsWith('- reuse')).length
   const section = (title: string, items: string[]): string[] => [`### ${title} (${items.length})`, '', ...(items.length ? [...items].sort(cmp) : ['None.']), '']
   const lines = [
     MARKER,
     `## Protos laws`,
     '',
-    `${reports.length} screens checked · ${blocking.length} blocking problems · ${legibility.length + flowWarnings.length} advisories · ${deviations.length} deviations · ${reuses} reuses · ${prims.length - reuses} proposals · ${unread} constructs not read (${read} read, ${read + unread ? Math.round((100 * read) / (read + unread)) : 100}% coverage)`,
+    `${reports.length} screens checked · ${blocking.length} blocking problems · ${legibility.length + flowWarnings.length} advisories · ${deviations.length} deviations · ${exploring}${reuses} reuses · ${prims.length - reuses} proposals · ${unread} constructs not read (${read} read, ${read + unread ? Math.round((100 * read) / (read + unread)) : 100}% coverage)`,
     '',
     ...section('Blocking problems', blocking),
     ...section('Legibility warnings', legibility),
     ...section('Flow warnings', flowWarnings),
     ...section('Declared deviations', deviations),
+    ...(trespasses.length ? section('Tuned exploration trespasses (candidates for the kit)', trespasses) : []),
     ...section('Primitives and proposals', prims),
     ...section('Not read', notRead),
     ...section('Flow edges', edges),
