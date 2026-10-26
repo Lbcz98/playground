@@ -47,6 +47,8 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "dialkit": "2.0.0",
+    "esbuild": "0.25.12",
+    "mesurer": "0.2.7",
     "playwright": "^1.64.0",
     "postcss": "^8.4.49",
     "storybook": "^10.6.0",

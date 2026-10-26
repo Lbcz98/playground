@@ -11,7 +11,7 @@ You get a **mode**, the slug (`docs/explorations/<slug>/`), the option `N` and, 
 
 ## Instrument mode (`modo instrumentar`)
 
-Output: `docs/explorations/<slug>/parts/<M>.html`, one file, nothing else. The command stitches it into the page and checks it. Follow `proto-explorer.md` section 4 (part mode): CSS scoped under `[data-option="M"]`, no `:root`, `@keyframes` named `o<M>-…`, scripts as IIFEs, kit tokens with `var()`, never retype a token value, the component keeps the kit's size, the remote-control rules (keys inside a card: `node scripts/explore-ref.mjs --teclas`). Read first: `brief.md` if it exists, the `<article data-option="N">` in `index.html` with its CSS and script, `web/protos/generated/{explore-tokens,rules}.md`.
+Output: `docs/explorations/<slug>/tune-parts/<M>.html`, one file, nothing else. You usually run in the background, made ahead of time while the designer keeps working on the page, so never touch `index.html`, `parts/` (other agents write there) or another file in `tune-parts/`. The command puts your copy into the page, hidden until the designer tunes it, without checking it again: your checks are the only ones. Follow `proto-explorer.md` section 4 (part mode): CSS scoped under `[data-option="M"]`, no `:root`, `@keyframes` named `o<M>-…`, scripts as IIFEs, kit tokens with `var()`, never retype a token value, the component keeps the kit's size, the remote-control rules (keys inside a card: `node scripts/explore-ref.mjs --teclas`). Read first: `brief.md` if it exists, the `<article data-option="N">` in `index.html` with its CSS and script, `web/protos/generated/{explore-tokens,rules}.md`.
 
 The copy is **the same design as N**, restructured so that nothing is hard-coded:
 
@@ -46,8 +46,8 @@ The copy is **the same design as N**, restructured so that nothing is hard-coded
 6. **Motion defaults.** The kit has no motion tokens. Start from these values and say in the report that they come from the review rules, not the kit: focus and state changes ≤ 150 ms on `opacity`, colour and `transform`, easing `cubic-bezier(0.2, 0, 0, 1)`; something entering 300 ms, leaving 150 ms and softer (`translateY(12px)`, opacity, blur 4px); stagger 100 ms only for rare staged entrances. Name the exact `transition-property` (never `all`); use transitions, not keyframes, for anything the remote can interrupt; wrap motion so `prefers-reduced-motion: reduce` swaps slides and scales for an opacity crossfade and keeps the focus ring. Browser support: use only widely supported CSS; the TV runtime is not known yet.
 7. The look at rest and in every state matches N (a tuned copy that already differs is a failure); only the structure underneath changed.
 
-Check before reporting, until all print `ok`:
-`node scripts/check-tune-spec.mjs docs/explorations/<slug>/parts/<M>.html M`, then `node scripts/check-explore-tokens.mjs …/parts/<M>.html` and `node scripts/check-explore-layout.mjs …/parts/<M>.html`; look at `node scripts/explore-shots.mjs …/parts/<M>.html "$TMPDIR/explore-shots"` with `Read`. The shot shows the resting state only; read the CSS of each other state with the same care.
+Check before reporting, until all print `ok` (never report with one failing: nobody runs them after you):
+`node scripts/check-tune-spec.mjs docs/explorations/<slug>/tune-parts/<M>.html M`, then `node scripts/check-explore-tokens.mjs …/tune-parts/<M>.html` and `node scripts/check-explore-layout.mjs …/tune-parts/<M>.html`; look at `node scripts/explore-shots.mjs …/tune-parts/<M>.html "$TMPDIR/explore-shots"` with `Read`. The shot shows the resting state only; read the CSS of each other state with the same care.
 
 Report, one line each: `Opção M - Ajuste da N: <n> controles em <pastas>`; the states and what each key does; the motion defaults taken from the review rules; what you left out of the dials and why.
 

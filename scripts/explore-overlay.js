@@ -390,7 +390,7 @@
   // the reload, so an edit, which reloads too, plays nothing; the runtime is loaded only then, and each card
   // plays once it is on screen. Reduced motion: the runtime fades it in instead.
   const fresh = Array.isArray(before) && !tune
-    ? [...document.querySelectorAll('.opt[data-option]:not([data-discarded]) .opt-content')].filter((c) => !before.includes(c.closest('.opt').dataset.option))
+    ? [...document.querySelectorAll('.opt[data-option]:not([data-discarded]):not([data-pretuned]) .opt-content')].filter((c) => !before.includes(c.closest('.opt').dataset.option))
     : []
   if (fresh.length) {
     // The component itself, so the outline is its own shape and not the card's content area.

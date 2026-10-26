@@ -55,6 +55,9 @@ describe('explore server', () => {
     expect((await fetch(s.url + '__explore/icons/add.svg')).headers.get('content-type')).toBe('image/svg+xml')
     expect((await fetch(s.url + '__explore/dialkit.js')).status).toBe(200)
     expect((await fetch(s.url + '__explore/dialkit.css')).status).toBe(200)
+    const mesurer = await fetch(s.url + '__explore/mesurer.js')
+    expect(mesurer.status).toBe(200)
+    expect(await mesurer.text()).toContain('tune-mesurer')
     expect((await fetch(s.url + '__explore/icons/..%2f..%2fexplore-server.mjs')).status).not.toBe(200)
   })
 
