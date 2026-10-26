@@ -71,6 +71,13 @@ describe('applyTuned', () => {
     expect(tuneSpec(html, 2).folders[0].controls[0]).toMatchObject({ value: 14, base: 40 })
     expect(html.match(/tune:vars \*\//g)).toHaveLength(2) // one block, start and end
   })
+  it('rewrites only its own option\'s block when the page holds several, and shows a pre-made copy once it is tuned', () => {
+    const other = `<style>\n${varsBlock(spec, 3)}\n</style><article class="opt" data-option="3" data-tuned data-pretuned><script type="application/json" data-tune="3">${JSON.stringify(spec)}</script></article>`
+    const { html } = applyTuned(page(other), 3, { '0.radius': 14 })
+    expect(html).toContain(varsBlock(spec, 2))
+    expect(html).toContain('[data-option="3"] {\n  --radius: 14px; /* tune */')
+    expect(html).toContain('<article class="opt" data-option="3" data-tuned>')
+  })
   it('clamps sliders, lowercases colors, bounds easing handles and leaves the page alone when nothing changes', () => {
     const { html } = applyTuned(page(), 2, { '0.radius': 999, '0.bg': '#ABCDEF', '1.move': { duration: 0.2, ease: [5, -3, 0, 1] } })
     const c = tuneSpec(html, 2).folders

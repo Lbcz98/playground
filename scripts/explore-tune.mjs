@@ -7,7 +7,8 @@
 
 /** Control types the runtime (explore-tune.js) can draw. */
 export const TYPES = ['slider', 'color', 'select', 'easing']
-const VARS = /\/\* tune:vars \*\/[\s\S]*?\/\* \/tune:vars \*\//
+// Option `n`'s own block: a page holds one per tuned option.
+const vars = (n) => new RegExp(`/\\* tune:vars \\*/\\s*\\[data-option="${n}"\\][\\s\\S]*?/\\* /tune:vars \\*/`)
 
 const article = (html, n) => html.match(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`))?.[0]
 
@@ -73,7 +74,7 @@ export function specJson({ folders, ...top }) {
  */
 export function applyTuned(html, n, values) {
   const spec = tuneSpec(html, n)
-  if (!spec || !VARS.test(html)) return { html, changed: 0 }
+  if (!spec || !vars(n).test(html)) return { html, changed: 0 }
   let changed = 0
   spec.folders.forEach((f, i) => (f.controls ?? []).forEach((c) => {
     const v = clean(c, values?.[`${i}.${c.id}`])
@@ -83,7 +84,8 @@ export function applyTuned(html, n, values) {
   const json = specJson(spec).replace(/</g, '\\u003c')
   const next = html
     .replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, b) => `${a}${json}${b}`)
-    .replace(VARS, () => varsBlock(spec, n))
+    .replace(vars(n), () => varsBlock(spec, n))
+    .replace(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`), (tag) => tag.replace(/\s+data-pretuned\b/, '')) // the designer made the copy their own: it shows on the page now
   return { html: next, changed }
 }
 
@@ -92,7 +94,7 @@ export function lintSpec(html, n, kit) {
   const spec = tuneSpec(html, n), bad = []
   if (!article(html, n)?.includes('data-tuned')) bad.push(`o <article data-option="${n}"> não tem data-tuned`)
   if (!spec) return [...bad, `falta <script type="application/json" data-tune="${n}"> com JSON válido`]
-  if (!VARS.test(html)) return [...bad, 'falta o bloco /* tune:vars */ … /* /tune:vars */']
+  if (!vars(n).test(html)) return [...bad, `falta o bloco /* tune:vars */ [data-option="${n}"] { … } /* /tune:vars */`]
   if (!Array.isArray(spec.folders) || !spec.folders.length) bad.push('folders vazio')
   const ids = new Set(), names = new Set(), fin = Number.isFinite
   for (const f of spec.folders ?? []) {
@@ -118,7 +120,7 @@ export function lintSpec(html, n, kit) {
   }
   if (!Array.isArray(spec.states) || spec.states.length < 1) bad.push('states: liste os estados que o CSS lê em [data-state="…"]')
   else for (const s of spec.states.slice(1)) if (!html.includes(`data-state="${s}"`)) bad.push(`estado "${s}" não aparece em nenhum seletor [data-state="${s}"]`)
-  const have = html.match(VARS)?.[0].replace(/\s+/g, ' ')
+  const have = html.match(vars(n))?.[0].replace(/\s+/g, ' ')
   if (have !== varsBlock(spec, n).replace(/\s+/g, ' ')) bad.push('o bloco tune:vars não é o que "Aplicar valores" escreveria a partir do spec: escreva-o no formato exato (uma declaração por --var, token como var(--token), easing em ms e cubic-bezier)')
   return bad
 }
