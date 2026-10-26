@@ -22,7 +22,7 @@ import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 //   comment    a designer's note on a piece of the page
 //   dials      the DialKit values the designer tuned and wants written in as the new defaults
 //   vary       variations of one option (`option`, `action`, optional `note`); more: a fresh batch from the brief
-//   tune       the designer opened the stage on an option that has no controls yet; judge: "Avaliar" on a tuned option. Both carry `option`.
+//   tune       the designer opened the stage on an option that has no controls yet; judge: "Avaliar" on a tuned option; kit: its "Auditoria do kit". All carry `option`.
 //   figma-push / figma-pull  "Enviar ao Figma" / "Trazer do Figma" on a tuned option; carry `option` and the stage's live dial `values`
 
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
@@ -141,10 +141,10 @@ export function startServer(opts) {
         clients.add(res)
         return void req.on('close', () => (clients.delete(res), (lastActivity = Date.now())))
       }
-      // The judge's findings for one option: written by proto-judge next to the page, shown in the stage.
+      // The findings for one option: written by proto-judge (judge-N.json) or proto-kit-auditor (kit-N.json, `?kit=1`) next to the page, shown in the stage.
       if (url.pathname === '/__explore/judge') {
         const n = url.searchParams.get('option') ?? ''
-        const file = join(root, `judge-${n}.json`)
+        const file = join(root, `${url.searchParams.get('kit') ? 'kit' : 'judge'}-${n}.json`)
         if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
         return json(res, 200, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
       }
@@ -159,7 +159,7 @@ export function startServer(opts) {
         const dials = b.kind === 'dials'
         const vary = b.kind === 'vary', more = b.kind === 'more'
         const figma = b.kind === 'figma-push' || b.kind === 'figma-pull'
-        const stageKind = b.kind === 'tune' || b.kind === 'judge' || figma ? b.kind : undefined
+        const stageKind = b.kind === 'tune' || b.kind === 'judge' || b.kind === 'kit' || figma ? b.kind : undefined
         if (stageKind) {
           if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
           // The stage asks on every load: one open request per option and kind is enough.
@@ -173,7 +173,7 @@ export function startServer(opts) {
         if (dials && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
         if (b.kind === 'figma-pull' && !existsSync(figmaFile)) return json(res, 400, { error: 'push' }) // nothing was sent yet
         if (figma && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
-        const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
+        const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', kit: 'Auditoria do kit', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
           : dials ? 'Aplicar valores do DialKit'
           : vary ? `${ACTIONS[b.action]} · opção ${b.option}${note && `: ${note}`}`
           : more ? `Mais opções${note && `: ${note}`}`
@@ -247,7 +247,7 @@ export function startServer(opts) {
         c.status = b.status
         c.summary = b.summary ? clip(b.summary, 300) : undefined
         broadcast(state())
-        if (c.status === 'aplicado' && c.kind !== 'judge' && c.kind !== 'figma-push' && c.kind !== 'figma-pull') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
+        if (c.status === 'aplicado' && c.kind !== 'judge' && c.kind !== 'kit' && c.kind !== 'figma-push' && c.kind !== 'figma-pull') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
         return json(res, 200, { ok: true })
       }
       return json(res, 404, { error: 'not found' })

@@ -72,7 +72,7 @@
     .tune-ft > div { display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 10px; background: #181818e6; border: 1px solid var(--explore-toggle-border); color: #ddd; font: 500 13px ${FONT}; pointer-events: auto; }
     .tune-ft[hidden], .tune-judge[hidden], .tune-note[hidden], .tune-badge[hidden] { display: none; }
     .tune-judge h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; } .tune-judge .f { padding: 8px 0; border-top: 1px solid var(--explore-toggle-border); }
-    .tune-judge code { font-size: 12px; color: #bbb; word-break: break-word; } .tune-judge .sev { font-weight: 600; } .tune-judge .HIGH { color: #eb8a8a; } .tune-judge .MEDIUM { color: #f2c94c; }`
+    .tune-judge code { font-size: 12px; color: #bbb; word-break: break-word; } .tune-judge .sev { font-weight: 600; } .tune-judge .HIGH { color: #eb8a8a; } .tune-judge .MEDIUM { color: #f2c94c; } .tune-judge .LOW { color: #aaa; } .tune-judge .sum { margin-bottom: 4px; }`
   document.head.appendChild(css)
 
   const stage = Object.assign(document.createElement('div'), { className: 'tune-stage', tabIndex: -1 })
@@ -92,7 +92,9 @@
   // Over the canvas: review and Figma at the top right, zoom centred at the bottom (position: fixed, see the css above).
   const tools = Object.assign(document.createElement('div'), { className: 'tune-tools' })
   const FIGMA = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#888888" stroke-linejoin="round" stroke-width="1.5"><circle cx="15" cy="12" r="3"/><path d="M9 21a3 3 0 0 0 3-3v-3H9a3 3 0 1 0 0 6Z"/><path stroke-linecap="round" d="M12 9v6H9a3 3 0 1 1 0-6zm0-6v6H9a3 3 0 0 1 0-6zm0 0v6h3a3 3 0 1 0 0-6z"/></g></svg>' // hugeicons:figma
-  tools.innerHTML = `<button class="tune-btn judge">Avaliar</button>
+  const CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>'
+  tools.innerHTML = `<div class="tune-fig"><button class="tune-btn tune-fmenu jmenu" aria-haspopup="menu" aria-expanded="false"><span>Avaliar</span>${CHEV}</button>
+      <div class="tune-menu" role="menu"><button role="menuitem" class="jgeral">Revisão geral</button><button role="menuitem" class="jkit" title="Quais regras, tokens e comportamentos do kit a opção quebra">Auditoria do kit</button></div></div>
     <div class="tune-fig"><button class="tune-btn tune-fmenu fmenu" aria-haspopup="menu" aria-expanded="false">${FIGMA}<span>Figma</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
       <div class="tune-menu" role="menu"><button role="menuitem" class="fpush">Enviar ao Figma</button><button role="menuitem" class="fpull" disabled title="Envie ao Figma antes de trazer">Trazer do Figma</button></div></div>`
   const zoomBox = Object.assign(document.createElement('div'), { className: 'tune-zoom' })
@@ -166,7 +168,7 @@
   note.hidden = !!spec
   if (!spec) {
     note.textContent = 'Preparando os controles: o Claude está lendo esta opção e criando uma cópia ajustável. A página abre nela sozinha. Acompanhe no Histórico.'
-    for (const b of ['.judge', '.fmenu']) $(b, tools).disabled = true
+    for (const b of ['.jmenu', '.fmenu']) $(b, tools).disabled = true
     store('explore-history', '1')
     if (!stored(`tune-asked-${M}`)) { store(`tune-asked-${M}`, '1'); api('comment', { kind: 'tune', option: M }) }
     return
@@ -291,12 +293,18 @@
 
   // --- Figma ---------------------------------------------------------------------------------------------------------------------
   // The buttons ask Claude (it holds the Figma connection); figma.json, written through the server, says where the file is and what was pushed.
-  const fpush = $('.fpush', tools), fpull = $('.fpull', tools), fmenu = $('.fmenu', tools), fmenuLabel = $('span', fmenu), menu = $('.tune-menu', tools)
-  const isOpen = () => menu.classList.contains('open')
-  const openMenu = (on) => { menu.classList.toggle('open', on); fmenu.setAttribute('aria-expanded', String(on)) }
-  fmenu.onclick = () => openMenu(!isOpen())
-  document.addEventListener('pointerdown', (e) => { if (isOpen() && !e.target.closest?.('.tune-fig')) openMenu(false) })
-  document.addEventListener('keydown', (e) => { if (isOpen() && e.key === 'Escape') (openMenu(false), fmenu.focus()) })
+  const fpush = $('.fpush', tools), fpull = $('.fpull', tools), fmenu = $('.fmenu', tools), fmenuLabel = $('span', fmenu)
+  // Both toolbar menus (Avaliar, Figma) open and close the same way.
+  const dropdown = (wrap) => {
+    const trigger = $('.tune-fmenu', wrap), menu = $('.tune-menu', wrap)
+    const isOpen = () => menu.classList.contains('open')
+    const open = (on) => { menu.classList.toggle('open', on); trigger.setAttribute('aria-expanded', String(on)) }
+    trigger.onclick = () => open(!isOpen())
+    document.addEventListener('pointerdown', (e) => { if (isOpen() && !wrap.contains(e.target)) open(false) })
+    document.addEventListener('keydown', (e) => { if (isOpen() && e.key === 'Escape') (open(false), trigger.focus()) })
+    return open
+  }
+  const [openJudgeMenu, openMenu] = [...tools.querySelectorAll('.tune-fig')].map(dropdown)
   const fmsg = Object.assign(document.createElement('div'), { className: 'tune-note', role: 'status', hidden: true })
   document.body.append(fmsg)
   const loadFigma = () => fetch('/__explore/figma', { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((f) => {
@@ -340,28 +348,52 @@
   // --- Review ----------------------------------------------------------------------------------------------------------------
   const judge = Object.assign(document.createElement('div'), { className: 'tune-judge', hidden: true })
   document.body.append(judge)
-  const show = (r) => {
+  // Two reports share the panel: the general review (judge) and the kit audit (kit). Each is a file the agent leaves next to the page.
+  const REPORTS = { judge: { title: 'Revisão geral', busy: 'Avaliando…', btn: $('.jgeral', tools) }, kit: { title: 'Auditoria do kit', busy: 'Auditando…', btn: $('.jkit', tools) } }
+  const DOMAIN = { rules: 'regra', tokens: 'token', behavior: 'comportamento' }
+  const SEV = { HIGH: 'Alta', MEDIUM: 'Média', LOW: 'Baixa' }
+  const show = (r, kind) => {
     judge.hidden = false
-    judge.innerHTML = `<h2>${esc(r.verdict)} · ${esc(r.summary)}</h2>${(r.findings ?? []).map((f, i) => `<div class="f"><span class="sev ${esc(f.severity)}">${esc(f.severity)}</span> · ${esc(f.domain)} · <code>${esc(f.location)}</code><br>${esc(f.why)}<br><code>${esc(f.before)}</code> → <code>${esc(f.after)}</code>${f.dial ? ` <button class="tune-btn" data-i="${i}">Aplicar sugestão</button>` : ''}</div>`).join('') || '<div class="f">Nada a corrigir.</div>'}
-      <div class="f">${(r.coverage ?? []).map((c) => `${esc(c.domain)}: ${esc(c.result)}`).join(' · ')}<br><button class="tune-btn" data-close>Fechar</button></div>`
+    store(`tune-report-${M}`, kind)
+    const count = (r.findings ?? []).reduce((n, f) => ({ ...n, [f.severity]: (n[f.severity] ?? 0) + 1 }), {})
+    const tally = ['HIGH', 'MEDIUM', 'LOW'].filter((k) => count[k]).map((k) => `${count[k]} ${SEV[k].toLowerCase()}${count[k] > 1 ? 's' : ''}`).join(' · ')
+    judge.innerHTML = `<h2>${esc(REPORTS[kind].title)} · ${esc(r.verdict)}${tally ? ` · ${tally}` : ''}</h2><div class="sum">${esc(r.summary ?? '')}</div>${(r.findings ?? []).map((f, i) => `<div class="f"><span class="sev ${esc(f.severity)}">${esc(SEV[f.severity] ?? f.severity)}</span> · ${esc(DOMAIN[f.domain] ?? f.domain)}${f.rule ? ` · <code>${esc(f.rule)}</code>` : ''} · <code>${esc(f.location)}</code><br>${esc(f.why)}<br><code>${esc(f.before)}</code> → <code>${esc(f.after)}</code>${f.dial ? ` <button class="tune-btn" data-i="${i}">Aplicar sugestão</button>` : ''}</div>`).join('') || '<div class="f">Nada a corrigir.</div>'}
+      <div class="f">${(r.coverage ?? []).map((c) => `${esc(DOMAIN[c.domain] ?? c.domain)}: ${esc(c.result)}`).join(' · ')}${(r.notVerified ?? []).length ? `<br>Não verificado: ${r.notVerified.map(esc).join('; ')}` : ''}<br><button class="tune-btn" data-close>Fechar</button></div>`
     judge.onclick = (e) => {
       if (e.target.dataset.close !== undefined) judge.hidden = true
       const d = (r.findings ?? [])[e.target.dataset.i]?.dial
       if (d && kit) kit.setValue(`${d.folder}.${d.control}`, d.value) // lands in the panel only: "Aplicar valores" is what saves
     }
   }
-  const load = () => fetch(`/__explore/judge?option=${M}`, { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((r) => r && show(r)).catch(() => {})
-  load()
-  const btn = $('.judge', tools)
-  btn.onclick = () => { btn.disabled = true; btn.textContent = 'Avaliando…'; api('comment', { kind: 'judge', option: M }) }
-  let seen = 0, seenF = Number(stored(`tune-figma-seen-${M}-${token}`))
+  const load = (kind) => fetch(`/__explore/judge?option=${M}${kind === 'kit' ? '&kit=1' : ''}`, { headers: { 'x-explore-token': token } }).then((r) => (r.ok ? r.json() : null)).then((r) => r && show(r, kind)).catch(() => {})
+  // On load the report the designer last looked at comes back; a fresh answer replaces it.
+  const last = stored(`tune-report-${M}`) === 'kit' ? 'kit' : 'judge'
+  load(last)
+  const jmenu = $('.jmenu', tools), jmenuLabel = $('span', jmenu)
+  for (const [kind, { btn }] of Object.entries(REPORTS)) btn.onclick = () => { openJudgeMenu(false); btn.disabled = true; api('comment', { kind, option: M }) }
+  const seen = { judge: 0, kit: 0 }
+  let started = false
+  let seenF = Number(stored(`tune-figma-seen-${M}-${token}`))
   new EventSource(`/__explore/events?token=${token}`).addEventListener('state', (e) => {
-    const mine = JSON.parse(e.data).filter((c) => c.kind === 'judge' && c.option === M), last = mine.at(-1)
-    const busy = !!last && ['enviado', 'aguardando', 'aplicando'].includes(last.status)
-    btn.disabled = busy; btn.textContent = busy ? 'Avaliando…' : 'Avaliar'
-    if (last?.status === 'aplicado' && last.id > seen) { seen = last.id; load() }
+    const all = JSON.parse(e.data), first = !started
+    started = true
+    let running = ''
+    const latest = {}
+    for (const kind of Object.keys(REPORTS)) {
+      latest[kind] = all.filter((c) => c.kind === kind && c.option === M).at(-1)
+      if (['enviado', 'aguardando', 'aplicando'].includes(latest[kind]?.status)) running = REPORTS[kind].busy
+    }
+    for (const [kind, c] of Object.entries(latest)) {
+      REPORTS[kind].btn.disabled = !!running // one agent at a time: the second run would race the first one's panel
+      if ((c?.status !== 'aplicado' && c?.status !== 'falhou') || c.id <= seen[kind]) continue
+      seen[kind] = c.id
+      if (first) continue // answers from before the page opened: the report loaded above already shows them
+      if (c.status === 'aplicado') load(kind)
+      else say(`${REPORTS[kind].title}: não deu certo. ${c.summary ?? ''}`)
+    }
+    jmenuLabel.textContent = running || 'Avaliar'
     // Figma: one request at a time per kind; the newest answer shows as a message (it survives the reload a pull causes: the server keeps the comments).
-    const fig = JSON.parse(e.data).filter((c) => c.kind?.startsWith('figma-') && c.option === M)
+    const fig = all.filter((c) => c.kind?.startsWith('figma-') && c.option === M)
     const busyF = (k) => fig.filter((c) => c.kind === k).at(-1), on = (k) => ['enviado', 'aguardando', 'aplicando'].includes(busyF(k)?.status)
     fpush.disabled = on('figma-push'); fpull.disabled = on('figma-pull') || !fpull.dataset.sent
     fmenuLabel.textContent = on('figma-push') ? 'Enviando…' : on('figma-pull') ? 'Trazendo…' : 'Figma'
