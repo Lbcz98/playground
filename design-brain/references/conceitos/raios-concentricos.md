@@ -16,8 +16,8 @@ Quando uma caixa arredondada fica dentro de outra, o mesmo raio nas duas abre um
 
 ## Uso no kit
 Compute com os valores do kit e escolha o degrau `--dimension-radius-core-*` mais próximo do resultado:
-- Card: `--dimension-radius-semantic-card` com `--dimension-spacing-semantic-card-inset`. O raio do card menos a folga dá o degrau `--dimension-radius-core-xs`.
-- Content Card: `--dimension-radius-semantic-content-card` com `--dimension-spacing-semantic-card-inset-expanded`. O resultado cai em `--dimension-radius-core-lg`.
+- Card: `--dimension-radius-semantic-card` com `--dimension-spacing-semantic-card-inset`. O raio do card (24) menos a folga (24) dá zero: a peça de dentro tem canto reto (`--dimension-radius-core-none`).
+- Content Card: `--dimension-radius-semantic-content-card` com `--dimension-spacing-semantic-card-inset-expanded`. O raio (40) menos a folga (32) dá 8, o degrau `--dimension-radius-core-sm`.
 - Pílula: `--dimension-radius-semantic-pill`, só até duas alturas de controle (`--dimension-size-semantic-control-height-lg`).
 - Nunca invente um raio de painel (12, 16, 20…): o painel é um Card ou um Content Card.
 

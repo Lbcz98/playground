@@ -136,12 +136,11 @@ export const contentCardSpec = {
   /** The tallest a card may be. */
   maxHeight: 456,
   /** Its inset on every side — the spacing step, so the smallest card is two of these. */
-  inset: 'lg',
+  inset: 'xl',
   /**
    * Table Cell rows a tallest card's body holds under a header and a footer —
-   * measured in the app on 2026-09-28 (8px between team and athlete rows, 24px athlete rows, flush scout rows), not derived: re-measure if a row, header or
-   * footer token changes. The component's own JSDoc states the same numbers for
+   * measured in the app on 2026-10-26 with the 32px inset (8px between team and athlete rows, 24px athlete rows, flush scout rows; was 10, 10, 7 at 24px), not derived: re-measure if a row, header, footer or inset token changes. The component's own JSDoc states the same numbers for
    * imported systems (held equal by catalog-storybook-parity.test.ts).
    */
-  rowsAtMax: { team: 10, athlete: 10, scout: 7 },
+  rowsAtMax: { team: 9, athlete: 9, scout: 7 },
 } as const

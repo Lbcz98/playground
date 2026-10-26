@@ -109,6 +109,10 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--dimension-size-semantic-card-expanded-width` | 208px |
 | `--dimension-size-semantic-channel-bug` | 64px |
 | `--dimension-size-semantic-content-card-width` | 288px |
+| `--dimension-size-semantic-content-card-image-p` | 176px |
+| `--dimension-size-semantic-content-card-image-m` | 264px |
+| `--dimension-size-semantic-content-card-image-g` | 320px |
+| `--dimension-size-semantic-content-card-image-height` | 380px |
 | `--dimension-size-semantic-control-height` | 40px |
 | `--dimension-size-semantic-control-height-lg` | 48px |
 | `--dimension-size-semantic-focus-glow` | 70% |
@@ -132,8 +136,8 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--dimension-size-semantic-table-stat-column` | 24px |
 | `--dimension-size-semantic-table-value-column` | 32px |
 | `--dimension-size-semantic-wide-button-width` | 240px |
-| `--dimension-spacing-semantic-card-inset` | 20px |
-| `--dimension-spacing-semantic-card-inset-expanded` | 24px |
+| `--dimension-spacing-semantic-card-inset` | 24px |
+| `--dimension-spacing-semantic-card-inset-expanded` | 32px |
 | `--dimension-spacing-semantic-focus-offset` | 2px |
 | `--dimension-spacing-semantic-table-row-gap` | 8px |
 
@@ -144,7 +148,8 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | Surface | Radius | Inset (padding, all sides) | Width (fixed) | Color |
 | --- | --- | --- | --- | --- |
 | Card | `--dimension-radius-semantic-card` | `--dimension-spacing-semantic-card-inset` | `--dimension-size-semantic-card-width`, `-card-height` | `--color-semantic-functional-background-elevated` |
-| Expanded card, Content Card (tall panel, at most 456px high) | `--dimension-radius-semantic-content-card` | `--dimension-spacing-semantic-card-inset-expanded` (the Content Card's `lg`, 24px) | `--dimension-size-semantic-card-expanded-width`, `--dimension-size-semantic-content-card-width` | `--color-semantic-functional-background-elevated` |
+| Expanded card (a Card focused or selected) | `--dimension-radius-semantic-card-expanded` | `--dimension-spacing-semantic-card-inset` (a Card keeps its 24px in every state) | `--dimension-size-semantic-card-expanded-width` | `--color-semantic-functional-background-elevated` |
+| Content Card (tall panel, at most 456px high) | `--dimension-radius-semantic-content-card` | `--dimension-spacing-semantic-card-inset-expanded` (the Content Card's `xl`, 32px) | `--dimension-size-semantic-content-card-width` | `--color-semantic-functional-background-elevated` |
 | Pill (a glance bar, a chip) | `--dimension-radius-semantic-pill`, only up to two controls tall (`--dimension-size-semantic-control-height-lg`) | `--dimension-spacing-core-2xs` or `-xs` | hugs its content | `--color-semantic-functional-background-elevated` |
 
 - Width is the kit's, never squeezed: no `max-width`, no percentage. Height hugs the content, never a fixed `height`, and stops at 456px (the tallest a kit card may be).
@@ -210,6 +215,7 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--gradient-primary-noite` | #414FFD 30%, #35C7F3 100% |
 | `--gradient-primary-tarde` | #ED6001 30%, #E7C300 100% |
 | `--gradient-semantic-border-default` | #FFFFFFB3 0%, #6464644D 60% |
+| `--gradient-semantic-card-scrim` | #34343C00 0%, #17161B 100% |
 | `--gradient-semantic-focus-ring` | #414FFD 30%, #35C7F3 100% |
 | `--gradient-semantic-overlay-bottom-left` | #00000000 60%, #000000 96% |
 | `--gradient-semantic-overlay-bottom-right` | #00000000 60%, #000000 96% |

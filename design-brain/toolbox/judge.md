@@ -7,6 +7,7 @@ It **warns, never intervenes**: it changes nothing in the exploration and blocks
 ## Inputs
 
 - `<folder>/index.html` (the options) and `<folder>/brief.md` (what was asked). `<folder>` is `docs/explorations/<slug>`, or `design-brain/toolbox/tests/<slug>` for a playbook test round.
+- `design-brain/DESIGN.md` (the visual language; cite a rule by section and number, for example "DESIGN §5.1").
 - `design-brain/toolbox/playbook.md` (sections 3, 4 and 10 are the rules; cite them).
 - The kit: `web/protos/generated/explore-tokens.md` for token values.
 
@@ -37,25 +38,26 @@ One self-contained `index.html`. In `<head>`, in this order: `<link rel="stylesh
    - **Axis mismatch (Warning):** the visual arrangement runs on a different axis from the keys. Items stacked vertically while ←/→ move between them (or the reverse) conflicts with the control. The arrangement of the items should follow the axis the keys use.
    - **Status louder than the content (Warning):** a status or number (such as the time left) set larger or stronger than the title, so it takes the attention from the content. The content is the protagonist.
    - **Related data split apart (Warning):** data about the same subject (a participant's name, age and estalecas) placed in separate groups with space between them, so they do not read as one. The designer asked for them closer in every BBB option that split them.
-5. **Check the laws and principles in playbook section 3**, option by option.
+5. **Check the laws and principles in playbook section 3 and the visual language in `design-brain/DESIGN.md`**, option by option. Cite a DESIGN rule by section and number (for example "DESIGN §5.1"). A gradient outside DESIGN §5.3, a drop shadow, a second accent hue, extra-bold, or a scrim with no text on the image is a Warning; a drop shadow or an invented gradient is a Critical only when the option chose it while the kit has a compliant surface.
 6. **Compare in words** with the reference sets (section 10, "Respiro, density, elements per card"; the good card is also saved as `design-brain/toolbox/references/pompeia-poster-card/`, the designer's pick, read by the judge only; `design-brain/toolbox/references/pompeia-seletor-card/` is a second one, which the designer calls the better of the two): the good card (one interaction, one image as the lure, info on top and actions below, generous respiro) and the bad set (2 or 3 interaction types, several accent colors, no strongest element, crowded). Say which set each option is closer to and why. Do not invent numbers. Do not call a card crowded only because its information sits together at one edge of a full-bleed photo: the designer rated that layout among the best (round 5).
 7. **Write the report.**
 
 ## Severity (playbook section 10)
 
-- **Critical:** a law is broken: ↑/↓ consumed in a card, more than one interaction pattern, a web-only interaction, pure white or black, grey text on black, type under 14px, safe-area violation, hover or animation needed to work.
+- **Critical:** a law is broken: ↑/↓ consumed in a card, more than one interaction pattern, a web-only interaction, pure white or black, grey text on black, a decision-carrying text under 14px or any text at 10px or less, safe-area violation, hover or animation needed to work.
+- **Note:** `.text-footnote-*` (12px) on a secondary label that carries no decision; this is allowed by `design-brain/DESIGN.md` §3.3. At 12px on text that carries a decision it is Critical.
 - **Warning:** a token or scale value is off, or a principle is weak: hierarchy, proximity, respiro, too many elements, a second accent color.
 - **Note:** a preference was bent, or a deviation was justified in the rationale.
 
-Pure white or black: look at the resolved color of every text and surface. A kit token that resolves to `#FFFFFF` or `#000000` counts. A translucent token (an overlay or scrim) is not pure black: compute its composite over what is behind it, or write "not measured" and make it a Note at most. The designer approved a bottom gradient (`gradient-semantic-overlay-bottom`) over a full-bleed photo as "very, very good" in round 5, so a scrim of that kind is not a finding by itself. Never guess a value.
+Pure white or black: look at the resolved color of every text and surface. A kit token that resolves to `#FFFFFF` or `#000000` counts. A translucent token (an overlay or scrim) is not pure black: compute its composite over what is behind it, or write "not measured" and make it a Note at most. The designer approved a bottom gradient (`gradient-semantic-overlay-bottom`) over a full-bleed photo as "very, very good" in round 5, so a scrim of that kind is not a finding by itself. On a card the scrim is `gradient-complementary-dark` (DESIGN §5.4). Never guess a value.
 
 When the break comes from a kit token or type style (for example `text-inverse` is `#000000`, the type scale has 10 and 12px):
-- **Critical** if the option chose it while a compliant kit token exists (text at 14px or more, `background-primary` as inverted text, `gradient-complementary-dark` as a scrim). Name the compliant token.
+- **Critical** if the option chose it while a compliant kit token exists (text at 14px or more, or `.text-footnote-*` for a secondary label, `background-primary` as inverted text, `gradient-complementary-dark` as a scrim). Name the compliant token.
 - **Note, "kit vs playbook"** if the kit offers no compliant token. The designer decides which side changes.
 
 Interaction patterns: Enter that activates or selects the whole card is the default of every card, not a pattern, so it is not counted and not a finding. Count a pattern only when the keys do something more (move focus between parts, switch a view, expand a part). *(My assumption; the designer should confirm.)*
 
-Where the kit differs from the designer's numbers (14px minimum, 40/32 safe area, 1280×720), show the difference as a Note. The designer decides which side changes; the judge never edits the kit.
+Where the kit differs from the designer's numbers (the size floor of `DESIGN.md` §3.3: 14px, 12px for secondary labels; 40/32 safe area; 1280×720), show the difference as a Note. The designer decides which side changes; the judge never edits the kit.
 
 ## Report
 

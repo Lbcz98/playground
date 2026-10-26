@@ -104,6 +104,8 @@ exports[`Faithful interpretation (golden) > a request that breaks patterns is re
               },
             ],
             "props": {
+              "image": "",
+              "imageSize": "G",
               "interactionState": "default",
             },
             "type": "ContentCard",
@@ -977,6 +979,8 @@ exports[`Faithful interpretation (golden) > every reference screen interprets to
                 ],
                 "props": {
                   "height": 272,
+                  "image": "",
+                  "imageSize": "G",
                   "interactionState": "default",
                 },
                 "type": "ContentCard",
@@ -1138,6 +1142,8 @@ exports[`Faithful interpretation (golden) > every reference screen interprets to
                 ],
                 "props": {
                   "height": 272,
+                  "image": "",
+                  "imageSize": "G",
                   "interactionState": "default",
                 },
                 "type": "ContentCard",
@@ -1502,6 +1508,8 @@ exports[`Faithful interpretation (golden) > every reference screen interprets to
                 ],
                 "props": {
                   "height": 272,
+                  "image": "",
+                  "imageSize": "G",
                   "interactionState": "default",
                 },
                 "type": "ContentCard",

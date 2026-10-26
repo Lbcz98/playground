@@ -134,10 +134,10 @@ describe('the content card is focusable', () => {
 
   it('pages its rows: rowsPerPage shows that many, and the card becomes the button that turns the page', () => {
     const rows = Array.from({ length: 12 }, (_, i) => <span key={i}>{`row-${i + 1}.`}</span>)
-    const out = renderToStaticMarkup(<ContentCard rowsPerPage={10}><ContentCardBody>{rows}</ContentCardBody></ContentCard>)
+    const out = renderToStaticMarkup(<ContentCard rowsPerPage={9}><ContentCardBody>{rows}</ContentCardBody></ContentCard>)
     expect(out).toMatch(/^<div[^>]*role="button"/)
-    expect(out).toContain('row-10.')
-    expect(out).not.toContain('row-11.')
+    expect(out).toContain('row-9.')
+    expect(out).not.toContain('row-10.')
   })
 })
 

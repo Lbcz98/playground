@@ -1,5 +1,7 @@
 Background, not a plan to follow: docs/plan-AI-Orchestration.md records how the rules and contracts came about.
 
+A linguagem visual (cor, gradientes, sombras, tipografia, imagens, respiro) está em design-brain/DESIGN.md; quem desenha UI lê o arquivo inteiro antes da primeira linha.
+
 Para escrever telas em web/protos/: siga web/protos/CLAUDE.md.
 
 ## Agent skills

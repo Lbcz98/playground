@@ -64,11 +64,8 @@ export function InteractivityButton({
       className="sfs-interactivity-button sfs-motion sfs-focusable"
       data-state={state}
       onClick={onClick}
-      style={vars({
-        '--_inset': token(
-          large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset',
-        ),
-      })}
+      // A Card keeps one inset in every state (DESIGN.md 7.3): focused or selected it grows, the inset does not.
+      style={vars({ '--_inset': token('--dimension-spacing-semantic-card-inset') })}
     >
       {state === 'focus' ? (
         <FocusRing shape="card-expanded" />
