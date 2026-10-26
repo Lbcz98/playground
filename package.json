@@ -22,6 +22,7 @@
     "explore:serve": "node scripts/explore-server.mjs --",
     "explore:status": "node scripts/explore-status.mjs --",
     "deploy": "vite-node --config vitest.config.ts scripts/deploy.ts --",
+    "nearest-token": "vite-node --config vitest.config.ts scripts/nearest-token.ts --",
     "check:laws": "vite-node --config vitest.config.ts scripts/check-laws-cli.ts --",
     "ci:protos": "vite-node --config vitest.config.ts scripts/protos-ci.ts --",
     "check:flow": "vite-node --config vitest.config.ts scripts/flow-probe.ts --",
