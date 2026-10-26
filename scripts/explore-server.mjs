@@ -29,6 +29,12 @@ const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
 const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
 const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
+const MESURER = fileURLToPath(new URL('./explore-mesurer.tsx', import.meta.url))
+let mesurer // the stage's Mesurer bundle (React package, so built once per run on first request)
+const mesurerJs = () => (mesurer ??= import('esbuild')
+  .then((esbuild) => esbuild.build({ entryPoints: [MESURER], bundle: true, write: false, format: 'iife', minify: true, define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent' }))
+  .then((r) => r.outputFiles[0].contents)
+  .catch((e) => { mesurer = undefined; throw e }))
 // Served without a token (like the overlay): fixed files, no state.
 const ASSETS = {
   // The kit's own tokens and face: explorations link these instead of retyping values.
@@ -85,7 +91,7 @@ export function startServer(opts) {
 
   /** The page with the live layer; `tune` also loads the stage, which must run before the overlay (it defines window.exploreDials). */
   const withLive = (html, tune) => {
-    const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>`
+    const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>${tune ? '<script src="/__explore/mesurer.js" async></script>' : ''}`
     return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
   }
 
@@ -98,6 +104,16 @@ export function startServer(opts) {
     if (url.pathname === '/__explore/overlay.js') {
       res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' }) // never an old overlay on a reloaded page
       return res.end(readFileSync(OVERLAY))
+    }
+    if (url.pathname === '/__explore/mesurer.js') {
+      try {
+        const js = await mesurerJs()
+        res.writeHead(200, { 'content-type': 'text/javascript' })
+        return res.end(js)
+      } catch (e) {
+        out(`mesurer: ${e.message.split('\n')[0]}`)
+        return json(res, 500, { error: 'mesurer' })
+      }
     }
     // The fine-tuning stage: option N when it has controls, else its newest tuned copy (a redirect), else the original while the copy is being made.
     const stage = url.pathname.match(/^\/tune\/(\d+)\/?$/)
