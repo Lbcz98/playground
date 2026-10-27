@@ -30,6 +30,12 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 - Motion: simple dissolve only, used to show a transition between screens or states. The screen must work without it.
 - Safe area: 40 on the sides, 32 on the top and bottom; assets thought for 1280×720. The background fills the full screen.
 - Hierarchy, spacing, type scale, colour and accessibility are the floor: never deliver options with these wrong.
+- **Arrangement follows the keys (round 6).** Items that ←/→ move between sit side by side, never stacked in a vertical list; a vertical list in a card whose keys are ←/→ is a broken control, not a style. If the data is naturally a list, change the data (a rail of 3 to 4 steps) or the key model, not the pairing.
+- **Repeated items: 4 at most (round 6).** A row of repeatable items (days, hours, steps, chips) has 4 items by default. "Say more with less": when the full set will not fit, reframe it (the next 3 days, not the 7 of the week) instead of shrinking type, ring or spacing. A row of identical items counts as one piece in the budget, but never as a licence for more than 4. If more items would really serve the viewer, the agent does not build them: it states the intent to the designer, explains why, and lets the designer decide the direction.
+- **Reduce items, not richness (round 7).** Obeying the 4-item rule must not make the option poorer. Cutting a row from 7 to 4 keeps the parent's style, composition and prominent graphic; it does not swap them for a plainer layout. A full chart stays a full chart (its curve whole and legible, with 4 labels on the axis, even when the chart is only informative and has no key); the group of weather data stays one group near the selector; the weather graphic keeps its prominence. A place name is never lost in the layout. An option richer than the one it replaces in one respect and poorer in another is a regression.
+- **A focusable piece says so at rest (round 7).** A button-like piece the remote reaches (a day in a rail, a segment, a choice) has a 1px outline with the diagonal light gradient (`--gradient-semantic-border-default`, width `--dimension-border-width-semantic-button`) on `::before`, so it does not read as plain text. The focus ring stays on `::after`. Exceptions (designer, round 7): a toggle or segmented selector takes no resting outline; in a chart, the cells only map the focus, the focus is invisible and the data mark (dot or bar) that reacts is the signal. See `DESIGN.md` §9.5.
+- **The focus ring fits its item (round 6).** The ring is drawn inside the item's box (`inset: 0`, ring width 4 px), so the item must leave room for it: from the box edge to what is drawn inside there are at least the ring width plus 4 px on every side, and the parent never clips it (the `cortado` check). A ring that touches the content or is cut means the item is too small; remove items or content, never thin the ring.
+- **Icons are PNG, never SVG (round 6).** In explorations the system does not use SVG for icons; the kit's `src/ui-kit/icons/*.svg` are only the source. An icon the exploration needs (a kit icon in `src/ui-kit/icons/*.svg` or one drawn for the option) is converted with `node scripts/icon-to-png.mjs <icon.svg> docs/explorations/<slug>/assets/<name>.png --size <px>` and used as `<img>` or as a CSS `mask-image`, so the kit's colour tokens still apply. Charts and larger drawings are not icons and may stay inline.
 
 ### Focus and Enter in grid cards (decided by the designer)
 
@@ -69,7 +75,7 @@ Scope: cards that sit in a row or grid of the TV (poster, toggle, banner, double
 - A chosen item is marked by a check beside its name, but the check is only one way; a label change also works.
 - Gap 12 to 16 between groups, equal padding on all sides measured to what is visible, sentences in a softer white at reading size, regular weight on unselected options. These come from the repo's earlier rules; they follow from the principles above.
 - Type and grouping details (from the designer's round 3 review): a title breaks after the function word ("de"), not before it, and leaves no river of empty space; titles and labels use sentence case unless a name needs the capital; every piece belongs to a group (rating, genre and duration form one metadata group close to the title, or the rating sits on the image on purpose); a selector shows only the information of the chosen section.
-- Arrangement follows the keys: items that ←/→ move between sit side by side, not stacked; a status number is never louder than the title; the status line, the time left and the title belong to one group (round 4 review).
+- A status number is never louder than the title; the status line, the time left and the title belong to one group (round 4 review). Arrangement follows the keys: now a law (round 6).
 - Data about the same subject stay together: a participant's name, age and estalecas read as one group (the designer asked for it on every BBB option that split them). A bottom gradient over a full-bleed photo, with the text on it, is welcome (round 5).
 - An invented function is allowed when it is justified in the rationale and fits the interaction (the reminder toggle on the rerun was praised). It is judged on that, not penalised for being new.
 - Order of sacrifice on a video card (home, "sell" fast): image, title, social proof (rating), genre. Description and action go to the detail page; the card is the button. The order depends on the screen's goal.
@@ -147,7 +153,7 @@ No scripts or templates exist yet. The judge is a doc run by a separate agent; i
 ## 10. Decided
 
 ### Severity levels (the judge never blocks)
-- **Critical:** a law is broken (↑/↓ consumed in a card, more than one interaction pattern, pure white or black, grey on black, type under the floor in `DESIGN.md` §3.3, safe-area violation). Shown first; the option is marked "breaks a law". The designer still decides.
+- **Critical:** a law is broken (↑/↓ consumed in a card, more than one interaction pattern, pure white or black, grey on black, type under the floor in `DESIGN.md` §3.3, safe-area violation, items stacked vertically under ←/→, more than 4 repeated items without the designer's decision, a focus ring with no room in its item, an SVG icon). Shown first; the option is marked "breaks a law". The designer still decides.
 - **Warning:** a token or scale value is off, or a principle is weak (hierarchy, proximity, respiro, too many elements). Cites the token or rule.
 - **Note:** a preference was bent (the check, a gap value) or a deviation was justified in the rationale.
 - Every finding names the element, the rule or token, the level and the documented value.
@@ -172,7 +178,7 @@ No scripts or templates exist yet. The judge is a doc run by a separate agent; i
 ### Respiro, density, elements per card
 - No numbers for now. Keep a small set of "good" and "bad" cards (the Pompeia card; the six claustrophobic options).
 - The judge compares new options against them in words ("closer to the claustrophobic set").
-- When a pattern repeats across rounds, turn it into a number.
+- When a pattern repeats across rounds, turn it into a number. Round 6 did it for rows of repeated items: 4 (see Laws).
 
 ### Hand-off md
 - Start from the designer's topic list (section 5) and the devs' markers for unknown values (never estimate, mark what is missing, cite the source).

@@ -10,19 +10,26 @@ import { stitch } from './explore-stitch.mjs'
 const here = (rel) => fileURLToPath(new URL(rel, import.meta.url))
 const url = (file) => pathToFileURL(file).href
 
-/** `{ page, close }`, or exits with 2 when Chromium cannot start. `width` is the viewport: 1280 by default, where the grid has 3 columns. */
-export async function openExploration(target, width = 1280) {
+/** Chromium, or exits with 2 when it cannot start. */
+export async function launchChromium() {
   const browser = await chromium.launch().catch(() => null)
   if (!browser) { console.error('Chromium não subiu: rode `npm run browsers:install`'); process.exit(2) }
+  return browser
+}
+
+/** `{ page, close }`, or exits with 2 when Chromium cannot start. `width` is the viewport: 1280 by default, where the grid has 3 columns. */
+export async function openExploration(target, width = 1280) {
+  const browser = await launchChromium()
   const part = target.endsWith('.html') && /^\d+\.html$/.test(basename(target))
   const source = part
     ? stitch(readFileSync(here('../docs/explorations/_template/index.html'), 'utf8'), 'parte', [[parseInt(basename(target)), readFileSync(target, 'utf8')]])
     : readFileSync(join(target, 'index.html'), 'utf8')
-  const html = source
+  let html = source
     .replaceAll('/__explore/tokens.css', url(here('../src/styles/global.css')))
     .replaceAll('/__explore/inter.css', url(here('../node_modules/@fontsource-variable/inter/wght.css')))
     .replaceAll('../../../src/styles/global.css', url(here('../src/styles/global.css')))
-  // ponytail: relative assets of an option (images) are not found from the temp folder; explorations draw with CSS and inline SVG.
+  // Relative assets of an option (assets/*.png, see scripts/icon-to-png.mjs) are found through a <base> on the exploration's own folder.
+  if (!part) html = html.replace(/<head>/i, `<head><base href="${url(resolve(target)) + '/'}">`)
   const dir = mkdtempSync(join(tmpdir(), 'explore-page-'))
   writeFileSync(join(dir, 'index.html'), html)
   const page = await browser.newPage({ viewport: { width, height: 800 } })

@@ -96,7 +96,8 @@ Source: the "Extra Info" card spec in the DTV handoff (Figma, section "Especific
 2. The selected item is the only inverted or opaque surface in the set, also marked by a check beside its name. A label change also works.
 3. One filled strong action per card; the secondary is neutral and smaller.
 4. Nothing relies on hover. States are few: focused, default, disabled, plus selected.
-5. Detail: `conceitos/foco-e-selecao`.
+5. **A focusable piece shows that it can be focused, at rest.** Every button-like piece the remote can reach (a day in a rail, a segment, a choice) carries a 1px outline with the diagonal light gradient: `--gradient-semantic-border-default` at `--dimension-border-width-semantic-button`, drawn inside the piece on `::before` with the same mask recipe as the focus ring (the ring stays on `::after`). The selected piece, being filled, may drop it. A toggle or segmented selector (one choice among a few that swaps the card) does not take it, and a chart whose cells only map the focus shows it on the data mark itself (the dot or bar that reacts), with the focus invisible (round 7). Without it a piece at rest reads as plain text and nobody knows the remote reaches it. *Why: a piece with no sign at rest reads as text, and on a TV nothing else tells the viewer that the remote reaches it.*
+6. Detail: `conceitos/foco-e-selecao`.
 
 ## 10. Motion
 
