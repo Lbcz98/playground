@@ -2,11 +2,11 @@
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --append "<group>" [--parent N]  a batch of variations into the page
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --list                           what the page holds
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --drop                           throw the parts away (the designer cancelled)
-// node scripts/explore-stitch.mjs docs/explorations/<slug> --pretune N[,N…]                 hold numbers for tunable copies (tune-parts/)
+// node scripts/explore-stitch.mjs docs/explorations/<slug> --pretune N[,N…]                 hold numbers for tunable copies (tune-parts/); `missing` = every option with none yet
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --adopt M                        put a finished copy in, hidden
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --show M                         show a copy the designer changed
 // Puts the parts/<N>.html that parallel proto-explorer agents wrote (/explore) into index.html, then removes parts/.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const text = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -50,9 +50,22 @@ export function append(page, group, parts, parent) {
 /** The page's cards: number, label, parent, whether the designer discarded it and whether it is a hidden copy made ahead of /tune. */
 export function options(page) {
   return [...page.matchAll(/<article\b([^>]*\bdata-option="(\d+)"[^>]*)>\s*(?:<!--[\s\S]*?-->\s*)*<p class="opt-label"[^>]*>([\s\S]*?)<\/p>/g)].map(([, attrs, n, label]) => ({
-    n: Number(n), label: label.trim(), parent: attrs.match(/data-parent="(\d+)"/)?.[1], discarded: /\bdata-discarded\b/.test(attrs), pretuned: /\bdata-pretuned\b/.test(attrs),
+    n: Number(n), label: label.trim(), parent: attrs.match(/data-parent="(\d+)"/)?.[1], discarded: /\bdata-discarded\b/.test(attrs), pretuned: /\bdata-pretuned\b/.test(attrs), tuned: /\bdata-tuned\b/.test(attrs),
   }))
 }
+
+/** Whether `c` is a tunable copy of option `n`: a tuned variation shares the parent link but is not one (the tuner labels its copies "Ajuste da N"). */
+const copyOf = (c, n) => c.parent === String(n) && / - Ajuste da \d+/.test(c.label) && !c.discarded
+
+/** The options with no tunable copy yet, on the page or on the way: not discarded, not tunable or a copy themselves. */
+export const missingCopies = (page, held = {}) => {
+  const cards = options(page), parentsOnTheWay = new Set(Object.values(held).filter(Boolean).map(String))
+  return cards.filter((o) => !o.discarded && !o.tuned && !o.pretuned && !parentsOnTheWay.has(String(o.n)) && !cards.some((c) => copyOf(c, o.n))).map((o) => o.n)
+}
+
+/** `held` without the copies whose tuner is gone: no file for the number and held.json untouched for longer than a session (the server stops after 30 min idle). */
+export const liveHeld = (held, hasFile, ageMs, maxMs = 30 * 60e3) =>
+  Object.fromEntries(Object.entries(held).filter(([m]) => hasFile(m) || ageMs <= maxMs))
 
 // Tunable copies made ahead of /tune: proto-tuner writes tune-parts/<M>.html in the background while the designer works, so
 // "Ajustar" opens at once. tune-parts/held.json is { M: N } for each copy on the way (N = null once that copy is stale).
@@ -90,6 +103,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const group = flag('--append'), title = rest[0]?.startsWith('--') ? undefined : rest[0]
   const tuneDir = `${dir}/tune-parts`, heldFile = `${tuneDir}/held.json`
   const held = existsSync(heldFile) ? JSON.parse(readFileSync(heldFile, 'utf8')) : {}
+  // Entries whose tuner is gone (see liveHeld) are not "on the way" and hold no number.
+  const alive = existsSync(heldFile) ? liveHeld(held, (m) => existsSync(`${tuneDir}/${m}.html`), Date.now() - statSync(heldFile).mtimeMs) : held
   const saveHeld = (h) => {
     if (Object.keys(h).length) return void (mkdirSync(tuneDir, { recursive: true }), writeFileSync(heldFile, JSON.stringify(h)))
     rmSync(heldFile, { force: true })
@@ -100,16 +115,22 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (!has) fail(`${index} não existe`)
     const page = readFileSync(index, 'utf8'), all = options(page)
     console.log(`brief: ${existsSync(`${dir}/brief.md`) ? `${dir}/brief.md` : 'não existe (pergunte ao designer e salve antes de variar)'}`)
-    console.log(`próxima opção: ${nextOption(page, held)}`)
-    for (const o of all) console.log(`${o.n} | ${o.label}${o.parent ? ` | variação da ${o.parent}` : ''}${o.discarded ? ' | DESCARTADA' : ''}${o.pretuned ? ' | ajuste escondido (cópia igual à mãe, para o /tune)' : ''}`)
-    for (const [m, n] of Object.entries(held)) if (n) console.log(`ajuste da ${n} em preparo: opção ${m}`)
+    console.log(`próxima opção: ${nextOption(page, alive)}`)
+    for (const o of all) console.log(`${o.n} | ${o.label}${o.parent ? ` | variação da ${o.parent}` : ''}${o.discarded ? ' | DESCARTADA' : ''}${o.tuned ? ' | ajustável' : ''}${o.pretuned ? ' | ajuste escondido (cópia igual à mãe, para o /tune)' : ''}`)
+    for (const [m, n] of Object.entries(alive)) if (n) console.log(`ajuste da ${n} em preparo: opção ${m}`)
     process.exit(0)
   }
   if (rest.includes('--pretune')) {
     if (!has) fail(`${index} não existe`)
     const page = readFileSync(index, 'utf8')
-    const r = hold(page, held, String(flag('--pretune') ?? '').split(',').filter((n) => /^\d+$/.test(n)))
-    if (!r.pairs.length) fail('uso: --pretune N[,N…] (as opções que acabaram de entrar ou mudar)')
+    const arg = String(flag('--pretune') ?? ''), missing = arg === 'missing'
+    const r = hold(page, alive, missing ? missingCopies(page, alive).map(String) : arg.split(',').filter((n) => /^\d+$/.test(n)))
+    if (!r.pairs.length) {
+      if (!missing) fail('uso: --pretune N[,N…] | missing (as opções que acabaram de entrar ou mudar, ou todas as sem cópia)')
+      saveHeld(alive)
+      console.log('nenhuma opção sem cópia ajustável')
+      process.exit(0)
+    }
     if (r.page !== page) writeFileSync(index, r.page)
     saveHeld(r.held)
     for (const [n, m] of r.pairs) console.log(`opção ${n} → ajuste ${m}: tune-parts/${m}.html`)
@@ -139,7 +160,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (group ? !has : has) fail(group ? `${index} não existe: nada para variar` : `${index} já existe: não sobrescrevo outra exploração`)
 
   const page = group ? readFileSync(index, 'utf8') : ''
-  const first = group ? nextOption(page, held) : 1
+  const first = group ? nextOption(page, alive) : 1
   const files = existsSync(`${dir}/parts`) ? readdirSync(`${dir}/parts`).filter((f) => /^\d+\.html$/.test(f)) : []
   const have = files.map((f) => parseInt(f)).sort((a, b) => a - b)
   const want = have.map((_, i) => first + i)
