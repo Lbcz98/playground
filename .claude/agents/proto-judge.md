@@ -14,6 +14,7 @@ You change nothing in the option. The only file you write is `docs/explorations/
 Run, and keep the output:
 - `node scripts/tune-measure.mjs docs/explorations/<slug> M`: contrast of every text piece in every state (WCAG ratio, measured on the colour actually behind it); a row the same in several states names them all in `state`, and a motion row the same on several pieces names them all in `el`, each text style, every transition and animation, nested radii with their concentric value, focus outlines per state, whether a reduced-motion rule exists.
 - `node scripts/check-explore-tokens.mjs docs/explorations/<slug>` and `node scripts/check-explore-layout.mjs docs/explorations/<slug>`: their `advisory:` lines about option M are facts too.
+- The picture: the option's PNG (`node scripts/explore-shots.mjs docs/explorations/<slug> <folder>`, or `check-explore-layout.mjs --shots` when the page is `ok`), read with `Read`. A broken chart, a place name lost in the layout or a selector off the card's concentric radius is a finding from the picture.
 - The option's source: `grep -n` for `data-option="M"` in `index.html`, then read its CSS, script and spec (`<script … data-tune="M">`). Cite `docs/explorations/<slug>/index.html:<line>` for source findings and `medido: contrast[<state>] <piece>` for measured ones.
 
 Never report a contrast or a size you did not measure or read. A check you could not run is `Not verified`, never a finding.
@@ -41,6 +42,10 @@ Order of authority: the kit's tokens and `web/protos/generated/rules.md`, then t
 
 What does apply, and how a TV changes it:
 - **Focus is the interface.** Exactly one focused element; its indicator is visible in every state, at least a 2 px perimeter, and ≥ 3:1 against every colour it crosses; the kit's focus tokens are the starting point.
+- **The ring has room.** It is drawn inside its item (`::after`, 4 px): from the item's edge to what is drawn in it there are at least the ring width plus 4 px, and no parent clips it. The layout check's `anel` line is the measure; a ring that touches content is `HIGH`, and the fix is fewer items or less content, never a thinner ring.
+- **Arrangement follows the keys.** Items that ←/→ move between sit side by side; the layout check's `eixo` line (a vertical list under ←/→) is `HIGH`.
+- **A row of repeated items has 4 at most** (`itens` line), `HIGH` otherwise; the fix is to reduce ("the next 3 days"), and it is one finding with any small text it caused, not two. More items only when the designer decided it (`data-items-ok`).
+- **No SVG icons** (`svg` line): `HIGH`; the fix is `node scripts/icon-to-png.mjs`.
 - **Focus moves are the highest-frequency interaction:** transitions on state change ≤ 150 ms and on `opacity`, colour or `transform`; interruptible (transitions, not keyframes); a static cue (colour, icon, label) stays when motion does not run; a reduced-motion rule exists wherever something moves.
 - Text must stay readable: contrast **WCAG 2** gate: normal text 4.5:1, large text (≥ 24 px, or ≥ 18.5 px bold) 3:1, UI and focus 3:1, on the measured pair. A failing pair is reported with its ratio and left alone: colours are a design decision, so give no `dial` for it. No text smaller than the kit's smallest `.text-*` style (`explore-tokens.md`).
 - Truncated text must have a way to reach the full value (a TV has no tooltip): an expanded state, a detail line.
@@ -52,6 +57,7 @@ Escalation triggers, `HIGH` on sight once measured: a control with no accessible
 
 ## 4. Findings
 
+- Find the cause before the symptom: a cramped ring or small text may come from too many items; report the cause once.
 - Prefer the cheaper fix, in this order: delete; use the platform; reuse a kit token or value the option already has; correct the value; add. A fix that adds where deleting would do is itself a finding.
 - One root cause, one finding, with every place it happens. At most **8** findings, triggers first; a longer list is a failure of judgment. No findings is a valid result.
 - When the fix is exactly one dial value, add `dial: {folder, control, value}` using the spec's folder name, the control's `label` and a value inside its range (easing: `{duration, ease}`); the stage's "Aplicar sugestão" sets it in the panel. Structural fixes and anything about colour pairs have no `dial`.

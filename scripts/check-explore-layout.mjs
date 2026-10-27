@@ -9,6 +9,10 @@
 //   ritmo      the gaps between the groups of a card: one value, 12 to 16 (smaller gaps are inside a group)
 //   quebra     text of two lines or more with no text-wrap: balance (a title) or pretty (a sentence): its last line may be one lone word
 //   respiro    a card whose space under its content is bigger than above it (a min-height or reserved lines for a longer text show as dead space at the bottom)
+//   itens      more than 4 repeated items in a row (opt-out after the designer decides: `data-items-ok="<reason>"`)
+//   eixo       repeated items stacked vertically while ←/→ move the focus between them
+//   anel       the focus ring (masked ::after) has less than its width + 4px between the item's edge and its content
+//   svg        an icon-sized inline <svg>, or a .svg file: icons are PNG (scripts/icon-to-png.mjs)
 //   consistência  surfaces of one page that differ from the rest in radius, color or inset (whole page only)
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
 // `data-surface="own"` on a surface that is the idea of the option (not a card), with the reason in the report.
@@ -33,6 +37,7 @@ const result = await page.evaluate((whole) => {
     { label: 'card expandido', radius: kit('--dimension-radius-semantic-card-expanded'), inset: kit('--dimension-spacing-semantic-card-inset'), insetToken: '--dimension-spacing-semantic-card-inset', widths: [kit('--dimension-size-semantic-card-expanded-width')] },
   ]
   const CONTROL = kit('--dimension-size-semantic-control-height-lg')
+  const MAX_ITEMS = 4, RING_GAP = 4, ICON_MAX = 64, STACK_SLACK = 8 // the designer's numbers: playbook "Repeated items", "The focus ring fits its item"
   const MAX_HEIGHT = 456 // contentCardSpec.maxHeight in src/design-system/primitives.ts: the tallest a kit card may be
   // The darkest kit background is the TV behind the panel (a stage), not a card.
   const probe = Object.assign(document.createElement('i'), { style: 'background: var(--color-semantic-functional-background-primary)' })
@@ -64,6 +69,59 @@ const result = await page.evaluate((whole) => {
     if (!content) continue
     const say = (kind, msg) => out.push(`Opção ${n}: ${kind}: ${msg}`)
     const all = [...content.querySelectorAll('*')].filter((e) => visible(e) && !e.closest('svg') && !inStack(e))
+
+    // itens + eixo: runs of siblings that share a tag and a class (days, hours, steps, rows).
+    const isMarked = (e) => e.matches('[data-focus],[aria-current],[aria-checked="true"],[aria-selected="true"],[data-selected]')
+    const handlesArrows = [...document.scripts].some((sc) => sc.textContent.includes(`data-option="${n}"`) && /ArrowLeft|ArrowRight/.test(sc.textContent))
+    for (const parent of [content, ...all]) {
+      const byKind = new Map()
+      for (const k of parent.children) {
+        if (!visible(k) || inStack(k) || k.tagName === 'svg' || !k.classList.length || k.getBoundingClientRect().height < 8) continue
+        if (!k.textContent.trim() && !k.querySelector('img,svg')) continue
+        const kind = k.tagName + '.' + [...k.classList].sort().join('.')
+        byKind.set(kind, [...(byKind.get(kind) ?? []), k])
+      }
+      for (const members of byKind.values()) {
+        const label = `${name(members[0])} em ${name(parent)}`
+        const rects = members.map((m) => m.getBoundingClientRect())
+        const spread = (f) => Math.max(...rects.map(f)) - Math.min(...rects.map(f))
+        const stacked = spread((r) => r.top) > spread((r) => r.left) + STACK_SLACK
+        // itens counts a row; a vertical list under ←/→ is the `eixo` finding below.
+        if (!stacked && members.length > MAX_ITEMS && !members[0].closest('[data-items-ok]')) say('itens', `${members.length} itens repetidos (${label}); o padrão é ${MAX_ITEMS} no máximo. Reduza (os próximos 3 dias, não os 7 da semana) em vez de encolher texto, anel ou vãos; se mais itens ajudam, proponha ao designer e, com o sim, marque data-items-ok="<motivo>"`)
+        if (stacked && handlesArrows && members.length >= 3 && members.some(isMarked)) say('eixo', `${label} ficam empilhados na vertical, mas ←/→ é que movem o foco entre eles; coloque os itens lado a lado (uma fileira de até ${MAX_ITEMS}) ou mude o dado`)
+      }
+    }
+
+    // anel: the focus ring is a masked ::after inside its item; the item must leave the ring's width plus RING_GAP between its edge and what is drawn in it. A parent that clips the item is the `cortado` check.
+    card.focus({ preventScroll: true }) // the ring is drawn under :focus
+    for (const e of [content, ...all]) {
+      const after = getComputedStyle(e, '::after')
+      if (after.content === 'none' || after.maskImage === 'none' || after.position !== 'absolute') continue
+      const ring = px(after.paddingTop) || px(after.borderTopWidth) || kit('--dimension-border-width-semantic-focus-ring'), er = e.getBoundingClientRect()
+      let room = Infinity
+      const take = (q) => { if (q.width > 1 && q.height > 1) room = Math.min(room, q.left - er.left, q.top - er.top, er.right - q.right, er.bottom - q.bottom) }
+      const texts = document.createTreeWalker(e, NodeFilter.SHOW_TEXT)
+      for (let t = texts.nextNode(); t; t = texts.nextNode()) {
+        const p = t.parentElement
+        if (!t.textContent.trim() || !visible(p) || p.closest('svg')) continue
+        const rg = document.createRange(); rg.selectNodeContents(t); for (const q of rg.getClientRects()) take(q)
+      }
+      for (const d of e.querySelectorAll('img,svg')) if (visible(d) && !d.parentElement.closest('svg')) take(d.getBoundingClientRect())
+      if (room !== Infinity && room < ring + RING_GAP - 0.5) say('anel', `o anel de foco de ${name(e)} tem ${ring}px e o conteúdo fica a ${Math.round(room)}px da borda do item; precisa de ${ring + RING_GAP}px (anel + ${RING_GAP}). O item está pequeno para o que leva: tire itens ou conteúdo, não afine o anel`)
+    }
+
+    card.blur()
+
+    // svg: the system uses PNG for icons. An inline <svg> of icon size (ICON_MAX px or less) or a .svg file is a finding; a larger drawing (a chart) is not an icon.
+    for (const s of content.querySelectorAll('svg')) {
+      if (s.parentElement.closest('svg') || !visible(s)) continue
+      const q = s.getBoundingClientRect()
+      if (q.width > 0 && q.width <= ICON_MAX && q.height <= ICON_MAX) { say('svg', `${name(s.parentElement)} tem um <svg> de ${Math.round(q.width)}px: o sistema não usa SVG em ícones. Converta com node scripts/icon-to-png.mjs e use <img> ou mask-image`); break }
+    }
+    for (const e of content.querySelectorAll('*')) {
+      const s = getComputedStyle(e)
+      if (/\.svg\b/.test(e.getAttribute('src') ?? '') || /\.svg\b/.test(s.backgroundImage + s.maskImage + s.webkitMaskImage)) { say('svg', `${name(e)} usa um arquivo .svg: converta para PNG com node scripts/icon-to-png.mjs`); break }
+    }
 
     // escapa: a piece outside the card.
     const clipped = (e) => { for (let a = e.parentElement; a && a !== content; a = a.parentElement) if (/hidden|clip/.test(getComputedStyle(a).overflowX)) return true; return false }

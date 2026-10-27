@@ -41,7 +41,7 @@ b. Confira que o brief tem **uma** `Superfície` para todas. Na mesma mensagem, 
 c. Todos voltaram: `node scripts/explore-stitch.mjs docs/explorations/<slug> "<nome da exploração>"`. Parte faltando ou falha → ao dono com `SendMessage` (ainda modo parte) e rode de novo. Depois `node scripts/check-explore-layout.mjs docs/explorations/<slug>`: linha que não for `ok` (inclusive `consistência`, entre as opções) vai ao dono em **modo edição**, até dar `ok`.
 d. Relatório final: a linha de classificação (a do primeiro agente), a pergunta que a exploração responde, as opções em uma linha cada (como vieram), o caminho do arquivo e "Isto ainda não está salvo no repositório."
 
-Aqui ninguém devolve `NEEDS_INPUT`: o agente escolhe a leitura mais plausível e diz qual; repasse no relatório.
+Aqui ninguém devolve `NEEDS_INPUT`: o agente escolhe a leitura mais plausível e diz qual; repasse no relatório. Uma linha `Proposta:` (mais de 4 itens repetidos) é repassada ao designer com o motivo, e ele decide o rumo; nada é construído antes.
 
 ## Página ao vivo
 
