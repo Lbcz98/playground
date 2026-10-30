@@ -124,12 +124,12 @@ function listShape(field: z.ZodTypeAny | undefined): { fields: Record<string, Ma
   const unwrapped = field instanceof z.ZodDefault ? field.removeDefault() : field
   const array = unwrapped instanceof z.ZodArray ? unwrapped : undefined
   const fields = Object.fromEntries(
-    Object.entries(array ? shapeOf(array.element) : {}).map(([name, f]) => [
+    Object.entries(array ? shapeOf(array.element as z.ZodTypeAny) : {}).map(([name, f]) => [
       name,
       { name, type: { name: 'string' }, required: !f.isOptional(), control: 'text' as const },
     ]),
   )
-  const max = array?._def.maxLength?.value
+  const max = array && z.toJSONSchema(array).maxItems
   return max !== undefined ? { fields, max } : { fields }
 }
 

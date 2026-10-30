@@ -1,0 +1,29 @@
+{
+  "verdict": "Approve",
+  "summary": "Sem quebra de lei: cores e tamanhos vêm de tokens; restam durações e curvas literais, dois espaçamentos literais, o glifo de 64px e o Esc em 'selecionado', que sai do card em vez de desfazer.",
+  "findings": [
+    {"severity": "MEDIUM", "domain": "behavior", "rule": "Esc/Backspace desfaz a última ação", "location": "docs/explorations/previsao-do-tempo/index.html:1920",
+     "before": "Esc/Backspace só age em 'expandido' (if (!open) return); em 'selecionado' (outro dia escolhido) sai do card",
+     "after": "Em 'selecionado', Esc volta ao primeiro dia (i = 0, estado 'foco'); só no estado inicial sai do card",
+     "why": "--teclas: Voltar desfaz a última ação, volta à primeira visão e devolve o foco à primeira peça; sair é só no estado inicial."},
+    {"severity": "MEDIUM", "domain": "tokens", "rule": "--motion-semantic-duration / --motion-semantic-easing", "location": "docs/explorations/previsao-do-tempo/index.html:486",
+     "before": "--focus-dur: 150ms, --in-dur: 300ms, --out-dur: 150ms e cubic-bezier(0.2, 0, 0, 1) literais (medido: 150/300ms em p[phrase], div[detail], div[day])",
+     "after": "var(--motion-semantic-duration) e var(--motion-semantic-easing), ou marcar como /* tune */ se for escolha deliberada",
+     "why": "O kit tem token de movimento (800ms, mola); durações e curva próprias saem do ritmo do restante das telas."},
+    {"severity": "MEDIUM", "domain": "tokens", "rule": "--dimension-spacing-core-xs", "location": "docs/explorations/previsao-do-tempo/index.html:492",
+     "before": "--shift: 12px; --dot: 4px (linha 460)",
+     "after": "--shift: var(--dimension-spacing-core-xs); --dot: var(--dimension-spacing-core-3xs)",
+     "why": "Há tokens de espaçamento com exatamente 12px e 4px; o literal impede o valor de acompanhar o kit.",
+     "dial": {"folder": "Deslocamento", "control": "Deslocamento de entrada", "value": 12}},
+    {"severity": "LOW", "domain": "tokens", "rule": "--dimension-size-semantic-channel-bug", "location": "docs/explorations/previsao-do-tempo/index.html:464",
+     "before": "--glyph-size: 64px",
+     "after": "var(--dimension-size-semantic-channel-bug), ou var(--dimension-spacing-core-4xl) se for espaçamento",
+     "why": "check-explore-tokens avisa que 64px é o tamanho de channel-bug; um ícone do tempo não é esse componente, então vale confirmar a intenção."}
+  ],
+  "coverage": [
+    {"domain": "rules", "result": "Clear: check-explore-tokens, check-explore-layout e check-tune-spec passaram (ok); só avisos de tamanho"},
+    {"domain": "tokens", "result": "3 achados"},
+    {"domain": "behavior", "result": "1 achado; ←/→ sem laço, ↑/↓ livres, uma só parada de Tab, aria-live presente, sem hover/clique"}
+  ],
+  "notVerified": ["Foco visível em cada estado só lido no CSS (anel no dia atual); tune-measure não listou outlines nem raios"]
+}

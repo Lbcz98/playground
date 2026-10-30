@@ -872,6 +872,17 @@
       "name": "AlertBug",
       "description": "The corner bug that says an interactivity is waiting — the kit’s own (`interface`, focusable) or the broadcaster’s (`transmission`).",
       "props": {
+        "as": {
+          "type": "'button' | 'span'",
+          "kind": "enum",
+          "options": [
+            "button",
+            "span"
+          ],
+          "required": false,
+          "defaultValue": "button",
+          "description": "Use `span` inside a navigation `<Link>`; actions remain buttons."
+        },
         "bugStyle": {
           "type": "'interface' | 'transmission'",
           "kind": "enum",
@@ -993,6 +1004,13 @@
       "name": "ContentCard",
       "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 9 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.",
       "props": {
+        "asLink": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Inside a navigation `<Link>`, let its anchor be the only keyboard target. Do not combine with pagination or `onClick`."
+        },
         "children": {
           "type": "ReactNode",
           "kind": "node",
@@ -1178,6 +1196,17 @@
           "kind": "object",
           "required": false,
           "description": "Renders the sponsor row — its wording (\"Publicidade\") and, when given, the partner's logo."
+        },
+        "as": {
+          "type": "'button' | 'span'",
+          "kind": "enum",
+          "options": [
+            "button",
+            "span"
+          ],
+          "required": false,
+          "defaultValue": "button",
+          "description": "Use `span` inside a navigation `<Link>` so its anchor is the only interactive element."
         },
         "check": {
           "type": "boolean",
@@ -1454,6 +1483,17 @@
       "name": "Notification",
       "description": "The message that arrives in the top-right corner: the programme logo and a line saying why it came.",
       "props": {
+        "as": {
+          "type": "'button' | 'span'",
+          "kind": "enum",
+          "options": [
+            "button",
+            "span"
+          ],
+          "required": false,
+          "defaultValue": "button",
+          "description": "Use `span` inside a navigation `<Link>`; actions remain buttons."
+        },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
           "kind": "enum",
@@ -1573,6 +1613,17 @@
       "name": "RoundedButton",
       "description": "The icon-only round control that steps back a level.",
       "props": {
+        "as": {
+          "type": "'button' | 'span'",
+          "kind": "enum",
+          "options": [
+            "button",
+            "span"
+          ],
+          "required": false,
+          "defaultValue": "button",
+          "description": "Use `span` inside a navigation `<Link>`; actions remain buttons."
+        },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
           "kind": "enum",
@@ -1717,6 +1768,17 @@
       "name": "WideButton",
       "description": "The pill call-to-action of a screen — text with optional icons.",
       "props": {
+        "as": {
+          "type": "'button' | 'span'",
+          "kind": "enum",
+          "options": [
+            "button",
+            "span"
+          ],
+          "required": false,
+          "defaultValue": "button",
+          "description": "Use `span` inside a navigation `<Link>`; actions remain buttons."
+        },
         "iconLeft": {
           "type": "boolean",
           "kind": "boolean",

@@ -1,5 +1,7 @@
+import { renameSync, rmSync } from 'node:fs'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { reportLines, runChecks } from '../../scripts/check-laws'
+import { missingTargets } from '../../scripts/check-laws-cli'
 import { CASES } from './corpus/cases'
 import { cleanCorpus, writeCase } from './run'
 
@@ -36,6 +38,46 @@ describe('a flow folder', () => {
     const run = await runChecks([flowTs], { render: false })
     expect(run.reports.map((r) => [r.file.replace(/^.*\//, ''), r.problems])).toEqual([['home.tsx', []]])
     expect(run.findings).toEqual([{ rule: 'blueprint.dsl', file: flowTs, message: expect.stringMatching(/"nowhere"/) }])
+    expect(run.exitCode).toBe(1)
+  }, 120_000)
+})
+
+describe('removed and renamed targets', () => {
+  it('the command line refuses a path that does not exist, instead of passing with nothing checked', () => {
+    expect(missingTargets(['package.json', 'scripts', 'web/protos/nobody/typo.tsx'])).toEqual(['web/protos/nobody/typo.tsx'])
+  })
+
+  it.each(['delete', 'rename'])('checks surviving links after a %s without reading the old screen', async (action) => {
+    const original = CASES.find((c) => c.id === 'link-home-to-rail')!
+    const id = `run-link-${action}`
+    const entry = writeCase({ ...original, id, files: Object.fromEntries(Object.entries(original.files).map(([f, text]) => [f, text.replaceAll(original.id, id)])) })
+    const old = entry.replace(/home\.tsx$/, 'rail.tsx')
+    const renamed = old.replace(/rail\.tsx$/, 'renamed.tsx')
+    if (action === 'delete') rmSync(old)
+    else renameSync(old, renamed)
+    const run = await runChecks(action === 'delete' ? [old] : [old, renamed], { render: false })
+    expect(run.reports.map((r) => r.file)).not.toContain(old)
+    expect(run.reports.find((r) => r.file === entry)?.problems).toEqual(expect.arrayContaining([
+      expect.objectContaining({ law: 'blueprint.dsl', message: expect.stringContaining('does not exist ("rail")') }),
+    ]))
+    expect(run.exitCode).toBe(1)
+  }, 120_000)
+
+  it.each(['delete', 'rename'])('checks surviving transitions after a state %s', async (action) => {
+    const home = Object.values(CASES.find((c) => c.id === 'clean-home')!.files)[0]
+    const entry = writeCase({ id: `run-state-${action}`, title: '', files: {
+      'home.tsx': home, 'rail.tsx': home,
+      'flow.ts': "export default { start: 'home', transitions: [{ from: 'home', key: 'up', to: 'rail' }] }",
+    }, entry: 'rail.tsx', expect: { exit: 1, laws: [] } })
+    const renamed = entry.replace(/rail\.tsx$/, 'renamed.tsx')
+    if (action === 'delete') rmSync(entry)
+    else renameSync(entry, renamed)
+    const run = await runChecks(action === 'delete' ? [entry] : [entry, renamed], { render: false })
+    expect(run.reports.map((r) => r.file)).not.toContain(entry)
+    expect(run.flows).toHaveLength(1)
+    expect(run.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ rule: 'blueprint.dsl', message: expect.stringContaining('rail') }),
+    ]))
     expect(run.exitCode).toBe(1)
   }, 120_000)
 })

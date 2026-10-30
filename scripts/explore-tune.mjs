@@ -14,7 +14,6 @@ const varsBlocks = (html, n) => [...html.matchAll(VARS)]
   .filter((m) => new RegExp(`\\[data-option="${n}"\\]\\s*\\{`).test(m[0]))
   .map((m) => ({ start: m.index, end: m.index + m[0].length, text: m[0] }))
 
-
 const article = (html, n) => html.match(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`))?.[0]
 
 /** The spec of option `n`, or undefined when it has none or the JSON is broken. */
@@ -84,7 +83,6 @@ export function applyTuned(html, n, values) {
   if (typeof spec !== 'object' || !Array.isArray(spec.folders)) return { html, changed: 0, error: 'spec' }
   const blocks = varsBlocks(html, n)
   if (blocks.length !== 1) return { html, changed: 0, error: blocks.length ? 'vars-duplicate' : 'vars-missing' }
-
   let changed = 0
   spec.folders.forEach((f, i) => list(f?.controls).forEach((c) => {
     const v = clean(c, values?.[`${i}.${c.id}`])
@@ -97,8 +95,7 @@ export function applyTuned(html, n, values) {
   const swapped = html.slice(0, b.start) + vars + html.slice(b.end)
   // Only the option's own spec script is rewritten; the block above kept every other option byte-for-byte.
   const next = swapped.replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, c) => `${a}${json}${c}`)
-
-  // Applying values makes a pretuned option visible as the designer's own choice.
+  // A designer-applied change makes a pre-tuned copy visible.
   const visible = next.replace(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`), (tag) => tag.replace(/\s+data-pretuned\b/, ''))
   return { html: visible, changed }
 }
@@ -111,7 +108,6 @@ export function lintSpec(html, n, kit) {
   const blocks = varsBlocks(html, n)
   if (!blocks.length) return [...bad, `falta o bloco /* tune:vars */ … /* /tune:vars */ de [data-option="${n}"]`]
   if (blocks.length > 1) bad.push(`há ${blocks.length} blocos tune:vars para [data-option="${n}"]; deve haver exatamente um`)
-
   if (!Array.isArray(spec.folders) || !spec.folders.length) bad.push('folders vazio')
   const ids = new Set(), names = new Set(), fin = Number.isFinite
   for (const f of list(spec.folders)) {
@@ -141,7 +137,6 @@ export function lintSpec(html, n, kit) {
   let want
   try { want = varsBlock(spec, n).replace(/\s+/g, ' ') } catch { bad.push('o spec tem controles malformados: não dá para gerar o bloco tune:vars') }
   if (want !== undefined && have !== want) bad.push('o bloco tune:vars não é o que "Aplicar valores" escreveria a partir do spec: escreva-o no formato exato (uma declaração por --var, token como var(--token), easing em ms e cubic-bezier)')
-
   return bad
 }
 

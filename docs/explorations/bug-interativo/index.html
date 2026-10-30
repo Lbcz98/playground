@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug interativo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* ---- Opção 1 · Bug interativo -------------------------------------------------------------------------
+ * Tempos e medidas nomeados (para o /tune): troque o valor aqui, o resto da opção segue.
+ *   --bug-duration       duração da entrada (kit: 800ms)
+ *   --bug-ease           mola do kit (damping 15, stiffness 56, massa 1) em linear(), normalizada para chegar a 1 em 800ms
+ *   --bug-text-delay     atraso do texto em relação ao início da entrada
+ *   --bug-text-rise      quanto o texto sobe até o repouso
+ *   --bug-halo-final     diâmetro final do halo (começa no diâmetro do Bug)
+ *   --bug-gyro-duration  uma volta do halo (kit: ciclo do foco, 12000ms)
+ *   --bug-right / --bug-bottom  posição do Bug no canto inferior direito (margem de segurança 40 / 32)
+ * ---------------------------------------------------------------------------------------------------- */
+[data-option="1"] {
+  --bug-duration: var(--motion-semantic-duration);
+  --bug-ease: linear(0, 0.027, 0.091, 0.176, 0.268, 0.361, 0.449, 0.53, 0.603, 0.668, 0.724, 0.773, 0.814, 0.849, 0.879, 0.903, 0.924, 0.941, 0.955, 0.967, 0.976, 0.984, 0.991, 0.996, 1);
+  --bug-text-delay: 0ms;
+  --bug-text-rise: var(--dimension-spacing-core-sm);
+  --bug-size: var(--dimension-size-semantic-alert-bug);
+  --bug-halo-final: var(--dimension-size-semantic-alert-bug-transmission);
+  --bug-gyro-duration: var(--motion-semantic-focus-cycle-duration);
+  --bug-right: var(--dimension-spacing-core-2xl);
+  --bug-bottom: var(--dimension-spacing-core-xl);
+  --bug-text-gap: calc((var(--bug-halo-final) - var(--bug-size)) / 2 + var(--dimension-spacing-core-2xs));
+}
+
+/* Palco: um quadro escuro de vídeo, só fundo para o Bug aparecer; recorte do canto inferior direito, em escala real. */
+[data-option="1"] .stage {
+  position: relative;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-content-card-width);
+  height: 192px;
+  background: linear-gradient(135deg, var(--color-opacity-light-10), transparent 60%), var(--color-semantic-functional-background-primary);
+}
+
+[data-option="1"] .bug {
+  position: absolute;
+  right: var(--bug-right);
+  bottom: var(--bug-bottom);
+  display: block;
+  width: var(--bug-size);
+  height: var(--bug-size);
+}
+
+/* Camada de trás: o texto, alinhado ao centro do Bug, à esquerda dele. */
+[data-option="1"] .bug-text {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  right: calc(100% + var(--bug-text-gap));
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  text-align: right;
+  text-transform: uppercase;
+  text-wrap: balance;
+  white-space: nowrap;
+  text-shadow: 0 0 8px var(--color-opacity-dark-50);
+  animation: o1-text-in var(--bug-duration) var(--bug-ease) var(--bug-text-delay) both;
+}
+
+/* Halo: a mesma largura do Bug no início, cresce até o tamanho final. Máscara radial dá a borda suave. */
+[data-option="1"] .bug-halo {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--bug-halo-final);
+  height: var(--bug-halo-final);
+  translate: -50% -50%;
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  mask: radial-gradient(closest-side, var(--color-semantic-focus-outline) 70%, transparent 100%);
+  animation: o1-halo-in var(--bug-duration) var(--bug-ease) both;
+}
+
+/* Giro: só as cores do Bug, com uma abertura suave; uma volta lenta, nunca um indicador de carregamento. */
+[data-option="1"] .bug-halo-spin {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    var(--color-semantic-theme-noite-dark) 50deg,
+    var(--color-semantic-theme-dia-dark) 120deg,
+    var(--color-semantic-theme-tarde-light) 200deg,
+    var(--color-semantic-theme-tarde-dark) 270deg,
+    transparent 330deg,
+    transparent 360deg);
+  animation: o1-gyro var(--bug-gyro-duration) linear var(--bug-duration) infinite both;
+}
+
+[data-option="1"] .bug-mark {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--bug-mark-src) center / cover no-repeat;
+  animation: o1-fade var(--bug-duration) var(--bug-ease) both;
+}
+
+@keyframes o1-fade { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@keyframes o1-text-in {
+  from { opacity: var(--opacity-semantic-hidden); translate: 0 var(--bug-text-rise); }
+  to { opacity: var(--opacity-semantic-visible); translate: 0 0; }
+}
+@keyframes o1-halo-in {
+  from { opacity: var(--opacity-semantic-hidden); width: var(--bug-size); height: var(--bug-size); }
+  to { opacity: var(--opacity-semantic-visible); width: var(--bug-halo-final); height: var(--bug-halo-final); }
+}
+@keyframes o1-gyro { from { rotate: 0deg; } to { rotate: 360deg; } }
+
+/* Movimento reduzido: só dissolve, sem subida, sem crescer e sem giro (a tela funciona sem animação). */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"] .bug-text, [data-option="1"] .bug-halo { animation-name: o1-fade; }
+  [data-option="1"] .bug-halo-spin { animation: none; }
+}
+/* Reinício da entrada ao voltar para a tela (feito pelo script no fim da página). */
+[data-option="1"] .stage[data-reset] * { animation: none !important; }
+
+/* ---- Opção 2 · Ajuste da 1 · Bug interativo --------------------------------------------------------------
+ * Mesma sequência da opção 1, com cada tempo e medida como variável (bloco tune:vars). Estados em data-state:
+ *   entrada      toca a sequência (Bug, texto e halo entram; o giro começa quando o halo chega)
+ *   permanência  composição final parada, halo girando
+ * ---------------------------------------------------------------------------------------------------- */
+/* Compatibilidade (alvo: Chrome 68 e Safari 16). Recurso -> mínimo de navegador:
+ *   @keyframes, animation (várias por elemento, fill-mode), transform/opacity ...... Chrome 43, Safari 9 (sem prefixo)
+ *   transform: translate3d / scale / rotate / translateZ ............................ Chrome 36, Safari 9
+ *   custom properties var() ......................................................... Chrome 49, Safari 9.1
+ *   calc() com var(), em medidas e tempos (sem min/max/clamp) ........................ Chrome 26, Safari 7
+ *   linear-gradient, text-shadow, border-radius, cubic-bezier ........................ Chrome 26, Safari 7
+ *   -webkit-mask + -webkit-mask-composite: xor (mask sem prefixo só reforça) ........ Chrome 4, Safari 4
+ *   will-change ..................................................................... Chrome 36, Safari 9.1
+ *   backface-visibility (com -webkit-) .............................................. Chrome 36, Safari 5
+ *   flex (justify-content) .......................................................... Chrome 29, Safari 9
+ *   webp (a imagem do Bug) .......................................................... Chrome 32, Safari 14
+ *   prefers-reduced-motion .......................................................... Chrome 74, Safari 10.1 (e data-motion="reduce")
+ *   script: MutationObserver Chrome 26, IntersectionObserver Chrome 51 / Safari 12.1, dataset, matchMedia (ES5).
+ * Fora daqui, de propósito: linear(), inset, gap, aspect-ratio, :is(), @property, translate/scale/rotate soltos, conic-gradient,
+ * min()/max()/clamp(), :focus-visible, animation-composition, filter: blur e animar width/height ou background. */
+/* tune:vars */
+[data-option="2"] {
+  --bug-right: var(--dimension-spacing-core-2xl);
+  --bug-bottom: var(--dimension-spacing-core-xl);
+  --bug-size: var(--dimension-size-semantic-alert-bug);
+  --bug-from-opacity: var(--opacity-semantic-hidden);
+  --bug-from-scale: 0.9;
+  --bug-mark-delay: 0ms;
+  --bug-text-delay: 0ms;
+  --bug-text-rise: var(--dimension-spacing-core-4xl);
+  --bug-text-from-opacity: var(--opacity-semantic-hidden);
+  --bug-text-space: var(--dimension-spacing-core-2xs);
+  --bug-text-size: var(--typography-font-size-base);
+  --bug-text-leading: var(--typography-line-height-normal);
+  --bug-text-tracking: var(--typography-letter-spacing-tight);
+  --bug-text-weight: 700;
+  --bug-text-color: var(--color-semantic-functional-text-primary);
+  --bug-text-shadow-blur: 8px;
+  --bug-halo-delay: 0ms;
+  --bug-halo-from-ratio: 0.75;
+  --bug-halo-from-scale: 0.9;
+  --bug-halo-from-opacity: var(--opacity-semantic-hidden);
+  --bug-halo-opacity: var(--opacity-semantic-visible);
+  --bug-ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --bug-ring-gap: var(--dimension-spacing-core-xs);
+  --bug-ring-angle: 224deg;
+  --bug-ring-c1: var(--color-semantic-theme-noite-dark);
+  --bug-ring-s1: 21.77%;
+  --bug-ring-c2: var(--color-semantic-theme-noite-light);
+  --bug-ring-s2: 36.03%;
+  --bug-ring-c3: #eeddfe; /* tune */
+  --bug-ring-s3: 50.57%;
+  --bug-ring-c4: var(--color-semantic-theme-dia-light);
+  --bug-ring-s4: 57.49%;
+  --bug-ring-c5: var(--color-semantic-theme-dia-dark);
+  --bug-ring-s5: 65.1%;
+  --bug-ring-c6: var(--color-semantic-theme-tarde-light);
+  --bug-ring-s6: 75.77%;
+  --bug-ring-c7: var(--color-semantic-theme-tarde-dark);
+  --bug-ring-s7: 82.76%;
+  --bug-gyro-duration: var(--motion-semantic-focus-cycle-duration);
+  --bug-gyro-direction: normal;
+  --bug-duration: var(--motion-semantic-duration);
+  --bug-ease: cubic-bezier(0.19, 0.06, 0.24, 1);
+  --bug-text-duration: var(--motion-semantic-duration);
+  --bug-text-ease: cubic-bezier(0.19, 0.06, 0.24, 1);
+  --bug-halo-duration: var(--motion-semantic-duration);
+  --bug-halo-ease: cubic-bezier(0.19, 0.06, 0.24, 1);
+  --bug-stay: 8000ms;
+  --bug-out-duration: var(--motion-semantic-duration);
+  --bug-out-ease: cubic-bezier(0.19, 0.06, 0.24, 1);
+  --bug-out-delay: 0ms;
+  --bug-out-text-delay: 0ms;
+  --bug-out-bug-scale: 0.9;
+  --bug-out-halo-scale: 0.9;
+  --bug-out-text-drop: var(--dimension-spacing-core-4xl);
+}
+/* /tune:vars */
+
+/* Derivados e a marca (não são dials). */
+[data-option="2"] {
+  --bug-mark-src: url(data:image/webp;base64,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);
+  --bug-halo-final: calc(var(--bug-size) + 2 * (var(--bug-ring-gap) + var(--bug-ring-width)));
+  --bug-text-gap: calc((var(--bug-halo-final) - var(--bug-size)) / 2 + var(--bug-text-space));
+}
+
+[data-option="2"] .stage {
+  position: relative;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-content-card-width);
+  height: 224px;
+}
+
+[data-option="2"] .bug {
+  position: absolute;
+  right: var(--bug-right);
+  bottom: var(--bug-bottom);
+  display: block;
+  width: var(--bug-size);
+  height: var(--bug-size);
+}
+
+/* As três camadas animadas: só transform e opacity, promovidas à GPU. */
+[data-option="2"] .bug-text,
+[data-option="2"] .bug-halo,
+[data-option="2"] .bug-mark,
+[data-option="2"] .bug-halo-spin {
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Camada de trás: o texto, centralizado sobre o Bug e acima dele; entra de trás da esfera, subindo. */
+[data-option="2"] .bug-text {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + var(--bug-text-gap));
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  font-size: var(--bug-text-size);
+  font-weight: var(--bug-text-weight);
+  line-height: var(--bug-text-leading);
+  letter-spacing: var(--bug-text-tracking);
+  color: var(--bug-text-color);
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 var(--bug-text-shadow-blur) var(--color-opacity-dark-50);
+  opacity: var(--opacity-semantic-visible);
+  transform: translate3d(0, 0, 0);
+}
+
+/* Halo: caixa no tamanho final, centrada no Bug (o transform guarda o centro); a entrada cresce por escala, nunca por width/height. */
+[data-option="2"] .bug-halo {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--bug-halo-final);
+  height: var(--bug-halo-final);
+  border-radius: var(--dimension-radius-semantic-pill);
+  opacity: var(--bug-halo-opacity);
+  transform: translate3d(-50%, -50%, 0);
+}
+
+/* Crescimento do halo: do tamanho do Bug até o final (escala própria, para o scale up da entrada somar a ele). */
+[data-option="2"] .bug-halo-grow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  border-radius: inherit;
+  transform: translateZ(0);
+}
+
+/* O halo é o anel de foco do kit (FocusRing): uma faixa em pílula (espessura e folga do kit) com o degradê do designer, recortada
+   do miolo. O giro é o transform: rotate() deste elemento, nunca o gradiente nem o background-position; uma volta lenta, nunca um indicador de carregamento. */
+[data-option="2"] .bug-halo-spin {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  box-sizing: border-box;
+  padding: var(--bug-ring-width);
+  border-radius: inherit;
+  background: linear-gradient(var(--bug-ring-angle),
+    var(--bug-ring-c1) var(--bug-ring-s1),
+    var(--bug-ring-c2) var(--bug-ring-s2),
+    var(--bug-ring-c3) var(--bug-ring-s3),
+    var(--bug-ring-c4) var(--bug-ring-s4),
+    var(--bug-ring-c5) var(--bug-ring-s5),
+    var(--bug-ring-c6) var(--bug-ring-s6),
+    var(--bug-ring-c7) var(--bug-ring-s7));
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  transform: translateZ(0);
+}
+
+[data-option="2"] .bug-mark {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--bug-mark-src) center / cover no-repeat;
+  transform: translateZ(0);
+}
+
+/* Estado entrada: a sequência de 800ms. O Bug e o halo sobem juntos (mesmo atraso, duração e curva por padrão), com opacidade 0-100 e um pequeno scale up; o texto sai de trás. */
+[data-option="2"][data-state="entrada"] .bug-mark { animation: o2-mark-in var(--bug-duration) var(--bug-ease) var(--bug-mark-delay) both; }
+[data-option="2"][data-state="entrada"] .bug-text { animation: o2-text-in var(--bug-text-duration) var(--bug-text-ease) var(--bug-text-delay) both; }
+[data-option="2"][data-state="entrada"] .bug-halo { animation: o2-halo-in var(--bug-halo-duration) var(--bug-halo-ease) var(--bug-halo-delay) both; }
+[data-option="2"][data-state="entrada"] .bug-halo-grow { animation: o2-halo-grow var(--bug-halo-duration) var(--bug-halo-ease) var(--bug-halo-delay) both; }
+[data-option="2"][data-state="entrada"] .bug-halo-spin { animation: o2-gyro var(--bug-gyro-duration) linear calc(var(--bug-halo-delay) + var(--bug-halo-duration)) infinite var(--bug-gyro-direction) both; }
+
+/* Estado permanência: tudo no tamanho final, halo girando enquanto o componente estiver na tela. */
+[data-option="2"][data-state="permanência"] .bug-halo-spin { animation: o2-gyro var(--bug-gyro-duration) linear 0s infinite var(--bug-gyro-direction); }
+
+/* Estado saída: o Bug e o halo diminuem (scale down) e o texto desce de volta para trás do Bug, todos de 100 para 0 de opacidade, juntos. */
+[data-option="2"][data-state="saída"] .bug-mark { animation: o2-mark-out var(--bug-out-duration) var(--bug-out-ease) var(--bug-out-delay) forwards; }
+[data-option="2"][data-state="saída"] .bug-text { animation: o2-text-out var(--bug-out-duration) var(--bug-out-ease) calc(var(--bug-out-delay) + var(--bug-out-text-delay)) forwards; }
+[data-option="2"][data-state="saída"] .bug-halo { animation: o2-halo-out var(--bug-out-duration) var(--bug-out-ease) var(--bug-out-delay) forwards; }
+[data-option="2"][data-state="saída"] .bug-halo-spin { animation: o2-gyro var(--bug-gyro-duration) linear 0s infinite var(--bug-gyro-direction); }
+
+/* Estado fora: o componente já saiu; nada desenhado, sem giro. */
+[data-option="2"][data-state="fora"] .bug { display: none; }
+
+/* Estado ciclo: entrada, permanência (--bug-stay) e saída em sequência, só por atrasos. Cada peça sai quando terminou de entrar, mais a permanência. */
+[data-option="2"][data-state="ciclo"] .bug-mark { animation: o2-mark-in var(--bug-duration) var(--bug-ease) var(--bug-mark-delay) both, o2-mark-out var(--bug-out-duration) var(--bug-out-ease) calc(var(--bug-mark-delay) + var(--bug-duration) + var(--bug-stay) + var(--bug-out-delay)) forwards; }
+[data-option="2"][data-state="ciclo"] .bug-text { animation: o2-text-in var(--bug-text-duration) var(--bug-text-ease) var(--bug-text-delay) both, o2-text-out var(--bug-out-duration) var(--bug-out-ease) calc(var(--bug-text-delay) + var(--bug-text-duration) + var(--bug-stay) + var(--bug-out-delay) + var(--bug-out-text-delay)) forwards; }
+[data-option="2"][data-state="ciclo"] .bug-halo { animation: o2-halo-in var(--bug-halo-duration) var(--bug-halo-ease) var(--bug-halo-delay) both, o2-halo-out var(--bug-out-duration) var(--bug-out-ease) calc(var(--bug-halo-delay) + var(--bug-halo-duration) + var(--bug-stay) + var(--bug-out-delay)) forwards; }
+[data-option="2"][data-state="ciclo"] .bug-halo-grow { animation: o2-halo-grow var(--bug-halo-duration) var(--bug-halo-ease) var(--bug-halo-delay) both; }
+[data-option="2"][data-state="ciclo"] .bug-halo-spin { animation: o2-gyro var(--bug-gyro-duration) linear calc(var(--bug-halo-delay) + var(--bug-halo-duration)) infinite var(--bug-gyro-direction) both; }
+
+@keyframes o2-mark-in {
+  from { opacity: var(--bug-from-opacity); transform: scale(var(--bug-from-scale)) translateZ(0); }
+  to { opacity: var(--opacity-semantic-visible); transform: scale(1) translateZ(0); }
+}
+@keyframes o2-text-in {
+  from { opacity: var(--bug-text-from-opacity); transform: translate3d(0, var(--bug-text-rise), 0); }
+  to { opacity: var(--opacity-semantic-visible); transform: translate3d(0, 0, 0); }
+}
+@keyframes o2-halo-in {
+  from { opacity: var(--bug-halo-from-opacity); transform: translate3d(-50%, -50%, 0) scale(var(--bug-halo-from-scale)); }
+  to { opacity: var(--bug-halo-opacity); transform: translate3d(-50%, -50%, 0) scale(1); }
+}
+@keyframes o2-halo-grow {
+  from { transform: scale(var(--bug-halo-from-ratio)) translateZ(0); }
+  to { transform: scale(1) translateZ(0); }
+}
+@keyframes o2-mark-out {
+  from { opacity: var(--opacity-semantic-visible); transform: scale(1) translateZ(0); }
+  to { opacity: var(--opacity-semantic-hidden); transform: scale(var(--bug-out-bug-scale)) translateZ(0); }
+}
+@keyframes o2-text-out {
+  from { opacity: var(--opacity-semantic-visible); transform: translate3d(0, 0, 0); }
+  to { opacity: var(--opacity-semantic-hidden); transform: translate3d(0, var(--bug-out-text-drop), 0); }
+}
+@keyframes o2-halo-out {
+  from { opacity: var(--bug-halo-opacity); transform: translate3d(-50%, -50%, 0) scale(1); }
+  to { opacity: var(--opacity-semantic-hidden); transform: translate3d(-50%, -50%, 0) scale(var(--bug-out-halo-scale)); }
+}
+@keyframes o2-mark-fade { from { opacity: var(--bug-from-opacity); } to { opacity: var(--opacity-semantic-visible); } }
+@keyframes o2-text-fade { from { opacity: var(--bug-text-from-opacity); } to { opacity: var(--opacity-semantic-visible); } }
+@keyframes o2-halo-fade { from { opacity: var(--bug-halo-from-opacity); } to { opacity: var(--bug-halo-opacity); } }
+@keyframes o2-mark-out-fade { from { opacity: var(--opacity-semantic-visible); } to { opacity: var(--opacity-semantic-hidden); } }
+@keyframes o2-halo-out-fade { from { opacity: var(--bug-halo-opacity); } to { opacity: var(--opacity-semantic-hidden); } }
+@keyframes o2-gyro {
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
+}
+
+/* Movimento reduzido: só dissolve (entrada e saída), sem subida, escala, descida nem giro. Duas vias: a media query (Chrome 74+, Safari 10.1+)
+   e o atributo data-motion="reduce" no card (o script o liga quando a media query vale; o app também pode ligá-lo, e ele cobre o Chrome 68). */
+@media (prefers-reduced-motion: reduce) {
+[data-option="2"][data-state="entrada"] .bug-mark { animation-name: o2-mark-fade; }
+[data-option="2"][data-state="entrada"] .bug-text { animation-name: o2-text-fade; }
+[data-option="2"][data-state="entrada"] .bug-halo { animation-name: o2-halo-fade; }
+[data-option="2"][data-state="saída"] .bug-mark, [data-option="2"][data-state="saída"] .bug-text { animation-name: o2-mark-out-fade; }
+[data-option="2"][data-state="saída"] .bug-halo { animation-name: o2-halo-out-fade; }
+[data-option="2"][data-state="ciclo"] .bug-mark { animation-name: o2-mark-fade, o2-mark-out-fade; }
+[data-option="2"][data-state="ciclo"] .bug-text { animation-name: o2-text-fade, o2-mark-out-fade; }
+[data-option="2"][data-state="ciclo"] .bug-halo { animation-name: o2-halo-fade, o2-halo-out-fade; }
+[data-option="2"] .bug-halo-grow, [data-option="2"] .bug-halo-spin { animation: none !important; }
+}
+
+[data-option="2"][data-motion="reduce"][data-state="entrada"] .bug-mark { animation-name: o2-mark-fade; }
+[data-option="2"][data-motion="reduce"][data-state="entrada"] .bug-text { animation-name: o2-text-fade; }
+[data-option="2"][data-motion="reduce"][data-state="entrada"] .bug-halo { animation-name: o2-halo-fade; }
+[data-option="2"][data-motion="reduce"][data-state="saída"] .bug-mark, [data-option="2"][data-motion="reduce"][data-state="saída"] .bug-text { animation-name: o2-mark-out-fade; }
+[data-option="2"][data-motion="reduce"][data-state="saída"] .bug-halo { animation-name: o2-halo-out-fade; }
+[data-option="2"][data-motion="reduce"][data-state="ciclo"] .bug-mark { animation-name: o2-mark-fade, o2-mark-out-fade; }
+[data-option="2"][data-motion="reduce"][data-state="ciclo"] .bug-text { animation-name: o2-text-fade, o2-mark-out-fade; }
+[data-option="2"][data-motion="reduce"][data-state="ciclo"] .bug-halo { animation-name: o2-halo-fade, o2-halo-out-fade; }
+[data-option="2"][data-motion="reduce"] .bug-halo-grow, [data-option="2"][data-motion="reduce"] .bug-halo-spin { animation: none !important; }
+
+/* Reinício da entrada (feito pelo script abaixo). */
+[data-option="2"] .stage[data-reset] * { animation: none !important; }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+      <!-- One card per option (Figma 7139:1917). Keep data-option / data-part so comments can point at things. -->
+      <article class="opt" data-option="1">
+        <!-- tese: o Bug acende e o halo se abre ao redor dele, como o Bug do vídeo ganhando uma segunda camada; o texto sobe de trás do Bug. -->
+        <p class="opt-label" data-part="label">Opção 1 - Bug interativo</p>
+        <div class="opt-content" data-part="content">
+          <div class="stage" data-part="stage" data-surface="own" data-stack>
+            <div class="bug" data-part="bug">
+              <p class="bug-text text-body-md-bold" data-part="text">Conteúdo<br>interativo</p>
+              <span class="bug-halo" data-part="halo" aria-hidden="true"><span class="bug-halo-spin"></span></span>
+              <span class="bug-mark" data-part="mark" role="img" aria-label="Conteúdo interativo"></span>
+            </div>
+          </div>
+        </div>
+      </article>
+    <h2 class="opt-group">Ajuste da Opção 1</h2>
+<article data-parent="1" class="opt" data-option="2" data-tuned data-state="entrada" tabindex="0">
+  <!-- tese: o Bug acende e o halo se abre ao redor dele, como o Bug do vídeo ganhando uma segunda camada; o texto sobe de trás do Bug. -->
+  <p class="opt-label" data-part="label">Opção 2 - Ajuste da 1</p>
+  <div class="opt-content" data-part="content">
+    <div class="stage" data-part="stage" data-surface="own" data-stack>
+      <div class="bug" data-part="bug">
+        <p class="bug-text text-body-md-bold" data-part="text">Conteúdo<br>interativo</p>
+        <span class="bug-halo" data-part="halo" aria-hidden="true"><span class="bug-halo-grow"><span class="bug-halo-spin" data-part="spin"></span></span></span>
+        <span class="bug-mark" data-part="mark" role="img" aria-label="Conteúdo interativo"></span>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">{"states":["entrada","permanência","saída","fora","ciclo"],"folders":[
+{"name":"Posição","part":"bug","controls":[
+{"id":"right","label":"Margem direita","type":"slider","var":"--bug-right","value":40,"base":40,"min":0,"max":120,"step":1,"unit":"px","token":"--dimension-spacing-core-2xl"},
+{"id":"bottom","label":"Margem inferior","type":"slider","var":"--bug-bottom","value":32,"base":32,"min":0,"max":120,"step":1,"unit":"px","token":"--dimension-spacing-core-xl"},
+{"id":"size","label":"Tamanho do Bug","type":"slider","var":"--bug-size","value":96,"base":96,"min":48,"max":160,"step":1,"unit":"px","token":"--dimension-size-semantic-alert-bug"}
+]},
+{"name":"Bug","part":"mark","controls":[
+{"id":"mark-from-opacity","label":"Opacidade inicial","type":"slider","var":"--bug-from-opacity","value":0,"base":0,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-hidden"},
+{"id":"mark-from-scale","label":"Escala inicial","type":"slider","var":"--bug-from-scale","value":0.9,"base":0.9,"min":0.5,"max":1.2,"step":0.01,"unit":""},
+{"id":"mark-delay","label":"Atraso da entrada","type":"slider","var":"--bug-mark-delay","value":0,"base":0,"min":0,"max":2000,"step":10,"unit":"ms"}
+]},
+{"name":"Texto","part":"text","controls":[
+{"id":"text-delay","label":"Atraso do texto","type":"slider","var":"--bug-text-delay","value":0,"base":0,"min":0,"max":2000,"step":10,"unit":"ms"},
+{"id":"text-rise","label":"Subida (de trás do Bug ao repouso)","type":"slider","var":"--bug-text-rise","value":64,"base":64,"min":0,"max":160,"step":1,"unit":"px","token":"--dimension-spacing-core-4xl"},
+{"id":"text-from-opacity","label":"Opacidade inicial","type":"slider","var":"--bug-text-from-opacity","value":0,"base":0,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-hidden"},
+{"id":"text-space","label":"Distância ao halo","type":"slider","var":"--bug-text-space","value":8,"base":8,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"text-size","label":"Tamanho da letra","type":"slider","var":"--bug-text-size","value":16,"base":16,"min":10,"max":28,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"text-leading","label":"Altura da linha","type":"slider","var":"--bug-text-leading","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"text-tracking","label":"Espaço entre letras","type":"slider","var":"--bug-text-tracking","value":-0.01,"base":-0.01,"min":-0.05,"max":0.1,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"text-weight","label":"Peso","type":"select","var":"--bug-text-weight","value":"700","base":"700","options":["400","500","700","800"]},
+{"id":"text-color","label":"Cor","type":"color","var":"--bug-text-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"text-shadow","label":"Sombra (desfoque)","type":"slider","var":"--bug-text-shadow-blur","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Halo","part":"halo","controls":[
+{"id":"halo-delay","label":"Atraso do halo","type":"slider","var":"--bug-halo-delay","value":0,"base":0,"min":0,"max":2000,"step":10,"unit":"ms"},
+{"id":"halo-from-ratio","label":"Início do crescimento (× tamanho final)","type":"slider","var":"--bug-halo-from-ratio","value":0.75,"base":0.75,"min":0,"max":1.5,"step":0.01,"unit":""},
+{"id":"halo-from-scale","label":"Escala inicial","type":"slider","var":"--bug-halo-from-scale","value":0.9,"base":0.9,"min":0.5,"max":1.2,"step":0.01,"unit":""},
+{"id":"halo-from-opacity","label":"Opacidade inicial","type":"slider","var":"--bug-halo-from-opacity","value":0,"base":0,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-hidden"},
+{"id":"halo-opacity","label":"Opacidade final","type":"slider","var":"--bug-halo-opacity","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"}
+]},
+{"name":"Anel do halo","part":"halo","controls":[
+{"id":"ring-width","label":"Espessura","type":"slider","var":"--bug-ring-width","value":4,"base":4,"min":1,"max":16,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"ring-gap","label":"Folga até o Bug","type":"slider","var":"--bug-ring-gap","value":12,"base":12,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"}
+]},
+{"name":"Degradê do anel","part":"halo","controls":[
+{"id":"ring-angle","label":"Ângulo","type":"slider","var":"--bug-ring-angle","value":224,"base":224,"min":0,"max":360,"step":1,"unit":"deg"},
+{"id":"ring-c1","label":"Cor 1","type":"color","var":"--bug-ring-c1","value":"#414ffd","base":"#414ffd","token":"--color-semantic-theme-noite-dark"},
+{"id":"ring-s1","label":"Parada 1","type":"slider","var":"--bug-ring-s1","value":21.77,"base":21.77,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c2","label":"Cor 2","type":"color","var":"--bug-ring-c2","value":"#35c7f3","base":"#35c7f3","token":"--color-semantic-theme-noite-light"},
+{"id":"ring-s2","label":"Parada 2","type":"slider","var":"--bug-ring-s2","value":36.03,"base":36.03,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c3","label":"Cor 3","type":"color","var":"--bug-ring-c3","value":"#eeddfe","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"ring-s3","label":"Parada 3","type":"slider","var":"--bug-ring-s3","value":50.57,"base":50.57,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c4","label":"Cor 4","type":"color","var":"--bug-ring-c4","value":"#00e1c0","base":"#00e1c0","token":"--color-semantic-theme-dia-light"},
+{"id":"ring-s4","label":"Parada 4","type":"slider","var":"--bug-ring-s4","value":57.49,"base":57.49,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c5","label":"Cor 5","type":"color","var":"--bug-ring-c5","value":"#00e879","base":"#00e879","token":"--color-semantic-theme-dia-dark"},
+{"id":"ring-s5","label":"Parada 5","type":"slider","var":"--bug-ring-s5","value":65.1,"base":65.1,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c6","label":"Cor 6","type":"color","var":"--bug-ring-c6","value":"#e7c300","base":"#e7c300","token":"--color-semantic-theme-tarde-light"},
+{"id":"ring-s6","label":"Parada 6","type":"slider","var":"--bug-ring-s6","value":75.77,"base":75.77,"min":0,"max":100,"step":0.01,"unit":"%"},
+{"id":"ring-c7","label":"Cor 7","type":"color","var":"--bug-ring-c7","value":"#ed6001","base":"#ed6001","token":"--color-semantic-theme-tarde-dark"},
+{"id":"ring-s7","label":"Parada 7","type":"slider","var":"--bug-ring-s7","value":82.76,"base":82.76,"min":0,"max":100,"step":0.01,"unit":"%"}
+]},
+{"name":"Giro","part":"halo","controls":[
+{"id":"gyro-duration","label":"Uma volta","type":"slider","var":"--bug-gyro-duration","value":12000,"base":12000,"min":2000,"max":30000,"step":500,"unit":"ms","token":"--motion-semantic-focus-cycle-duration"},
+{"id":"gyro-direction","label":"Sentido","type":"select","var":"--bug-gyro-direction","value":"normal","base":"normal","options":["normal","reverse"]}
+]},
+{"name":"Movimento","controls":[
+{"id":"move-bug","label":"Entrada do Bug","type":"easing","durVar":"--bug-duration","easeVar":"--bug-ease","value":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"base":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"token":"--motion-semantic-duration"},
+{"id":"move-text","label":"Entrada do texto","type":"easing","durVar":"--bug-text-duration","easeVar":"--bug-text-ease","value":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"base":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"token":"--motion-semantic-duration"},
+{"id":"move-halo","label":"Entrada do halo","type":"easing","durVar":"--bug-halo-duration","easeVar":"--bug-halo-ease","value":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"base":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"token":"--motion-semantic-duration"},
+{"id":"stay","label":"Permanência na tela","type":"slider","var":"--bug-stay","value":8000,"base":8000,"min":0,"max":30000,"step":100,"unit":"ms"}
+]},
+{"name":"Saída","controls":[
+{"id":"move-out","label":"Saída (duração e curva)","type":"easing","durVar":"--bug-out-duration","easeVar":"--bug-out-ease","value":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"base":{"duration":0.8,"ease":[0.19,0.06,0.24,1]},"token":"--motion-semantic-duration"},
+{"id":"out-delay","label":"Atraso da saída (Bug e halo)","type":"slider","var":"--bug-out-delay","value":0,"base":0,"min":0,"max":2000,"step":10,"unit":"ms"},
+{"id":"out-text-delay","label":"Atraso do texto","type":"slider","var":"--bug-out-text-delay","value":0,"base":0,"min":0,"max":2000,"step":10,"unit":"ms"},
+{"id":"out-bug-scale","label":"Escala final do Bug","type":"slider","var":"--bug-out-bug-scale","value":0.9,"base":0.9,"min":0.5,"max":1.2,"step":0.01,"unit":""},
+{"id":"out-halo-scale","label":"Escala final do halo","type":"slider","var":"--bug-out-halo-scale","value":0.9,"base":0.9,"min":0.5,"max":1.2,"step":0.01,"unit":""},
+{"id":"out-text-drop","label":"Descida do texto","type":"slider","var":"--bug-out-text-drop","value":64,"base":64,"min":0,"max":160,"step":1,"unit":"px","token":"--dimension-spacing-core-4xl"}
+]}
+]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+// Bug interativo: a entrada toca ao carregar; volta a tocar quando o card reaparece na tela (sem controle, só para revisar).
+(() => {
+  const stage = document.querySelector('.opt[data-option="1"] .stage');
+  let out = false;
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && out) { stage.setAttribute('data-reset', ''); void stage.offsetWidth; stage.removeAttribute('data-reset'); }
+    out = !e.isIntersecting;
+  }, { threshold: 0.6 }).observe(stage);
+})();
+</script>
+<style>
+[data-option="1"] { --bug-mark-src: url(data:image/webp;base64,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); }
+</style>
+<script>
+// Bug interativo (ajuste): o estado vem de data-state. "entrada" e "ciclo" tocam a sequência (o card voltar à tela a reinicia).
+// Quando as três peças terminam de sair, o estado vai para "fora" (nada desenhado, sem giro). Sem teclas: o Bug não recebe foco.
+// Escrito em ES5 (sem ?., ??, getAnimations): roda no Chrome 68.
+(function () {
+  var root = document.querySelector('.opt[data-option="2"]');
+  var stage = root.querySelector('.stage');
+  var done = {};
+  var replay = function () { stage.setAttribute('data-reset', ''); void stage.offsetWidth; stage.removeAttribute('data-reset'); };
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var sync = function () { if (mq.matches) root.setAttribute('data-motion', 'reduce'); else root.removeAttribute('data-motion'); };
+    sync();
+    if (mq.addEventListener) mq.addEventListener('change', sync); else if (mq.addListener) mq.addListener(sync);
+  }
+  new MutationObserver(function () { done = {}; if (root.dataset.state === 'entrada') replay(); }).observe(root, { attributes: true, attributeFilter: ['data-state'] });
+  root.addEventListener('animationend', function (e) {
+    if (!/^o2-.*-out/.test(e.animationName) || (root.dataset.state !== 'ciclo' && root.dataset.state !== 'saída')) return;
+    done[e.target.getAttribute('data-part')] = true;
+    if (done.mark && done.text && done.halo) root.dataset.state = 'fora';
+  });
+  var out = false;
+  new IntersectionObserver(function (entries) {
+    var en = entries[0], s = root.dataset.state;
+    if (en.isIntersecting && out && (s === 'entrada' || s === 'ciclo' || s === 'saída')) replay();
+    out = !en.isIntersecting;
+  }, { threshold: 0.6 }).observe(stage);
+})();
+</script>
+</body>
+</html>

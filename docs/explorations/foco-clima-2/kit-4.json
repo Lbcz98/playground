@@ -1,0 +1,15 @@
+{
+  "verdict": "Approve",
+  "summary": "A opção 4 usa tokens do kit em quase tudo e passa nos dois verificadores; resta só um deslocamento da nuvem escrito como literal.",
+  "findings": [
+    {"severity": "LOW", "domain": "tokens", "rule": "grid.8pt", "location": "docs/explorations/foco-clima-2/index.html:199",
+     "before": "left: 144px; top: 8px (posição da nuvem sobre a borda)", "after": "manter, mas registrar o motivo: 144 e 8 estão na grade de 8, sem token de espaçamento equivalente em explore-tokens.md",
+     "why": "grid.8pt: os valores estão na grade de 8, então não quebram a regra; são literais de posicionamento sem token do kit, fica só como nota."}
+  ],
+  "coverage": [
+    {"domain": "rules", "result": "Clear: check-explore-tokens e check-explore-layout deram ok para a opção 4; sem cor literal, card 288px com padding card-inset-expanded"},
+    {"domain": "tokens", "result": "1 achado LOW (o aviso de 104px do check-explore-tokens é da opção 2, linha 116, fora do escopo)"},
+    {"domain": "behavior", "result": "Clear: opção estática, sem script, sem tabindex, sem hover/clique; nada a navegar nem texto que mude, então sem aria-live"}
+  ],
+  "notVerified": ["check-tune-spec e tune-measure: a opção 4 não tem cópia ajustável nem spec de ajuste", "foco visível por estado: a opção não tem peça focável"]
+}

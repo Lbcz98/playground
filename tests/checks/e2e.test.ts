@@ -1,3 +1,4 @@
+import { browserDescribe } from './browser'
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -62,10 +63,9 @@ const laws = async (name: string, detail: string) => {
   return { code: run.exitCode, notes: run.notes.join('\n'), json }
 }
 
-describe('a realistic designer folder, end to end', () => {
+browserDescribe('a realistic designer folder, end to end', () => {
   it('passes check:laws, and the PR report has every section', async () => {
     const r = await laws('ok', DETAIL)
-    if (/Chromium could not start/.test(r.notes)) return console.warn('e2e: no Chromium, skipped')
     expect(r.notes + JSON.stringify(r.json.reports.map((x) => x.problems))).toBe('[[],[],[]]')
     expect(r.code).toBe(0)
     const md = renderReport(r.json, ROOT)
@@ -79,7 +79,7 @@ describe('a realistic designer folder, end to end', () => {
 
   it('exits 1 when one law is broken', async () => {
     const r = await laws('broken', DETAIL.replace(DEVIATION, 'export function'))
-    if (/Chromium could not start/.test(r.notes)) return console.warn('e2e: no Chromium, skipped')
+    expect(r.notes).toBe('')
     expect(r.code).toBe(1)
     expect(renderReport(r.json, ROOT)).toMatch(/Blocking problems \([1-9]/)
     expect(JSON.stringify(r.json)).toContain('layout.root-align')

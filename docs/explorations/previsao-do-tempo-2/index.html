@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Previsão do tempo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] .o1-card {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-card p { margin: 0; }
+
+/* Grupo focal: local e número no canto de partida; o vazio embaixo dele é a maior área livre do card. */
+[data-option="1"] .o1-focal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  padding-bottom: var(--dimension-spacing-core-5xl);
+}
+[data-option="1"] .o1-line {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  white-space: nowrap;
+}
+[data-option="1"] .o1-place { color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .o1-when,
+[data-option="1"] .o1-phrase { color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .o1-dot {
+  display: block;
+  flex: none;
+  width: var(--dimension-spacing-core-3xs);
+  height: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+[data-option="1"] .o1-now {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+}
+[data-option="1"] .o1-temp {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Ícones em PNG já na cor do token: text-primary no grande, text-muted no trilho, background-primary na casa invertida. */
+[data-option="1"] .o1-icon {
+  display: block;
+  flex: none;
+}
+[data-option="1"] .o1-now .o1-icon {
+  width: var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+}
+
+/* Faixa quieta: a frase do dia escolhido sobre o trilho. */
+[data-option="1"] .o1-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-2xs);
+}
+[data-option="1"] .o1-phrase {
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+[data-option="1"] .o1-phrase b {
+  font-weight: inherit;
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-rail {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--dimension-spacing-core-2xs);
+}
+[data-option="1"] .o1-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-day .o1-icon {
+  width: var(--dimension-size-semantic-icon-md);
+  height: var(--dimension-size-semantic-icon-md);
+}
+[data-option="1"] .o1-day .o1-inv,
+[data-option="1"] .o1-day[aria-checked="true"] .o1-rest { display: none; }
+[data-option="1"] .o1-day[aria-checked="true"] .o1-inv { display: block; }
+/* Em repouso, cada dia diz que o controle o alcança: contorno de 1px com a luz diagonal do kit. */
+[data-option="1"] .o1-day::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+/* Escolhido: a única casa invertida; leva o anel do kit. */
+[data-option="1"] .o1-day[aria-checked="true"] {
+  background: var(--color-semantic-functional-text-primary);
+  color: var(--color-semantic-functional-background-primary);
+}
+[data-option="1"] .o1-day[aria-checked="true"]::before { content: none; }
+[data-option="1"] .o1-day[aria-checked="true"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="2"] .o2-card {
+  box-sizing: border-box;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="2"] .o2-card p { margin: 0; }
+
+/* Grupo focal: local e agora sobre a temperatura, com o ícone ao lado */
+[data-option="2"] .o2-focal { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-where { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-when { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-sep {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .o2-now { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-icon {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+  background: var(--color-semantic-functional-text-primary);
+  -webkit-mask: url(data:image/png;base64,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) center / contain no-repeat;
+  mask: url(data:image/png;base64,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) center / contain no-repeat;
+}
+
+/* O dia: gráfico das horas e legenda */
+[data-option="2"] .o2-day { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+[data-option="2"] .o2-graph { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-head { display: flex; justify-content: space-between; align-items: baseline; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-views { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-view { display: block; }
+[data-option="2"] .o2-view.is-on { color: var(--color-semantic-functional-text-primary); font-weight: var(--typography-font-weight-bold); }
+
+[data-option="2"] .o2-plot {
+  position: relative;
+  display: flex;
+  height: 112px;
+  --o2-x: 37.5%;
+  --o2-y: 58.93%;
+}
+[data-option="2"] .o2-curve {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transition: opacity var(--motion-semantic-duration);
+}
+[data-option="2"] .o2-area { fill: var(--color-opacity-light-10); }
+[data-option="2"] .o2-line {
+  fill: none;
+  stroke: var(--color-opacity-light-50);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+[data-option="2"] .o2-mean {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 41.07%;
+  display: block;
+  border-top: var(--dimension-border-width-core-hairline) dashed var(--color-opacity-light-30);
+}
+[data-option="2"] .o2-col { position: relative; display: block; flex: 1 1 0; }
+[data-option="2"] .o2-col:nth-of-type(1) { --h: 14.29%; }
+[data-option="2"] .o2-col:nth-of-type(2) { --h: 58.93%; }
+[data-option="2"] .o2-col:nth-of-type(3) { --h: 67.86%; }
+[data-option="2"] .o2-col:nth-of-type(4) { --h: 32.14%; }
+[data-option="2"] .o2-dot {
+  position: absolute;
+  left: 50%;
+  bottom: var(--h);
+  display: block;
+  width: 8px;
+  height: 8px;
+  border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-50);
+  transform: translate(-50%, 50%);
+  transition: opacity var(--motion-semantic-duration);
+}
+[data-option="2"] .o2-col.is-on .o2-dot { width: 12px; height: 12px; background: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .o2-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: block;
+  width: 20px;
+  height: var(--h);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--color-opacity-light-20);
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity var(--motion-semantic-duration);
+}
+[data-option="2"] .o2-col.is-on .o2-bar { background: var(--color-opacity-light-70); }
+[data-option="2"] .o2-plot[data-view="barras"] .o2-curve,
+[data-option="2"] .o2-plot[data-view="barras"] .o2-dot { opacity: 0; }
+[data-option="2"] .o2-plot[data-view="barras"] .o2-bar { opacity: 1; }
+/* o valor da hora em foco recorta a linha da média, para não parecer o rótulo dela */
+[data-option="2"] .o2-read {
+  position: absolute;
+  left: var(--o2-x);
+  bottom: calc(var(--o2-y) + var(--dimension-spacing-core-sm));
+  display: block;
+  padding: 0 var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-semantic-functional-background-elevated);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+[data-option="2"] .o2-axis { display: flex; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-axis span { display: block; flex: 1 1 0; text-align: center; }
+[data-option="2"] .o2-axis span.is-on { color: var(--color-semantic-functional-text-primary); }
+
+[data-option="2"] .o2-legend { display: flex; gap: var(--dimension-spacing-core-lg); margin: 0; }
+[data-option="2"] .o2-legend div { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-legend dt { display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-legend dd { margin: 0; }
+[data-option="2"] .o2-swatch {
+  display: block;
+  width: 12px;
+  border-top: var(--dimension-border-width-core-hairline) dashed var(--color-semantic-functional-text-muted);
+}
+[data-option="3"] .o3-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  -webkit-font-smoothing: antialiased;
+}
+[data-option="3"] p { margin: 0; }
+
+/* Grupo focal: ícone, local e temperatura num bloco só, no canto de partida. */
+[data-option="3"] .o3-now { display: flex; flex-direction: column; align-items: flex-start; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-icon { display: block; width: var(--dimension-size-semantic-icon-2xl); height: var(--dimension-size-semantic-icon-2xl); background: url(assets/o3-clima.png) center / contain no-repeat; }
+[data-option="3"] .o3-now-text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .o3-place { color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .o3-temp { color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+
+/* As linhas recolhidas: lado a lado, porque ←/→ andam entre elas. */
+[data-option="3"] .o3-lines { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+[data-option="3"] .o3-rail { display: flex; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-line {
+  position: relative; flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+/* Em repouso: contorno de 1px com a luz diagonal do kit, para dizer que o controle alcança a linha. */
+[data-option="3"] .o3-line::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+/* Aberta: ganha fundo próprio (o tom claro do kit), sem disputar com o número. */
+[data-option="3"] .o3-line[data-open] { background: var(--color-semantic-functional-background-tint); }
+[data-option="3"] .o3-line[data-open]::before { display: none; }
+/* Foco: o anel do kit, por dentro da peça. */
+[data-option="3"] .o3-line[data-focus]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+
+/* O que a linha aberta mostra: o valor, a explicação e a série curta. */
+[data-option="3"] .o3-detail { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); transition: opacity var(--motion-semantic-duration); }
+[data-option="3"] .o3-detail[hidden] { display: none; }
+@starting-style { [data-option="3"] .o3-detail { opacity: 0; } }
+[data-option="3"] .o3-detail-text { color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+[data-option="3"] .o3-detail-value { color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-series { display: flex; align-items: flex-end; }
+[data-option="3"] .o3-point { flex: 1 1 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .o3-point-value { display: block; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-bar { display: block; width: var(--dimension-spacing-core-2xs); border-radius: var(--dimension-radius-core-xs); background: var(--color-opacity-light-30); }
+[data-option="3"] .o3-point-label { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .o3-point[data-now] .o3-point-value { color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .o3-point[data-now] .o3-bar { background: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .o4-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  box-sizing: border-box;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paisagem: ocupa o topo do card de ponta a ponta; o card corta as formas. */
+[data-option="4"] .o4-stage {
+  position: relative;
+  display: block;
+  height: 184px;
+  margin: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)) calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded)) 0;
+  overflow: hidden;
+}
+[data-option="4"] .o4-scene {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: var(--opacity-semantic-hidden);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="4"] .o4-scene.o4-on { opacity: var(--opacity-semantic-visible); }
+[data-option="4"] .o4-layer { position: absolute; inset: 0; display: block; }
+[data-option="4"] .o4-soft { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="4"] .o4-firm { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="4"] .o4-line { opacity: var(--opacity-semantic-background-subtle); }
+[data-option="4"] .o4-shape {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: var(--color-semantic-functional-text-primary);
+}
+[data-option="4"] .o4-base { border-radius: var(--dimension-radius-semantic-pill); }
+
+/* Agora: sol grande atrás de uma nuvem */
+[data-option="4"] .o4-agora-sun { left: 160px; top: -24px; width: 152px; height: 152px; }
+[data-option="4"] .o4-agora-base { left: 32px; top: 112px; width: 200px; height: 56px; }
+[data-option="4"] .o4-agora-puff-a { left: 64px; top: 72px; width: 80px; height: 80px; }
+[data-option="4"] .o4-agora-puff-b { left: 112px; top: 48px; width: 112px; height: 112px; }
+
+/* Hoje: o arco do sol no dia, com o sol na hora de agora (15h) */
+[data-option="4"] .o4-hoje-arc {
+  left: 16px; top: 40px; width: 256px; height: 256px;
+  box-sizing: border-box;
+  background: none;
+  border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+}
+[data-option="4"] .o4-hoje-halo {
+  position: absolute;
+  display: block;
+  left: 198px; top: 42px; width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="4"] .o4-hoje-sun { left: 8px; top: 8px; width: 56px; height: 56px; opacity: var(--opacity-semantic-background-subtle); }
+
+/* Semana: nuvem de chuva */
+[data-option="4"] .o4-semana-base { left: 40px; top: 88px; width: 208px; height: 56px; }
+[data-option="4"] .o4-semana-puff-a { left: 64px; top: 44px; width: 88px; height: 88px; }
+[data-option="4"] .o4-semana-puff-b { left: 116px; top: 16px; width: 120px; height: 120px; }
+[data-option="4"] .o4-drop {
+  position: absolute;
+  display: block;
+  top: 152px; width: 4px; height: 24px;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-text-primary);
+  transform: rotate(20deg);
+}
+[data-option="4"] .o4-drop:nth-child(1) { left: 92px; }
+[data-option="4"] .o4-drop:nth-child(2) { left: 132px; }
+[data-option="4"] .o4-drop:nth-child(3) { left: 172px; }
+[data-option="4"] .o4-drop:nth-child(4) { left: 212px; }
+
+/* Grupo focal: local e temperatura */
+[data-option="4"] .o4-focal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+}
+[data-option="4"] .o4-place { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .o4-temp {
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Faixa quieta: resumo do segmento junto do seletor */
+[data-option="4"] .o4-quiet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-2xs);
+}
+[data-option="4"] .o4-summary {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+  text-wrap: pretty;
+}
+[data-option="4"] .o4-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="4"] .o4-seg-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--dimension-size-semantic-control-height);
+  border-radius: var(--dimension-radius-core-xs);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="4"] .o4-seg-item[aria-current="true"] {
+  background: var(--color-semantic-functional-text-primary);
+  color: var(--color-semantic-functional-background-primary);
+}
+[data-option="4"] .o4-seg-item[aria-current="true"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: o tempo é um trilho de dias sob um número grande; escolher o dia muda o número e deixa o resto do card vazio e quieto. -->
+  <p class="opt-label" data-part="label">Opção 1 - Trilho sob o número</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-card" data-part="card">
+      <div class="o1-focal" data-part="focal">
+        <p class="o1-line text-body-sm-medium" data-part="place" aria-live="polite">
+          <span class="o1-place">São Paulo</span><span class="o1-dot" aria-hidden="true"></span><span class="o1-when">agora</span>
+        </p>
+        <div class="o1-now">
+          <p class="o1-temp text-heading-3-bold" data-part="temp" aria-live="polite">24°</p>
+          <img class="o1-icon" data-part="icon" src="assets/o1-nuvem-sol-40.png" alt="">
+        </div>
+      </div>
+      <div class="o1-strip" data-part="strip">
+        <p class="o1-phrase text-body-sm-medium" data-part="summary" aria-live="polite">Sol entre nuvens, média <b>22°</b></p>
+        <div class="o1-rail" data-part="rail" role="radiogroup" aria-label="Dias">
+          <div class="o1-day" role="radio" aria-checked="true" data-part="day"><span class="text-body-sm-medium">Seg</span><img class="o1-icon o1-rest" src="assets/o1-nuvem-sol-20.png" alt=""><img class="o1-icon o1-inv" src="assets/o1-nuvem-sol-20-inv.png" alt=""></div>
+          <div class="o1-day" role="radio" aria-checked="false" data-part="day"><span class="text-body-sm-medium">Ter</span><img class="o1-icon o1-rest" src="assets/o1-sol-20.png" alt=""><img class="o1-icon o1-inv" src="assets/o1-sol-20-inv.png" alt=""></div>
+          <div class="o1-day" role="radio" aria-checked="false" data-part="day"><span class="text-body-sm-medium">Qua</span><img class="o1-icon o1-rest" src="assets/o1-chuva-20.png" alt=""><img class="o1-icon o1-inv" src="assets/o1-chuva-20-inv.png" alt=""></div>
+          <div class="o1-day" role="radio" aria-checked="false" data-part="day"><span class="text-body-sm-medium">Qui</span><img class="o1-icon o1-rest" src="assets/o1-nuvem-20.png" alt=""><img class="o1-icon o1-inv" src="assets/o1-nuvem-20-inv.png" alt=""></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: o dia é uma curva de temperatura; ver a curva ou as barras é a mesma resposta em duas formas, e o agora fica parado em cima. -->
+  <p class="opt-label" data-part="label">Opção 2 - Curva do dia</p>
+  <div class="opt-content" data-part="content">
+    <section class="o2-card" data-part="card">
+      <div class="o2-focal" data-part="focal">
+        <div class="o2-where">
+          <p class="text-body-sm-medium" data-part="place">São Paulo</p>
+          <span class="o2-sep" aria-hidden="true"></span>
+          <p class="o2-when text-body-sm-medium" data-part="when">agora</p>
+        </div>
+        <div class="o2-now">
+          <p class="text-heading-3-bold" data-part="temp">24°</p>
+          <span class="o2-icon" data-part="icon" role="img" aria-label="Nuvem com sol"></span>
+        </div>
+      </div>
+
+      <div class="o2-day" data-part="day">
+        <div class="o2-graph" data-part="chart">
+          <div class="o2-head">
+            <p class="text-footnote-medium" data-part="chart-title">Hoje</p>
+            <p class="o2-views text-footnote-medium" data-part="views" aria-live="polite">
+              <span class="o2-view is-on" data-view="curva">curva</span>
+              <span class="o2-sep" aria-hidden="true"></span>
+              <span class="o2-view" data-view="barras">barras</span>
+            </p>
+          </div>
+          <div class="o2-plot" data-part="plot" data-view="curva" data-stack>
+            <svg class="o2-curve" width="224" height="112" viewBox="0 0 224 112" aria-hidden="true">
+              <path class="o2-area" d="M28 96 C37.33 87.67 65.33 56 84 46 C102.67 36 121.33 31 140 36 C158.67 41 186.67 69.33 196 76 L196 112 L28 112 Z" />
+              <path class="o2-line" d="M28 96 C37.33 87.67 65.33 56 84 46 C102.67 36 121.33 31 140 36 C158.67 41 186.67 69.33 196 76" />
+            </svg>
+            <span class="o2-mean" data-part="mean" aria-hidden="true"></span>
+            <div class="o2-col" data-part="hour"><span class="o2-bar"></span><span class="o2-dot"></span></div>
+            <div class="o2-col is-on" data-part="hour"><span class="o2-bar"></span><span class="o2-dot"></span></div>
+            <div class="o2-col" data-part="hour"><span class="o2-bar"></span><span class="o2-dot"></span></div>
+            <div class="o2-col" data-part="hour"><span class="o2-bar"></span><span class="o2-dot"></span></div>
+            <p class="o2-read text-body-sm-medium" data-part="readout" aria-live="polite">24°</p>
+          </div>
+          <div class="o2-axis text-footnote-medium" data-part="axis">
+            <span>09h</span><span class="is-on">13h</span><span>17h</span><span>21h</span>
+          </div>
+        </div>
+
+        <dl class="o2-legend" data-part="legend">
+          <div><dt class="text-footnote-medium"><span class="o2-swatch" aria-hidden="true"></span>média</dt><dd class="text-body-sm-medium">22°</dd></div>
+          <div><dt class="text-footnote-medium">sensação</dt><dd class="text-body-sm-medium">26°</dd></div>
+          <div><dt class="text-footnote-medium">umidade</dt><dd class="text-body-sm-medium">68%</dd></div>
+        </dl>
+      </div>
+    </section>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <!-- tese: o card mostra só o número e o ícone; cada detalhe é uma linha recolhida que se abre quando você a procura. -->
+  <p class="opt-label" data-part="label">Opção 3 - Linhas que se abrem</p>
+  <div class="opt-content" data-part="content">
+    <div class="o3-card" data-part="card">
+      <div class="o3-now" data-part="agora">
+        <span class="o3-icon" data-part="icone" role="img" aria-label="Sol entre nuvens"></span>
+        <div class="o3-now-text">
+          <p class="o3-place text-body-sm-medium" data-part="local">São Paulo</p>
+          <p class="o3-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        </div>
+      </div>
+      <div class="o3-lines" data-part="linhas" aria-live="polite">
+        <div class="o3-rail">
+          <div class="o3-line" data-part="linha-sensacao" aria-expanded="false"><span class="text-body-sm-medium">Sensação</span></div>
+          <div class="o3-line" data-part="linha-umidade" aria-expanded="false"><span class="text-body-sm-medium">Umidade</span></div>
+          <div class="o3-line" data-part="linha-media" aria-expanded="false"><span class="text-body-sm-medium">Média</span></div>
+        </div>
+        <div class="o3-detail" data-part="detalhe" hidden>
+          <p class="o3-detail-text text-body-sm-medium" data-part="explicacao"></p>
+          <div class="o3-series" data-part="serie"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4" tabindex="0">
+  <!-- tese: três segmentos (Agora, Hoje, Semana) trocam o card inteiro, e o ícone do clima grande vira a paisagem do card. -->
+  <p class="opt-label" data-part="label">Opção 4 - Paisagem por segmento</p>
+  <div class="opt-content" data-part="content">
+    <div class="o4-card" data-part="card">
+      <div class="o4-stage" data-part="paisagem" data-stack>
+        <div class="o4-scene o4-on" data-scene="agora" role="img" aria-label="Sol entre nuvens">
+          <div class="o4-layer o4-soft"><span class="o4-shape o4-agora-sun"></span></div>
+          <div class="o4-layer o4-firm">
+            <span class="o4-shape o4-base o4-agora-base"></span>
+            <span class="o4-shape o4-agora-puff-a"></span>
+            <span class="o4-shape o4-agora-puff-b"></span>
+          </div>
+        </div>
+        <div class="o4-scene" data-scene="hoje" role="img" aria-label="Arco do sol no dia, agora às 15h" aria-hidden="true">
+          <div class="o4-layer o4-line"><span class="o4-shape o4-hoje-arc"></span></div>
+          <span class="o4-hoje-halo"><span class="o4-shape o4-hoje-sun"></span></span>
+        </div>
+        <div class="o4-scene" data-scene="semana" role="img" aria-label="Nuvem de chuva" aria-hidden="true">
+          <div class="o4-layer o4-firm">
+            <span class="o4-shape o4-base o4-semana-base"></span>
+            <span class="o4-shape o4-semana-puff-a"></span>
+            <span class="o4-shape o4-semana-puff-b"></span>
+          </div>
+          <div class="o4-layer o4-firm">
+            <span class="o4-drop"></span><span class="o4-drop"></span><span class="o4-drop"></span><span class="o4-drop"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="o4-focal" data-part="foco">
+        <p class="o4-place text-body-sm-medium" data-part="local">São Paulo</p>
+        <p class="o4-temp text-heading-3-bold" data-part="temperatura" aria-live="polite">24°</p>
+      </div>
+
+      <div class="o4-quiet" data-part="faixa">
+        <p class="o4-summary text-body-sm-medium" data-part="resumo" aria-live="polite">Sol entre nuvens. Sensação de 26° e umidade de 68%.</p>
+        <div class="o4-seg" data-part="seletor" aria-label="Período">
+          <span class="o4-seg-item text-body-sm-medium" data-part="segmento-agora" aria-current="true">Agora</span>
+          <span class="o4-seg-item text-body-sm-medium" data-part="segmento-hoje" aria-current="false">Hoje</span>
+          <span class="o4-seg-item text-body-sm-medium" data-part="segmento-semana" aria-current="false">Semana</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const days = [
+    { when: 'agora', temp: 24, icon: 'nuvem-sol', sky: 'Sol entre nuvens', avg: 22, feel: 26, hum: 68 },
+    { when: 'máxima de terça', temp: 28, icon: 'sol', sky: 'Ensolarado', avg: 23, feel: 30, hum: 52 },
+    { when: 'máxima de quarta', temp: 21, icon: 'chuva', sky: 'Chuva à tarde', avg: 19, feel: 21, hum: 88 },
+    { when: 'máxima de quinta', temp: 23, icon: 'nuvem', sky: 'Nublado', avg: 20, feel: 23, hum: 74 },
+  ]
+  const cells = [...root.querySelectorAll('.o1-day')]
+  const when = root.querySelector('.o1-when')
+  const temp = root.querySelector('.o1-temp')
+  const icon = root.querySelector('.o1-now .o1-icon')
+  const phrase = root.querySelector('.o1-phrase')
+  let at = 0, open = false
+  const render = () => {
+    const d = days[at]
+    cells.forEach((c, i) => c.setAttribute('aria-checked', String(i === at)))
+    when.textContent = d.when
+    temp.textContent = `${d.temp}°`
+    icon.src = `assets/o1-${d.icon}-40.png`
+    phrase.innerHTML = open ? `Sensação <b>${d.feel}°</b>, umidade <b>${d.hum}%</b>` : `${d.sky}, média <b>${d.avg}°</b>`
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (at > 0) at-- }
+    else if (e.key === 'ArrowRight') { if (at < days.length - 1) at++ }
+    else if (e.key === 'Enter') open = !open
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (open) open = false
+      else if (at > 0) at = 0
+      else return // estado inicial: Voltar sai do card
+    }
+    else return // ↑/↓ saem do card
+    e.preventDefault()
+    render()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const plot = root.querySelector('.o2-plot')
+  const cols = [...root.querySelectorAll('.o2-col')]
+  const labels = [...root.querySelectorAll('.o2-axis span')]
+  const views = [...root.querySelectorAll('.o2-view')]
+  const read = root.querySelector('.o2-read')
+  const hours = [
+    { t: 19, y: '14.29%' },
+    { t: 24, y: '58.93%' },
+    { t: 25, y: '67.86%' },
+    { t: 21, y: '32.14%' },
+  ]
+  const NOW = 1
+  let i = NOW
+  let view = 'curva'
+  const render = () => {
+    cols.forEach((c, k) => c.classList.toggle('is-on', k === i))
+    labels.forEach((l, k) => l.classList.toggle('is-on', k === i))
+    views.forEach((v) => v.classList.toggle('is-on', v.dataset.view === view))
+    plot.dataset.view = view
+    plot.style.setProperty('--o2-x', `${i * 25 + 12.5}%`)
+    plot.style.setProperty('--o2-y', hours[i].y)
+    read.textContent = `${hours[i].t}°`
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.target !== root) return
+    if (e.key === 'ArrowLeft') { if (i > 0) i--; else return }
+    else if (e.key === 'ArrowRight') { if (i < hours.length - 1) i++; else return }
+    else if (e.key === 'Enter') { view = view === 'curva' ? 'barras' : 'curva' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (view !== 'curva') view = 'curva'
+      else if (i !== NOW) i = NOW
+      else return
+    }
+    else return // ↑/↓ saem do card
+    e.preventDefault()
+    render()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const lines = [...root.querySelectorAll('.o3-line')]
+  const detail = root.querySelector('.o3-detail')
+  const text = root.querySelector('.o3-detail-text')
+  const series = root.querySelector('.o3-series')
+  // Cada linha: o valor, uma frase de duas linhas e quatro pontos (o de agora marcado).
+  const data = [
+    { value: 'Parece 26°', rest: ' agora: o ar úmido segura o calor da tarde.', points: [['12h', 25, '25°'], ['15h', 26, '26°', true], ['18h', 24, '24°'], ['21h', 21, '21°']] },
+    { value: '68%', rest: ' de umidade: ar abafado, sem chuva até a noite.', points: [['12h', 62, '62%'], ['15h', 68, '68%', true], ['18h', 74, '74%'], ['21h', 80, '80%']] },
+    { value: '22°', rest: ' de média hoje; a semana fica entre 20° e 23°.', points: [['Seg', 22, '22°', true], ['Ter', 21, '21°'], ['Qua', 23, '23°'], ['Qui', 20, '20°']] },
+  ]
+  let focus = 0
+  let open = -1
+
+  const fill = (i) => {
+    const d = data[i]
+    text.innerHTML = ''
+    const b = document.createElement('b')
+    b.className = 'o3-detail-value text-body-sm-bold'
+    b.textContent = d.value
+    text.append(b, d.rest)
+    const values = d.points.map((p) => p[1])
+    const min = Math.min(...values), max = Math.max(...values)
+    series.innerHTML = ''
+    for (const [label, v, shown, now] of d.points) {
+      const point = document.createElement('div')
+      point.className = 'o3-point'
+      if (now) point.dataset.now = ''
+      const value = document.createElement('span')
+      value.className = 'o3-point-value ' + (now ? 'text-body-sm-bold' : 'text-body-sm-medium')
+      value.textContent = shown
+      const bar = document.createElement('span')
+      bar.className = 'o3-bar'
+      const ratio = (0.35 + 0.65 * (v - min) / (max - min || 1)).toFixed(2)
+      bar.style.height = `calc(var(--dimension-spacing-core-2xl) * ${ratio})`
+      const name = document.createElement('span')
+      name.className = 'o3-point-label text-footnote-medium'
+      name.textContent = label
+      point.append(value, bar, name)
+      series.append(point)
+    }
+  }
+
+  const render = () => {
+    lines.forEach((line, i) => {
+      line.toggleAttribute('data-focus', i === focus)
+      line.toggleAttribute('data-open', i === open)
+      line.setAttribute('aria-expanded', String(i === open))
+    })
+    if (open >= 0) fill(open)
+    detail.hidden = open < 0
+  }
+
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (focus > 0) focus-- }
+    else if (e.key === 'ArrowRight') { if (focus < lines.length - 1) focus++ }
+    else if (e.key === 'Enter') { open = open === focus ? -1 : focus }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (open >= 0) open = -1
+      else if (focus > 0) focus = 0
+      else return // estado inicial: Voltar sai do card
+    }
+    else return // ↑/↓ saem do card
+    e.preventDefault()
+    render()
+  })
+  render()
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const segments = [
+    { id: 'agora', temp: '24°', text: 'Sol entre nuvens. Sensação de 26° e umidade de 68%.' },
+    { id: 'hoje', temp: '22°', text: 'Média do dia, com mínima de 18° e máxima de 27°.' },
+    { id: 'semana', temp: '23°', text: 'Média até domingo, com chuva na quinta e na sexta.' },
+  ]
+  const temp = root.querySelector('.o4-temp')
+  const summary = root.querySelector('.o4-summary')
+  const items = [...root.querySelectorAll('.o4-seg-item')]
+  const scenes = [...root.querySelectorAll('.o4-scene')]
+  let current = 0
+  const render = () => {
+    const seg = segments[current]
+    temp.textContent = seg.temp
+    summary.textContent = seg.text
+    items.forEach((item, i) => item.setAttribute('aria-current', String(i === current)))
+    scenes.forEach((scene) => {
+      const on = scene.dataset.scene === seg.id
+      scene.classList.toggle('o4-on', on)
+      scene.setAttribute('aria-hidden', String(!on))
+    })
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (current > 0) { current -= 1; render() } }
+    else if (e.key === 'ArrowRight') { if (current < segments.length - 1) { current += 1; render() } }
+    else return // Enter não faz nada; Voltar e ↑/↓ saem do card
+    e.preventDefault()
+  })
+})()
+</script>
+</body>
+</html>

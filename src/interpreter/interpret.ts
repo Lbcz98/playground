@@ -57,7 +57,7 @@ import {
   sidePropFor,
   unanchorableTypes,
 } from '@/shared/design-system/screen-layers'
-import { compileManifestSchemas, compiledDefaultProps, propRuleId, propsToZod } from '@/shared/design-system/manifest-zod'
+import { compileManifestSchemas, compiledDefaultProps, propRuleId, propsToZod, type ObjectSchema } from '@/shared/design-system/manifest-zod'
 import { SCREENFLOW_MANIFEST } from '@/shared/design-system/screenflow-manifest'
 import {
   FRAME,
@@ -95,7 +95,6 @@ type InterpretResult =
 
 const SUPPORTED_VERSION = 1
 
-type ObjectSchema = z.ZodObject<z.ZodRawShape>
 
 interface InterpretCtx {
   manifest: DesignSystemManifest

@@ -1,3 +1,4 @@
+import { browserDescribe } from './browser'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -42,19 +43,14 @@ const probe = (name: string, changed: Record<string, string>, ...flags: string[]
   for (const [file, code] of Object.entries({ 'flow.ts': FLOW, 'home.tsx': HOME, 'rail.tsx': RAIL, 'detail.tsx': DETAIL, ...changed }))
     writeFileSync(`${dir}/${file}`, code)
   const r = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/flow-probe.ts', '--', dir, ...flags], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
-  const noBrowser = /Chromium could not start|Playwright is not installed/.test(r.stderr)
-  if (noBrowser) {
-    expect(r.status, 'a flow that was not played does not pass').toBe(1)
-    console.warn('flow probe: no Chromium, skipped')
-  }
-  const report = !noBrowser && flags.includes('--json') ? (JSON.parse(r.stdout) as ProbeReport) : null
-  return { skipped: noBrowser, code: r.status, stdout: r.stdout, stderr: r.stderr, report, rules: [...new Set(report?.problems.map((p) => p.rule))].sort() }
+  expect(r.stderr, 'browser coverage must run (SKIP_BROWSER_TESTS=1 opts out locally)').not.toMatch(/Chromium could not start|Playwright is not installed/)
+  const report = flags.includes('--json') ? (JSON.parse(r.stdout) as ProbeReport) : null
+  return { code: r.status, stdout: r.stdout, stderr: r.stderr, report, rules: [...new Set(report?.problems.map((p) => p.rule))].sort() }
 }
 
-describe('check:flow plays a flow folder', () => {
+browserDescribe('check:flow plays a flow folder', () => {
   it('passes a clean flow: every state walked, forward and back', () => {
     const r = probe('clean', {}, '--json')
-    if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
     expect(r.report?.states).toEqual(['home', 'rail', 'detail'])
     // up, esc, enter, esc, and down (back to a state already behind), plus the back button entered twice (Enter, click).
@@ -64,7 +60,6 @@ describe('check:flow plays a flow folder', () => {
 
   it('focus.single: two focused elements in one state', () => {
     const r = probe('two-focus', { 'rail.tsx': swap(RAIL, 'title="Opções de áudio" interactionState="selected"', 'title="Opções de áudio" interactionState="focus"') }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['focus.single'])
     expect(r.report?.problems[0]).toMatchObject({ rule: 'focus.single', state: 'rail' })
     expect(r.report?.problems[0].message).toMatch(/2 elements are drawn focused .*<InteractivityButton>.*rest the others/)
@@ -74,7 +69,6 @@ describe('check:flow plays a flow folder', () => {
   it('level.initial-focus: level 3 entered with the focus already on the card (the audited case)', () => {
     const detail = swap(swap(DETAIL, BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')), CARD_RESTING, CARD_RESTING.replace('default', 'focus'))
     const r = probe('card-start', { 'detail.tsx': detail }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['level.initial-focus'])
     expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'detail' })
     expect(r.report?.problems[0].message).toMatch(/focus is on <ContentCard>, not on <CloseButton> or <RoundedButton>/)
@@ -83,7 +77,6 @@ describe('check:flow plays a flow folder', () => {
 
   it('the back button of level 3 is Back: Enter while focused, and a click', () => {
     const r = probe('back-button', {}, '--json')
-    if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
     // up, esc, then enter and back by Enter, enter and back by click, enter, esc, down.
     expect(r.report?.presses).toBeGreaterThanOrEqual(7)
@@ -93,7 +86,6 @@ describe('check:flow plays a flow folder', () => {
     const card = swap(swap(DETAIL, BACK_FOCUSED, BACK_FOCUSED.replace('focus', 'default')), CARD_RESTING, CARD_RESTING.replace('default', 'focus'))
     const flow = FLOW.replace("    { from: 'rail', key: 'down', to: 'home' },", "    { from: 'rail', key: 'down', to: 'home' },\n    { from: 'detail', key: 'up', to: 'card' },\n    { from: 'card', key: 'down', to: 'detail' },")
     const r = probe('card-after', { 'flow.ts': flow, 'card.tsx': card }, '--json')
-    if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
     expect(r.report?.states).toEqual(['home', 'rail', 'detail', 'card'])
     expect(r.code).toBe(0)
@@ -101,7 +93,6 @@ describe('check:flow plays a flow folder', () => {
 
   it('level.initial-focus: level 2 with the focus on a content card, not on a rail button', () => {
     const r = probe('wrong-start', { 'rail.tsx': WRONG_RAIL }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['level.initial-focus'])
     expect(r.report?.problems[0]).toMatchObject({ rule: 'level.initial-focus', state: 'rail' })
     expect(r.report?.problems[0].message).toMatch(/focus is on <ContentCard>, not on <InteractivityButton>/)
@@ -120,7 +111,6 @@ describe('check:flow plays a flow folder', () => {
 }
 `
     const r = probe('two-step', { 'flow.ts': flow, 'bug.tsx': swap(HOME, 'focusedItem="program"', 'focusedItem="channel-bug"') }, '--json')
-    if (r.skipped) return
     expect(r.report?.problems, r.stderr).toEqual([])
     expect(r.report?.states).toEqual(['bug', 'home', 'hidden'])
     expect(r.code).toBe(0)
@@ -128,7 +118,6 @@ describe('check:flow plays a flow folder', () => {
 
   it('both, as text: the card focused next to the focused button (the audited case)', () => {
     const r = probe('card-and-button', { 'detail.tsx': swap(DETAIL, CARD_RESTING, CARD_RESTING.replace('default', 'focus')) })
-    if (r.skipped) return
     expect(r.stdout).toMatch(/\[focus\.single\] detail: 2 elements/)
     expect(r.stdout).toMatch(/\[level\.initial-focus\] detail: level 3/)
     expect(r.code).toBe(1)
@@ -140,7 +129,6 @@ describe('check:flow plays a flow folder', () => {
 
   it('flow.remount: a state whose root is not the <Screen> itself', () => {
     const r = probe('wrapped', { 'detail.tsx': swap(DETAIL, DEFAULT, 'const Wrapped = (): ReactNode => <ScreenView />\nexport default Wrapped') }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['flow.remount'])
     expect(new Set(r.report?.problems.map((p) => p.transition))).toEqual(new Set(['rail —enter→ detail', 'detail —back→ rail']))
     expect(r.code).toBe(1)
@@ -158,7 +146,6 @@ describe('check:flow plays a flow folder', () => {
 const State = (): ReactNode => <Late />
 export default State`
     const r = probe('late', { 'detail.tsx': swap(DETAIL, DEFAULT, late) }, '--json')
-    if (r.skipped) return
     expect(r.rules).toContain('flow.blank-frame')
     expect(r.report?.problems.find((p) => p.rule === 'flow.blank-frame')).toMatchObject({ state: 'detail', transition: 'rail —enter→ detail' })
     expect(r.code).toBe(1)
@@ -166,7 +153,6 @@ export default State`
 
   it('flow.transition: a key that leads to a state that does not load', () => {
     const r = probe('ghost', { 'flow.ts': swap(FLOW, "{ from: 'rail', key: 'down', to: 'home' }", "{ from: 'rail', key: 'down', to: 'ghost' }") }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['flow.transition'])
     expect(r.report?.problems[0]).toMatchObject({ state: 'ghost', transition: 'rail —down→ ghost' })
     expect(r.code).toBe(1)
@@ -186,7 +172,6 @@ export default State`
 `
     const footer = '<ContentCardFooter caption="Atualizado há 1 min" />'
     const r = probe('own-keys', { 'detail.tsx': trap + swap(DETAIL, footer, `${footer}\n<Trap />`) }, '--json')
-    if (r.skipped) return
     expect(r.rules).toEqual(['flow.focus-memory'])
     expect(r.report?.problems[0]).toMatchObject({ state: 'detail', transition: 'detail —back→ rail' })
     expect(r.report?.problems[0].message).toMatch(/Back on "detail" showed "detail", not "rail"/)
@@ -195,7 +180,7 @@ export default State`
 })
 
 // A declaration counts where check:laws reads it: on the component's comment (and the root element), nowhere else in the file.
-describe('level.initial-focus: check:flow accepts the declaration only where check:laws does', () => {
+browserDescribe('level.initial-focus: check:flow accepts the declaration only where check:laws does', () => {
   const D = '@deviation level.initial-focus: the card opens focused'
   const placements: Record<string, string> = {
     'in the component JSDoc': swap(WRONG_RAIL, ' * ScreenView —', ` * ${D}\n * ScreenView —`),
@@ -208,7 +193,6 @@ describe('level.initial-focus: check:flow accepts the declaration only where che
   for (const [where, rail] of Object.entries(placements)) {
     it(`${where}: check:laws and check:flow agree`, () => {
       const r = probe(`decl-${where.replace(/\W+/g, '-')}`, { 'rail.tsx': rail })
-      if (r.skipped) return
       const laws = spawnSync('npx', ['vite-node', '--config', 'vitest.config.ts', 'scripts/check-laws-cli.ts', '--', `${DIR}/decl-${where.replace(/\W+/g, '-')}/rail.tsx`, '--no-render'], { encoding: 'utf8', cwd: ROOT, env: { ...process.env, VITEST: '' } })
       // The state file alone: this WRONG_RAIL has no rail buttons, so flow.ts has its own (unrelated) finding under check:laws.
       const lawsBlock = /^\S+\/rail\.tsx  \[/m.test(laws.stdout)
@@ -218,14 +202,13 @@ describe('level.initial-focus: check:flow accepts the declaration only where che
   }
 })
 
-describe('flow.rail-side: a warning that reaches the designer without blocking', () => {
+browserDescribe('flow.rail-side: a warning that reaches the designer without blocking', () => {
   // Level 3 on the left rail's model, but the Screen keeps the default focusSide: the back button is drawn on the right.
   const MISMATCH = swap(DETAIL, 'model="interactivity-cards-right"', 'model="interactivity-cards-left"')
   const DECLARED = swap(MISMATCH, ' * ScreenView —', ' * @deviation flow.rail-side: the back button stays where the thumb is\n * ScreenView —')
 
   it('--json: a warning on the state, in advisories next to findings; nothing blocks, exit 0', () => {
     const r = probe('rail-side', { 'detail.tsx': MISMATCH }, '--json')
-    if (r.skipped) return
     expect(r.report?.problems).toEqual([])
     expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side', state: 'detail' }])
     const json = JSON.parse(r.stdout)
@@ -236,7 +219,6 @@ describe('flow.rail-side: a warning that reaches the designer without blocking',
 
   it('text: marked as a warning, the flow still passes', () => {
     const r = probe('rail-side-text', { 'detail.tsx': MISMATCH })
-    if (r.skipped) return
     expect(r.stdout).toMatch(/\[flow\.rail-side\] \(warning\) detail: "interactivity-cards-left" puts the persistents rail on the left/)
     expect(r.stdout).toMatch(/ok — .*\n.*1 warning/)
     expect(r.code).toBe(0)
@@ -244,14 +226,12 @@ describe('flow.rail-side: a warning that reaches the designer without blocking',
 
   it('a convention is not declarable (deviations.ts: it needs no declaration), so @deviation does not silence it', () => {
     const r = probe('rail-side-declared', { 'detail.tsx': DECLARED }, '--json')
-    if (r.skipped) return
     expect(r.report?.warnings).toMatchObject([{ rule: 'flow.rail-side' }])
     expect(r.code).toBe(0)
   }, 120_000)
 
   it('the sides agreeing is silent', () => {
     const r = probe('rail-side-ok', { 'detail.tsx': swap(MISMATCH, 'level={3}', 'level={3} focusSide="left"') }, '--json')
-    if (r.skipped) return
     expect(r.report?.warnings).toEqual([])
     expect(r.code).toBe(0)
   }, 120_000)

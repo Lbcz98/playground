@@ -16,6 +16,8 @@ import './ui-kit.css'
 export type WideButtonStatus = Extract<InteractionState, 'default' | 'focus' | 'loading' | 'disabled'>
 
 interface WideButtonProps {
+  /** Use `span` inside a navigation `<Link>`; actions remain buttons. */
+  as?: 'button' | 'span'
   /** Default `focus`. */
   interactionState?: WideButtonStatus
   /** The call to action, e.g. "Assistir". */
@@ -33,6 +35,7 @@ function hasRestingBorder(state: WideButtonStatus): boolean {
 
 /** The pill call-to-action of a screen — text with optional icons. */
 export function WideButton({
+  as = 'button',
   interactionState,
   label,
   iconLeft = false,
@@ -42,15 +45,15 @@ export function WideButton({
   const state = interactionState ?? 'focus'
   const isLoading = state === 'loading'
   const isDisabled = state === 'disabled'
+  const Element = as
 
   return (
-    <button
-      className="sfs-wide-button sfs-motion sfs-focusable"
+    <Element
+      className={`sfs-wide-button sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-state={state}
-      type="button"
-      disabled={isDisabled}
+      {...(as === 'button' ? { type: 'button' as const, disabled: isDisabled } : {})}
       aria-busy={isLoading || undefined}
-      onClick={isLoading ? undefined : onClick}
+      onClick={as === 'button' && !isLoading ? onClick : undefined}
     >
       {state === 'focus' && <FocusRing shape="pill" />}
       <span className="sfs-wide-button-content">
@@ -67,6 +70,6 @@ export function WideButton({
         )}
       </span>
       {hasRestingBorder(state) && <RestingBorder shape="pill" />}
-    </button>
+    </Element>
   )
 }
