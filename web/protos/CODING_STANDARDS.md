@@ -21,6 +21,24 @@ Declara um padrão que o usuário pediu para quebrar. Lei não se declara; corri
 Só declare quando o pedido veio do usuário, em palavras, e cite-o: `@deviation <ruleId>: pedido: "<frase do usuário>". <por quê>`. Sem pedido, siga o padrão; na dúvida, pergunte antes de escrever.
 Dados e arquivos próprios: importe de dentro da sua pasta (`./dados`, `./components/Etapa`). Arquivo sem JSX não passa pelo filtro de valores brutos; o que o checador não lê aparece como "não lido" e a medição renderizada continua valendo.
 
+## `@exploration`
+Uma opção explorada (`docs/explorations/` ou `design-brain/toolbox/references/`) e ajustada no `/tune` (o `<article>` tem `data-tuned`) vira tela **como foi ajustada**: o ajuste do designer é a premissa, e o que ele fere no sistema é dito, não escondido. A peça vai num componente local em `components/` com `@exploration <slug>#<N>` no JSDoc, junto do `@proposal`:
+
+```tsx
+/**
+ * @exploration seletor-card#3
+ * @proposal
+ * why: ...
+ */
+```
+
+- Nesse arquivo, valor bruto, `style` (que é um valor bruto) e elemento nativo (`tokens.only`, `component.api`) saem como **ferimento** em `check:laws` (`exploration … breaks …`), não como bloqueio. Aparecem no relatório do agente e no comentário do PR, onde o time decide se viram token ou componente.
+- O marcador só vale em arquivo de `components/`, e a exploração que ele nomeia precisa estar no repositório e ter `data-tuned`: sem isso, `check:laws` bloqueia como antes. Suba a exploração junto com o protótipo. Nunca na tela (o arquivo com `<Screen>`).
+- O `proto-reviewer` confere que cada valor veio da opção, não de escolha do agente.
+- Foco: o componente marcado, recebendo `interactionState="focus"`, conta como o elemento focado (não há holder do kit dentro dele). As regras de foco continuam valendo para a tela.
+- Camadas, grade e fluxo continuam bloqueando.
+- O `@proposal` de um componente `@exploration` é preenchido com o que a exploração já diz (brief, spec); sem link do Figma na exploração, omita `figma` em vez de inventar. Token mais próximo de um valor: `npm run nearest-token -- "144px" "#e10600"`.
+
 ## `@reuse` e `@proposal`
 Vão para o comentário do PR, onde o time decide se viram componente do kit: dê motivo real.
 

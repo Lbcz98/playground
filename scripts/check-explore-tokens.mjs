@@ -45,7 +45,8 @@ for (const m of outside.matchAll(/(?<![\w-])((?:min-|max-)?(?:width|height)):\s*
 const FAMILIES = ['card', 'card-expanded', 'content-card']
 const px = v => { const r = value(v?.trim()); return /^\d+(\.\d+)?px$/.test(r ?? '') ? parseFloat(r) : undefined }
 const own = f => ({ width: px(`var(${SIZE}${f}-width)`), radius: px(`var(--dimension-radius-semantic-${f})`) })
-for (const [, , decls] of outside.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+// Only the block is matched: a leading `([^{}]+)` selector group backtracked from every character (24 s on a 250 KB page).
+for (const [, decls] of outside.matchAll(/\{([^{}]*)\}/g)) {
   const get = p => decls.match(new RegExp(`(?<![\\w-])${p}:\\s*([^;]+)`))?.[1]
   const [w, r] = [px(get('width')), px(get('border-radius'))]
   const fam = FAMILIES.find(f => own(f).width === w)

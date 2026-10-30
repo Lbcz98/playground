@@ -33,7 +33,7 @@ tests follow the repo. These are decisions, not gaps.
 
 | The brief says | The repo does | Why |
 | --- | --- | --- |
-| Widgets are 352px wide with a 24px radius | Content Card: `content-card-width` 288, `radius.semantic.content-card` 40, inset `lg` 24 | 40 matches Figma's Button Tall (decided 2026-09-21). Tests read the values from the tokens, never as numbers. |
+| Widgets are 352px wide with a 24px radius | Content Card: `content-card-width` 288, `radius.semantic.content-card` 40, inset `xl` 32 (`card-inset-expanded`) | 40 matches Figma's Button Tall (decided 2026-09-21). Tests read the values from the tokens, never as numbers. |
 | The Blueprint carries `focus: 'left' \| 'right' \| 'neutral'` | No focus field. The canvas reads focus from the rendered screen, and the model only marks `anchor: true`. | A TV screen always has something focused (decided 2026-09-15). The validator now **rejects** a `focus` key (G3.4). |
 | `.storybook/preview.js` | `.storybook/preview.tsx` | — |
 | `docs.json` | Storybook 10.6 writes `manifests/components.json` (react-docgen per component). No `docs.json` is emitted for this project. | `components.json` is what carries the docgen. The importer tells you to use it if you hand it an index or docs file (E2.6). |
@@ -108,7 +108,7 @@ covers 113 stories, 14 Content Cards and 6 canvas surfaces.
 | --- | --- | --- | --- |
 | V1 | Pixels | 0 stories changed beyond the per-channel tolerance of 8 | any changed, new, removed, erroring or deprecated story |
 | V2 | The 8pt grid on rendered padding and gaps | every value is 0, 4, 12 or a multiple of 8 | an off-grid value whose inline style doesn't take it from a listed token |
-| V3 | Content Card geometry | width = `--dimension-size-semantic-content-card-width`, radius = `--dimension-radius-semantic-content-card`, inset on all four sides = `--dimension-spacing-core-lg` | any mismatch |
+| V3 | Content Card geometry | width = `--dimension-size-semantic-content-card-width`, radius = `--dimension-radius-semantic-content-card`, inset on all four sides = `--dimension-spacing-semantic-card-inset-expanded` | any mismatch |
 | V4 | No literal values in use | no hex, `rgb()`, `hsl()` or non-zero px left in an inline style once `var()` is stripped (token definitions like `--sfs-color-surface: …` are allowed) | a hard-coded value |
 | V5 | The canvas theme stays on the canvas | every `[data-canvas-theme="active"]` surface carries `--sfs-*` vars and `:root` carries none | a leak into the app shell, or a surface with no theme |
 

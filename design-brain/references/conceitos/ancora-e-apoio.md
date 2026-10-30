@@ -21,7 +21,8 @@ A hierarquia de um card vem de tamanho e peso, não de cor. Um só dado é a ân
 - Número e unidade juntos: o número pesado, a unidade em cinza.
 
 ## Uso no kit
-- Âncora: `.text-heading-3-bold`. Apoio: `.text-body-sm-medium` (2×) ou `.text-footnote-medium` (cerca de 2,3×). Número curto: `.text-heading-3-bold` sobre `.text-caption-medium` (cerca de 2,8×).
+- Âncora numérica focal (temperatura, placar, preço): `.text-display-lg-*` (até 3 caracteres) ou `.text-display-md-*` (até 5), em regular, medium ou bold; um só por card, só número e unidade, `font-variant-numeric: tabular-nums`; o `°` sobe ao topo dos algarismos com metade do tamanho, as outras unidades ficam na linha de base. A razão de 2× se cumpre por construção (`.text-display-lg-*` sobre `.text-body-sm-*` passa de 5×).
+- Âncora de card comum: `.text-heading-3-bold`. Apoio: `.text-body-sm-medium` (2×) ou `.text-footnote-medium` (cerca de 2,3×). Número curto: `.text-heading-3-bold` sobre `.text-caption-medium` (cerca de 2,8×).
 - Pergunta ou título que acompanha a âncora: `.text-body-sm-bold` ou `.text-body-sm-medium`, a metade de `.text-heading-3-bold`. Os degraus `.text-body-md-*` (cerca de 1,75×) e `.text-heading-5-*` (cerca de 1,4×) ficam perto demais e disputam com ela.
 - Fileira de itens iguais: os nomes todos em `.text-body-sm-bold` (ou todos em `.text-body-sm-medium`), do mesmo tamanho e todos em `--color-semantic-functional-text-primary`; `text-muted` não entra numa opção. A frase que explica o item em foco fica em `.text-body-md-regular` ou `.text-body-md-medium` e em `--color-semantic-functional-text-muted`, um branco mais suave que o do nome, o mesmo em todas as opções e estados. O escolhido inverte o fundo para `--color-semantic-functional-text-primary` e o texto para `--color-semantic-functional-text-inverse`; o foco é o anel do kit, outra linguagem (veja `foco-e-selecao`).
 - Dimensione com a classe `.text-*`, não com `font-size` à mão.
@@ -29,6 +30,7 @@ A hierarquia de um card vem de tamanho e peso, não de cor. Um só dado é a ân
 - Variação positiva ou negativa: `--color-semantic-functional-status-success` ou `-status-error`, e só nela.
 
 ## Ajuste
+- Fileira de escolha com um item invertido: o designer aceita as opções não escolhidas em `--color-semantic-functional-text-muted` (o branco mais suave que ainda passa de 4,5:1), nunca em `text-secondary`/`text-subtle` (abaixo de 4,5:1 sobre o fundo elevado). Isso relaxa "nenhuma opção apagada": a opção continua legível, só recua um degrau.
 - Em card pequeno, 2× pode não caber; nunca vá abaixo de cerca de 1,5×, onde a hierarquia some.
 - Quando a própria frase é a resposta (um título-conclusão), a âncora é ela e o número vira apoio. Isso muda a hierarquia inteira, então decida antes de dimensionar e confira com a prioridade do brief.
 - Entre os itens de uma fileira de iguais a razão de 2× não se aplica: eles são iguais de propósito. Entre o nome e a frase que o explica a razão também não manda: a frase é texto de ler, não apoio, e fica no tamanho de leitura (`.text-body-md-*`) e em `text-muted`, ainda que a razão caia a cerca de 1,75×.

@@ -17,7 +17,7 @@ function check(inner: string, css = '', attrs = '', args: string[] = []): { code
   try { return { code: 0, out: execFileSync('node', ['scripts/check-explore-layout.mjs', folder, ...args], { encoding: 'utf8' }) } }
   catch (e) { const x = e as { status: number; stderr: string }; return { code: x.status, out: x.stderr } }
 }
-const card = 'background: var(--color-semantic-functional-background-elevated); border-radius: var(--dimension-radius-semantic-card); padding: var(--dimension-spacing-semantic-card-inset); width: var(--dimension-size-semantic-card-width); min-height: 100px;'
+const card = 'background: var(--color-semantic-functional-background-elevated); border-radius: var(--dimension-radius-semantic-card); padding: var(--dimension-spacing-semantic-card-inset); width: var(--dimension-size-semantic-card-width); line-height: 32px;'
 
 describe.skipIf(!chromiumUp)('check-explore-layout', () => {
   it('passes a card made of the kit surface', () => {
@@ -39,6 +39,11 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c" style="width:400px;flex:none"><b>x</b></div>', `.c{${card}}`).out).toContain('escapa')
     // The inline span: its absolute layers have nothing to size against and are drawn at the page's top-left, outside the card.
     expect(check('<span class="c" style="position:static"><i style="position:absolute;top:-80px;left:0;width:50px;height:50px;background:red"></i><b>x</b></span>', `.c{${card}}`).out).toContain('escapa')
+  })
+  it('asks a 40px-radius surface for the inset its width says it is: 24 on the expanded card, 32 on the Content Card', () => {
+    const big = `${card} border-radius: var(--dimension-radius-semantic-content-card);`
+    expect(check('<div class="c"><span>24°</span></div>', `.c{${big} width: var(--dimension-size-semantic-card-expanded-width)}`)).toEqual({ code: 0, out: 'ok\n' })
+    expect(check('<div class="c"><span>24°</span></div>', `.c{${big} width: var(--dimension-size-semantic-content-card-width)}`).out).toContain('--dimension-spacing-semantic-card-inset-expanded')
   })
   it('names a card that is not a kit width, squeezed or not, and a fixed height its content does not fill', () => {
     expect(check('<div class="c"><span>24°</span></div>', `.c{${card} width: 224px}`).out).toContain('de largura')
@@ -75,11 +80,13 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c" style="width:400px;flex:none"><b>x</b></div><script>setTimeout(() => document.querySelector(".c").style.width = "", 200)</script>', `.c{${card}}`).code).toBe(0)
     expect(check('<div class="c"><b class="in">x</b></div>', `.c{${card}} .in{display:block;animation:in 5s} @keyframes in{from{transform:translateX(600px)}}`).code).toBe(0)
   })
-  it('with --shots, shoots each option from the same render once it is ok, and one more per --keys key', () => {
+  it('with --shots, shoots each option from the same render once it is ok, and one more per --keys key, listing one sheet', () => {
     const shots = join(dir, 'shots')
     const keyed = '<div class="c"><b>Hoje</b></div><script>const o = document.querySelector(".opt"); o.tabIndex = 0; o.addEventListener("keydown", (e) => { if (e.key === "Enter") o.querySelector("b").textContent = "Amanhã, com chuva forte à tarde" })</script>'
     const r = check(keyed, `.c{${card}}`, '', ['--shots', shots, '--keys', 'ArrowRight,Enter'])
-    expect(r.out.split('\n').filter(Boolean)).toEqual(['ok', 'opcao-1.png', 'opcao-1-1-ArrowRight.png', 'opcao-1-2-Enter.png'].map((f, i) => (i ? join(shots, f) : f)))
+    expect(r.out.split('\n').filter(Boolean)).toEqual(['ok', join(shots, 'opcao-1-folha.png')])
+    for (const f of ['opcao-1.png', 'opcao-1-1-ArrowRight.png', 'opcao-1-2-Enter.png']) expect(existsSync(join(shots, f)), f).toBe(true)
+    expect(check(keyed, `.c{${card}}`, '', ['--shots', join(dir, 'shots-rest')]).out.split('\n').filter(Boolean)).toEqual(['ok', join(dir, 'shots-rest', 'opcao-1.png')])
     // ArrowRight does nothing here, Enter changes the text: the shots say so.
     expect(readFileSync(join(shots, 'opcao-1-1-ArrowRight.png'))).toEqual(readFileSync(join(shots, 'opcao-1.png')))
     expect(readFileSync(join(shots, 'opcao-1-2-Enter.png'))).not.toEqual(readFileSync(join(shots, 'opcao-1.png')))

@@ -18,11 +18,11 @@ it('advises on literal sizes equal or near a kit size, and still passes', () => 
 
 it('ignores px inside calc(), uses a 5% band, and flags a family mismatch', () => {
   const dir = mkdtempSync(join(tmpdir(), 'explore-'))
-  writeFileSync(join(dir, 'index.html'), '<style>.a { width: calc(100% - 288px); } .b { height: 260px; } .c { width: 208px; border-radius: var(--dimension-radius-semantic-card); } .d { width: 208px; border-radius: var(--dimension-radius-semantic-card-expanded); }</style>')
+  writeFileSync(join(dir, 'index.html'), '<style>.a { width: calc(100% - 288px); } .b { height: 224px; } .c { width: 208px; border-radius: var(--dimension-radius-semantic-card); } .d { width: 208px; border-radius: var(--dimension-radius-semantic-card-expanded); }</style>')
   const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
   expect(run.status).toBe(0)
   expect(run.stdout).not.toContain('288px is kit size')
-  expect(run.stdout).not.toContain("260px")
+  expect(run.stdout).not.toContain("224px")
   expect(run.stdout).toContain('width 208px is the card-expanded family (radius 40px) but border-radius is 24px')
   expect(run.stdout.match(/the .* family/g)).toHaveLength(1)
 })
@@ -48,4 +48,14 @@ it('treats a tuned option as data: spec colors and `/* tune */` values are advis
   writeFileSync(join(dir, 'index.html'), '<style>.a { background: #112233; padding: 14px; }</style>')
   const bad = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
   expect(bad.status).toBe(1)
+})
+
+it('stays fast on a page the size of a finished exploration (a backtracking regex once took 25 s on 250 KB)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'explore-'))
+  const rules = Array.from({ length: 2500 }, (_, i) => `[data-option="${(i % 4) + 1}"] .piece-${i} { display: block; width: 40%; padding: var(--dimension-spacing-core-sm); color: var(--color-semantic-functional-text-primary); }`).join('\n')
+  writeFileSync(join(dir, 'index.html'), `<style>\n${rules}\n</style>${'<div class="x">texto</div>'.repeat(9000)}`)
+  const start = Date.now()
+  const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+  expect(run.status).toBe(0)
+  expect(Date.now() - start).toBeLessThan(5000)
 })

@@ -24,7 +24,7 @@ describe('<ContentCard>', () => {
   it('takes its width, inset and radius from the tokens, and hugs up to the height unless one is set', () => {
     const card = rule('.sfs-content-card')
     expect(card).toContain('width: var(--dimension-size-semantic-content-card-width);')
-    expect(card).toContain('padding: var(--dimension-spacing-core-lg);')
+    expect(card).toContain('padding: var(--dimension-spacing-semantic-card-inset-expanded);')
     expect(card).toContain('border-radius: var(--dimension-radius-semantic-content-card);')
     expect(rule('.sfs-content-card:not([data-sized])')).toContain('max-height: var(--_height);')
     expect(rule('.sfs-content-card[data-sized]')).toContain('height: var(--_height);')
@@ -39,6 +39,17 @@ describe('<ContentCard>', () => {
     )
     const focused = html(<ContentCard interactionState="focus" />)
     expect(focused).toContain('data-state="focus"')
+    expect(focused).toContain('data-focus-ring')
+  })
+
+  it('with an image keeps its own fill in every state and shows the picture as delivered', () => {
+    expect(rule('.sfs-content-card[data-image]')).toContain(
+      'background-color: var(--color-semantic-functional-background-translucent);',
+    )
+    expect(css).not.toMatch(/\.sfs-content-card-image\s*\{[^}]*opacity/)
+    expect(css).not.toMatch(/> \.sfs-content-card-image\s*\{[^}]*opacity/)
+    const focused = html(<ContentCard interactionState="focus" image="a.png" imageSize="M" />)
+    expect(focused).toContain('data-image="M"')
     expect(focused).toContain('data-focus-ring')
   })
 

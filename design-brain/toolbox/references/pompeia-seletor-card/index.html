@@ -95,6 +95,106 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
 [data-option="2"] .opt:focus .seg[aria-selected="true"]::after,
 [data-option="2"]:focus .seg[aria-selected="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
 @keyframes o3-fade { from { opacity: 0; } to { opacity: 1; } }
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-bg: var(--color-semantic-functional-background-elevated);
+  --art-glow: var(--color-semantic-theme-noite-light);
+  --art-top: var(--color-semantic-theme-noite-dark);
+  --art-bottom: var(--color-semantic-functional-background-primary);
+  --art-x: 72%;
+  --art-y: 20%;
+  --art-reach: 50%;
+  --mount-color: var(--color-semantic-functional-background-primary);
+  --mount-bottom: 18%;
+  --mount-height: 44%;
+  --scrim-opacity: 1;
+  --body-gap: var(--dimension-spacing-core-sm);
+  --body-top: 144px;
+  --title-size: var(--typography-font-size-3xl);
+  --title-lh: var(--typography-line-height-normal);
+  --title-ls: var(--typography-letter-spacing-tight);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --info-gap: var(--dimension-spacing-core-2xs);
+  --when-gap: var(--dimension-spacing-core-xs);
+  --time-size: var(--typography-font-size-md);
+  --time-color: var(--color-semantic-functional-text-primary);
+  --rating-size: var(--typography-font-size-md);
+  --rating-box: var(--dimension-size-semantic-icon-sm);
+  --rating-pad: var(--dimension-spacing-core-3xs);
+  --rating-border: var(--dimension-border-width-semantic-divider);
+  --rating-radius: var(--dimension-radius-core-sm);
+  --rating-color: var(--color-semantic-functional-text-primary);
+  --state-size: var(--typography-font-size-md);
+  --state-gap: var(--dimension-spacing-core-2xs);
+  --state-key-color: var(--color-semantic-functional-text-primary);
+  --dot-size: var(--dimension-spacing-core-2xs);
+  --dot-color: var(--color-semantic-functional-status-live);
+  --bar-gap: var(--dimension-spacing-core-3xs);
+  --bar-pad: var(--dimension-spacing-core-3xs);
+  --bar-radius: var(--dimension-radius-semantic-pill);
+  --seg-height: var(--dimension-size-semantic-control-height);
+  --seg-radius: var(--dimension-radius-core-xl);
+  --seg-size: var(--typography-font-size-md);
+  --seg-color: var(--color-semantic-functional-text-primary);
+  --seg-on-bg: var(--color-semantic-functional-text-primary);
+  --seg-on-color: var(--color-semantic-functional-background-primary);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: 0px;
+  --grow: 1;
+  --glow-opacity: 0;
+  --glow-blur: 12px;
+  --glow-color: var(--color-semantic-focus-outline);
+  --dur-seg: 150ms;
+  --ease-seg: cubic-bezier(0.2, 0, 0, 1);
+  --dur-content: 150ms;
+  --ease-content: cubic-bezier(0.2, 0, 0, 1);
+  --dur-focus: 150ms;
+  --ease-focus: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="3"] .card { position: relative; display: flex; flex-direction: column; width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius); background: var(--card-bg); overflow: hidden; color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .art { position: absolute; inset: 0; display: block; background: radial-gradient(circle at var(--art-x) var(--art-y), var(--art-glow), transparent var(--art-reach)), linear-gradient(180deg, var(--art-top), var(--art-bottom)); }
+[data-option="3"] .mount { position: absolute; left: 0; right: 0; bottom: var(--mount-bottom); height: var(--mount-height); display: block; background: var(--mount-color); clip-path: polygon(0 100%, 0 78%, 22% 62%, 38% 70%, 52% 30%, 60% 28%, 70% 52%, 84% 60%, 100% 72%, 100% 100%); }
+[data-option="3"] .scrim { position: absolute; inset: 0; display: block; background: var(--gradient-complementary-dark); opacity: var(--scrim-opacity); }
+[data-option="3"] .body { position: relative; display: flex; flex-direction: column; gap: var(--body-gap); padding-top: var(--body-top); }
+[data-option="3"] .title { margin: 0; color: var(--title-color); font-size: var(--title-size); line-height: var(--title-lh); letter-spacing: var(--title-ls); text-wrap: balance; }
+[data-option="3"] .info { display: flex; flex-direction: column; gap: var(--info-gap); }
+[data-option="3"] .when { display: flex; align-items: center; gap: var(--when-gap); }
+[data-option="3"] .time { display: grid; color: var(--time-color); font-size: var(--time-size); font-variant-numeric: tabular-nums; }
+[data-option="3"] .rating { display: flex; align-items: center; justify-content: center; width: var(--rating-box); box-sizing: content-box; padding: var(--rating-pad); border: var(--rating-border) solid var(--color-semantic-functional-border-default); border-radius: var(--rating-radius); color: var(--rating-color); font-size: var(--rating-size); }
+[data-option="3"] .state { display: grid; color: var(--color-semantic-functional-text-muted); font-size: var(--state-size); font-variant-numeric: tabular-nums; }
+[data-option="3"] .state-line { display: flex; align-items: center; gap: var(--state-gap); }
+[data-option="3"] .state-key { color: var(--state-key-color); font-size: var(--state-size); }
+[data-option="3"] .dot { display: block; flex: none; width: var(--dot-size); height: var(--dot-size); border-radius: var(--dimension-radius-core-full); background: var(--dot-color); }
+
+/* Estados do conteúdo: as duas versões ficam empilhadas na mesma célula; o estado mostra uma e esconde a outra. */
+[data-option="3"] .v { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition-property: opacity, visibility; transition-duration: var(--dur-content); transition-timing-function: var(--ease-content); }
+[data-option="3"][data-state="agora"] .v-agora,
+[data-option="3"][data-state="mais-tarde"] .v-mais-tarde { opacity: 1; visibility: visible; }
+
+[data-option="3"] .seg-bar { display: flex; gap: var(--bar-gap); padding: var(--bar-pad); border-radius: var(--bar-radius); background: var(--color-opacity-light-20); }
+[data-option="3"] .seg { position: relative; isolation: isolate; flex: 1; display: flex; align-items: center; justify-content: center; height: var(--seg-height); border-radius: var(--seg-radius); color: var(--seg-color); font-size: var(--seg-size); transition-property: background-color, color, transform; transition-duration: var(--dur-seg), var(--dur-seg), var(--dur-focus); transition-timing-function: var(--ease-seg), var(--ease-seg), var(--ease-focus); }
+[data-option="3"][data-state="agora"] .seg-now,
+[data-option="3"][data-state="mais-tarde"] .seg-later { background: var(--seg-on-bg); color: var(--seg-on-color); }
+
+/* Foco: o anel e o brilho existem sempre no segmento e só aparecem no selecionado, com o card em foco. */
+[data-option="3"] .seg::after { content: ''; position: absolute; inset: calc(var(--ring-offset) * -1); border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: 0; transition-property: opacity; transition-duration: var(--dur-focus); transition-timing-function: var(--ease-focus); }
+[data-option="3"] .seg::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--glow-color); filter: blur(var(--glow-blur)); pointer-events: none; opacity: 0; transition-property: opacity; transition-duration: var(--dur-focus); transition-timing-function: var(--ease-focus); }
+[data-option="3"][data-state="agora"]:focus .seg-now,
+[data-option="3"][data-state="mais-tarde"]:focus .seg-later { transform: scale(var(--grow)); }
+[data-option="3"][data-state="agora"]:focus .seg-now::after,
+[data-option="3"][data-state="mais-tarde"]:focus .seg-later::after { opacity: 1; }
+[data-option="3"][data-state="agora"]:focus .seg-now::before,
+[data-option="3"][data-state="mais-tarde"]:focus .seg-later::before { opacity: var(--glow-opacity); }
+
+/* Movimento reduzido: sem escala; o anel de foco continua e as trocas viram só opacidade e cor. */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"][data-state="agora"]:focus .seg-now,
+  [data-option="3"][data-state="mais-tarde"]:focus .seg-later { transform: none; }
+  [data-option="3"] .seg { transition-property: background-color, color; transition-duration: var(--dur-seg); transition-timing-function: var(--ease-seg); }
+}
 </style>
 </head>
 <body>
@@ -136,6 +236,115 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
       </div>
     </div>
   </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 2</h2>
+<article data-parent="2" data-pretuned class="opt" data-option="3" data-tuned data-state="agora" tabindex="0">
+  <!-- tese: "Agora" e "Mais tarde" trocam o card inteiro; a imagem é o contexto fixo. Cópia ajustável da opção 2. -->
+  <p class="opt-label" data-part="label">Opção 3 - Ajuste da 2</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <span class="art" data-part="image" data-stack aria-hidden="true"><span class="mount" data-part="mount"></span><span class="scrim" data-part="scrim"></span></span>
+      <div class="body" data-part="body">
+        <h2 class="title text-heading-3-bold" data-part="title">Os Últimos<br>Dias de Pompeia</h2>
+        <div class="info" data-part="info" aria-live="polite">
+          <div class="when">
+            <span class="time text-body-sm-bold" data-part="time"><span class="v v-agora">20h30 – 22h50</span><span class="v v-mais-tarde">01h10 – 03h30</span></span>
+            <span class="rating text-body-sm-bold" data-part="rating" aria-label="Classificação indicativa 14 anos">14</span>
+          </div>
+          <div class="state text-body-sm-medium" data-part="state">
+            <span class="v v-agora state-line"><span class="dot" aria-hidden="true"></span><span><span class="state-key text-body-sm-bold">Ao vivo</span> · restam 28 min</span></span>
+            <span class="v v-mais-tarde state-line"><span><span class="state-key text-body-sm-bold">Reprise</span></span></span>
+          </div>
+        </div>
+        <div class="seg-bar" role="tablist" aria-label="Quando assistir" data-part="selector">
+          <div class="seg seg-now text-body-sm-bold" role="tab" aria-selected="true" data-part="segment-now">Agora</div>
+          <div class="seg seg-later text-body-sm-bold" role="tab" aria-selected="false" data-part="segment-later">Mais tarde</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">{"states":["agora","mais-tarde"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"card-bg","label":"Fundo","type":"color","var":"--card-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Imagem","part":"image","controls":[
+{"id":"art-glow","label":"Brilho","type":"color","var":"--art-glow","value":"#35c7f3","base":"#35c7f3","token":"--color-semantic-theme-noite-light"},
+{"id":"art-top","label":"Cor do topo","type":"color","var":"--art-top","value":"#414ffd","base":"#414ffd","token":"--color-semantic-theme-noite-dark"},
+{"id":"art-bottom","label":"Cor do fundo","type":"color","var":"--art-bottom","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+{"id":"art-x","label":"Brilho: posição X","type":"slider","var":"--art-x","value":72,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"art-y","label":"Brilho: posição Y","type":"slider","var":"--art-y","value":20,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"art-reach","label":"Brilho: alcance","type":"slider","var":"--art-reach","value":50,"min":5,"max":100,"step":1,"unit":"%"}
+]},
+{"name":"Montanha","part":"mount","controls":[
+{"id":"mount-color","label":"Cor","type":"color","var":"--mount-color","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+{"id":"mount-bottom","label":"Distância da base","type":"slider","var":"--mount-bottom","value":18,"min":0,"max":60,"step":1,"unit":"%"},
+{"id":"mount-height","label":"Altura","type":"slider","var":"--mount-height","value":44,"min":10,"max":80,"step":1,"unit":"%"}
+]},
+{"name":"Escurecimento","part":"scrim","controls":[
+{"id":"scrim-opacity","label":"Opacidade","type":"slider","var":"--scrim-opacity","value":1,"min":0,"max":1,"step":0.05,"unit":""}
+]},
+{"name":"Corpo","part":"body","controls":[
+{"id":"body-gap","label":"Espaço entre blocos","type":"slider","var":"--body-gap","value":16,"base":16,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"body-top","label":"Respiro acima do título","type":"slider","var":"--body-top","value":144,"min":0,"max":240,"step":1,"unit":"px"}
+]},
+{"name":"Título","part":"title","controls":[
+{"id":"title-size","label":"Tamanho","type":"slider","var":"--title-size","value":28,"base":28,"min":12,"max":48,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+{"id":"title-lh","label":"Altura da linha","type":"slider","var":"--title-lh","value":1.2,"base":1.2,"min":0.8,"max":2,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-ls","label":"Espaçamento entre letras","type":"slider","var":"--title-ls","value":-0.01,"base":-0.01,"min":-0.1,"max":0.1,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"title-color","label":"Cor","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Informações","part":"info","controls":[
+{"id":"info-gap","label":"Espaço entre linhas","type":"slider","var":"--info-gap","value":8,"base":8,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"when-gap","label":"Espaço horário e classificação","type":"slider","var":"--when-gap","value":12,"base":12,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"}
+]},
+{"name":"Horário","part":"time","controls":[
+{"id":"time-size","label":"Tamanho","type":"slider","var":"--time-size","value":14,"base":14,"min":8,"max":32,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"time-color","label":"Cor","type":"color","var":"--time-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Classificação","part":"rating","controls":[
+{"id":"rating-size","label":"Tamanho do texto","type":"slider","var":"--rating-size","value":14,"base":14,"min":8,"max":32,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"rating-box","label":"Largura do selo","type":"slider","var":"--rating-box","value":16,"base":16,"min":8,"max":48,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"},
+{"id":"rating-pad","label":"Margem interna","type":"slider","var":"--rating-pad","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"rating-border","label":"Espessura da borda","type":"slider","var":"--rating-border","value":1,"base":1,"min":0,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-divider"},
+{"id":"rating-radius","label":"Raio","type":"slider","var":"--rating-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+{"id":"rating-color","label":"Cor do texto","type":"color","var":"--rating-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Estado","part":"state","controls":[
+{"id":"state-size","label":"Tamanho","type":"slider","var":"--state-size","value":14,"base":14,"min":8,"max":32,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"state-gap","label":"Espaço até o ponto","type":"slider","var":"--state-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"state-key-color","label":"Cor do destaque","type":"color","var":"--state-key-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"dot-size","label":"Tamanho do ponto","type":"slider","var":"--dot-size","value":8,"base":8,"min":2,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"dot-color","label":"Cor do ponto","type":"color","var":"--dot-color","value":"#fd4142","base":"#fd4142","token":"--color-semantic-functional-status-live"}
+]},
+{"name":"Seletor","part":"selector","controls":[
+{"id":"bar-gap","label":"Espaço entre segmentos","type":"slider","var":"--bar-gap","value":4,"base":4,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"bar-pad","label":"Margem interna","type":"slider","var":"--bar-pad","value":4,"base":4,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"bar-radius","label":"Raio","type":"slider","var":"--bar-radius","value":100,"base":100,"min":0,"max":100,"step":1,"unit":"px","token":"--dimension-radius-semantic-pill"}
+]},
+{"name":"Segmento","part":"segment-now","controls":[
+{"id":"seg-height","label":"Altura","type":"slider","var":"--seg-height","value":40,"base":40,"min":24,"max":64,"step":1,"unit":"px","token":"--dimension-size-semantic-control-height"},
+{"id":"seg-radius","label":"Raio","type":"slider","var":"--seg-radius","value":20,"base":20,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-radius-core-xl"},
+{"id":"seg-size","label":"Tamanho do texto","type":"slider","var":"--seg-size","value":14,"base":14,"min":8,"max":32,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"seg-color","label":"Cor do texto","type":"color","var":"--seg-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"seg-on-bg","label":"Fundo do selecionado","type":"color","var":"--seg-on-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"seg-on-color","label":"Texto do selecionado","type":"color","var":"--seg-on-color","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"}
+]},
+{"name":"Foco","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"ring-offset","label":"Afastamento do anel","type":"slider","var":"--ring-offset","value":0,"min":-8,"max":16,"step":1,"unit":"px"},
+{"id":"grow","label":"Escala do selecionado","type":"slider","var":"--grow","value":1,"min":0.9,"max":1.2,"step":0.01,"unit":""},
+{"id":"glow-opacity","label":"Brilho: opacidade","type":"slider","var":"--glow-opacity","value":0,"min":0,"max":1,"step":0.05,"unit":""},
+{"id":"glow-blur","label":"Brilho: desfoque","type":"slider","var":"--glow-blur","value":12,"min":0,"max":40,"step":1,"unit":"px"},
+{"id":"glow-color","label":"Brilho: cor","type":"color","var":"--glow-color","value":"#414ffd","base":"#414ffd","token":"--color-semantic-focus-outline"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move-seg","label":"Troca do segmento","type":"easing","durVar":"--dur-seg","easeVar":"--ease-seg","value":{"duration":0.15,"ease":[0.2,0,0,1]}},
+{"id":"move-content","label":"Troca do conteúdo","type":"easing","durVar":"--dur-content","easeVar":"--ease-content","value":{"duration":0.15,"ease":[0.2,0,0,1]}},
+{"id":"move-focus","label":"Foco (anel, escala e brilho)","type":"easing","durVar":"--dur-focus","easeVar":"--ease-focus","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
 </article>
     </main>
   </div>
@@ -180,6 +389,26 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
     else if (e.key === 'ArrowRight') show(i + 1)
     else if (e.key === 'Escape' || e.key === 'Backspace') { if (i === 0) return; show(0) }
     else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const order = ['agora', 'mais-tarde']
+  const segs = [...root.querySelectorAll('.seg')]
+  // The state lives on data-state (the keys and the stage's simulator both set it); aria-selected follows it.
+  const sync = () => segs.forEach((s, k) => s.setAttribute('aria-selected', String(order[k] === root.dataset.state)))
+  new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-state'] })
+  sync()
+  const show = (n) => { if (n >= 0 && n < order.length) root.dataset.state = order[n] }
+  root.addEventListener('keydown', (e) => {
+    const i = Math.max(0, order.indexOf(root.dataset.state))
+    if (e.key === 'ArrowLeft') show(i - 1)
+    else if (e.key === 'ArrowRight') show(i + 1)
+    else if (e.key === 'Escape' || e.key === 'Backspace') { if (i === 0) return; show(0) }
+    else return // ↑/↓ leave the card
     e.preventDefault()
   })
 })()

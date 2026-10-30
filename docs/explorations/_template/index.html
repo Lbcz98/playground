@@ -52,6 +52,8 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
 /* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
 .opt[data-discarded] { display: none; }
 .explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
 /* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
 .opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
 .opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
