@@ -7,6 +7,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 export default {
   // The kit, the tokens and `@/…` live in ../src: this app is a viewer for it, not a copy.
   experimental: { externalDir: true },
+  outputFileTracingRoot: resolve(here, '..'),
+  // No generated AGENTS.md from `next dev`: this repo's agent rules live in its own CLAUDE.md files.
+  agentRules: false,
   webpack(config, { dev, webpack }) {
     // Vite hands an imported .svg back as a URL string (the kit's icons are <img src>); so do we, inlined.
     const imageRule = config.module.rules.find((rule) => rule?.test instanceof RegExp && rule.test.test('.svg'))

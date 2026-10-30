@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { isDesignerCode as rule } from '../src/shared/protoFolders'
 // @ts-expect-error plain .mjs without types: a hook must run on a bare node
@@ -20,6 +21,12 @@ describe('the pre-filter of the edit hook', () => {
     expect(runHook(input, s)).toBe(0)
     expect(s).toHaveBeenCalledOnce()
     expect((s.mock.calls[0] as unknown[])[2]).toMatchObject({ input })
+  })
+  it('starts an entry that is installed', () => {
+    const s = spawn()
+    runHook(call('/r/web/protos/ana/a.tsx'), s)
+    const [, args] = s.mock.calls[0] as unknown as [string, string[]]
+    expect(existsSync(args[0]), args[0]).toBe(true)
   })
   it('starts the checker when the path cannot be read, so nothing is skipped silently', () => {
     for (const input of ['not json', '{}', call(42)]) {
