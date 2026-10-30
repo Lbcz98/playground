@@ -1,0 +1,118 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks'
+import * as AlertBugStories from './AlertBug.stories'
+
+<Meta of={AlertBugStories} name="Movimento e posição" />
+
+# Alert Bug — motion and position
+
+The interactivity alert on **layer 0**: it sits on top of the video, in the bottom-right
+corner, over the Globo's own mark. A bottom-right shade is laid behind it for contrast.
+This page is the spec for how it comes in, stays, leaves, and where it goes.
+
+## Where it sits
+
+The bug goes **on top of the Globo's watermark**. Its margins are measured from the
+Globo's mark — the sphere — and not from the whole set of components, so the halo and the
+text hang outside the margin and never move the sphere.
+
+<table>
+  <thead>
+    <tr><th>Frame</th><th>Bug (sphere)</th><th>Halo</th><th>Right (sphere → edge)</th><th>Bottom (sphere → edge)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>HD 1280×720 (the kit's frame)</td><td>82 × 82 px</td><td>102 × 102 px</td><td>79 px</td><td>37 px</td></tr>
+    <tr><td>FHD 1920×1080</td><td>124 × 124 px</td><td>152 × 152 px</td><td>118 px</td><td>56 px</td></tr>
+  </tbody>
+</table>
+
+The kit draws in its own 1280×720 frame (`--dimension-size-semantic-alert-bug-mark` and
+`-halo`); the FHD numbers are the same layout at 1.5×. The two margins are the same fraction
+of the frame at both sizes, so the kit holds them as percentages: **6.1458 % to the right, 5.1852 % to the bottom**. `AlertBugAnchor` does it;
+it fills the 16:9 frame and puts its child there.
+
+Due to technical limits in how the Bug is delivered in the video graphics layer
+(watermarks and lit versions), a fine adjustment of the position may still be needed on a
+given transmission. Change it on `AlertBugAnchor`, never on the bug.
+
+<Canvas of={AlertBugStories.Position} />
+
+## Contrast behind it
+
+The shade behind the bug is not part of the bug: it is the `alert` screen model of
+`ScreenOverlay` (`bottom-right`), already in the kit — see **Camadas**. Stack it between
+the picture and the anchor:
+
+```tsx
+<div style={{ position: 'relative' /* the whole 16:9 frame */ }}>
+  <video … />
+  <ScreenOverlay model="alert" />
+  <AlertBugAnchor>
+    <AlertBug bugStyle="transmission" src={globoMark} motion="cycle" />
+  </AlertBugAnchor>
+</div>
+```
+
+## Motion
+
+Three layers, all of them animated together, with the same easing (the kit's spring as a
+cubic-bezier) and the kit's 800 ms.
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>Entrance (0 → 100 %)</th><th>Exit (100 → 0 %)</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Bug</b> (the sphere)</td>
+      <td>focuses in: opacity 0 → 100, scale 0.9 → 1</td>
+      <td>scale 1 → 0.9, opacity 100 → 0</td>
+    </tr>
+    <tr>
+      <td><b>Halo</b> (the focus ring's band)</td>
+      <td>born the size of the sphere, opens to its final size, opacity 0 → 100, scale 0.9 → 1</td>
+      <td>scale 1 → 0.9, opacity 100 → 0</td>
+    </tr>
+    <tr>
+      <td><b>Text</b> ("Conteúdo interativo")</td>
+      <td>behind the bug; rises out of it, bottom to top, opacity 0 → 100</td>
+      <td>drops back behind the bug, opacity 100 → 0</td>
+    </tr>
+  </tbody>
+</table>
+
+- The bug and the halo "rise" at the same moment.
+- The halo **spins for as long as the bug is on screen**, one turn per
+  `--motion-semantic-focus-cycle-duration` (12 s). It is the focus ring turning, not a
+  loading indicator.
+- The bug **stays 8 s**, then leaves on its own. `onExited` fires when the exit is done and
+  the bug is no longer drawn (its box stays, so nothing around it moves).
+- The halo is the focus ring's band with the broadcast gradient —
+  `linear-gradient(224deg, …)` through the *noite*, *dia* and *tarde* tokens. Its pearl stop
+  is `EEDDFE`; the kit has no token for it, so it uses `text-primary` until one is added.
+
+`motion` takes `enter` (800 ms and stay), `stay` (the settled composition), `exit` (800 ms)
+and `cycle` (all of it: enter, 8 s, exit). Without `motion` the bug is the still mark.
+
+<Canvas of={AlertBugStories.Cycle} />
+
+### Reduced motion
+
+With `prefers-reduced-motion`, or `reducedMotion` on the component, the bug only
+**dissolves** in and out: no scale, no rise, no drop, no spin.
+
+<Canvas of={AlertBugStories.ReducedMotion} />
+
+## Chrome 68 and Safari 16
+
+The whole motion is CSS and only moves `transform` and `opacity`, so it stays on the GPU of
+an old TV. What it avoids on purpose: `linear()` easing, `inset`, `gap`, `aspect-ratio`,
+`:is()`, `@property`, `translate`/`scale`/`rotate` as properties, `conic-gradient`,
+`min()`/`max()`/`clamp()`, `filter: blur`, and animating `width`, `height` or the gradient.
+The spin is `rotate()` on its own element. The table of what each feature needs is the
+comment above the motion rules in `ui-kit.css`.
+
+## The pieces, one at a time
+
+<Canvas of={AlertBugStories.Enter} />
+<Canvas of={AlertBugStories.Stay} />
+<Canvas of={AlertBugStories.Exit} />

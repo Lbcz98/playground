@@ -241,6 +241,10 @@ export const contentCardSchema = z
     gap: onGridGap(),
     /** Rows per page: the viewer clicks the card for the next rows. Omitted: every row at once. */
     rowsPerPage: z.number().min(1).max(CARD_ROWS_MAX).multipleOf(1).optional(),
+    /** The picture of the image variant (its URL). Empty: the plain card. */
+    image: z.string().default(''),
+    /** How tall the picture is: G 320, M 264, P 176. Only with `image`. */
+    imageSize: z.enum(['P', 'M', 'G']).default('G'),
   })
   .strict()
 
@@ -535,7 +539,7 @@ export const Catalog = {
     label: 'Content Card',
     category: 'content',
     summary:
-      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.`,
+      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. With an image it is the image variant: 380 tall, the picture across the top in step G, M or P (320, 264, 176) under the card scrim, and the zones anchored to the bottom; the Header's title and subtitle are the title and the description, and a Body holds bullets. Pick the step by the text: G for a one-line title and one line of description, M for a two-line title with up to two lines or five bullets, P for a long list.`,
     acceptsChildren: true,
     slots: CONTENT_CARD_ZONES,
     schema: contentCardSchema,
@@ -551,6 +555,8 @@ export const Catalog = {
       },
       gap: { kind: 'number', label: 'Zone gap', min: 0, max: CARD_GAP_MAX, grid: true },
       rowsPerPage: { kind: 'number', label: 'Rows per page', min: 1, max: CARD_ROWS_MAX, step: 1 },
+      image: { kind: 'text', label: 'Image URL' },
+      imageSize: { kind: 'select', label: 'Image size', options: ['G', 'M', 'P'] },
     },
   },
   ContentCardHeader: {
@@ -597,7 +603,7 @@ export const Catalog = {
     label: 'Content Card Footer',
     category: 'content',
     summary:
-      "A Content Card's bottom zone, pinned to the bottom edge: a caption, and any controls it holds. Only goes inside a Content Card.",
+      "A Content Card's bottom zone, pinned to the bottom edge: a caption, and any controls it holds. On a Content Card that is not pressable it may hold one Wide Button: the button spans the card, takes the focus, and the card is a full-strength container (the image variant's action, e.g. \"Abrir no meu celular\"). Only goes inside a Content Card.",
     acceptsChildren: true,
     parents: ['ContentCard'],
     schema: contentCardFooterSchema,

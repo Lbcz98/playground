@@ -28,8 +28,18 @@ export default function S() {
 }
 `
 
-beforeAll(() => mkdirSync(OUT, { recursive: true }))
-afterAll(() => rmSync(OUT, { recursive: true, force: true }))
+/** A tuned exploration a marker can name. It sits in docs/explorations, so it is removed afterwards. */
+const EXPLORATION_SLUG = '__laws-test'
+const EXPLORATION_DIR = join(fileURLToPath(new URL('../../..', import.meta.url)), 'docs/explorations', EXPLORATION_SLUG)
+beforeAll(() => {
+  mkdirSync(OUT, { recursive: true })
+  mkdirSync(EXPLORATION_DIR, { recursive: true })
+  writeFileSync(join(EXPLORATION_DIR, 'index.html'), '<article data-tuned></article>')
+})
+afterAll(() => {
+  rmSync(OUT, { recursive: true, force: true })
+  rmSync(EXPLORATION_DIR, { recursive: true, force: true })
+})
 
 const STATIC = { skipValidator: true }
 const lawsOf = (file: string): string[] => checkLaws(file, STATIC).problems.map((p) => p.law)
@@ -55,6 +65,44 @@ describe('check:laws', () => {
     const laws = new Set(lawsOf(file))
     expect(laws.has('tokens.only')).toBe(true)
     expect(laws.has('component.api')).toBe(true)
+  })
+
+  describe('a local component that carries a tuned exploration', () => {
+    const marker = (slug: string): string => `/**\n * @exploration ${slug}#2\n * @proposal\n * why: tuned in an exploration\n * description: a tuned card\n * proposedApi:\n *   interactionState: "string"\n */\n`
+    const withTuned = (name: string, inner: string, component: string): string => {
+      mkdirSync(join(OUT, 'components'), { recursive: true })
+      write(`components/${name}.tsx`, component)
+      return write(`uses-${name}.tsx`, screen(inner).replace('import { Screen }', `import { ${name} } from './components/${name}'\nimport { Screen }`))
+    }
+    const raw = (name: string): string => `export function ${name}(_: { interactionState?: string }) {\n  return <div style={{ color: "#e10600", gap: "13px" }} />\n}\n`
+
+    it('reports, never blocks, its raw values and host elements', () => {
+      const r = checkLaws(withTuned('Tuned', '<MainMenu /><Tuned />', marker(EXPLORATION_SLUG) + raw('Tuned')), STATIC)
+      expect(r.problems.filter((p) => p.law === 'tokens.only' || p.file?.includes('Tuned'))).toEqual([])
+      expect(new Set(r.trespasses.map((t) => t.law))).toEqual(new Set(['tokens.only', 'component.api']))
+      expect(r.trespasses.every((t) => t.exploration === `${EXPLORATION_SLUG}#2`)).toBe(true)
+    })
+
+    it('counts as the one focused element when given interactionState="focus"', () => {
+      const file = withTuned('TunedFocus', '<TunedFocus interactionState="focus" />', marker(EXPLORATION_SLUG) + raw('TunedFocus'))
+      expect(lawsOf(file)).not.toContain('focus.single')
+    })
+
+    it('blocks when the marker names an exploration that is not in the repo', () => {
+      const file = withTuned('Ghost', '<MainMenu /><Ghost />', marker('no-such-exploration') + raw('Ghost'))
+      const r = checkLaws(file, STATIC)
+      expect(r.trespasses).toEqual([])
+      expect(r.problems.map((p) => p.law)).toContain('tokens.only')
+      expect(r.problems.some((p) => p.message.includes('names no tuned exploration'))).toBe(true)
+    })
+
+    it('keeps the laws on a component with no marker, and on the screen itself', () => {
+      const plain = withTuned('Plain', '<MainMenu /><Plain />', raw('Plain'))
+      expect(checkLaws(plain, STATIC).trespasses).toEqual([])
+      expect(lawsOf(plain)).toContain('tokens.only')
+      const own = write('own.tsx', marker(EXPLORATION_SLUG) + screen('<MainMenu /><div style={{ color: "#e10600" }} />'))
+      expect(lawsOf(own)).toContain('tokens.only')
+    })
   })
 
   it('flags a prop the kit does not have (tsc is component.api)', () => {

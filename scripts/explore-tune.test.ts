@@ -71,6 +71,13 @@ describe('applyTuned', () => {
     expect(tuneSpec(html, 2).folders[0].controls[0]).toMatchObject({ value: 14, base: 40 })
     expect(html.match(/tune:vars \*\//g)).toHaveLength(2) // one block, start and end
   })
+  it('rewrites only its own option\'s block when the page holds several, and shows a pre-made copy once it is tuned', () => {
+    const other = `<style>\n${varsBlock(spec, 3)}\n</style><article class="opt" data-option="3" data-tuned data-pretuned><script type="application/json" data-tune="3">${JSON.stringify(spec)}</script></article>`
+    const { html } = applyTuned(page(other), 3, { '0.radius': 14 })
+    expect(html).toContain(varsBlock(spec, 2))
+    expect(html).toContain('[data-option="3"] {\n  --radius: 14px; /* tune */')
+    expect(html).toContain('<article class="opt" data-option="3" data-tuned>')
+  })
   it('clamps sliders, lowercases colors, bounds easing handles and leaves the page alone when nothing changes', () => {
     const { html } = applyTuned(page(), 2, { '0.radius': 999, '0.bg': '#ABCDEF', '1.move': { duration: 0.2, ease: [5, -3, 0, 1] } })
     const c = tuneSpec(html, 2).folders
@@ -141,6 +148,11 @@ describe('stage routes', () => {
     const j = await (await post('comment', { kind: 'judge', option: 2 })).json()
     expect(j.id).not.toBe(a.id)
     expect((await post('comment', { kind: 'judge', option: 'x' })).status).toBe(400)
+    const k = await (await post('comment', { kind: 'kit', option: 2 })).json()
+    expect(k.id).not.toBe(j.id) // the kit audit is its own request, beside the review of the same option
+    expect(JSON.parse(lines.at(-1)!.replace(/^COMMENT /, ''))).toMatchObject({ kind: 'kit', option: '2', comment: 'Auditoria do kit · opção 2' })
+    expect((await (await post('comment', { kind: 'kit', option: 2 })).json()).id).toBe(k.id)
+    expect((await post('comment', { kind: 'kit', option: 'x' })).status).toBe(400)
     await post('status', { id: a.id, status: 'aplicado' })
     expect((await (await post('comment', { kind: 'tune', option: '1' })).json()).id).not.toBe(a.id) // finished: a new ask is a new request
   })
@@ -150,6 +162,10 @@ describe('stage routes', () => {
     writeFileSync(join(dir, 'judge-2.json'), JSON.stringify({ verdict: 'Approve', findings: [] }))
     expect((await (await fetch(s.url + `__explore/judge?option=2&token=${s.token}`)).json()).verdict).toBe('Approve')
     expect((await fetch(s.url + '__explore/judge?option=../x&token=' + s.token)).status).toBe(400)
+    expect(await (await fetch(s.url + `__explore/judge?option=2&kit=1&token=${s.token}`)).json()).toBeNull()
+    writeFileSync(join(dir, 'kit-2.json'), JSON.stringify({ verdict: 'Block', findings: [{ severity: 'HIGH', domain: 'tokens' }] }))
+    expect((await (await fetch(s.url + `__explore/judge?option=2&kit=1&token=${s.token}`)).json()).verdict).toBe('Block')
+    expect((await (await fetch(s.url + `__explore/judge?option=2&token=${s.token}`)).json()).verdict).toBe('Approve') // the review file is untouched
     expect((await post('tune-apply', { option: '2', values: { '0.radius': 12 } })).status).toBe(200)
     expect(readFileSync(join(dir, 'index.html'), 'utf8')).toContain('--radius: 12px; /* tune */')
     expect((await post('tune-apply', { option: 'x', values: {} })).status).toBe(400)

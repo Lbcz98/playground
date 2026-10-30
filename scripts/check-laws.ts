@@ -75,6 +75,11 @@ export interface LawReport {
   /** Advisory (render.legibility): printed, never fails the run. */
   advisories: LawProblem[]
   deviations: { ruleId: string; why: string; line: number }[]
+  /**
+   * What a local component marked `@exploration <slug>#<N>` does against a law (a raw value, an inline style, a host element):
+   * the tuned exploration it carries is kept as it was drawn, so these are reported, never blocking.
+   */
+  trespasses: (LawProblem & { exploration: string })[]
   /** What the JSX has that the blueprint cannot carry: a computed prop, a `.map`, text — where the validator is blind. */
   warnings: string[]
   /** `warnings`, structured (line, kind, message). */
@@ -96,6 +101,11 @@ interface SourceHolder extends Holder {
 /** The navigation level a layer model sits on. */
 const levelOfModel = (model: string): ManifestNavigationLevel | undefined =>
   DTV_SCREEN_LAYERS.levels.find((l) => l.level === screenModel(DTV_SCREEN_LAYERS, model)?.level)
+
+/** `@exploration <slug>#<N>` in a local component: it carries option N of an exploration as tuned, not as the kit has it. */
+const EXPLORATION = /@exploration\s+([\w.-]+)#(\d+)\b/
+/** Where an exploration lives in the repo, one folder per slug with an `index.html`. */
+const EXPLORATION_ROOTS = ['docs/explorations', 'design-brain/toolbox/references']
 
 const RAW: [string, RegExp][] = [
   ['raw hex color', /#[0-9a-fA-F]{3,8}\b/],
@@ -191,6 +201,28 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
   const text = readFileSync(path, 'utf8')
   const problems: LawProblem[] = []
   const add = (law: string, message: string, line?: number, file?: string): void => void problems.push({ law, message, line, ...(file ? { file } : {}) })
+  const trespasses: LawReport['trespasses'] = []
+  /** The exploration a local component carries (`slug#N`), once its marker is checked: the screen and files outside `components/` never carry one. */
+  const carried = new Map<string, string | undefined>()
+  const explorationOf = (file: string | undefined): string | undefined => {
+    if (!file || file === path || !locals.has(file) || !isLocalComponent(folder, file)) return undefined
+    if (carried.has(file)) return carried.get(file)
+    const m = locals.get(file)!.text.match(EXPLORATION)
+    let found: string | undefined
+    if (m) {
+      const source = EXPLORATION_ROOTS.map((r) => join(ROOT, r, m[1], 'index.html')).find((f) => existsSync(f))
+      if (source && readFileSync(source, 'utf8').includes('data-tuned')) found = `${m[1]}#${m[2]}`
+      else add('component.api', `${rel(file)}: @exploration ${m[1]}#${m[2]} names no tuned exploration in the repo (${EXPLORATION_ROOTS.join(', ')}) — commit it beside the prototype`, undefined, file)
+    }
+    carried.set(file, found)
+    return found
+  }
+  /** A finding about `file`: a trespass when that component carries an exploration, else a problem. `value` is the raw value a trespass names. */
+  const flag = (law: string, message: string, line?: number, file?: string, value?: string): void => {
+    const exploration = explorationOf(file)
+    if (exploration && file) trespasses.push({ law, message: value ? `${message}: ${value}` : message, line, file, exploration })
+    else add(law, message, line, file)
+  }
   const manifest = loadDtvManifest()
 
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
@@ -246,7 +278,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
     src.split('\n').forEach((raw, i) => {
       if (/^\s*(\/\*\*|\*)/.test(raw)) return // a doc-comment line (the @proposal block) is words, not a value
       const code = raw.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '')
-      for (const [label, re] of RAW) if (re.test(code)) add('tokens.only', `${prefix}${label} — a design value is a token name`, i + 1, file)
+      for (const [label, re] of RAW) if (re.test(code)) flag('tokens.only', `${prefix}${label} — a design value is a token name`, i + 1, file, code.match(re)?.[0])
     })
   scan(text, '')
   for (const [f, l] of locals) if (f.endsWith('.tsx') && hasJsx(l.sf)) scan(l.text, `${rel(f)}: `, f)
@@ -282,7 +314,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
     if (!f.endsWith('.tsx')) continue
     visit(l.sf, (n) => {
       if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && /^[a-z]/.test(n.tagName.getText()))
-        add('component.api', `${rel(f)}: <${n.tagName.getText()}> is a host element — use a kit component (Stack, Box, Text, …)`, LINE(l.sf, n), f)
+        flag('component.api', `${rel(f)}: <${n.tagName.getText()}> is a host element — use a kit component (Stack, Box, Text, …)`, LINE(l.sf, n), f)
     })
   }
   visit(sf, (n) => {
@@ -328,6 +360,11 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
         if (!seen.has(local.node)) {
           seen.add(local.node)
           count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
+        }
+        // A component that carries a tuned exploration has no kit holder inside: it is the focused element itself.
+        if (explorationOf(local.file) && literalProp(n, 'interactionState') === 'focus') {
+          focused.push({ component: tag, label: `${tag} (${at}), a tuned exploration` })
+          return
         }
         // `<Local interactionState="focus" />`: the screen sets the focus the component forwards to its kit holder.
         const holderTag = forwarded.get(local.node)
@@ -536,7 +573,7 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
   const deviations = [...text.matchAll(DEVIATION)].map((m) => ({ ruleId: m[1], why: m[2], line: text.slice(0, m.index).split('\n').length }))
 
   coverage.notRead = notRead.length
-  return { file: path, problems, advisories: [], deviations, warnings, notRead, coverage, reuses, proposals, flow: { edges } }
+  return { file: path, problems, advisories: [], deviations, trespasses, warnings, notRead, coverage, reuses, proposals, flow: { edges } }
 }
 
 /** Folds one render result into a report: blocking findings are problems, legibility findings advisories. */
@@ -640,6 +677,7 @@ export function reportLines({ flows, reports }: CheckRun): string[] {
     for (const a of r.advisories) out.push(`${name}  advisory [${a.law}] ${a.message}`)
     for (const w of r.warnings) out.push(`${name}  not read: ${w}`)
     for (const d of r.deviations) out.push(`${name}  declared ${d.ruleId}: ${d.why}`)
+    for (const t of r.trespasses) out.push(`${name}  exploration ${t.exploration} breaks ${t.law} (${t.file?.replace(ROOT, '')}${t.line ? `:${t.line}` : ''}): ${t.message}`)
     if (r.problems.length === 0) out.push(`${name}  laws hold, no pattern broken undeclared (tsc, tokens, layers, focus, rules book)`)
   }
   return out

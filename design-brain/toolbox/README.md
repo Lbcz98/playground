@@ -5,6 +5,7 @@ Tudo que o playbook produz ou usa mora aqui. Cada arquivo novo entra nesta tabel
 | Arquivo | Tipo | Para que serve | Aprovado |
 |---|---|---|---|
 | [`playbook.md`](playbook.md) | doc | O playbook: objetivo, passos, regras, anti-padrões, papéis, pronto, teste | rascunho aprovado pelo designer nos pontos da seção 10 |
+| [`../DESIGN.md`](../DESIGN.md) | doc | A linguagem visual do kit: cor, gradientes, sombras, tipografia, imagens, respiro. Lida por quem desenha UI; o juiz cita as regras | rascunho; decisões do designer de 2026-10-26 |
 | [`interview-notes.md`](interview-notes.md) | doc | Notas da entrevista com o designer: a fonte do playbook, com as palavras dele | notas de trabalho |
 | [`judge.md`](judge.md) | doc | O juiz independente: passos, severidade e formato do relatório; roda como agente à parte | pedido pelo designer; calibrar com as rodadas de teste |
 | [`test-log.md`](test-log.md) | doc | Registro das rodadas de teste: o que ficou fixo, o veredito do designer, o que o juiz achou e as lacunas | notas de trabalho |

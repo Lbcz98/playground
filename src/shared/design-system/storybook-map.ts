@@ -73,7 +73,11 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     defaultOverrides: { interactionState: RESTS },
   },
   Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
-  AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
+  AlertBug: {
+    component: 'ui-kit-alert-bug',
+    // `motion` and `reducedMotion` are the phase the canvas plays, not a screen's content.
+    codeOnly: { src: 'asset-slot', motion: 'composition', reducedMotion: 'composition' },
+  },
   RoundedButton: {
     component: 'ui-kit-rounded-button',
     defaultOverrides: { interactionState: RESTS },
