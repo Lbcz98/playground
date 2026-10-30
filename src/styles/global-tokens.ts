@@ -171,6 +171,8 @@ export const CSS_VARS = [
   '--dimension-size-semantic-alert-bug',
   '--dimension-size-semantic-alert-bug-focus',
   '--dimension-size-semantic-alert-bug-transmission',
+  '--dimension-size-semantic-alert-bug-mark',
+  '--dimension-size-semantic-alert-bug-halo',
   '--dimension-border-width-core-hairline',
   '--dimension-border-width-core-thin',
   '--dimension-border-width-core-medium',

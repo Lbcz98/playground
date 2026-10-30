@@ -41,6 +41,8 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | --- | --- | --- |
 | `dimension.size.semantic.alert-bug` | 96px | `SizeRole` `alert-bug` |
 | `dimension.size.semantic.alert-bug-focus` | 104px | `SizeRole` `alert-bug-focus` |
+| `dimension.size.semantic.alert-bug-halo` | 102px | `SizeRole` `alert-bug-halo` |
+| `dimension.size.semantic.alert-bug-mark` | 82px | `SizeRole` `alert-bug-mark` |
 | `dimension.size.semantic.alert-bug-transmission` | 128px | `SizeRole` `alert-bug-transmission` |
 | `dimension.size.semantic.avatar` | 40px | `SizeRole` `avatar` |
 | `dimension.size.semantic.card-expanded-height` | 160px | `SizeRole` `card-expanded-height` |
