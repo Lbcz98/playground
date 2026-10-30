@@ -169,33 +169,17 @@
  * Left out on purpose: linear(), inset, gap, aspect-ratio, :is(), @property, translate/scale/rotate
  * as properties, conic-gradient, min()/max()/clamp(), filter: blur, animating width or background.
  */
-.sfs-alert-bug[data-motion] {
-  --sfs-alert-bug-duration: var(--motion-semantic-duration);
-  --sfs-alert-bug-ease: cubic-bezier(0.19, 0.06, 0.24, 1);
-  --sfs-alert-bug-stay: 8000ms;
-  --sfs-alert-bug-from-scale: 0.9;
-  --sfs-alert-bug-out-scale: 0.9;
-  --sfs-alert-bug-mark: var(--dimension-size-semantic-alert-bug-mark);
-  --sfs-alert-bug-halo: var(--dimension-size-semantic-alert-bug-halo);
-  --sfs-alert-bug-ring-width: var(--dimension-border-width-semantic-focus-ring);
-  /* The halo's box is a token, so the gap between mark and ring is what is left of it. */
-  --sfs-alert-bug-ring-gap: calc((var(--sfs-alert-bug-halo) - var(--sfs-alert-bug-mark)) / 2 - var(--sfs-alert-bug-ring-width));
-  /* The mark's size over the halo's (82 / 102), so the halo is born the size of the mark. */
-  --sfs-alert-bug-halo-from: 0.8;
-  --sfs-alert-bug-text-rise: var(--dimension-spacing-core-4xl);
-  --sfs-alert-bug-text-gap: calc((var(--sfs-alert-bug-halo) - var(--sfs-alert-bug-mark)) / 2 + var(--dimension-spacing-core-2xs));
-  --sfs-alert-bug-spin: var(--motion-semantic-focus-cycle-duration);
-}
+/* The motion's values (`--_alert-bug-*`) are set inline by AlertBug: duration, ease, stay, scales, mark, halo, ring, text rise and gap, spin. */
 
 /* With motion the bug is the mark laid over the Globo's watermark: its box, circle and mark are the mark's size, whatever the style. */
 .sfs-alert-bug[data-motion] {
-  width: var(--sfs-alert-bug-mark);
-  height: var(--sfs-alert-bug-mark);
+  width: var(--_alert-bug-mark);
+  height: var(--_alert-bug-mark);
 }
 .sfs-alert-bug[data-motion][data-style] .sfs-alert-bug-circle,
 .sfs-alert-bug[data-motion][data-style] .sfs-alert-bug-mark {
-  width: var(--sfs-alert-bug-mark);
-  height: var(--sfs-alert-bug-mark);
+  width: var(--_alert-bug-mark);
+  height: var(--_alert-bug-mark);
 }
 
 .sfs-alert-bug-text,
@@ -217,15 +201,11 @@
   position: absolute;
   z-index: 0;
   right: 0;
-  bottom: calc(100% + var(--sfs-alert-bug-text-gap));
+  bottom: calc(100% + var(--_alert-bug-text-gap));
   left: 0;
   display: flex;
   justify-content: center;
   color: var(--color-semantic-functional-text-primary);
-  font-size: var(--typography-font-size-base);
-  font-weight: 700;
-  line-height: var(--typography-line-height-normal);
-  letter-spacing: var(--typography-letter-spacing-tight);
   text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
@@ -240,8 +220,8 @@
   top: 50%;
   left: 50%;
   display: block;
-  width: var(--sfs-alert-bug-halo);
-  height: var(--sfs-alert-bug-halo);
+  width: var(--_alert-bug-halo);
+  height: var(--_alert-bug-halo);
   border-radius: var(--dimension-radius-semantic-pill);
   transform: translate3d(-50%, -50%, 0);
 }
@@ -266,7 +246,7 @@
   left: 0;
   display: block;
   box-sizing: border-box;
-  padding: var(--sfs-alert-bug-ring-width);
+  padding: var(--_alert-bug-ring-width);
   border-radius: inherit;
   /* The designer's pearl stop is EEDDFE (lilac), which the kit has no token for; text-primary is the nearest, until one is added. */
   background: linear-gradient(
@@ -289,59 +269,59 @@
 
 /* enter: the three layers come in together; the spin starts when the halo has opened. */
 .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-circle {
-  animation: sfs-alert-bug-in-mark var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both;
+  animation: sfs-alert-bug-in-mark var(--_alert-bug-duration) var(--_alert-bug-ease) both;
 }
 .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-text {
-  animation: sfs-alert-bug-in-text var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both;
+  animation: sfs-alert-bug-in-text var(--_alert-bug-duration) var(--_alert-bug-ease) both;
 }
 .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo {
-  animation: sfs-alert-bug-in-halo var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both;
+  animation: sfs-alert-bug-in-halo var(--_alert-bug-duration) var(--_alert-bug-ease) both;
 }
 .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo-grow {
-  animation: sfs-alert-bug-grow var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both;
+  animation: sfs-alert-bug-grow var(--_alert-bug-duration) var(--_alert-bug-ease) both;
 }
 .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo-spin {
-  animation: sfs-alert-bug-spin var(--sfs-alert-bug-spin) linear var(--sfs-alert-bug-duration) infinite both;
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear var(--_alert-bug-duration) infinite both;
 }
 
 /* stay: the settled composition, the halo turning. */
 .sfs-alert-bug[data-motion='stay'] .sfs-alert-bug-halo-spin,
 .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-halo-spin {
-  animation: sfs-alert-bug-spin var(--sfs-alert-bug-spin) linear infinite;
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear infinite;
 }
 
 /* exit: the entrance backwards — scale down, the text drops behind the sphere, everything 100 → 0. */
 .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-circle {
-  animation: sfs-alert-bug-out-mark var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) forwards;
+  animation: sfs-alert-bug-out-mark var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
 }
 .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-text {
-  animation: sfs-alert-bug-out-text var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) forwards;
+  animation: sfs-alert-bug-out-text var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
 }
 .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-halo {
-  animation: sfs-alert-bug-out-halo var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) forwards;
+  animation: sfs-alert-bug-out-halo var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
 }
 
 /* cycle: entrance, the stay, exit — by delays alone. The exit starts once the entrance is done and the stay has run. */
 .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-circle {
-  animation: sfs-alert-bug-in-mark var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both,
-    sfs-alert-bug-out-mark var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease)
-      calc(var(--sfs-alert-bug-duration) + var(--sfs-alert-bug-stay)) forwards;
+  animation: sfs-alert-bug-in-mark var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-mark var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
 }
 .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-text {
-  animation: sfs-alert-bug-in-text var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both,
-    sfs-alert-bug-out-text var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease)
-      calc(var(--sfs-alert-bug-duration) + var(--sfs-alert-bug-stay)) forwards;
+  animation: sfs-alert-bug-in-text var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-text var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
 }
 .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo {
-  animation: sfs-alert-bug-in-halo var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both,
-    sfs-alert-bug-out-halo var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease)
-      calc(var(--sfs-alert-bug-duration) + var(--sfs-alert-bug-stay)) forwards;
+  animation: sfs-alert-bug-in-halo var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-halo var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
 }
 .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo-grow {
-  animation: sfs-alert-bug-grow var(--sfs-alert-bug-duration) var(--sfs-alert-bug-ease) both;
+  animation: sfs-alert-bug-grow var(--_alert-bug-duration) var(--_alert-bug-ease) both;
 }
 .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo-spin {
-  animation: sfs-alert-bug-spin var(--sfs-alert-bug-spin) linear var(--sfs-alert-bug-duration) infinite both;
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear var(--_alert-bug-duration) infinite both;
 }
 
 /* exited: nothing drawn and nothing turning, but the box stays, so the layout does not move. */
@@ -353,32 +333,32 @@
 }
 
 @keyframes sfs-alert-bug-in-mark {
-  from { opacity: 0; transform: scale(var(--sfs-alert-bug-from-scale)) translateZ(0); }
+  from { opacity: 0; transform: scale(var(--_alert-bug-from-scale)) translateZ(0); }
   to { opacity: 1; transform: scale(1) translateZ(0); }
 }
 @keyframes sfs-alert-bug-in-text {
-  from { opacity: 0; transform: translate3d(0, var(--sfs-alert-bug-text-rise), 0); }
+  from { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @keyframes sfs-alert-bug-in-halo {
-  from { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--sfs-alert-bug-from-scale)); }
+  from { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-from-scale)); }
   to { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
 }
 @keyframes sfs-alert-bug-grow {
-  from { transform: scale(var(--sfs-alert-bug-halo-from)) translateZ(0); }
+  from { transform: scale(var(--_alert-bug-halo-from)) translateZ(0); }
   to { transform: scale(1) translateZ(0); }
 }
 @keyframes sfs-alert-bug-out-mark {
   from { opacity: 1; transform: scale(1) translateZ(0); }
-  to { opacity: 0; transform: scale(var(--sfs-alert-bug-out-scale)) translateZ(0); }
+  to { opacity: 0; transform: scale(var(--_alert-bug-out-scale)) translateZ(0); }
 }
 @keyframes sfs-alert-bug-out-text {
   from { opacity: 1; transform: translate3d(0, 0, 0); }
-  to { opacity: 0; transform: translate3d(0, var(--sfs-alert-bug-text-rise), 0); }
+  to { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
 }
 @keyframes sfs-alert-bug-out-halo {
   from { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
-  to { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--sfs-alert-bug-out-scale)); }
+  to { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-out-scale)); }
 }
 @keyframes sfs-alert-bug-fade-in {
   from { opacity: 0; }

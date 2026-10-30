@@ -26,8 +26,8 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { AnimationEvent, ReactNode } from 'react'
-import { FocusRing, type InteractionState } from '@/primitives'
+import type { AnimationEvent, CSSProperties, ReactNode } from 'react'
+import { FocusRing, spacing, token, type InteractionState } from '@/primitives'
 import './ui-kit.css'
 
 export type AlertBugStyle = 'interface' | 'transmission'
@@ -37,6 +37,32 @@ export type AlertBugStyle = 'interface' | 'transmission'
  */
 export type AlertBugMotion = 'enter' | 'stay' | 'exit' | 'cycle'
 type AlertBugState = Extract<InteractionState, 'default' | 'focus'>
+
+const MARK = token('--dimension-size-semantic-alert-bug-mark')
+const HALO = token('--dimension-size-semantic-alert-bug-halo')
+const RING = token('--dimension-border-width-semantic-focus-ring')
+const BETWEEN = `(${HALO} - ${MARK}) / 2`
+
+/**
+ * What the motion reads. The easing is the kit's spring (damping 15, stiffness 56) as a
+ * cubic-bezier, because `linear()` needs Chrome 113; the stay is 8s; the halo is born at
+ * 0.8 of its size, which is the mark's (82 of 102).
+ */
+const MOTION_VARS = {
+  '--_alert-bug-duration': token('--motion-semantic-duration'),
+  '--_alert-bug-ease': 'cubic-bezier(0.19, 0.06, 0.24, 1)',
+  '--_alert-bug-stay': '8000ms',
+  '--_alert-bug-from-scale': '0.9',
+  '--_alert-bug-out-scale': '0.9',
+  '--_alert-bug-mark': MARK,
+  '--_alert-bug-halo': HALO,
+  '--_alert-bug-ring-width': RING,
+  '--_alert-bug-ring-gap': `calc(${BETWEEN} - ${RING})`,
+  '--_alert-bug-halo-from': '0.8',
+  '--_alert-bug-text-rise': spacing('4xl'),
+  '--_alert-bug-text-gap': `calc(${BETWEEN} + ${spacing('2xs')})`,
+  '--_alert-bug-spin': token('--motion-semantic-focus-cycle-duration'),
+} as CSSProperties
 
 interface AlertBugProps {
   /** Whose mark this is. Default `interface`. */
@@ -75,7 +101,7 @@ export function AlertBug({
 
   function handleAnimationEnd(event: AnimationEvent<HTMLElement>): void {
     if (event.target !== event.currentTarget) return
-    if (event.animationName.indexOf('sfs-alert-bug-out') === -1) return
+    if (event.animationName.indexOf('-out-') === -1) return
     setExited(true)
     onExited?.()
   }
@@ -88,12 +114,13 @@ export function AlertBug({
       data-state={focus ? 'focus' : 'default'}
       data-motion={exited ? 'exited' : motion}
       data-reduced={reducedMotion ? '' : undefined}
+      style={motion ? MOTION_VARS : undefined}
       aria-label={label}
       onClick={onClick}
     >
       {motion ? (
         <>
-          <span className="sfs-alert-bug-text" aria-hidden>
+          <span className="sfs-alert-bug-text text-body-md-bold" aria-hidden>
             Conteúdo
             <br />
             interativo
