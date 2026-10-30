@@ -43,7 +43,10 @@ export function pack(slug, shared, n, block, src) {
   const interacao = field(block, 'Intera[cç][aã]o')
   const pattern = named(interacao, patternNames(src.interacoes))[0]
   const interactive = Boolean(pattern) && !/est[aá]tic/i.test(interacao)
-  const asked = named(field(block, 'Regras'), ruleNames)
+  const regras = field(block, 'Regras')
+  const asked = named(regras, ruleNames)
+  // Only a token shaped like a rule name (a-b-c) can be a typo of one; prose such as "nenhuma" or "e" is not a rule.
+  const unknown = regras.split(/[,;\s/()]+/).map((w) => w.replace(/[`.*]/g, '')).filter((w) => /^[a-z0-9]+(-[a-z0-9]+)+$/.test(plain(w)) && !asked.some((r) => plain(w).includes(plain(r))))
   const rules = [...ALWAYS, ...(interactive ? [['foco-e-selecao', MORE]] : []), ...asked.map((r) => [r, MORE])]
     .filter(([r], i, all) => ruleNames.includes(r) && all.findIndex(([x]) => x === r) === i)
   const rest = catalog(src.rules).filter((l) => !rules.some(([r]) => r === nameOf(l)))
@@ -60,7 +63,9 @@ export function pack(slug, shared, n, block, src) {
     interactive && teclas(src.interacoes),
     `## Direção: vocabulário e crítica (DIRECAO.md §3 e §7)\n\n${chapters(src.direcao, ['3', '7']).replace(/^## /gm, '### ')}`,
   ].filter(Boolean).join('\n\n') + '\n'
-  return { text: out, refs, pattern, interactive, static: /est[aá]tic/i.test(interacao), rules: rules.map(([r]) => r) }
+  // An interaction that names no pattern fails the run (the agent would build without its row); an unknown rule name only warns, since a hyphenated word of prose looks like one.
+  const problems = [!pattern && !/est[aá]tic/i.test(interacao) && `nenhum padrão de \`--padroes\` em **Interação:** "${interacao.slice(0, 40)}"`].filter(Boolean)
+  return { text: out, refs, pattern, interactive, problems, unknown, static: /est[aá]tic/i.test(interacao), rules: rules.map(([r]) => r) }
 }
 
 if (process.argv[1]?.endsWith('explore-pack.mjs')) {
@@ -76,12 +81,15 @@ if (process.argv[1]?.endsWith('explore-pack.mjs')) {
     const src = { refs: `${brain}references/analises`, rules: `${brain}references/conceitos`, interacoes: readFileSync(`${brain}references/interacoes.md`, 'utf8'), direcao: readFileSync(`${brain}DIRECAO.md`, 'utf8') }
     const slug = dir.replace(/\/+$/, '').split('/').pop()
     mkdirSync(join(dir, 'pack'), { recursive: true })
+    let failed = 0
     for (const [n, block] of picked) {
       const p = pack(slug, shared, n, block, src)
       const to = join(dir, 'pack', `${n}.md`)
       writeFileSync(to, p.text)
-      const warn = [!p.refs.length && 'nenhuma referência do catálogo', !p.pattern && !p.static && 'nenhum padrão reconhecido'].filter(Boolean)
+      const warn = [!p.refs.length && 'nenhuma referência do catálogo', p.unknown.length && `regra desconhecida em **Regras:** ${p.unknown.join(', ')}`].filter(Boolean)
       console.log(`${to} · ${(p.text.length / 1000).toFixed(1)} KB · refs: ${p.refs.join(', ') || '—'} · padrão: ${p.pattern ?? '—'} · regras: ${p.rules.join(', ')}${warn.length ? ` · aviso: ${warn.join('; ')}` : ''}`)
+      for (const m of p.problems) { console.error(`erro: Opção ${n}: ${m}`); failed++ }
     }
+    if (failed) process.exit(1)
   } catch (e) { fail(e.message) }
 }

@@ -1,6 +1,8 @@
+import { spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
 import { ALWAYS, chapters, field, named, pack, split } from './explore-pack.mjs'
@@ -20,7 +22,7 @@ Superfície: Content Card
 - **Tese:** um card que só se olha.
 - **Interação:** Estático.
 `
-const note = (name, extra = '') => `# ${name}\nTags: t\nPadrão: p\nResumo: r\n${extra}\n## Cerne\ncerne de ${name}\n\n## Receita\nreceita de ${name}\n\n## Uso\nuso de ${name}\n\n## Ajuste\najuste de ${name}\n`
+const note = (name: string, extra = '') => `# ${name}\nTags: t\nPadrão: p\nResumo: r\n${extra}\n## Cerne\ncerne de ${name}\n\n## Receita\nreceita de ${name}\n\n## Uso\nuso de ${name}\n\n## Ajuste\najuste de ${name}\n`
 const root = mkdtempSync(join(tmpdir(), 'explore-pack-'))
 const refs = join(root, 'refs'), rules = join(root, 'rules')
 mkdirSync(refs); mkdirSync(rules)
@@ -72,6 +74,17 @@ describe('explore-pack', () => {
     expect(p.text).toContain('vague to precise')
   })
 
+  it('reports a rule or pattern name that matches nothing, and takes a static option as fine', () => {
+    const bad = pack('clima', 'x', 3, '## Opção 3\n- **Interação:** Gesto de arrastar.\n- **Regras:** esqueleto-fixo, regra-inventada', src)
+    expect(bad.unknown).toEqual(['regra-inventada'])
+    expect(bad.problems).toEqual([expect.stringContaining('nenhum padrão')])
+    for (const prose of ['nenhuma', 'ponto-focal e esqueleto-fixo', 'esqueleto-fixo (se houver itens), —', 'só as fixas']) expect(pack('clima', 'x', 5, `## Opção 5\n- **Interação:** Estático.\n- **Regras:** ${prose}`, src).problems, prose).toEqual([])
+    expect(pack('clima', 'x', 6, '## Opção 6\n- **Interação:** Estático.\n- **Regras:** esqueleto-fixo, pré-definidas', src).problems).toEqual([])
+    expect(pack('clima', 'x', 4, '## Opção 4\n- **Interação:** Estático.', src).problems).toEqual([])
+    const { shared, options } = split(brief)
+    expect(pack('clima', shared, 1, options[0][1], src).problems).toEqual([])
+  })
+
   it('packs a static option without keys, pattern or the focus rule', () => {
     const { shared, options } = split(brief)
     const p = pack('clima', shared, 2, options[1][1], src)
@@ -80,5 +93,28 @@ describe('explore-pack', () => {
     expect(p.rules).not.toContain('foco-e-selecao')
     expect(p.text).not.toContain('Teclas dentro do card')
     expect(p.text).toContain('A direção não cita uma referência do catálogo')
+  })
+
+  it('does not count a name that only extends a rule name as unknown', () => {
+    expect(pack('clima', 'x', 7, '## Opção 7\n- **Interação:** Estático.\n- **Regras:** esqueleto-fixos', src).unknown).toEqual([])
+  })
+
+  describe('the command line', () => {
+    const run = (option: string) => {
+      const dir = mkdtempSync(join(tmpdir(), 'explore-pack-cli-'))
+      writeFileSync(join(dir, 'brief.md'), `pedido\n\n## Opção 1\n${option}\n`)
+      return spawnSync('node', [fileURLToPath(new URL('explore-pack.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+    }
+    it('warns about an unknown rule and still exits 0, with the pack written', () => {
+      const r = run('- **Interação:** Estático.\n- **Regras:** esqueleto-fixo, pré-definidas')
+      expect(r.status).toBe(0)
+      expect(r.stdout).toContain('aviso: nenhuma referência do catálogo; regra desconhecida em **Regras:** pré-definidas')
+    })
+    it('exits 1 with erro: when an interactive option names no pattern, after writing every pack', () => {
+      const r = run('- **Interação:** Gesto de arrastar.')
+      expect(r.status).toBe(1)
+      expect(r.stderr).toContain('erro: Opção 1: nenhum padrão')
+      expect(r.stdout).toContain('pack/1.md')
+    })
   })
 })

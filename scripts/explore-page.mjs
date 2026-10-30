@@ -62,6 +62,7 @@ export const settle = (page) => page.evaluate(() => {
  * instead of one per key. Without keys, returns the resting PNGs.
  */
 export async function shoot(page, out, keys = []) {
+  checkShotsFolder(out)
   mkdirSync(out, { recursive: true })
   // The page's ring around the focused card is chrome: hidden, a key shot differs from the resting one only by what the option does.
   if (keys.length) await page.addStyleTag({ content: '.opt:focus, .opt:focus-visible { outline: none !important }' })
@@ -81,6 +82,18 @@ export async function shoot(page, out, keys = []) {
     files.push(await sheet(page, join(out, `opcao-${n}-folha.png`), states))
   }
   return files
+}
+
+/** Screenshots are scratch: a folder inside the repo (outside docs/explorations/) would end up as untracked files at its root. */
+export function checkShotsFolder(out) {
+  const root = resolve(here('..')) + '/', abs = resolve(out) + '/'
+  if (abs.startsWith(root) && !abs.startsWith(`${root}docs/explorations/`))
+    throw new Error(`pasta de capturas dentro do repositório (${out}): use uma pasta temporária, como "$TMPDIR/explore-shots"`)
+}
+
+/** `checkShotsFolder` for a command line: a clean `erro:` and exit 1, before any browser opens. */
+export function requireShotsFolder(out) {
+  try { checkShotsFolder(out) } catch (e) { console.error(`erro: ${e.message}`); process.exit(1) }
 }
 
 /** The [label, png] states of one card side by side, wrapping after four, into `file`. Returns `file`. */

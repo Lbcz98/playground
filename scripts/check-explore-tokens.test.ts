@@ -49,3 +49,13 @@ it('treats a tuned option as data: spec colors and `/* tune */` values are advis
   const bad = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
   expect(bad.status).toBe(1)
 })
+
+it('stays fast on a page the size of a finished exploration (a backtracking regex once took 25 s on 250 KB)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'explore-'))
+  const rules = Array.from({ length: 2500 }, (_, i) => `[data-option="${(i % 4) + 1}"] .piece-${i} { display: block; width: 40%; padding: var(--dimension-spacing-core-sm); color: var(--color-semantic-functional-text-primary); }`).join('\n')
+  writeFileSync(join(dir, 'index.html'), `<style>\n${rules}\n</style>${'<div class="x">texto</div>'.repeat(9000)}`)
+  const start = Date.now()
+  const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+  expect(run.status).toBe(0)
+  expect(Date.now() - start).toBeLessThan(5000)
+})

@@ -4,6 +4,8 @@ A linguagem visual (cor, gradientes, sombras, tipografia, imagens, respiro) est�
 
 Para escrever telas em web/protos/: siga web/protos/CLAUDE.md.
 
+Para explorações (`/explore`): o roteiro é `.claude/commands/explore.md`; ele monta `pack/<N>.md` por opção (`scripts/explore-pack.mjs`) e o `proto-explorer` lê o pacote; sem pacote, `docs/explorations/_template/explorer-on-demand.md`.
+
 ## Agent skills
 
 ### Issue tracker
