@@ -38,3 +38,6 @@ web/tsconfig.tsbuildinfo
 # Reference screenshots stay local: agents read only the notes in analises/
 design-brain/references/Cards/
 design-brain/references/Composition/
+
+# /explore context packs: rebuilt from brief.md by scripts/explore-pack.mjs
+docs/explorations/*/pack/

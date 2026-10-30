@@ -250,6 +250,8 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--typography-font-size-xl` | 20px |
 | `--typography-font-size-2xl` | 24px |
 | `--typography-font-size-3xl` | 28px |
+| `--typography-font-size-4xl` | 56px |
+| `--typography-font-size-5xl` | 72px |
 | `--typography-font-weight-regular` | 400 |
 | `--typography-font-weight-medium` | 500 |
 | `--typography-font-weight-bold` | 700 |
@@ -274,6 +276,12 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `.text-caption-bold` | 10px | 700 | -0.01em | 1.2 |
 | `.text-caption-extra-bold` | 10px | 800 | -0.01em | 1.2 |
 | `.text-caption-medium` | 10px | 500 | -0.01em | 1.2 |
+| `.text-display-lg-bold` | 72px | 700 | -0.02em | 1.1 |
+| `.text-display-lg-medium` | 72px | 500 | -0.02em | 1.1 |
+| `.text-display-lg-regular` | 72px | 400 | -0.02em | 1.1 |
+| `.text-display-md-bold` | 56px | 700 | -0.02em | 1.1 |
+| `.text-display-md-medium` | 56px | 500 | -0.02em | 1.1 |
+| `.text-display-md-regular` | 56px | 400 | -0.02em | 1.1 |
 | `.text-footnote-bold` | 12px | 700 | -0.01em | 1.2 |
 | `.text-footnote-medium` | 12px | 500 | -0.01em | 1.2 |
 | `.text-heading-3-bold` | 28px | 700 | -0.01em | 1.2 |

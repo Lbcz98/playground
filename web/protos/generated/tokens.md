@@ -128,6 +128,22 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `typography.caption.extra-bold` | 10px / 1.2 · 800 · -0.01em | `Text variant="caption-extra-bold"` |
 | `typography.caption.medium` | 10px / 1.2 · 500 · -0.01em | `Text variant="caption-medium"` |
 
+## typography.display-lg
+
+| Path | Value | Screen name |
+| --- | --- | --- |
+| `typography.display-lg.bold` | 72px / 1.1 · 700 · -0.02em | `Text variant="display-lg-bold"` |
+| `typography.display-lg.medium` | 72px / 1.1 · 500 · -0.02em | `Text variant="display-lg-medium"` |
+| `typography.display-lg.regular` | 72px / 1.1 · 400 · -0.02em | `Text variant="display-lg-regular"` |
+
+## typography.display-md
+
+| Path | Value | Screen name |
+| --- | --- | --- |
+| `typography.display-md.bold` | 56px / 1.1 · 700 · -0.02em | `Text variant="display-md-bold"` |
+| `typography.display-md.medium` | 56px / 1.1 · 500 · -0.02em | `Text variant="display-md-medium"` |
+| `typography.display-md.regular` | 56px / 1.1 · 400 · -0.02em | `Text variant="display-md-regular"` |
+
 ## typography.footnote
 
 | Path | Value | Screen name |

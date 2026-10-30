@@ -192,6 +192,8 @@ export const CSS_VARS = [
   '--typography-font-size-xl',
   '--typography-font-size-2xl',
   '--typography-font-size-3xl',
+  '--typography-font-size-4xl',
+  '--typography-font-size-5xl',
   '--typography-letter-spacing-tight',
   '--typography-letter-spacing-tighter',
   '--typography-line-height-tight',
@@ -255,6 +257,12 @@ export type TextStyle =
   | 'heading-4-bold'
   | 'heading-3-medium'
   | 'heading-3-bold'
+  | 'display-md-regular'
+  | 'display-md-medium'
+  | 'display-md-bold'
+  | 'display-lg-regular'
+  | 'display-lg-medium'
+  | 'display-lg-bold'
 
 export const TEXT_STYLES = [
   'caption-medium',
@@ -276,4 +284,10 @@ export const TEXT_STYLES = [
   'heading-4-bold',
   'heading-3-medium',
   'heading-3-bold',
+  'display-md-regular',
+  'display-md-medium',
+  'display-md-bold',
+  'display-lg-regular',
+  'display-lg-medium',
+  'display-lg-bold',
 ] as const satisfies readonly TextStyle[]

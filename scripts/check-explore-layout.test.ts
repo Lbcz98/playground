@@ -80,11 +80,13 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     expect(check('<div class="c" style="width:400px;flex:none"><b>x</b></div><script>setTimeout(() => document.querySelector(".c").style.width = "", 200)</script>', `.c{${card}}`).code).toBe(0)
     expect(check('<div class="c"><b class="in">x</b></div>', `.c{${card}} .in{display:block;animation:in 5s} @keyframes in{from{transform:translateX(600px)}}`).code).toBe(0)
   })
-  it('with --shots, shoots each option from the same render once it is ok, and one more per --keys key', () => {
+  it('with --shots, shoots each option from the same render once it is ok, and one more per --keys key, listing one sheet', () => {
     const shots = join(dir, 'shots')
     const keyed = '<div class="c"><b>Hoje</b></div><script>const o = document.querySelector(".opt"); o.tabIndex = 0; o.addEventListener("keydown", (e) => { if (e.key === "Enter") o.querySelector("b").textContent = "Amanhã, com chuva forte à tarde" })</script>'
     const r = check(keyed, `.c{${card}}`, '', ['--shots', shots, '--keys', 'ArrowRight,Enter'])
-    expect(r.out.split('\n').filter(Boolean)).toEqual(['ok', 'opcao-1.png', 'opcao-1-1-ArrowRight.png', 'opcao-1-2-Enter.png'].map((f, i) => (i ? join(shots, f) : f)))
+    expect(r.out.split('\n').filter(Boolean)).toEqual(['ok', join(shots, 'opcao-1-folha.png')])
+    for (const f of ['opcao-1.png', 'opcao-1-1-ArrowRight.png', 'opcao-1-2-Enter.png']) expect(existsSync(join(shots, f)), f).toBe(true)
+    expect(check(keyed, `.c{${card}}`, '', ['--shots', join(dir, 'shots-rest')]).out.split('\n').filter(Boolean)).toEqual(['ok', join(dir, 'shots-rest', 'opcao-1.png')])
     // ArrowRight does nothing here, Enter changes the text: the shots say so.
     expect(readFileSync(join(shots, 'opcao-1-1-ArrowRight.png'))).toEqual(readFileSync(join(shots, 'opcao-1.png')))
     expect(readFileSync(join(shots, 'opcao-1-2-Enter.png'))).not.toEqual(readFileSync(join(shots, 'opcao-1.png')))
