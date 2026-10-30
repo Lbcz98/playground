@@ -41,6 +41,8 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | --- | --- | --- |
 | `dimension.size.semantic.alert-bug` | 96px | `SizeRole` `alert-bug` |
 | `dimension.size.semantic.alert-bug-focus` | 104px | `SizeRole` `alert-bug-focus` |
+| `dimension.size.semantic.alert-bug-halo` | 102px | `SizeRole` `alert-bug-halo` |
+| `dimension.size.semantic.alert-bug-mark` | 82px | `SizeRole` `alert-bug-mark` |
 | `dimension.size.semantic.alert-bug-transmission` | 128px | `SizeRole` `alert-bug-transmission` |
 | `dimension.size.semantic.avatar` | 40px | `SizeRole` `avatar` |
 | `dimension.size.semantic.card-expanded-height` | 160px | `SizeRole` `card-expanded-height` |
@@ -48,6 +50,10 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `dimension.size.semantic.card-height` | 122px | `SizeRole` `card-height` |
 | `dimension.size.semantic.card-width` | 158px | `SizeRole` `card-width` |
 | `dimension.size.semantic.channel-bug` | 64px | `SizeRole` `channel-bug` |
+| `dimension.size.semantic.content-card-image-g` | 320px | `SizeRole` `content-card-image-g` |
+| `dimension.size.semantic.content-card-image-height` | 380px | `SizeRole` `content-card-image-height` |
+| `dimension.size.semantic.content-card-image-m` | 264px | `SizeRole` `content-card-image-m` |
+| `dimension.size.semantic.content-card-image-p` | 176px | `SizeRole` `content-card-image-p` |
 | `dimension.size.semantic.content-card-width` | 288px | `SizeRole` `content-card-width` |
 | `dimension.size.semantic.control-height` | 40px | `SizeRole` `control-height` |
 | `dimension.size.semantic.control-height-lg` | 48px | `SizeRole` `control-height-lg` |
@@ -123,6 +129,22 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `typography.caption.bold` | 10px / 1.2 · 700 · -0.01em | `Text variant="caption-bold"` |
 | `typography.caption.extra-bold` | 10px / 1.2 · 800 · -0.01em | `Text variant="caption-extra-bold"` |
 | `typography.caption.medium` | 10px / 1.2 · 500 · -0.01em | `Text variant="caption-medium"` |
+
+## typography.display-lg
+
+| Path | Value | Screen name |
+| --- | --- | --- |
+| `typography.display-lg.bold` | 72px / 1.1 · 700 · -0.02em | `Text variant="display-lg-bold"` |
+| `typography.display-lg.medium` | 72px / 1.1 · 500 · -0.02em | `Text variant="display-lg-medium"` |
+| `typography.display-lg.regular` | 72px / 1.1 · 400 · -0.02em | `Text variant="display-lg-regular"` |
+
+## typography.display-md
+
+| Path | Value | Screen name |
+| --- | --- | --- |
+| `typography.display-md.bold` | 56px / 1.1 · 700 · -0.02em | `Text variant="display-md-bold"` |
+| `typography.display-md.medium` | 56px / 1.1 · 500 · -0.02em | `Text variant="display-md-medium"` |
+| `typography.display-md.regular` | 56px / 1.1 · 400 · -0.02em | `Text variant="display-md-regular"` |
 
 ## typography.footnote
 

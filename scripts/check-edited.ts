@@ -21,7 +21,7 @@ export function editedFile(input: string, exists: (file: string) => boolean): st
 }
 
 /** A line of `check:laws` that says something holds: the agent has nothing to do with it. */
-const HOLDS = /  (laws hold|flow holds|declared )/
+const HOLDS = /  (laws hold|flow holds|declared |exploration )/
 
 /**
  * What the hook says about an edited file: nothing when its checks pass, else the lines of `check:laws` that need work.

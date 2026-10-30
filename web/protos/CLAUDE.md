@@ -13,6 +13,7 @@ Pronto quando o arquivo existe e cada seção que se aplica de [`CODING_STANDARD
 - Antes da primeira linha: "Imports e escrita".
 - Quebrar um padrão, ou importar dados e arquivos próprios: "`@deviation`".
 - `Box`/`Text` ou componente local: "`@reuse` e `@proposal`".
+- Tela vinda de uma opção ajustada no `/tune`: "`@exploration`" (fiel ao ajuste; o que fere o sistema é listado).
 - `<Link>` ou `flow.ts`: [`standards/flow.md`](standards/flow.md). Teclas de nível (`up` abre a trilha, `down` fecha, `enter` abre a interatividade), sem wrap, Voltar em dois passos na Home (item → bug → `hidden`) e o lado da trilha seguem esse arquivo.
 
 ## 3. Confira

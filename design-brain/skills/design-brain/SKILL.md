@@ -9,6 +9,8 @@ Two kinds of notes, both in Portuguese (keep search words in Portuguese). **Refe
 
 ## Steps
 
+0. **Visual language.** Read `design-brain/DESIGN.md` in full. It sets the rules every other step follows (one accent, no shadows, the allowed gradients, the type weights and floor, imagery, insets). Where a reference note or concept differs, `DESIGN.md` wins. Done when you can name the gradients and weights you may use.
+
 1. **Find.** `list_references` with one word for what you are building (rota, escala, fileira, foco, anel, barras…). Read the catalog lines and pick one or two whose `resumo` fits the idea. Done when each pick has a name from the catalog.
 2. **Read.** `get_reference` for each pick: `cerne` and `receita` by default. Add `tipografia`, `posicao`, `cor`, `hierarquia` or `interacao` only for the part you are about to build. Done when you can say, in one sentence, the idea you are taking and why it fits.
 3. **Rules.** `list_concepts`, then `get_concept` for each rule the element touches (size hierarchy, colour roles, grouping, nested radii, focus, fixed skeleton, unambiguous labels, type details). Each catalog line says `vale para:`; apply a rule only where that fits (a choice row is not a data card). Read `uso` for the tokens that apply it and `ajuste` before you bend it. Done when every card you draw has its anchor, its colour roles and its groups decided.

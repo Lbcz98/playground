@@ -153,6 +153,275 @@
 }
 
 /*
+ * AlertBug motion (`data-motion`): the entrance, the 8s stay and the exit. Three layers, all of
+ * them transform and opacity only, so they run on Chrome 68 and Safari 16 and stay on the GPU:
+ *   text   behind the mark, centred above it; rises out from behind the sphere
+ *   halo   the focus ring's band, spinning; opens from the sphere's size to its own
+ *   circle the Globo's sphere; scales up from 0.9 and fades in
+ * Entrance and exit are 800ms (`--motion-semantic-duration`) and run together; the spin goes on
+ * for as long as the bug is on screen. The easing is the kit's spring (damping 15, stiffness 56)
+ * as a cubic-bezier, because `linear()` needs Chrome 113. Browser floor of what is used here:
+ *   @keyframes, animation, transform, opacity ............ Chrome 43, Safari 9
+ *   custom properties, calc() with var() ................. Chrome 49, Safari 9.1
+ *   will-change .......................................... Chrome 36, Safari 9.1
+ *   -webkit-mask + -webkit-mask-composite: xor ........... Chrome 4, Safari 4
+ *   prefers-reduced-motion ............................... Chrome 74, Safari 10.1 (and `data-reduced`)
+ * Left out on purpose: linear(), inset, gap, aspect-ratio, :is(), @property, translate/scale/rotate
+ * as properties, conic-gradient, min()/max()/clamp(), filter: blur, animating width or background.
+ */
+/* The motion's values (`--_alert-bug-*`) are set inline by AlertBug: duration, ease, stay, scales, mark, halo, ring, text rise and gap, spin. */
+
+/* With motion the bug is the mark laid over the Globo's watermark: its box, circle and mark are the mark's size, whatever the style. */
+.sfs-alert-bug[data-motion] {
+  width: var(--_alert-bug-mark);
+  height: var(--_alert-bug-mark);
+}
+.sfs-alert-bug[data-motion][data-style] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-motion][data-style] .sfs-alert-bug-mark {
+  width: var(--_alert-bug-mark);
+  height: var(--_alert-bug-mark);
+}
+
+.sfs-alert-bug-text,
+.sfs-alert-bug-halo,
+.sfs-alert-bug-halo-grow,
+.sfs-alert-bug-halo-spin,
+.sfs-alert-bug[data-motion] .sfs-alert-bug-circle {
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.sfs-alert-bug[data-motion] .sfs-alert-bug-circle {
+  z-index: 2;
+}
+
+/* Behind the mark: centred over the sphere and above it, "Conteúdo / interativo" in two lines. */
+.sfs-alert-bug-text {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: calc(100% + var(--_alert-bug-text-gap));
+  left: 0;
+  display: flex;
+  justify-content: center;
+  color: var(--color-semantic-functional-text-primary);
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 var(--dimension-spacing-core-2xs) var(--color-semantic-overlay-scrim);
+  transform: translate3d(0, 0, 0);
+}
+
+/* The halo box has its final size and is centred on the sphere; it opens by scale, never by width or height. */
+.sfs-alert-bug-halo {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--_alert-bug-halo);
+  height: var(--_alert-bug-halo);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transform: translate3d(-50%, -50%, 0);
+}
+
+.sfs-alert-bug-halo-grow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  border-radius: inherit;
+  transform: translateZ(0);
+}
+
+/* The focus ring's band, cut from its middle, with the broadcast gradient. Turning it is a rotate() of this element. */
+.sfs-alert-bug-halo-spin {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  box-sizing: border-box;
+  padding: var(--_alert-bug-ring-width);
+  border-radius: inherit;
+  /* The designer's pearl stop is EEDDFE (lilac), which the kit has no token for; text-primary is the nearest, until one is added. */
+  background: linear-gradient(
+    224deg,
+    var(--color-semantic-theme-noite-dark) 21.77%,
+    var(--color-semantic-theme-noite-light) 36.03%,
+    var(--color-semantic-functional-text-primary) 50.57%,
+    var(--color-semantic-theme-dia-light) 57.49%,
+    var(--color-semantic-theme-dia-dark) 65.1%,
+    var(--color-semantic-theme-tarde-light) 75.77%,
+    var(--color-semantic-theme-tarde-dark) 82.76%
+  );
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  transform: translateZ(0);
+}
+
+/* enter: the three layers come in together; the spin starts when the halo has opened. */
+.sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-circle {
+  animation: sfs-alert-bug-in-mark var(--_alert-bug-duration) var(--_alert-bug-ease) both;
+}
+.sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-text {
+  animation: sfs-alert-bug-in-text var(--_alert-bug-duration) var(--_alert-bug-ease) both;
+}
+.sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo {
+  animation: sfs-alert-bug-in-halo var(--_alert-bug-duration) var(--_alert-bug-ease) both;
+}
+.sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo-grow {
+  animation: sfs-alert-bug-grow var(--_alert-bug-duration) var(--_alert-bug-ease) both;
+}
+.sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo-spin {
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear var(--_alert-bug-duration) infinite both;
+}
+
+/* stay: the settled composition, the halo turning. */
+.sfs-alert-bug[data-motion='stay'] .sfs-alert-bug-halo-spin,
+.sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-halo-spin {
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear infinite;
+}
+
+/* exit: the entrance backwards — scale down, the text drops behind the sphere, everything 100 → 0. */
+.sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-circle {
+  animation: sfs-alert-bug-out-mark var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
+}
+.sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-text {
+  animation: sfs-alert-bug-out-text var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
+}
+.sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-halo {
+  animation: sfs-alert-bug-out-halo var(--_alert-bug-duration) var(--_alert-bug-ease) forwards;
+}
+
+/* cycle: entrance, the stay, exit — by delays alone. The exit starts once the entrance is done and the stay has run. */
+.sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-circle {
+  animation: sfs-alert-bug-in-mark var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-mark var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
+}
+.sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-text {
+  animation: sfs-alert-bug-in-text var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-text var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
+}
+.sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo {
+  animation: sfs-alert-bug-in-halo var(--_alert-bug-duration) var(--_alert-bug-ease) both,
+    sfs-alert-bug-out-halo var(--_alert-bug-duration) var(--_alert-bug-ease)
+      calc(var(--_alert-bug-duration) + var(--_alert-bug-stay)) forwards;
+}
+.sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo-grow {
+  animation: sfs-alert-bug-grow var(--_alert-bug-duration) var(--_alert-bug-ease) both;
+}
+.sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo-spin {
+  animation: sfs-alert-bug-spin var(--_alert-bug-spin) linear var(--_alert-bug-duration) infinite both;
+}
+
+/* exited: nothing drawn and nothing turning, but the box stays, so the layout does not move. */
+.sfs-alert-bug[data-motion='exited'] {
+  visibility: hidden;
+}
+.sfs-alert-bug[data-motion='exited'] .sfs-alert-bug-halo-spin {
+  animation: none;
+}
+
+@keyframes sfs-alert-bug-in-mark {
+  from { opacity: 0; transform: scale(var(--_alert-bug-from-scale)) translateZ(0); }
+  to { opacity: 1; transform: scale(1) translateZ(0); }
+}
+@keyframes sfs-alert-bug-in-text {
+  from { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes sfs-alert-bug-in-halo {
+  from { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-from-scale)); }
+  to { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
+}
+@keyframes sfs-alert-bug-grow {
+  from { transform: scale(var(--_alert-bug-halo-from)) translateZ(0); }
+  to { transform: scale(1) translateZ(0); }
+}
+@keyframes sfs-alert-bug-out-mark {
+  from { opacity: 1; transform: scale(1) translateZ(0); }
+  to { opacity: 0; transform: scale(var(--_alert-bug-out-scale)) translateZ(0); }
+}
+@keyframes sfs-alert-bug-out-text {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
+}
+@keyframes sfs-alert-bug-out-halo {
+  from { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-out-scale)); }
+}
+@keyframes sfs-alert-bug-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sfs-alert-bug-out-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes sfs-alert-bug-spin {
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
+}
+
+/* Reduced motion: a dissolve, in and out — no scale, no rise, no drop, no spin. */
+@media (prefers-reduced-motion: reduce) {
+  .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-circle,
+  .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-text,
+  .sfs-alert-bug[data-motion='enter'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-fade-in; }
+  .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-circle,
+  .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-text,
+  .sfs-alert-bug[data-motion='exit'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-out-fade; }
+  .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-circle,
+  .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-text,
+  .sfs-alert-bug[data-motion='cycle'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-fade-in, sfs-alert-bug-out-fade; }
+  .sfs-alert-bug[data-motion] .sfs-alert-bug-halo-grow,
+  .sfs-alert-bug[data-motion] .sfs-alert-bug-halo-spin { animation: none; }
+}
+.sfs-alert-bug[data-reduced][data-motion='enter'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-reduced][data-motion='enter'] .sfs-alert-bug-text,
+.sfs-alert-bug[data-reduced][data-motion='enter'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-fade-in; }
+.sfs-alert-bug[data-reduced][data-motion='exit'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-reduced][data-motion='exit'] .sfs-alert-bug-text,
+.sfs-alert-bug[data-reduced][data-motion='exit'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-out-fade; }
+.sfs-alert-bug[data-reduced][data-motion='cycle'] .sfs-alert-bug-circle,
+.sfs-alert-bug[data-reduced][data-motion='cycle'] .sfs-alert-bug-text,
+.sfs-alert-bug[data-reduced][data-motion='cycle'] .sfs-alert-bug-halo { animation-name: sfs-alert-bug-fade-in, sfs-alert-bug-out-fade; }
+.sfs-alert-bug[data-reduced][data-motion] .sfs-alert-bug-halo-grow,
+.sfs-alert-bug[data-reduced][data-motion] .sfs-alert-bug-halo-spin { animation: none; }
+
+/*
+ * AlertBugAnchor: where the bug sits on the picture. It fills the 16:9 frame (the nearest positioned
+ * ancestor) and puts the Globo's sphere — the box of the bug itself, not the halo or the text, which
+ * hang outside it — 118 px from the right edge and 56 px from the bottom on 1920×1080, as percentages
+ * of the frame (6.1458% and 5.1852%): 79 px and 37 px at 1280×720, the kit's own frame. It takes no pointer events itself.
+ */
+.sfs-alert-bug-anchor {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.sfs-alert-bug-anchor-spot {
+  position: absolute;
+  right: 6.1458%;
+  bottom: 5.1852%;
+  pointer-events: auto;
+}
+
+/*
  * WideButton: the pill call to action. `data-state` is the TV focus the prop
  * carries; the cursor says what a press will do. The (0,2,0) cursor rules beat
  * preflight's `:disabled` (0,1,0), which would otherwise tie with the base.
@@ -590,6 +859,14 @@
   min-width: 0;
 }
 
+/* CardScrim: the card-level scrim, over the image's own box; the gradient is the token's. */
+.sfs-card-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--gradient-semantic-card-scrim);
+}
+
 /*
  * ContentCard: the tall card and its three zones. `data-state` is the TV focus
  * the prop carries; `data-sized` says a height was set per use (`--_height`, a
@@ -603,7 +880,7 @@
   flex-shrink: 0;
   overflow: hidden;
   width: var(--dimension-size-semantic-content-card-width);
-  padding: var(--dimension-spacing-core-lg);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
   border-radius: var(--dimension-radius-semantic-content-card);
 }
 
@@ -622,6 +899,64 @@
 
 .sfs-content-card[data-pressable] {
   cursor: pointer;
+}
+
+/*
+ * The image variant: 380 tall, the picture across the top in a step (`data-image`
+ * carries the step; `--_image` is its height), the zones anchored to the bottom edge. The picture is shown
+ * as delivered in every state (DESIGN.md 6.4): at rest only the zones are muted; focused, the ring's light
+ * sits over it. It keeps the card's own fill in both states: its ring draws none, which would darken the
+ * picture, and the text under the picture still sits on the card (DESIGN.md 6.2).
+ */
+.sfs-content-card[data-image] {
+  height: var(--dimension-size-semantic-content-card-image-height);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+
+.sfs-content-card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--_image);
+  overflow: hidden;
+}
+
+.sfs-content-card-image > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sfs-content-card[data-image] > .sfs-content-card-zones {
+  justify-content: flex-end;
+}
+
+.sfs-content-card[data-image] .sfs-content-card-body {
+  flex: 0 0 auto;
+}
+
+/* The stack is anchored by the zones' column, so the footer does not push itself to the far edge. */
+.sfs-content-card[data-image] .sfs-content-card-footer {
+  margin-top: 0;
+}
+
+.sfs-content-card[data-image] .sfs-content-card-text {
+  gap: var(--dimension-spacing-core-2xs);
+}
+
+/*
+ * A card that holds a Wide Button (in its footer) is a container, not the control:
+ * the button takes the focus and the ring, the button spans the card's width, and the
+ * card is at full strength at rest instead of dimmed.
+ */
+.sfs-content-card-footer > .sfs-wide-button {
+  width: 100%;
+}
+
+.sfs-content-card:has(.sfs-content-card-footer .sfs-wide-button)[data-state='default'] > .sfs-content-card-zones {
+  opacity: var(--opacity-semantic-visible);
 }
 
 /* The zones' column. `--_gap` is the kit's gutter, or the `gap` set per use. */

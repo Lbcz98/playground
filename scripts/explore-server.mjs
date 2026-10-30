@@ -22,13 +22,19 @@ import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 //   comment    a designer's note on a piece of the page
 //   dials      the DialKit values the designer tuned and wants written in as the new defaults
 //   vary       variations of one option (`option`, `action`, optional `note`); more: a fresh batch from the brief
-//   tune       the designer opened the stage on an option that has no controls yet; judge: "Avaliar" on a tuned option. Both carry `option`.
+//   tune       the designer opened the stage on an option that has no controls yet; judge: "Avaliar" on a tuned option; kit: its "Auditoria do kit". All carry `option`.
 //   figma-push / figma-pull  "Enviar ao Figma" / "Trazer do Figma" on a tuned option; carry `option` and the stage's live dial `values`
 
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
 const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
 const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
+const MESURER = fileURLToPath(new URL('./explore-mesurer.tsx', import.meta.url))
+let mesurer // the stage's Mesurer bundle (React package, so built once per run on first request)
+const mesurerJs = () => (mesurer ??= import('esbuild')
+  .then((esbuild) => esbuild.build({ entryPoints: [MESURER], bundle: true, write: false, format: 'iife', minify: true, define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent' }))
+  .then((r) => r.outputFiles[0].contents)
+  .catch((e) => { mesurer = undefined; throw e }))
 // Served without a token (like the overlay): fixed files, no state.
 const ASSETS = {
   // The kit's own tokens and face: explorations link these instead of retyping values.
@@ -99,7 +105,7 @@ export function startServer(opts) {
 
   /** The page with the live layer; `tune` also loads the stage, which must run before the overlay (it defines window.exploreDials). */
   const withLive = (html, tune) => {
-    const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>`
+    const tags = `<script>window.__EXPLORE__=${JSON.stringify({ token, tune })}</script>${tune ? '<script src="/__explore/tune.js"></script>' : ''}<script src="/__explore/overlay.js"></script>${tune ? '<script src="/__explore/mesurer.js" async></script>' : ''}`
     return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
   }
 
@@ -112,6 +118,16 @@ export function startServer(opts) {
     if (url.pathname === '/__explore/overlay.js') {
       res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' }) // never an old overlay on a reloaded page
       return res.end(readFileSync(OVERLAY))
+    }
+    if (url.pathname === '/__explore/mesurer.js') {
+      try {
+        const js = await mesurerJs()
+        res.writeHead(200, { 'content-type': 'text/javascript' })
+        return res.end(js)
+      } catch (e) {
+        out(`mesurer: ${e.message.split('\n')[0]}`)
+        return json(res, 500, { error: 'mesurer' })
+      }
     }
     // The fine-tuning stage: option N when it has controls, else its newest tuned copy (a redirect), else the original while the copy is being made.
     const stage = url.pathname.match(/^\/tune\/(\d+)\/?$/)
@@ -139,10 +155,10 @@ export function startServer(opts) {
         clients.add(res)
         return void req.on('close', () => (clients.delete(res), (lastActivity = Date.now())))
       }
-      // The judge's findings for one option: written by proto-judge next to the page, shown in the stage.
+      // The findings for one option: written by proto-judge (judge-N.json) or proto-kit-auditor (kit-N.json, `?kit=1`) next to the page, shown in the stage.
       if (url.pathname === '/__explore/judge') {
         const n = url.searchParams.get('option') ?? ''
-        const file = join(root, `judge-${n}.json`)
+        const file = join(root, `${url.searchParams.get('kit') ? 'kit' : 'judge'}-${n}.json`)
         if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
         return json(res, 200, readJson(file))
       }
@@ -157,7 +173,7 @@ export function startServer(opts) {
         const dials = b.kind === 'dials'
         const vary = b.kind === 'vary', more = b.kind === 'more'
         const figma = b.kind === 'figma-push' || b.kind === 'figma-pull'
-        const stageKind = b.kind === 'tune' || b.kind === 'judge' || figma ? b.kind : undefined
+        const stageKind = b.kind === 'tune' || b.kind === 'judge' || b.kind === 'kit' || figma ? b.kind : undefined
         if (stageKind) {
           if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
           // The stage asks on every load: one open request per option and kind is enough.
@@ -171,7 +187,7 @@ export function startServer(opts) {
         if (dials && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
         if (b.kind === 'figma-pull' && !existsSync(figmaFile)) return json(res, 400, { error: 'push' }) // nothing was sent yet
         if (figma && !(b.values && typeof b.values === 'object' && !Array.isArray(b.values) && JSON.stringify(b.values).length <= 4000)) return json(res, 400, { error: 'values' })
-        const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
+        const text = stageKind ? `${{ tune: 'Preparar controles', judge: 'Avaliar', kit: 'Auditoria do kit', 'figma-push': 'Enviar ao Figma', 'figma-pull': 'Trazer do Figma' }[stageKind]} · opção ${b.option}`
           : dials ? 'Aplicar valores do DialKit'
           : vary ? `${ACTIONS[b.action]} · opção ${b.option}${note && `: ${note}`}`
           : more ? `Mais opções${note && `: ${note}`}`
@@ -248,7 +264,7 @@ export function startServer(opts) {
         c.status = b.status
         c.summary = b.summary ? clip(b.summary, 300) : undefined
         broadcast(state())
-        if (c.status === 'aplicado' && c.kind !== 'judge' && c.kind !== 'figma-push' && c.kind !== 'figma-pull') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
+        if (c.status === 'aplicado' && c.kind !== 'judge' && c.kind !== 'kit' && c.kind !== 'figma-push' && c.kind !== 'figma-pull') broadcast('event: reload\ndata: 1\n\n') // findings show without a reload
         return json(res, 200, { ok: true })
       }
       return json(res, 404, { error: 'not found' })

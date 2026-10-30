@@ -28,8 +28,9 @@ Cada padrão diz o que ←/→ e Enter fazem. Direções diferentes → padrões
 | Padrão | ← → | Enter | O que o espectador vê | Veio de |
 | --- | --- | --- | --- | --- |
 | **Expandir no lugar** | move entre as peças expansíveis | expande ou recolhe a peça focada | A peça cresce e mostra o detalhe sem sair do card. Voltar recolhe. | cartões de contexto (ideia derivada de "Attendees"; a imagem não mostra a expansão) |
+| **Foco revela** | move o foco entre 2 a 4 peças pequenas | — | O detalhe da peça em foco aparece numa linha reservada do card, no lugar de outro texto; o card nunca muda de altura. Sem Enter e sem abrir nada. | derivado de "Expandir no lugar", sem o crescimento (decisão do designer, que o achou parecido com um dropdown) |
 | **Seletor segmentado** | troca o segmento (2 ou 3), na hora | — | O conteúdo inteiro do card muda junto com o segmento. É um filtro do card. | cidade com foto |
-| **Trilho de passos** | move a seleção (5 a 7 itens do mesmo tipo) | abre o detalhe do item no lugar | O item selecionado inverte a cor; o detalhe dele aparece no card. | trilho de dias (a semana e o clima só mostram a fileira) |
+| **Trilho de passos** | move a seleção (até 4 itens do mesmo tipo; mais só se o designer decidir) | abre o detalhe do item no lugar | O item selecionado inverte a cor; o detalhe dele aparece no card. | trilho de dias (a semana e o clima só mostram a fileira) |
 | **Alternar visão** | percorre os itens do gráfico (dias, categorias) | troca entre duas visões do mesmo dado | A visão atual aparece marcada; o total e a legenda não mudam. | semana barras e radial (mostra as duas lado a lado, não a troca) |
 | **Órbita** | vai ao item anterior (←, anti-horário) ou ao próximo (→, horário); começa e termina no vão do topo, sem dar a volta | abre o detalhe do item | O item focado ganha contorno e um rótulo com o nome; os outros ficam quietos. | órbita de pessoas |
 | **Marcador em escala** | move o marcador | confirma o valor | O valor, a frase de comparação e a cor mudam com a posição. **Só para um valor que o usuário ajusta** (volume, meta). Um valor medido não tem foco: use outro padrão. | medidor com escala (ideia derivada; o medidor da imagem mostra um valor medido) |
@@ -38,4 +39,4 @@ Cada padrão diz o que ←/→ e Enter fazem. Direções diferentes → padrões
 | **Interruptor** | move entre os interruptores | liga ou desliga | A linha confirma o novo estado com cor e texto, não só com cor. | saúde (interruptores) |
 | **Fileira de escolha** | move o foco entre cartões iguais | escolhe o cartão | O cartão focado ganha contorno; o escolhido fica marcado de **outro jeito**. Foco e escolhido têm aparências diferentes. | cartões de humor (a imagem não mostra foco nem escolhido: crie os dois) |
 
-Distinção entre os dois padrões de fileira: **Seletor segmentado** troca o contexto do card inteiro com 2 ou 3 segmentos (um filtro). **Trilho de passos** tem de 5 a 7 itens do mesmo tipo, cada um com o seu detalhe. Não use os dois na mesma exploração: na interação eles parecem iguais.
+Distinção entre os dois padrões de fileira: **Seletor segmentado** troca o contexto do card inteiro com 2 ou 3 segmentos (um filtro). **Trilho de passos** tem até 4 itens do mesmo tipo (reenquadre: os próximos 3 dias, não a semana), cada um com o seu detalhe. Não use os dois na mesma exploração: na interação eles parecem iguais.

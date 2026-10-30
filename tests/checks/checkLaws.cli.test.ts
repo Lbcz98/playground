@@ -46,7 +46,7 @@ describe('check:laws, the command', () => {
 
 describe('addRenderResult — severity routing', () => {
   it('puts warn findings in advisories and block findings in problems', () => {
-    const rep = { file: 'f', problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 0, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] } }
+    const rep = { file: 'f', problems: [], advisories: [], deviations: [], trespasses: [], warnings: [], notRead: [], coverage: { read: 0, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] } }
     addRenderResult(rep, {
       issues: [
         { ruleId: 'render.legibility', severity: 'warn', message: 'overlap' },

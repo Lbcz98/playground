@@ -3,6 +3,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box, Stack, Text, size, spacing, token } from '@/primitives'
 import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } from './ContentCard'
 import { TableCell } from './TableCell'
+import { WideButton } from './WideButton'
+import oscar from './story-assets/extra-info-oscar.png'
 
 /** A stand-in crest, so the stories show the badge slot without shipping club artwork. */
 function Badge({ color }: { color: string }): ReactNode {
@@ -186,15 +188,15 @@ const standings: [string, string, string, string][] = [
 
 /**
  * Tabela de classificação — Figma 6371:7480 (288×410). Title, then the round with
- * the column headings beside it, ten team rows and a "see more" footer. Click the
- * card (or Enter / Space on it) for teams 11–20, and again to go back.
+ * the column headings beside it, nine team rows and a "see more" footer. Click the
+ * card (or Enter / Space on it) for the next nine, and again to go on, wrapping to the first.
  */
 export const TabelaDeCampeonato: Story = {
   name: 'Tabela de campeonato',
   args: {},
   render: () => (
-    // Ten team rows fill the card, so the twenty page: a click on the card shows the next ten.
-    <ContentCard rowsPerPage={10}>
+    // Nine team rows fill the card (the expanded inset), so the twenty page: a click on the card shows the next nine.
+    <ContentCard rowsPerPage={9}>
       <ContentCardHeader title="Campeonato Brasileiro" subtitle="Rodada 28" stats={['Pts', 'J', 'V']} />
       <ContentCardBody>
         {standings.map(([name, pts, j, v], i) => (
@@ -295,5 +297,81 @@ export const Gaps: Story = {
         </Stack>
       ))}
     </Stack>
+  ),
+}
+
+// ---------------------------------------------------------------------------
+// The image variant — Figma "Extra Info" (12390:103240), 288×380. The picture
+// across the top in a step that shrinks as the text grows, the card scrim fading
+// it into the card, the title and description anchored to the bottom edge.
+// ---------------------------------------------------------------------------
+
+/** G: a one-line title and one line of description — the tallest picture (320). */
+export const ImagemG: Story = {
+  name: 'Imagem G',
+  args: { interactionState: 'focus', image: oscar, imageSize: 'G' },
+  render: (args) => (
+    <ContentCard {...args}>
+      <ContentCardHeader title="Uma linha de título" subtitle="Uma linha de descrição" />
+    </ContentCard>
+  ),
+}
+
+/** M: a two-line title with up to two lines of description — the picture gives way a little (264). */
+export const ImagemM: Story = {
+  name: 'Imagem M',
+  args: { interactionState: 'focus', image: oscar, imageSize: 'M' },
+  render: (args) => (
+    <ContentCard {...args}>
+      <ContentCardHeader title="Duas linhas no título, imagem diminui um pouquinho" subtitle="Até duas linhas de descrição ou 5 tópicos pra completar o combo" />
+    </ContentCard>
+  ),
+}
+
+const bullets = ['Na versão M ou P', 'Podemos', 'Compor', 'Com tópicos', 'Também.', 'Sendo', 'Uma lista', 'Bem mais extensa', 'Usamos a imagem P', 'E mostramos', 'Assim']
+
+/** P: a two-line title over a long list — the smallest picture (176). The description is bullets, in a Body. */
+export const ImagemP: Story = {
+  name: 'Imagem P',
+  args: { interactionState: 'focus', image: oscar, imageSize: 'P' },
+  render: (args) => (
+    <ContentCard {...args}>
+      <ContentCardHeader title="Um título de até duas linhas" />
+      <ContentCardBody>
+        <Stack direction="column" gap="none">
+          {bullets.map((line) => (
+            <Text key={line} variant="body-sm-medium" color="muted">
+              {`• ${line}`}
+            </Text>
+          ))}
+        </Stack>
+      </ContentCardBody>
+    </ContentCard>
+  ),
+}
+
+/** At rest the text is muted like any resting card's; the picture is shown as delivered (DESIGN.md 6.4). */
+export const ImagemEmRepouso: Story = {
+  name: 'Imagem em repouso',
+  args: { interactionState: 'default', image: oscar, imageSize: 'G' },
+  render: ImagemG.render,
+}
+
+/**
+ * With an action — Figma "Cross Device" (12390:103027). The footer holds a Wide Button:
+ * it spans the card's width and takes the focus and the ring, and the card, which is not
+ * pressable, is a container at full strength. M step: a one-line title, two lines of
+ * description, then the button.
+ */
+export const ImagemComBotao: Story = {
+  name: 'Imagem com botão',
+  args: { interactionState: 'default', image: oscar, imageSize: 'M' },
+  render: (args) => (
+    <ContentCard {...args}>
+      <ContentCardHeader title="Tudo sobre o Oscar 2026" subtitle="”O Agente Secreto” concorre em 3 categorias. Cerimônia inicia às 21h" />
+      <ContentCardFooter>
+        <WideButton interactionState="focus" label="Abrir no meu celular" iconRight />
+      </ContentCardFooter>
+    </ContentCard>
   ),
 }

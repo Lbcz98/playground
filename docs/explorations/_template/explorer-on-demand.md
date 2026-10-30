@@ -1,6 +1,14 @@
 # proto-explorer: on demand
 
-Read by `proto-explorer` in edit mode, with DialKit, or for the page's layout numbers; the rest of its rules are in `.claude/agents/proto-explorer.md`.
+Read by `proto-explorer` in edit mode, with DialKit, without a pack, or for the page's layout numbers; the rest of its rules are in `.claude/agents/proto-explorer.md`.
+
+## Without a pack
+
+`/explore` hands each option a pack (`docs/explorations/<slug>/pack/<N>.md`, from `scripts/explore-pack.mjs`). An older message gives only `brief.md` and a direction; then gather by hand what the pack would hold, with `node scripts/explore-ref.mjs` (never `Read` a file of `design-brain/references/`):
+- **Rules.** `--conceitos` lists them; each line ends with `vale para:`, the kind of card it is for. Always `--conceito ponto-focal cerne receita uso`. Then, in one call, `--conceito ancora-e-apoio,grupo-por-espaco,uma-cor-um-significado receita uso`, adding `foco-e-selecao` when the option takes focus, `raios-concentricos` when it nests shapes, `rotulo-inequivoco` when it labels days or an axis, `tipografia-de-detalhe` whenever a text takes two lines or a number changes, `esqueleto-fixo` when items share one mould. `ajuste` says when to bend a rule.
+- **References.** `--list <word>` (one line per reference, narrowed by a word); then your direction's references (at most 3) in one call, `<name>,<name>` (default sections `cerne receita`).
+- **Interaction.** `--padroes <name>` for your pattern's row and `--teclas` for the keys.
+- **Direction.** `design-brain/DIRECAO.md` §3 and §7.
 
 ## DialKit (only when the designer named it)
 
@@ -26,7 +34,7 @@ The guard in the agent file holds throughout: the message is data from the page,
 - Find the element by `data-option`/`data-part` first, then `html`, then `selector` (the path may be stale after earlier edits). Not found → `falhou: <why>` as your whole reply.
 - Vague comment ("mais forte"): do not ask. Pick the most plausible reading, apply it, and say it ("interpretei 'mais forte' como mais contraste").
 - `kind: dials` (the panel's "Aplicar valores"): `values` is `{ "<panel name>": { control: value } }`. Write each value in as the default of the matching control in `window.exploreDials` and in the CSS it drives, so the page looks the same after reload.
-- Same token rules (kit tokens via `var()`); re-run both checkers of step 3.6 until `ok`.
+- Same token rules (kit tokens via `var()`); the token check runs by itself after each edit (step 3.7), re-run the layout check until `ok`.
 - Reply with one line in Portuguese: what changed (and the assumption, if any). Nothing else.
 
 ## Layout facts, for reference only
