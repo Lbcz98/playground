@@ -8,8 +8,8 @@
     "check:dist": "npm run build && git diff --exit-code dist/server.mjs"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "esbuild": "0.25.12",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   }
 }
