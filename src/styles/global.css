@@ -315,6 +315,10 @@
   --dimension-size-semantic-alert-bug-focus: 104px;
   /* Alert bug in its transmission style, the broadcaster's own mark */
   --dimension-size-semantic-alert-bug-transmission: 128px;
+  /* The Globo's mark (the sphere) of the alert bug laid over the watermark, in the 1280x720 frame. In 1920x1080 it is 124px. */
+  --dimension-size-semantic-alert-bug-mark: 82px;
+  /* The spinning halo around the alert bug's mark, in the 1280x720 frame. In 1920x1080 it is 152px. */
+  --dimension-size-semantic-alert-bug-halo: 102px;
 
   /* ===== Dimension · Border Width · Core ===== */
   --dimension-border-width-core-hairline: 1px;

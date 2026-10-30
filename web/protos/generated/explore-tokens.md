@@ -101,6 +101,8 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--dimension-radius-semantic-content-card` | 40px |
 | `--dimension-size-semantic-avatar` | 40px |
 | `--dimension-size-semantic-alert-bug` | 96px |
+| `--dimension-size-semantic-alert-bug-mark` | 82px |
+| `--dimension-size-semantic-alert-bug-halo` | 102px |
 | `--dimension-size-semantic-alert-bug-focus` | 104px |
 | `--dimension-size-semantic-alert-bug-transmission` | 128px |
 | `--dimension-size-semantic-card-height` | 122px |

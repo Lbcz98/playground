@@ -807,7 +807,7 @@
           "description": "One line, ellipsised."
         },
         "variant": {
-          "type": "| 'caption-medium'\n| 'caption-bold'\n| 'caption-extra-bold'\n| 'footnote-medium'\n| 'footnote-bold'\n| 'body-sm-medium'\n| 'body-sm-bold'\n| 'body-sm-extra-bold'\n| 'body-md-regular'\n| 'body-md-medium'\n| 'body-md-bold'\n| 'body-lg-medium'\n| 'body-lg-bold'\n| 'heading-5-medium'\n| 'heading-5-bold'\n| 'heading-4-medium'\n| 'heading-4-bold'\n| 'heading-3-medium'\n| 'heading-3-bold'",
+          "type": "| 'caption-medium'\n| 'caption-bold'\n| 'caption-extra-bold'\n| 'footnote-medium'\n| 'footnote-bold'\n| 'body-sm-medium'\n| 'body-sm-bold'\n| 'body-sm-extra-bold'\n| 'body-md-regular'\n| 'body-md-medium'\n| 'body-md-bold'\n| 'body-lg-medium'\n| 'body-lg-bold'\n| 'heading-5-medium'\n| 'heading-5-bold'\n| 'heading-4-medium'\n| 'heading-4-bold'\n| 'heading-3-medium'\n| 'heading-3-bold'\n| 'display-md-regular'\n| 'display-md-medium'\n| 'display-md-bold'\n| 'display-lg-regular'\n| 'display-lg-medium'\n| 'display-lg-bold'",
           "kind": "enum",
           "options": [
             "caption-medium",
@@ -828,7 +828,13 @@
             "heading-4-medium",
             "heading-4-bold",
             "heading-3-medium",
-            "heading-3-bold"
+            "heading-3-bold",
+            "display-md-regular",
+            "display-md-medium",
+            "display-md-bold",
+            "display-lg-regular",
+            "display-lg-medium",
+            "display-lg-bold"
           ],
           "required": false,
           "defaultValue": "body-md-regular",
@@ -894,11 +900,36 @@
           "defaultValue": "Conteúdo interativo",
           "description": "Accessible name — the bug is artwork-only."
         },
+        "motion": {
+          "type": "'enter' | 'stay' | 'exit' | 'cycle'",
+          "kind": "enum",
+          "options": [
+            "enter",
+            "stay",
+            "exit",
+            "cycle"
+          ],
+          "required": false,
+          "description": "Adds the halo and the text and plays the entrance and exit. Without it the bug is still."
+        },
         "onClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
           "description": ""
+        },
+        "onExited": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": "The exit has finished (`exit`, or the end of a `cycle`); the bug is no longer drawn."
+        },
+        "reducedMotion": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Dissolve only, with no scale, rise or spin — what the viewer asked their system for. The media query does the same on its own."
         },
         "src": {
           "type": "string",
@@ -910,8 +941,14 @@
       "title": "UI Kit/Alert Bug",
       "stories": [
         "ui-kit-alert-bug--all-styles",
+        "ui-kit-alert-bug--cycle",
+        "ui-kit-alert-bug--enter",
+        "ui-kit-alert-bug--exit",
         "ui-kit-alert-bug--interface",
         "ui-kit-alert-bug--interface-focus",
+        "ui-kit-alert-bug--position",
+        "ui-kit-alert-bug--reduced-motion",
+        "ui-kit-alert-bug--stay",
         "ui-kit-alert-bug--transmission"
       ],
       "subcomponents": {}
