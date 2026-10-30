@@ -1,0 +1,24 @@
+{
+  "verdict": "Approve",
+  "summary": "A opção 3 não quebra nenhuma lei do kit (os dois verificadores passam e as teclas seguem o modelo), mas o <article> não é fechado e a opção 4 fica aninhada dentro dela.",
+  "findings": [
+    {"severity": "MEDIUM", "domain": "behavior", "rule": "um único Tab stop no <article>", "location": "docs/explorations/foco-clima-2/index.html:287",
+     "before": "</div> fecha .opt-content e o </article> da opção 3 não existe; a opção 4 (linha 288) nasce dentro do article da opção 3",
+     "after": "Fechar com </article> logo após o </div> da linha 287",
+     "why": "O keydown da opção 3 (linha 372) está no article, então ←/→/Enter/Esc digitados na opção 4 também trocam o dia da opção 3 e recebem preventDefault. A estrutura de um Tab stop por card se perde e a medição do layout pode contar a opção 4 como parte da 3."},
+    {"severity": "LOW", "domain": "tokens", "rule": "text-body-sm-medium (line-height do estilo de texto)", "location": "docs/explorations/foco-clima-2/index.html:158",
+     "before": "line-height: 1.3 em [data-option=\"3\"] .day",
+     "after": "Remover e deixar o line-height do estilo text-body-sm-medium; se o aperto for desejado, marcar com /* tune */ como candidato a token",
+     "why": "Literal que sobrescreve a escala tipográfica do kit; não existe token com esse valor em explore-tokens.md."},
+    {"severity": "LOW", "domain": "rules", "rule": "grid.8pt", "location": "docs/explorations/foco-clima-2/index.html:153",
+     "before": "gap: var(--dimension-spacing-core-xs) (12px) no .rail",
+     "after": "var(--dimension-spacing-core-2xs) (8px) ou var(--dimension-spacing-core-lg) conforme o respiro desejado",
+     "why": "12px é token do kit mas fora do múltiplo de 8; sem exceção declarada, é uma divergência de grade pequena."}
+  ],
+  "coverage": [
+    {"domain": "rules", "result": "1 achado"},
+    {"domain": "tokens", "result": "1 achado"},
+    {"domain": "behavior", "result": "1 achado"}
+  ],
+  "notVerified": ["tune-measure.mjs e check-tune-spec.mjs não rodados: a opção não tem cópia ajustável nem spec de ajuste", "contraste e foco visível não medidos em renderização"]
+}

@@ -1,0 +1,43 @@
+{
+  "verdict": "Block",
+  "summary": "A opção 3 está limpa em hierarquia, contraste de texto e ícones, mas o fade de 800 ms ignora prefers-reduced-motion e o anel de foco do dia escolhido tem contraste baixo contra o card.",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "domain": "accessibility",
+      "location": "docs/explorations/foco-clima-2/index.html:136",
+      "before": "`.art img` anima opacity por var(--motion-semantic-duration) (800 ms) e não há nenhuma regra @media (prefers-reduced-motion) para a opção 3 (a única do arquivo cobre só .view-toggle). medido: reducedMotionRule false.",
+      "after": "Adicionar `@media (prefers-reduced-motion: reduce) { [data-option=\"3\"] .art img { transition: none; } }`. A troca continua legível porque o número e a palavra do dia também mudam.",
+      "why": "Movimento sem regra de movimento reduzido é gatilho de bloqueio. Quem desliga animações no sistema ainda vê a imagem inteira dissolver a cada ←/→."
+    },
+    {
+      "severity": "MEDIUM",
+      "domain": "ui",
+      "location": "docs/explorations/foco-clima-2/index.html:136",
+      "before": "Troca de dia (movimento de foco, a interação mais frequente) faz fade de 800 ms, medido: img opacity 800 ms linear.",
+      "after": "Usar até 150 ms em opacity (token de duração curta do kit, se houver) ou troca direta. Sobreposição de 800 ms com ←/→ repetido deixa duas imagens meio visíveis ao mesmo tempo.",
+      "why": "Na TV, quem percorre Hoje, Ter, Qua e Qui espera a resposta na hora. Com 800 ms a imagem fica atrás do foco e o número já mudou. Se o 800 ms vem do token do kit, é o token que decide, mas fica o custo registrado."
+    },
+    {
+      "severity": "MEDIUM",
+      "domain": "colors",
+      "location": "docs/explorations/foco-clima-2/index.html:178",
+      "before": "Anel do dia escolhido (gradient-semantic-focus-ring: #414FFD 30% até #35C7F3, 4 px, offset 2 px, fora do preenchimento) sobre o card #3F3F3F. Contraste calculado com os tokens, não pela medição do script (focus: [] porque o estado não é ativado): #414FFD vs card ≈ 1,9:1; #35C7F3 vs card ≈ 5,3:1. Não medido: o anel contra a imagem no topo.",
+      "after": "Sem dial: cor do anel é decisão do kit. Registrar que a maior parte do perímetro (azul escuro) fica abaixo de 3:1 contra o card; o preenchimento branco do dia escolhido, de 18:1, é que carrega o foco.",
+      "why": "Indicador de foco precisa de 3:1 contra o que cruza. Aqui o trecho azul escuro some no card cinza, então a posição do foco depende do pill branco, que é cue estático e funciona."
+    }
+  ],
+  "coverage": [
+    {"domain": "accessibility", "result": "2 achados (1 HIGH, 1 MEDIUM); ícones a 0,5 sobre #3F3F3F ≈ 3,6:1 e a 0,9 (inverso preto) sobre pill #EEE ≈ 15:1; nome em text-muted 6,13:1, todos aprovados"},
+    {"domain": "layout", "result": "Clear: 4 itens em linha, anel com folga (6 px fora do dia, 10 px até a borda do card), layout check ok"},
+    {"domain": "typography", "result": "Clear: menor texto 14 px, nenhum truncamento"},
+    {"domain": "colors", "result": "1 achado (anel de foco)"},
+    {"domain": "ui", "result": "1 achado (duração 800 ms); grupo focal único (São Paulo, 24°, condição sobre a imagem), sem SVG"},
+    {"domain": "writing", "result": "Not reviewed: sample data"}
+  ],
+  "notVerified": [
+    "Contraste do anel de foco em estado focado medido no navegador (o script devolveu focus: []; valores calculados dos tokens)",
+    "Contraste do anel contra a parte da imagem no topo do card",
+    "Opacidade 0,5 dos ícones: cor média dos PNGs lida (#EEE), razão calculada, não medida em render"
+  ]
+}
