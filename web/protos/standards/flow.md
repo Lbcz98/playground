@@ -3,7 +3,7 @@
 Fluxo = pasta `web/protos/<seu-nome>/<fluxo>/` com um `.tsx` por estado (nome do estado = nome do arquivo sem `.tsx`) e um `flow.ts`. A navegação vive no `<Link>` e no `flow.ts`; a tela fica sem estado, rota e `onClick`.
 
 ## Link
-`<Link href="/<seu-nome>/<tela>">` (de `next/link`) em volta de **um** elemento do kit. `href` calculado vira "não lido". Pular um nível de propósito: `{/* @deviation flow.next-level: <por quê> */}` antes do `<Link>`.
+`<Link href="/<seu-nome>/<tela>" style={{ display: 'inline-block' }}>` (de `next/link`) em volta de **um** elemento do kit. Um controle de navegação usa `as="span"` (`InteractivityButton`, `WideButton`, `RoundedButton`, `Notification` ou `AlertBug`), deixando o `<a>` do Link como único alvo de teclado; ações usam o botão padrão com `onClick`. `ContentCard` usa `asLink` e não deve ter `onClick` ou `rowsPerPage` nesse caso. Exemplo: `<Link href="/ana/trilha" style={{ display: 'inline-block' }}><InteractivityButton as="span" title="Opções de áudio" /></Link>`. `href` calculado vira "não lido". Pular um nível de propósito: `{/* @deviation flow.next-level: <por quê> */}` antes do `<Link>`.
 
 ## `flow.ts`
 Dados literais (sem variáveis, spread ou chamadas): a checagem lê o arquivo, não o executa.

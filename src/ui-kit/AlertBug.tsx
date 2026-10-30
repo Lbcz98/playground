@@ -24,6 +24,8 @@ export type AlertBugStyle = 'interface' | 'transmission'
 type AlertBugState = Extract<InteractionState, 'default' | 'focus'>
 
 interface AlertBugProps {
+  /** Use `span` inside a navigation `<Link>`; actions remain buttons. */
+  as?: 'button' | 'span'
   /** Whose mark this is. Default `interface`. */
   bugStyle?: AlertBugStyle
   /** Only the interface bug takes focus. Default `default`. */
@@ -37,6 +39,7 @@ interface AlertBugProps {
 
 /** The corner bug that says an interactivity is waiting — the kit’s own (`interface`, focusable) or the broadcaster’s (`transmission`). */
 export function AlertBug({
+  as = 'button',
   bugStyle = 'interface',
   interactionState,
   src,
@@ -44,15 +47,16 @@ export function AlertBug({
   onClick,
 }: AlertBugProps): ReactNode {
   const focus = (interactionState ?? 'default') === 'focus' && bugStyle === 'interface'
+  const Element = as
 
   return (
-    <button
-      type="button"
-      className="sfs-alert-bug sfs-motion sfs-focusable"
+    <Element
+      {...(as === 'button' ? { type: 'button' as const } : {})}
+      className={`sfs-alert-bug sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-style={bugStyle}
       data-state={focus ? 'focus' : 'default'}
       aria-label={label}
-      onClick={onClick}
+      onClick={as === 'button' ? onClick : undefined}
     >
       <span className="sfs-alert-bug-circle">
         {focus ? <FocusRing shape="pill" /> : null}
@@ -62,6 +66,6 @@ export function AlertBug({
           <span className="sfs-alert-bug-mark" data-empty="" />
         )}
       </span>
-    </button>
+    </Element>
   )
 }
