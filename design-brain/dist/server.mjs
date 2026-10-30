@@ -36704,6 +36704,7 @@ var note = (dir, name, wanted = ["cerne", "receita"]) => {
 ${keys.map((k) => `## ${k}
 ${sec[k]}`).join("\n")}`;
 };
+var notes = (dir, names2, wanted) => names2.split(",").filter(Boolean).map((n) => note(dir, n, wanted)).join("\n\n");
 var teclas = (md) => `## Teclas${md.split(/^## Teclas/m)[1]?.split(/^## Padrões/m)[0] ?? ""}`.trim();
 var padroes = (md, name) => {
   const table = md.split(/^## Padrões/m)[1] ?? "";
@@ -36725,9 +36726,9 @@ if (process.argv[1]?.endsWith("explore-ref.mjs")) {
     else if (a === "--teclas") console.log(teclas(readFileSync(`${root}interacoes.md`, "utf8")));
     else if (a === "--padroes") console.log(padroes(readFileSync(`${root}interacoes.md`, "utf8"), rest.join(" ")));
     else if (a === "--conceitos") console.log(listing(`${root}conceitos`, rest.join(" ")));
-    else if (a === "--conceito") console.log(note(`${root}conceitos`, rest[0] ?? "", rest.length > 1 ? rest.slice(1) : void 0));
-    else if (a) console.log(note(dir, a, rest.length ? rest : void 0));
-    else fail("uso: --list [filtro] | <nome> [se\xE7\xF5es\u2026] | --teclas | --padroes [nome] | --conceitos [filtro] | --conceito <nome> [se\xE7\xF5es\u2026]");
+    else if (a === "--conceito") console.log(notes(`${root}conceitos`, rest[0] ?? "", rest.length > 1 ? rest.slice(1) : void 0));
+    else if (a) console.log(notes(dir, a, rest.length ? rest : void 0));
+    else fail("uso: --list [filtro] | <nome>[,<nome>\u2026] [se\xE7\xF5es\u2026] | --teclas | --padroes [nome] | --conceitos [filtro] | --conceito <nome>[,<nome>\u2026] [se\xE7\xF5es\u2026]");
   } catch (e) {
     fail(e.message);
   }
@@ -36735,7 +36736,7 @@ if (process.argv[1]?.endsWith("explore-ref.mjs")) {
 
 // server.mjs
 var refs = fileURLToPath2(new URL("../references/", import.meta.url));
-var notes = join(refs, "analises");
+var notes2 = join(refs, "analises");
 var interacoes = () => readFileSync2(join(refs, "interacoes.md"), "utf8");
 var tokensPath = () => [process.env.DESIGN_TOKENS_PATH, join(process.cwd(), "tokens/tokens.json")].find((p) => p && existsSync2(p));
 console.error(`[design-brain] cwd=${process.cwd()} tokens=${tokensPath() ?? "none"}`);
@@ -36744,11 +36745,11 @@ var server = new McpServer({ name: "design-brain", version: "0.1.0" });
 server.registerTool("list_references", {
   description: "Catalog of reference notes, one line each: nome | padr\xE3o | tags | resumo. A filter word narrows it; no match returns the whole catalog.",
   inputSchema: { filter: external_exports.string().optional() }
-}, async ({ filter }) => text(listing(notes, filter)));
+}, async ({ filter }) => text(listing(notes2, filter)));
 server.registerTool("get_reference", {
   description: "Only the asked sections of one reference note (default: cerne, receita). Sections: cerne pecas tipografia posicao cor hierarquia interacao minucias porque receita falhas | tudo.",
   inputSchema: { name: external_exports.string(), sections: external_exports.array(external_exports.string()).optional() }
-}, async ({ name, sections: sections2 }) => text(note(notes, name, sections2?.length ? sections2 : void 0)));
+}, async ({ name, sections: sections2 }) => text(note(notes2, name, sections2?.length ? sections2 : void 0)));
 var rules = join(refs, "conceitos");
 server.registerTool("list_concepts", {
   description: "Catalog of cross-cutting design rules (hierarchy by size, colour roles, grouping by space, nested radii, focus and selection, fixed skeleton, unambiguous labels, type details), one line each. A filter word narrows it.",

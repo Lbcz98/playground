@@ -807,7 +807,7 @@
           "description": "One line, ellipsised."
         },
         "variant": {
-          "type": "| 'caption-medium'\n| 'caption-bold'\n| 'caption-extra-bold'\n| 'footnote-medium'\n| 'footnote-bold'\n| 'body-sm-medium'\n| 'body-sm-bold'\n| 'body-sm-extra-bold'\n| 'body-md-regular'\n| 'body-md-medium'\n| 'body-md-bold'\n| 'body-lg-medium'\n| 'body-lg-bold'\n| 'heading-5-medium'\n| 'heading-5-bold'\n| 'heading-4-medium'\n| 'heading-4-bold'\n| 'heading-3-medium'\n| 'heading-3-bold'",
+          "type": "| 'caption-medium'\n| 'caption-bold'\n| 'caption-extra-bold'\n| 'footnote-medium'\n| 'footnote-bold'\n| 'body-sm-medium'\n| 'body-sm-bold'\n| 'body-sm-extra-bold'\n| 'body-md-regular'\n| 'body-md-medium'\n| 'body-md-bold'\n| 'body-lg-medium'\n| 'body-lg-bold'\n| 'heading-5-medium'\n| 'heading-5-bold'\n| 'heading-4-medium'\n| 'heading-4-bold'\n| 'heading-3-medium'\n| 'heading-3-bold'\n| 'display-md-regular'\n| 'display-md-medium'\n| 'display-md-bold'\n| 'display-lg-regular'\n| 'display-lg-medium'\n| 'display-lg-bold'",
           "kind": "enum",
           "options": [
             "caption-medium",
@@ -828,7 +828,13 @@
             "heading-4-medium",
             "heading-4-bold",
             "heading-3-medium",
-            "heading-3-bold"
+            "heading-3-bold",
+            "display-md-regular",
+            "display-md-medium",
+            "display-md-bold",
+            "display-lg-regular",
+            "display-lg-medium",
+            "display-lg-bold"
           ],
           "required": false,
           "defaultValue": "body-md-regular",
@@ -905,11 +911,36 @@
           "defaultValue": "Conteúdo interativo",
           "description": "Accessible name — the bug is artwork-only."
         },
+        "motion": {
+          "type": "'enter' | 'stay' | 'exit' | 'cycle'",
+          "kind": "enum",
+          "options": [
+            "enter",
+            "stay",
+            "exit",
+            "cycle"
+          ],
+          "required": false,
+          "description": "Adds the halo and the text and plays the entrance and exit. Without it the bug is still."
+        },
         "onClick": {
           "type": "() => void",
           "kind": "function",
           "required": false,
           "description": ""
+        },
+        "onExited": {
+          "type": "() => void",
+          "kind": "function",
+          "required": false,
+          "description": "The exit has finished (`exit`, or the end of a `cycle`); the bug is no longer drawn."
+        },
+        "reducedMotion": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "Dissolve only, with no scale, rise or spin — what the viewer asked their system for. The media query does the same on its own."
         },
         "src": {
           "type": "string",
@@ -921,8 +952,14 @@
       "title": "UI Kit/Alert Bug",
       "stories": [
         "ui-kit-alert-bug--all-styles",
+        "ui-kit-alert-bug--cycle",
+        "ui-kit-alert-bug--enter",
+        "ui-kit-alert-bug--exit",
         "ui-kit-alert-bug--interface",
         "ui-kit-alert-bug--interface-focus",
+        "ui-kit-alert-bug--position",
+        "ui-kit-alert-bug--reduced-motion",
+        "ui-kit-alert-bug--stay",
         "ui-kit-alert-bug--transmission"
       ],
       "subcomponents": {}
@@ -965,7 +1002,7 @@
     },
     "ui-kit-content-card": {
       "name": "ContentCard",
-      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.",
+      "description": "The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 9 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows.",
       "props": {
         "asLink": {
           "type": "boolean",
@@ -990,7 +1027,24 @@
           "type": "number",
           "kind": "number",
           "required": false,
-          "description": "Total height in px, from `48` to `456` in steps of `8` (the grid). Anything\nelse is snapped onto the grid and held inside the range. Omitted: the card\nhugs its content, up to 456, like the Figma cards built from it."
+          "description": "Total height in px, from `64` to `456` in steps of `8` (the grid). Anything\nelse is snapped onto the grid and held inside the range. Omitted: the card\nhugs its content, up to 456, like the Figma cards built from it."
+        },
+        "image": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The picture of the image variant: its URL. Omitted or empty: the plain card. With a picture the card is\n380 tall (`height` is ignored), the picture sits across the top under the card scrim, and the zones are\nanchored to the bottom edge."
+        },
+        "imageSize": {
+          "type": "'P' | 'M' | 'G'",
+          "kind": "enum",
+          "options": [
+            "P",
+            "M",
+            "G"
+          ],
+          "required": false,
+          "description": "How tall the picture is: `G` 320 (a one-line title and one line of description), `M` 264 (a two-line\ntitle with up to two lines of description or five bullets), `P` 176 (a two-line title with a long\nlist). Default `G`. Only with `image`."
         },
         "interactionState": {
           "type": "Extract<InteractionState, 'default' | 'focus'>",
@@ -1012,7 +1066,7 @@
           "type": "number",
           "kind": "number",
           "required": false,
-          "description": "Rows per page, from `1` to `10` in steps of `1`: the body shows that many of its\nrows, and a click on the card (or Enter / Space) shows the next ones, wrapping\nback to the first. Omitted: every row at once."
+          "description": "Rows per page, from `1` to `9` in steps of `1`: the body shows that many of its\nrows, and a click on the card (or Enter / Space) shows the next ones, wrapping\nback to the first. Omitted: every row at once."
         }
       },
       "title": "UI Kit/Content Card",
@@ -1024,6 +1078,11 @@
         "ui-kit-content-card--gaps",
         "ui-kit-content-card--headers",
         "ui-kit-content-card--heights",
+        "ui-kit-content-card--imagem-com-botao",
+        "ui-kit-content-card--imagem-em-repouso",
+        "ui-kit-content-card--imagem-g",
+        "ui-kit-content-card--imagem-m",
+        "ui-kit-content-card--imagem-p",
         "ui-kit-content-card--opt-outs",
         "ui-kit-content-card--sports-table",
         "ui-kit-content-card--tabela-de-campeonato",
@@ -1068,7 +1127,7 @@
               "type": "ReactNode",
               "kind": "node",
               "required": false,
-              "description": "Text laid out beside the caption. Never a `<button>` or `<a>`: the card itself is the one control."
+              "description": "Text laid out beside the caption — or one `WideButton`, when the card is not itself pressable: the button\nthen spans the card's width, takes the focus and the ring, and the card is a container at full strength.\nNever a `<button>` or `<a>` inside a card that has an `onClick`: that card is the one control."
             }
           }
         },
@@ -1513,6 +1572,7 @@
         "ui-kit-overlay--bottom",
         "ui-kit-overlay--bottom-left",
         "ui-kit-overlay--bottom-right",
+        "ui-kit-overlay--card",
         "ui-kit-overlay--in-a-template",
         "ui-kit-overlay--left",
         "ui-kit-overlay--right",

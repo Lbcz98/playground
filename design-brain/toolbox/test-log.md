@@ -183,3 +183,20 @@ New brief: an informational card with no interaction (photo, name, age, estaleca
 - **Now agrees with the designer:** the 12px text in `/explore` (Critical); `/explore` option 1 is no longer "closer to the crowded set"; the bottom gradient in `/explore-playbook` option 1 is a Note, not a Warning; the estalecas split from the participant's info is found in all four `/explore-playbook` options.
 - **Still differs:** the designer also wants the estalecas closer to the participant info in `/explore` option 1; the judge found nothing there ("one stack"). The judge's "closer to" is now generous (8 of 8 near the good set), so it no longer separates the two sides; the designer's own reading did.
 - The judge changed after the review it is being checked against, so this agreement is partly tuned, not independent.
+
+## Round 6: the BBB brief again, after `DESIGN.md` (`bbb-2-playbook`)
+
+Same brief as round 5 (copied from `bbb-1-playbook`), run with `/explore-playbook` after `design-brain/DESIGN.md` existed: the explorers read it, the judge cites it by section and number. The kit now has the 24/32px insets, the Content Card image variant and the card scrim. Judge run with the updated `judge.md` (12px footnote is a Note, 10px or less is Critical).
+
+| | round 5 `/explore-playbook` | round 6 `/explore-playbook` |
+|---|---|---|
+| Check scripts | ok | ok (8 advisories for loose px sizes) |
+| Options with a Critical | 0 of 4 | 0 of 4 |
+| Closer to the good set | 1, 2, 3 (4 in part) | all 4 (3 with a density caveat, 4 at the limit) |
+| Estalecas split from name and age (Warning) | all 4 | options 2 and 3, as their thesis asks |
+| Scrim over the photo | a Note, not measured | a Note, matches `gradient-complementary-dark` |
+
+- **New findings, citing `DESIGN.md`:** option 2's anchor is 2x the support, not 3x for a short number (§2.1); option 4 puts each emoji in a box (§7.2) and the boxes look like choices no key reaches (§9); option 1 has the same gap between groups as inside them (§7.1); option 3 has nine text pieces (§1).
+- **Kit vs playbook (Note):** option 4's 56px emoji is off the type scale; the kit has no token for it.
+- **Not measured by the judge:** the name's line break in options 1 and 3, and the final height of options 2 to 4 (option 3 estimated near the 456px limit).
+- **Caveats:** one run, no designer review yet; the judge changed after the round-5 review, so the agreement with it is partly tuned. `/explore` (without the playbook) was not re-run.

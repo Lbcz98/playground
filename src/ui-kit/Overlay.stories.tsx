@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { Stack, Text, spacing, token } from '@/primitives'
-import { OVERLAY_DIRECTIONS, Overlay, type OverlayDirection } from './Overlay'
+import { Stack, Text, size, spacing, token } from '@/primitives'
+import { CardScrim, OVERLAY_DIRECTIONS, Overlay, type OverlayDirection } from './Overlay'
 import { WideButton } from './WideButton'
 
 /**
@@ -101,5 +101,28 @@ export const InATemplate: Story = {
         </Stack>
       </div>
     </>
+  ),
+}
+
+/**
+ * The card scrim (DESIGN.md section 5.4): over a card's picture, charcoal at the
+ * edge where the text sits, fading to nothing toward the image. Here it is on a
+ * flat stand-in at the Content Card image's G step.
+ */
+export const Card: Story = {
+  args: { direction: 'bottom' },
+  render: () => (
+    <div style={{ position: 'absolute', left: spacing('xl'), top: spacing('xl') }}>
+      <div
+        style={{
+          position: 'relative',
+          width: size('content-card-width'),
+          height: size('content-card-image-g'),
+          backgroundColor: token('--color-semantic-theme-dia-light'),
+        }}
+      >
+        <CardScrim />
+      </div>
+    </div>
   ),
 }

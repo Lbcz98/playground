@@ -73,6 +73,7 @@ export const CSS_VARS = [
   '--gradient-semantic-border-default',
   '--gradient-semantic-status-live',
   '--gradient-semantic-status-replay',
+  '--gradient-semantic-card-scrim',
   '--gradient-semantic-overlay-bottom',
   '--gradient-semantic-overlay-left',
   '--gradient-semantic-overlay-right',
@@ -148,6 +149,10 @@ export const CSS_VARS = [
   '--dimension-size-semantic-card-expanded-width',
   '--dimension-size-semantic-card-expanded-height',
   '--dimension-size-semantic-content-card-width',
+  '--dimension-size-semantic-content-card-image-height',
+  '--dimension-size-semantic-content-card-image-p',
+  '--dimension-size-semantic-content-card-image-m',
+  '--dimension-size-semantic-content-card-image-g',
   '--dimension-size-semantic-round-button',
   '--dimension-size-semantic-round-button-circle',
   '--dimension-size-semantic-avatar',
@@ -166,6 +171,8 @@ export const CSS_VARS = [
   '--dimension-size-semantic-alert-bug',
   '--dimension-size-semantic-alert-bug-focus',
   '--dimension-size-semantic-alert-bug-transmission',
+  '--dimension-size-semantic-alert-bug-mark',
+  '--dimension-size-semantic-alert-bug-halo',
   '--dimension-border-width-core-hairline',
   '--dimension-border-width-core-thin',
   '--dimension-border-width-core-medium',
@@ -187,6 +194,8 @@ export const CSS_VARS = [
   '--typography-font-size-xl',
   '--typography-font-size-2xl',
   '--typography-font-size-3xl',
+  '--typography-font-size-4xl',
+  '--typography-font-size-5xl',
   '--typography-letter-spacing-tight',
   '--typography-letter-spacing-tighter',
   '--typography-line-height-tight',
@@ -250,6 +259,12 @@ export type TextStyle =
   | 'heading-4-bold'
   | 'heading-3-medium'
   | 'heading-3-bold'
+  | 'display-md-regular'
+  | 'display-md-medium'
+  | 'display-md-bold'
+  | 'display-lg-regular'
+  | 'display-lg-medium'
+  | 'display-lg-bold'
 
 export const TEXT_STYLES = [
   'caption-medium',
@@ -271,4 +286,10 @@ export const TEXT_STYLES = [
   'heading-4-bold',
   'heading-3-medium',
   'heading-3-bold',
+  'display-md-regular',
+  'display-md-medium',
+  'display-md-bold',
+  'display-lg-regular',
+  'display-lg-medium',
+  'display-lg-bold',
 ] as const satisfies readonly TextStyle[]

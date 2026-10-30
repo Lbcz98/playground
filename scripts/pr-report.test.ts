@@ -86,7 +86,7 @@ describe('pr-report on a real check:laws --json run (needs Chromium)', () => {
 
 describe('renderReport — pure', () => {
   const rep = (file: string, over: object = {}) => ({
-    file: `${ROOT}${file}`, problems: [], advisories: [], deviations: [], warnings: [], notRead: [], coverage: { read: 3, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] }, ...over,
+    file: `${ROOT}${file}`, problems: [], advisories: [], deviations: [], trespasses: [], warnings: [], notRead: [], coverage: { read: 3, notRead: 0 }, reuses: [], proposals: [], flow: { edges: [] }, ...over,
   })
   const json = (reports: object[]) => ({ schemaVersion: 1, reports, findings: [] }) as unknown as LawsJson
   const a = rep('web/protos/x/a.tsx', { deviations: [{ ruleId: 'r.a', why: 'because', line: 7 }, { ruleId: 'r.b', why: 'also', line: 9 }] })
