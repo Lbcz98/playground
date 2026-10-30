@@ -9,11 +9,12 @@ import { renderAuditFiles, RenderAuditUnavailable } from '../../scripts/render-a
 afterAll(() => ['link-render-with', 'link-render-without'].forEach((d) => rmSync(join(OUT, d), { recursive: true, force: true })))
 
 /** Needs Chromium; without it the test says so and skips (a skip is not a pass). */
-describe('<Link> does not change measured layout', () => {
-  it('the kit-node rectangles are identical with and without the wrapper', async () => {
+describe('<Link> around a presentation-mode kit control', () => {
+  it('keeps the kit-node rectangles identical to the unwrapped control', async () => {
     const withLink = CASES.find((c) => c.id === 'link-home-to-rail')!
-    const linked = { ...withLink, id: 'link-render-with', files: { ...withLink.files, 'home.tsx': withLink.files['home.tsx'].replaceAll('link-home-to-rail', 'link-render-with') } }
-    const plain = { ...withLink, id: 'link-render-without', files: { ...withLink.files, 'home.tsx': withLink.files['home.tsx'].replace(/<Link href="[^"]*">(.*?)<\/Link>/, '$1').replace("import Link from 'next/link'\n", '') } }
+    const source = withLink.files['home.tsx'].replace('<InteractivityButton ', '<InteractivityButton as="span" ')
+    const linked = { ...withLink, id: 'link-render-with', files: { ...withLink.files, 'home.tsx': source.replace('<Link href=', '<Link style={{ display: "inline-block" }} href=') } }
+    const plain = { ...withLink, id: 'link-render-without', files: { ...withLink.files, 'home.tsx': source.replace(/<Link[^>]*>(.*?)<\/Link>/, '$1').replace("import Link from 'next/link'\n", '') } }
     try {
       const [a, b] = await renderAuditFiles([writeCase(linked), writeCase(plain)])
       expect(a.error ?? b.error).toBeUndefined()

@@ -12,6 +12,8 @@ import { RoundButtonShell, type RoundButtonState } from './RoundButtonShell'
 import './ui-kit.css'
 
 interface RoundedButtonProps {
+  /** Use `span` inside a navigation `<Link>`; actions remain buttons. */
+  as?: 'button' | 'span'
   /** Default `focus`. */
   interactionState?: RoundButtonState
   /** Accessible name — the control is icon-only. */
@@ -21,6 +23,7 @@ interface RoundedButtonProps {
 
 /** The icon-only round control that steps back a level. */
 export function RoundedButton({
+  as = 'button',
   interactionState,
   label = 'Voltar',
   onClick,
@@ -28,7 +31,7 @@ export function RoundedButton({
   const state = interactionState ?? 'focus'
 
   return (
-    <RoundButtonShell interactionState={state} label={label} onClick={onClick}>
+    <RoundButtonShell as={as} interactionState={state} label={label} onClick={onClick}>
       <img src={state === 'focus' ? backFocusIcon : backRestIcon} alt="" className="sfs-round-button-icon" />
     </RoundButtonShell>
   )

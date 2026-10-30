@@ -1,5 +1,5 @@
 'use client'
-import { createElement, useCallback, useEffect, useState, type ComponentType, type ReactNode } from 'react'
+import { createElement, useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import type { FlowFile } from '@/shared/export/flowFile'
 import { BACK_CONTROL, HIDDEN_STATE, playStep, remoteKey, type PlayKey } from '@/shared/flowPlay'
 import { Screen } from '@/ui-kit/Screen'
@@ -42,40 +42,96 @@ function StateView({ state }: { state: unknown }): ReactNode {
  * `back` transition. `hidden` is level 0: any arrow returns to `start`. R restarts. The back control of a
  * level-3 screen (a click, or Enter while it is focused) is Back too.
  *
- * Every state is loaded when the flow opens, and a state still loading leaves the one before it
- * on screen: a key press never shows an empty frame.
+ * State files are prefetched when the flow opens. A transition commits to the trail only after
+ * its destination loads, leaving the last valid frame visible while loading or on failure.
  */
 export function Flow({ flow, state }: FlowSource) {
-  const [data, setData] = useState<FlowFile | null>(null)
-  const [trail, setTrail] = useState<string[]>([])
-  const [states, setStates] = useState<Record<string, unknown>>({})
+  type View = { shown?: unknown; name?: string; phase: 'loading' | 'ready' | 'error'; error?: string }
+  type Result = { ok: true; value: unknown } | { ok: false; error: unknown }
+  const [view, setView] = useState<View>({ phase: 'loading' })
+  const [attempt, setAttempt] = useState(0)
+  const pressRef = useRef<(key: PlayKey) => void>(() => {})
+  const retryRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     let live = true
-    flow().then((m) => {
-      if (!live) return
-      const loaded = m.default as FlowFile
-      setData(loaded)
-      setTrail([loaded.start])
-      for (const name of new Set([loaded.start, ...loaded.transitions.flatMap((t) => [t.from, t.to])]))
-        state(name)
-          .catch((e: unknown) => {
-            if (name !== HIDDEN_STATE) throw e
-            return { default: Hidden }
-          })
-          .then((s) => live && setStates((all) => ({ ...all, [name]: s.default })))
-    })
+    let data: FlowFile | undefined
+    let trail: string[] = []
+    let pending = false
+    let failed = false
+    let requested: string[] = []
+    let requestId = 0
+    const files = new Map<string, Promise<Result>>()
+    setView({ phase: 'loading' })
+
+    const load = (name: string, refresh = false): Promise<Result> => {
+      if (refresh) files.delete(name)
+      const previous = files.get(name)
+      if (previous) return previous
+      const result = state(name).then(
+        (module): Result => ({ ok: true, value: module.default }),
+        (error): Result => name === HIDDEN_STATE
+          ? { ok: true, value: Hidden }
+          : { ok: false, error },
+      )
+      files.set(name, result)
+      return result
+    }
+
+    const request = (next: string[], refresh = false) => {
+      const name = next[next.length - 1]
+      requested = next
+      pending = true
+      failed = false
+      const id = ++requestId
+      setView((old) => ({ ...old, phase: 'loading', error: undefined }))
+      void load(name, refresh).then((result) => {
+        if (!live || id !== requestId) return
+        pending = false
+        if (!result.ok) {
+          failed = true
+          setView((old) => ({ ...old, phase: 'error', error: String(result.error) }))
+          return
+        }
+        trail = next
+        setView({ shown: result.value, name, phase: 'ready' })
+      })
+    }
+
+    pressRef.current = (key) => {
+      if (!data || pending || failed) return
+      const next = playStep(data, trail, key)
+      if (next === trail || (next.length === trail.length && next.every((name, i) => name === trail[i]))) return
+      request(next)
+    }
+    retryRef.current = () => {
+      if (pending) return
+      if (!data) setAttempt((n) => n + 1)
+      else if (failed) request(requested, true)
+    }
+
+    void flow().then(
+      (module) => {
+        if (!live) return
+        data = module.default as FlowFile
+        for (const name of new Set([data.start, ...data.transitions.flatMap((t) => [t.from, t.to])])) void load(name)
+        request([data.start])
+      },
+      (error: unknown) => {
+        if (!live) return
+        failed = true
+        setView({ phase: 'error', error: String(error) })
+      },
+    )
     return () => {
       live = false
+      requestId++
+      pressRef.current = () => {}
+      retryRef.current = () => {}
     }
-  }, [flow, state])
+  }, [flow, state, attempt])
 
-  const press = useCallback(
-    (key: PlayKey) => {
-      if (data) setTrail((t) => playStep(data, t, key))
-    },
-    [data],
-  )
+  const press = useCallback((key: PlayKey) => pressRef.current(key), [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -89,17 +145,21 @@ export function Flow({ flow, state }: FlowSource) {
     return () => window.removeEventListener('keydown', onKey)
   }, [press])
 
-  // The last state of the trail that has loaded: the one asked for, or the one already on screen while it loads.
-  const shown = [...trail].reverse().find((s) => s in states)
-
   return (
     <>
       {/* `contents`: no box of its own, only the place to hear a click on the back control. */}
       <div style={{ display: 'contents' }} onClick={(e) => (e.target as Element).closest(BACK_CONTROL) && press('back')}>
-        <Stage>{shown ? <StateView state={states[shown]} /> : null}</Stage>
+        <Stage>{view.name ? <StateView state={view.shown} /> : null}</Stage>
       </div>
+      {view.phase !== 'ready' && (
+        <div role={view.phase === 'error' ? 'alert' : 'status'} aria-live="polite" style={{ position: 'fixed', left: 12, bottom: 12, padding: '8px 12px', background: '#fff', color: '#222', font: '14px system-ui, sans-serif' }}>
+          {view.phase === 'loading' ? 'Carregando tela…' : (
+            <>Não foi possível carregar a tela. <span>{view.error}</span> <button type="button" onClick={() => retryRef.current()}>Tentar novamente</button></>
+          )}
+        </div>
+      )}
       <div
-        data-flow-state={shown}
+        data-flow-state={view.name}
         style={{
           position: 'fixed',
           right: 12,
@@ -111,7 +171,7 @@ export function Flow({ flow, state }: FlowSource) {
           borderRadius: 6,
         }}
       >
-        {shown} · ← ↑ ↓ → Enter · Esc volta · R reinicia
+        {view.name} · ← ↑ ↓ → Enter · Esc volta · R reinicia
       </div>
     </>
   )

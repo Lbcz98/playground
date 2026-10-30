@@ -58,6 +58,8 @@ import { contentCardSpec, frameSpec, spacingScale } from '@/design-system/primit
 type ContentCardState = Extract<InteractionState, 'default' | 'focus'>
 
 interface ContentCardProps {
+  /** Inside a navigation `<Link>`, let its anchor be the only keyboard target. Do not combine with pagination or `onClick`. */
+  asLink?: boolean
   /** Default `default`. */
   interactionState?: ContentCardState
   /**
@@ -134,13 +136,14 @@ const BODY_GAP_TOKEN = '--dimension-spacing-semantic-table-row-gap'
 const CardPage = createContext<{ page: number; rowsPerPage?: number }>({ page: 0 })
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 10 team rows, 10 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
-export function ContentCard({ interactionState, height, gap, onClick, rowsPerPage, children }: ContentCardProps): ReactNode {
+export function ContentCard({ asLink = false, interactionState, height, gap, onClick, rowsPerPage, children }: ContentCardProps): ReactNode {
   const state = (interactionState ?? 'default')
   const focus = state === 'focus'
   const [page, setPage] = useState(0)
   const card = useRef<HTMLDivElement>(null)
-  const act =
-    rowsPerPage === undefined
+  const act = asLink
+    ? undefined
+    : rowsPerPage === undefined
       ? onClick
       : () => {
           setPage((p) => p + 1)
@@ -154,8 +157,8 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
     // Focusable: the viewer moves the TV focus onto the card from the rounded button.
     <div
       ref={card}
-      tabIndex={0}
-      className="sfs-content-card sfs-motion sfs-focusable"
+      tabIndex={asLink ? undefined : 0}
+      className={`sfs-content-card sfs-motion sfs-focusable${asLink ? ' sfs-link-surface' : ''}`}
       data-state={state}
       data-sized={height === undefined ? undefined : ''}
       data-pressable={act ? '' : undefined}
@@ -165,7 +168,7 @@ export function ContentCard({ interactionState, height, gap, onClick, rowsPerPag
       {...(act && cardPress(act))}
     >
       {focus ? <FocusRing shape="content-card" /> : <RestingBorder shape="content-card" width="card" />}
-      <CardPage.Provider value={{ page, rowsPerPage }}>
+      <CardPage.Provider value={{ page, rowsPerPage: asLink ? undefined : rowsPerPage }}>
         <div className="sfs-content-card-zones" style={vars({ '--_gap': gap === undefined ? spacing('sm') : `${gap}px` })}>
           {children}
         </div>

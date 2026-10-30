@@ -20,6 +20,8 @@ import './ui-kit.css'
 export type InteractivityButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
 
 export interface InteractivityButtonProps {
+  /** Use `span` inside a navigation `<Link>` so its anchor is the only interactive element. */
+  as?: 'button' | 'span'
   /** Default `focus`. */
   interactionState?: InteractivityButtonState
   /** The card’s title — as an interactivity, the only text it carries. */
@@ -43,6 +45,7 @@ const isLarge = (state: InteractivityButtonState): boolean => state !== 'default
 
 /** One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge. */
 export function InteractivityButton({
+  as = 'button',
   interactionState,
   title,
   overline,
@@ -57,18 +60,15 @@ export function InteractivityButton({
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
+  const Element = as
 
   return (
-    <button
-      type="button"
-      className="sfs-interactivity-button sfs-motion sfs-focusable"
+    <Element
+      {...(as === 'button' ? { type: 'button' as const } : {})}
+      className={`sfs-interactivity-button sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-state={state}
-      onClick={onClick}
-      style={vars({
-        '--_inset': token(
-          large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset',
-        ),
-      })}
+      onClick={as === 'button' ? onClick : undefined}
+      style={vars({ '--_inset': token(large ? '--dimension-spacing-semantic-card-inset-expanded' : '--dimension-spacing-semantic-card-inset') })}
     >
       {state === 'focus' ? (
         <FocusRing shape="card-expanded" />
@@ -121,6 +121,6 @@ export function InteractivityButton({
           </span>
         )}
       </span>
-    </button>
+    </Element>
   )
 }
