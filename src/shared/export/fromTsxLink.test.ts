@@ -20,6 +20,12 @@ describe('<Link> from next/link', () => {
     expect(p.links.map((l) => [l.href, l.line])).toEqual([['/lucas/rail', 6]])
     expect(p.notRead).toEqual([])
   })
+  it('reads the single-anchor presentation API without losing the destination', () => {
+    const p = first(src('<Link href="/lucas/rail" style={{ display: "inline-block" }}><InteractivityButton as="span" title="a" /></Link>'))
+    expect(p.doc.root).toMatchObject({ type: 'InteractivityButton', goTo: 'lucas/rail', props: { as: 'span', title: 'a' } })
+    expect(p.links).toHaveLength(1)
+    expect(p.notRead).toEqual([])
+  })
   it('a deviation right before the <Link> lands on the element it wraps', () => {
     const p = first(src(`{/* @deviation flow.next-level: why */}<Link href="/lucas/rail">${BTN}</Link>`))
     expect(p.doc.root.deviation).toEqual({ ruleId: 'flow.next-level', why: 'why' })

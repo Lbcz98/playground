@@ -3,4 +3,7 @@
 # With nvm or a GUI git client, put the PATH setup in ~/.config/husky/init.sh.
 # A new `git worktree` has no .husky/_ (it is gitignored): run `npm run prepare` there once.
 git diff --cached --name-only | grep -Eq '^(scripts|src|design-brain|web|tests|tokens|\.claude)/|^package(-lock)?\.json$' || exit 0
+# In a linked worktree git exports GIT_DIR to its hooks. The tests' fixture repositories would obey it and
+# commit, reconfigure and push the real repository instead.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 npm run typecheck && npm run lint:tokens && npx vitest run scripts

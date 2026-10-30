@@ -54,7 +54,11 @@ describe('.github/workflows/protos.yml', () => {
   it('hands paths around NUL-separated, so a name with a space or an accent is one path: git diff -z, then xargs -0 or read -d', () => {
     const diffs = [...protosJob.matchAll(/git diff [^|\n]*/g)].map((m) => m[0])
     expect(diffs.length).toBeGreaterThan(0)
-    for (const d of diffs) expect(d, d).toMatch(/ -z /)
+    for (const d of diffs) {
+      expect(d, d).toMatch(/ -z /)
+      expect(d, 'deletions and both rename endpoints must reach the folder model').toContain('--no-renames')
+      expect(d).not.toContain('--diff-filter')
+    }
     expect(protosJob).not.toMatch(/\$screens|\$flows/)
     expect(protosJob).toMatch(/xargs -0/)
     expect(protosJob).toMatch(/read -r -d ''/)

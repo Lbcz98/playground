@@ -18,7 +18,7 @@ export interface CorpusCase {
     proposals?: number // entries in the report's `proposals`; default 0
     problemFile?: string // a problem must be attributed to a file ending with this
     messages?: RegExp[] // each must match some problem message
-    render?: boolean // needs Chromium; the case self-skips without it
+    render?: boolean // needs Chromium; missing browser coverage fails
     note?: string // why the expectation is what it is
   }
 }

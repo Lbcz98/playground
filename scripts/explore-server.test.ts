@@ -106,3 +106,51 @@ describe('explore server', () => {
     expect([403, 404]).toContain(r.status)
   })
 })
+
+describe('explore server resilience', () => {
+  const d = mkdtempSync(join(tmpdir(), 'explore-robust-'))
+  writeFileSync(join(d, 'index.html'), '<html><body><p>oi</p></body></html>')
+  let r: Awaited<ReturnType<typeof startServer>>
+  beforeAll(async () => { r = await startServer({ dir: d }) })
+  afterAll(async () => { await r.close(); rmSync(d, { recursive: true, force: true }) })
+  const call = (path: string, body: string) => fetch(r.url + '__explore/' + path, { method: 'POST', body, headers: { 'x-explore-token': r.token } })
+  const get = (path: string) => fetch(r.url + '__explore/' + path + (path.includes('?') ? '&' : '?') + 'token=' + r.token)
+  // Raw request: fetch would normalise a bad percent escape before sending it.
+  const raw = (path: string) => new Promise<number>((ok) => request(r.url + path.replace(/^\//, ''), (res) => (res.resume(), ok(res.statusCode ?? 0))).end())
+
+  it('answers a malformed URL with 400 and keeps serving', async () => {
+    expect(await raw('/%')).toBe(400)
+    expect(await raw('/%E0%A4%A')).toBe(400)
+    expect((await fetch(r.url)).status).toBe(200)
+  })
+
+  it('answers corrupt or missing local files without crashing', async () => {
+    writeFileSync(join(d, 'judge-1.json'), '{nope')
+    expect((await get('judge?option=1')).status).toBe(500)
+    expect(await (await get('judge?option=2')).json()).toBeNull()
+    writeFileSync(join(d, 'figma.json'), '[')
+    expect((await get('figma')).status).toBe(500)
+    expect((await call('figma-state', JSON.stringify({ fileKey: 'k' }))).status).toBe(500)
+    expect(readFileSync(join(d, 'figma.json'), 'utf8')).toBe('[')
+    rmSync(join(d, 'figma.json'))
+    expect(await (await get('figma')).json()).toBeNull()
+    expect((await fetch(r.url + 'tune/3')).status).toBe(404)
+    expect((await get('pending')).status).toBe(200)
+  })
+
+  it('rejects non-object bodies and malformed tune specs', async () => {
+    for (const b of ['[]', '"x"', '5', 'null', '{bad']) expect((await call('comment', b)).status).toBe(400)
+    expect((await call('tune-apply', JSON.stringify({ option: '1', values: [] }))).status).toBe(400)
+    const page = '<style>/* tune:vars */\n[data-option="1"] {\n}\n/* /tune:vars */</style><article data-option="1" data-tuned><script type="application/json" data-tune="1">{"folders":{"x":1}}</script></article>'
+    writeFileSync(join(d, 'index.html'), page)
+    expect((await call('tune-apply', JSON.stringify({ option: '1', values: { '0.w': 1 } }))).status).toBe(400)
+    expect((await call('tune-md', JSON.stringify({ option: '1' }))).status).toBe(400)
+    expect(readFileSync(join(d, 'index.html'), 'utf8')).toBe(page)
+    expect((await call('comment', JSON.stringify({ comment: 'ainda funciona' }))).status).toBe(200)
+  })
+
+  it('keeps the host, origin and token checks', async () => {
+    expect((await fetch(r.url + '__explore/pending')).status).toBe(401)
+    expect((await fetch(r.url, { headers: { origin: 'http://evil.test' } })).status).toBe(403)
+  })
+})

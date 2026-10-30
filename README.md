@@ -26,7 +26,8 @@ npm run storybook          # the kit, and the Storybook MCP agents read (http://
 
 npm run check:laws -- web/protos/<designer>/<screen>.tsx   # or a flow folder
 npm run typecheck
-npm test
+npm test                  # browser coverage is required (including in CI)
+# Local static-only work: SKIP_BROWSER_TESTS=1 npm test explicitly reports browser suites as skipped.
 npm run lint:tokens        # no hard-coded colors, px or arbitrary Tailwind values in src/
 npm run tokens:check       # generated tokens and guides match tokens/tokens.json and rules.ts
 ```

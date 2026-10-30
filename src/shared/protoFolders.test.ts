@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { designerFolder, inDesigner, isCheckable, checkTargets, flowFolderOf, flowFoldersUnder, isLocalComponent, isScreen, listProtos, tsxNames, type Tree } from './protoFolders'
+import { designerFolder, inDesigner, checkTargets, flowFolderOf, flowFoldersUnder, isLocalComponent, isScreen, listProtos, tsxNames, type Tree } from './protoFolders'
 
 /** A folder of strings: the rules run on these, with no disk. */
 const treeOf = (files: Record<string, string>): Tree => ({
@@ -19,17 +19,6 @@ describe('the designer folder', () => {
   it('is the file’s own folder when it is not under web/protos (corpus, tests)', () => {
     expect(designerFolder('/repo/web/protos/ana/flow/a.tsx')).toBe('/repo/web/protos/ana')
     expect(designerFolder('/repo/.checks-corpus/w1/s.tsx')).toBe('/repo/.checks-corpus/w1')
-  })
-})
-
-describe('what a changed file hands to the checker', () => {
-  it('is a .tsx or a flow.ts of a designer folder; nothing else is a trigger', () => {
-    expect(isCheckable('web/protos/ana/home.tsx')).toBe(true)
-    expect(isCheckable('web/protos/ana/components/Card.tsx')).toBe(true)
-    expect(isCheckable('web/protos/ana/checkout/flow.ts')).toBe(true)
-    expect(isCheckable('web/protos/ana/data.ts')).toBe(false)
-    expect(isCheckable('web/protos/ana/notes.md')).toBe(false)
-    expect(isCheckable('src/ui-kit/Screen.tsx')).toBe(false)
   })
 })
 
@@ -72,7 +61,7 @@ describe('which screens a changed file puts in question', () => {
     expect(checkTargets([`${P}/home.tsx`], tree)).toEqual({ files: [`${P}/home.tsx`], flows: [] })
   })
   it('a file that is not a screen is its folder’s screens, flow states included, other designers’ not', () => {
-    expect(checkTargets([`${P}/components/Card.tsx`], tree)).toEqual({ files: [`${P}/about.tsx`, `${P}/buy/cart.tsx`, `${P}/home.tsx`], flows: [] })
+    expect(checkTargets([`${P}/components/Card.tsx`], tree)).toEqual({ files: [`${P}/about.tsx`, `${P}/buy/cart.tsx`, `${P}/home.tsx`, `${P}/buy/pay.tsx`], flows: [`${P}/buy`] })
   })
   it('a components/ folder outside web/protos belongs to the folder above it', () => {
     expect(checkTargets(['w/c/components/Stepper.tsx'], tree).files).toEqual(['w/c/s.tsx'])
@@ -83,10 +72,10 @@ describe('which screens a changed file puts in question', () => {
     expect(checkTargets([`${P}/buy/flow.ts`, `${P}/buy/cart.tsx`], tree)).toEqual(flow)
   })
   it('a .ts local file (data, a helper) is its folder’s screens too', () => {
-    expect(checkTargets([`${P}/data.ts`], tree)).toEqual({ files: [`${P}/about.tsx`, `${P}/buy/cart.tsx`, `${P}/home.tsx`], flows: [] })
+    expect(checkTargets([`${P}/data.ts`], tree)).toEqual({ files: [`${P}/about.tsx`, `${P}/buy/cart.tsx`, `${P}/home.tsx`, `${P}/buy/pay.tsx`], flows: [`${P}/buy`] })
   })
-  it('a .tsx that does not exist is kept for the checker to report; other designers are not touched', () => {
-    expect(checkTargets([`${P}/gone.tsx`, `${P}/gone.ts`], tree)).toEqual({ files: [`${P}/gone.tsx`], flows: [] })
+  it('deleted code rechecks surviving screens and flows, without returning removed paths', () => {
+    expect(checkTargets([`${P}/gone.tsx`, `${P}/gone.ts`], tree)).toEqual({ files: [`${P}/about.tsx`, `${P}/buy/cart.tsx`, `${P}/home.tsx`, `${P}/buy/pay.tsx`], flows: [`${P}/buy`] })
   })
 })
 

@@ -154,4 +154,18 @@ describe('validateBlueprintAgainstManifest', () => {
     expect(badRoot.ok).toBe(false)
     if (!badRoot.ok) expect(badRoot.issues.map((i) => i.message).some((e) => /root node must be a <Box>/.test(e))).toBe(true)
   })
+
+  it('holds a default to the same rules as any value', () => {
+    const prop = (name: string, more: object) => ({ name, type: { name: 'number' }, required: false, min: 0, max: 10, ...more })
+    const manifest: DesignSystemManifest = {
+      ...MANIFEST,
+      components: {
+        ...MANIFEST.components,
+        Odd: { id: 'Odd', name: 'Odd', description: '', acceptsChildren: false, props: { bad: prop('bad', { defaultValue: 99 }), good: prop('good', { defaultValue: 4 }) } },
+      },
+    }
+    const { Odd } = compileManifestSchemas(manifest)
+    expect(Odd.shape.bad.safeParse(undefined).success).toBe(false)
+    expect(Odd.shape.good.safeParse(undefined)).toMatchObject({ success: true, data: 4 })
+  })
 })

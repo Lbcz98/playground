@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # The render tests need a browser; without one they only warn.
+      # Browser coverage is required: unavailable Chromium fails the render tests.
       - run: npx playwright install --with-deps chromium
       - run: npm run typecheck
       - run: npm test
@@ -65,7 +65,7 @@ jobs:
         if: startsWith(github.head_ref, 'proto/')
         run: |
           designer=$(printf '%s' "$HEAD_REF" | cut -d/ -f2)
-          outside=$(git diff -z --name-only "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- outside "$designer")
+          outside=$(git diff -z --name-only --no-renames "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- outside "$designer")
           if [ -n "$outside" ]; then
             echo "Esta branch muda arquivos fora de web/protos/${designer}/:"; echo "$outside"; exit 1
           fi
@@ -78,7 +78,7 @@ jobs:
         id: laws
         run: |
           set -o pipefail
-          git diff -z --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- screens > screens.list
+          git diff -z --name-only --no-renames "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- screens > screens.list
           mkdir findings
           code=0
           if [ -s screens.list ]; then xargs -0 npm run check:laws --silent -- --json --require-render < screens.list > findings/laws.json || code=$?; fi
@@ -92,7 +92,7 @@ jobs:
         run: |
           set -o pipefail
           code=0
-          git diff -z --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- flows > flows.list
+          git diff -z --name-only --no-renames "origin/$BASE_REF...HEAD" | npm run ci:protos --silent -- flows > flows.list
           while IFS= read -r -d '' flow; do
             npm run check:flow --silent -- "$flow" --json > "findings/flow-$(printf '%s' "$flow" | tr / _).json" || code=1
           done < flows.list

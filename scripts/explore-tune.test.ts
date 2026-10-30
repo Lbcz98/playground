@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { applyTuned, specJson, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
+import { applyTuned, lintSpec, specJson, specMarkdown, tuneSpec, tuneTarget, varsBlock } from './explore-tune.mjs'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
 import { startServer } from './explore-server.mjs'
 
@@ -220,5 +220,52 @@ describe('lintSpec', () => {
     expect(bad).toContain('--dimension-radius-semantic-content-card não é um token do kit')
     expect((await lint(page().replace('--radius: var(', '--radio: var('))).join('\n')).toContain('não é o que "Aplicar valores" escreveria')
     expect(await lint('<article data-option="2"></article>')).toEqual(['o <article data-option="2"> não tem data-tuned', 'falta <script type="application/json" data-tune="2"> com JSON válido'])
+  })
+})
+
+describe('several tuned options in one page', () => {
+  const mk = (id: number, width: number) => {
+    const sp = { states: ['a'], folders: [{ name: 'F', controls: [{ id: 'w', label: 'W', type: 'slider', var: '--w', value: width, min: 0, max: 100, unit: 'px' }] }] }
+    return { sp, css: varsBlock(sp, id), art: `<article data-option="${id}" data-tuned><script type="application/json" data-tune="${id}">${JSON.stringify(sp)}</script></article>` }
+  }
+  const one = mk(1, 10), two = mk(2, 20)
+  // The styles sit outside the articles, as in the real pages.
+  const multi = `<style>\n${one.css}\n${two.css}\n</style>${one.art}${two.art}`
+
+  it('rewrites only the requested option, leaving the other byte for byte', () => {
+    const { html, changed, error } = applyTuned(multi, 2, { '0.w': 30 })
+    expect(error).toBeUndefined()
+    expect(changed).toBe(1)
+    expect(html.split('/* tune:vars */').length - 1).toBe(2)
+    expect(html).toContain(one.css)
+    expect(html).toContain(one.art)
+    expect(html).toContain('[data-option="2"] {\n  --w: 30px;')
+    expect(html).not.toContain('--w: 20px')
+    expect(tuneSpec(html, 2).folders[0].controls[0].value).toBe(30)
+    expect(lintSpec(html, 2)).toEqual([])
+    // and the first option can be tuned without touching the second
+    const first = applyTuned(multi, 1, { '0.w': 11 }).html
+    expect(first).toContain(two.css)
+    expect(first).toContain(two.art)
+    expect(first).toContain('--w: 11px')
+  })
+
+  it('refuses to mutate when the target block is missing or duplicated', () => {
+    const missing = multi.replace(two.css, '')
+    expect(applyTuned(missing, 2, { '0.w': 30 })).toEqual({ html: missing, changed: 0, error: 'vars-missing' })
+    const dup = `${multi}<style>${two.css}</style>`
+    expect(applyTuned(dup, 2, { '0.w': 30 })).toEqual({ html: dup, changed: 0, error: 'vars-duplicate' })
+    expect(lintSpec(missing, 2).join()).toContain('falta o bloco')
+    expect(lintSpec(dup, 2).join()).toContain('exatamente um')
+    expect(lintSpec(missing, 1)).toEqual([])
+  })
+
+  it('does not throw on a malformed spec shape', () => {
+    const bad = multi.replace(two.art, '<article data-option="2" data-tuned><script type="application/json" data-tune="2">{"folders":{"a":1}}</script></article>')
+    expect(applyTuned(bad, 2, { '0.w': 30 }).error).toBe('spec')
+    expect(() => lintSpec(bad, 2)).not.toThrow()
+    const nulls = multi.replace(two.art, '<article data-option="2" data-tuned><script type="application/json" data-tune="2">{"states":["a"],"folders":[null,{"name":"F","controls":[null,{"type":"easing","id":"e","label":"E","durVar":"--d","easeVar":"--e","value":{}}]}]}</script></article>')
+    expect(() => lintSpec(nulls, 2)).not.toThrow()
+    expect(() => applyTuned(nulls, 2, { '1.e': { duration: 1, ease: [0, 0, 1, 1] } })).not.toThrow()
   })
 })
