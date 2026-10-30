@@ -10,7 +10,7 @@
  * Only 127.0.0.1; every `/__explore/*` call but the overlay needs the per-run token.
  */
 import { randomBytes } from 'node:crypto'
-import { appendFileSync, existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
@@ -59,8 +59,10 @@ export function setDiscarded(html, option, discarded) {
 /** Persisted local files are written whole or not at all: a temp file next to the target, then a rename. */
 const writeAtomic = (file, data) => {
   const tmp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`
-  writeFileSync(tmp, data)
-  renameSync(tmp, file)
+  try {
+    writeFileSync(tmp, data)
+    renameSync(tmp, file)
+  } finally { rmSync(tmp, { force: true }) }
 }
 /** Parsed JSON file, or null when it does not exist; a file that exists but is not JSON throws. */
 const readJson = (file) => (existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)

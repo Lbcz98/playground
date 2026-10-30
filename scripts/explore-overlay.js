@@ -355,7 +355,15 @@
       window.DialKit.createDialRoot({ mode: 'inline', target: host, theme: 'dark' })
       const kits = window.exploreDials(window.DialKit) ?? {}
       apply.onclick = async () => {
-        if (tune) return void (await window.exploreTune.apply())
+        if (tune) {
+          apply.disabled = true
+          try {
+            const res = await window.exploreTune.apply()
+            warn(res.ok ? '' : 'Não foi possível salvar os ajustes. Eles continuam nesta página; peça para corrigir esta opção antes de tentar novamente.')
+          } catch { warn(DEAD) }
+          finally { apply.disabled = false }
+          return
+        }
         const values = Object.fromEntries(Object.entries(kits).map(([name, kit]) => [name, kit.getValues()]))
         await api('comment', { method: 'POST', body: JSON.stringify({ kind: 'dials', values }) })
         setHistory(true)
