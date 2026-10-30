@@ -135,6 +135,8 @@ export function Flow({ flow, state }: FlowSource) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The retry button takes its own keys: Enter there is a click, not the remote's Enter.
+      if (e.target instanceof Element && e.target.closest('[data-flow-retry]')) return
       let key = remoteKey(e)
       if (key === 'enter' && backControlFocused()) key = 'back'
       if (!key) return
@@ -154,7 +156,7 @@ export function Flow({ flow, state }: FlowSource) {
       {view.phase !== 'ready' && (
         <div role={view.phase === 'error' ? 'alert' : 'status'} aria-live="polite" style={{ position: 'fixed', left: 12, bottom: 12, padding: '8px 12px', background: '#fff', color: '#222', font: '14px system-ui, sans-serif' }}>
           {view.phase === 'loading' ? 'Carregando tela…' : (
-            <>Não foi possível carregar a tela. <span>{view.error}</span> <button type="button" onClick={() => retryRef.current()}>Tentar novamente</button></>
+            <>Não foi possível carregar a tela. <span>{view.error}</span> <button type="button" data-flow-retry autoFocus onClick={() => retryRef.current()}>Tentar novamente</button></>
           )}
         </div>
       )}

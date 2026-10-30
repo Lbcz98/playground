@@ -14,7 +14,7 @@ describe('viewer loading and link accessibility in the render harness', () => {
         await page.evaluate('window.__fixture.failFlow(0)')
         await page.waitFor('!!document.querySelector("[role=alert] button")')
         expect(await page.shown()).toBeNull()
-        await page.click('[role=alert] button')
+        await page.press('Enter')
         await page.waitFor('window.__fixture.flowRequests.length === 2')
         await page.evaluate('window.__fixture.acceptFlow(1)')
         await page.waitFor('window.__fixture.stateRequests.length === 3')

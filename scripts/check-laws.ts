@@ -319,15 +319,15 @@ export function checkLaws(file: string, options: { skipValidator?: boolean; diag
 
     const focused: SourceHolder[] = []
     // A local component is part of the screen: the focus it draws inside counts too.
-    const count = (root: ts.Node, fsf: ts.SourceFile, file: string, via: string, seen: Set<ts.Node>): void => visit(root, (n) => {
+    const count = (root: ts.Node, fsf: ts.SourceFile, file: string, via: string, ancestors: Set<ts.Node>): void => visit(root, (n) => {
       if (!ts.isJsxOpeningElement(n) && !ts.isJsxSelfClosingElement(n)) return
       const tag = n.tagName.getText()
       const at = file === path ? `line ${LINE(fsf, n)}` : `${rel(file)} line ${LINE(fsf, n)}, inside ${via}`
       const local = localComponent(file, fsf, tag)
       if (local) {
-        if (!seen.has(local.node)) {
-          seen.add(local.node)
-          count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, seen)
+        if (!ancestors.has(local.node)) {
+          // Guard recursive imports along this instance's ancestry, not other instances of the same component.
+          count(local.node, local.sf, local.file, file === path ? `<${tag}>` : via, new Set([...ancestors, local.node]))
         }
         // `<Local interactionState="focus" />`: the screen sets the focus the component forwards to its kit holder.
         const holderTag = forwarded.get(local.node)
@@ -604,7 +604,7 @@ export async function runChecks(targets: string[], options: { render?: boolean; 
   const reports = files.map((f) => checkLaws(f, { diagnostics }))
   const findings: Finding[] = flows.flatMap((f) => f.problems.map((p) => ({ rule: p.law, file: join(f.dir, 'flow.ts'), message: p.message })))
   const notes: string[] = []
-  if (render) {
+  if (render && files.length > 0) {
     try {
       const rendered = await renderAuditFiles(files)
       for (const r of rendered) {

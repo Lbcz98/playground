@@ -22,6 +22,8 @@ type CodeOnlyReason =
   | 'asset-slot'
   /** Composition the Blueprint expresses with child nodes, or state the canvas owns. */
   | 'composition'
+  /** How the control renders inside a navigation `<Link>`, which only the code writes. */
+  | 'link-surface'
 
 export interface StorybookBinding {
   component: string
@@ -59,7 +61,7 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   },
   InteractivityButton: {
     component: 'ui-kit-interactivity-button',
-    codeOnly: { thumbnail: 'asset-slot' },
+    codeOnly: { thumbnail: 'asset-slot', as: 'link-surface' },
     // The sponsor's wording; its logo is an image slot the agent can't fill.
     propMap: { advertisingLabel: ['advertising'] },
     defaultOverrides: { interactionState: RESTS },
@@ -70,17 +72,19 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   },
   WideButton: {
     component: 'ui-kit-wide-button',
+    codeOnly: { as: 'link-surface' },
     defaultOverrides: { interactionState: RESTS },
   },
-  Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot' } },
-  AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot' } },
+  Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot', as: 'link-surface' } },
+  AlertBug: { component: 'ui-kit-alert-bug', codeOnly: { src: 'asset-slot', as: 'link-surface' } },
   RoundedButton: {
     component: 'ui-kit-rounded-button',
+    codeOnly: { as: 'link-surface' },
     defaultOverrides: { interactionState: RESTS },
   },
   CloseButton: { component: 'ui-kit-close-button', defaultOverrides: { interactionState: RESTS } },
 
-  ContentCard: { component: 'ui-kit-content-card', codeOnly: { children: 'composition' } },
+  ContentCard: { component: 'ui-kit-content-card', codeOnly: { children: 'composition', asLink: 'link-surface' } },
   ContentCardHeader: {
     component: 'ui-kit-content-card',
     subcomponent: 'ContentCardHeader',

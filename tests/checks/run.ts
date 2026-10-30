@@ -22,7 +22,7 @@ export interface CaseResult {
   reuses: number
   proposals: number
   problemFiles: string[]
-  skipped?: string
+  renderNotes: string[]
 }
 
 export function writeCase(c: CorpusCase): string {
@@ -37,7 +37,7 @@ export const cleanCorpus = (): void => rmSync(OUT, { recursive: true, force: tru
 
 /** What `npm run check:laws -- <entry>` decides, as data: the real run (`runChecks`) and its verdict. */
 export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResult> {
-  const run = await runChecks([writeCase(c)], { render })
+  const run = await runChecks([writeCase(c)], { render, requireRender: render })
   const all = <K extends 'problems' | 'advisories' | 'warnings' | 'deviations' | 'reuses' | 'proposals'>(k: K): LawReport[K] => run.reports.flatMap((r) => r[k] as never[]) as LawReport[K]
   return {
     exit: run.exitCode,
@@ -50,7 +50,6 @@ export async function runCase(c: CorpusCase, render: boolean): Promise<CaseResul
     reuses: all('reuses').length,
     proposals: all('proposals').length,
     problemFiles: all('problems').flatMap((p) => (p.file ? [p.file] : [])),
-    // Without a browser the run says so in its notes: the case skips itself.
-    skipped: run.notes[0],
+    renderNotes: run.notes,
   }
 }

@@ -43,9 +43,6 @@ export function inDesigner(path: string): DesignerPath | undefined {
 /** The designer folder of a path, or its own folder when it is not under `web/protos/` (corpus, tests). */
 export const designerFolder = (path: string): string => inDesigner(path)?.folder ?? dirname(path)
 
-/** What `/deploy` hands to the checker of what changed: a `.tsx` or a `flow.ts` of a designer folder. */
-export const isCheckable = (path: string): boolean => /\.tsx$|(^|\/)flow\.ts$/.test(inDesigner(path)?.rest ?? '')
-
 /** What the edit hook reacts to: any `.tsx` or `.ts` of a designer folder (a data file shows on the screens that import it). */
 export const isDesignerCode = (path: string): boolean => /\.tsx?$/.test(inDesigner(path)?.rest ?? '')
 
@@ -59,7 +56,7 @@ export const isFlowFolder = (dir: string, tree: Tree): boolean => tree.list(dir)
 
 /** The flow folder a path leads to: the folder itself, its `flow.ts`, or a file inside it. */
 export function flowFolderOf(path: string, tree: Tree): string | undefined {
-  const dir = /\.tsx?$/.test(path) ? dirname(path) : path
+  const dir = /\.[^/]+$/.test(path) ? dirname(path) : path
   return isFlowFolder(dir, tree) ? dir : undefined
 }
 
@@ -73,29 +70,54 @@ export const flowFoldersUnder = (dir: string, tree: Tree): string[] => [
     .flatMap((e) => flowFoldersUnder(`${dir}/${e.slice(0, -1)}`, tree)),
 ]
 
-const screensUnder =(dir: string, tree: Tree): string[] =>
+const screensUnder = (dir: string, tree: Tree): string[] =>
   tree
     .list(dir)
     .sort()
     .flatMap((e) => (e.endsWith('/') ? screensUnder(`${dir}/${e.slice(0, -1)}`, tree) : isScreen(`${dir}/${e}`, tree) ? [`${dir}/${e}`] : []))
 
 /**
- * The files to check when `paths` changed, and the flow folders among them. A screen is itself; a `.tsx` or `.ts` that
+ * The files to check when `paths` changed, and the flow folders among them. A screen is itself; code or JSON that
  * is not a screen (a local component, data) is checked through the screens of its folder (its focus and size show on
  * the screens that use it), a `components/` folder outside `web/protos/` standing for the folder above it. A flow
  * (reached from its folder, its `flow.ts` or a file in it) brings every top-level `.tsx` of its folder: its states.
  */
 export function checkTargets(paths: string[], tree: Tree): { files: string[]; flows: string[] } {
-  const flows = [...new Set(paths.map((p) => flowFolderOf(p, tree)).filter((d): d is string => d !== undefined))]
+  const flows = new Set(paths.map((p) => flowFolderOf(p, tree)).filter((d): d is string => d !== undefined))
   const files = paths
-    .filter((p) => /\.tsx?$/.test(p) && basename(p) !== FLOW_FILE)
+    .filter((p) => /\.(tsx?|json)$/.test(p))
     .flatMap((f) => {
-      if (!tree.list(dirname(f)).includes(basename(f))) return f.endsWith('.tsx') ? [f] : []
-      if (isScreen(f, tree)) return [f]
+      const exists = tree.list(dirname(f)).includes(basename(f))
+      if (exists && basename(f) === FLOW_FILE) return []
+      if (exists && isScreen(f, tree)) return [f]
       const dir = dirname(f)
-      return screensUnder(basename(dir) === 'components' ? dirname(dir) : designerFolder(f), tree)
+      const folder = inDesigner(f)?.folder ?? (basename(dir) === 'components' ? dirname(dir) : dir)
+      // Deleted paths are impact signals, never screen entries. Recheck surviving links and transitions too.
+      for (const flow of flowFoldersUnder(folder, tree)) flows.add(flow)
+      return screensUnder(folder, tree)
     })
-  return { files: [...new Set([...files, ...flows.flatMap((d) => tsxNames(d, tree).map((n) => `${d}/${n}.tsx`))])], flows }
+  return { files: [...new Set([...files, ...[...flows].flatMap((d) => tsxNames(d, tree).map((n) => `${d}/${n}.tsx`))])], flows: [...flows] }
+}
+
+/**
+ * CI and deploy share this conservative impact boundary. Any local change rechecks its designer's screens and
+ * flows (including dependents of renamed/deleted files); shared runtime, token, rule or checker changes recheck
+ * every prototype. Both ends of a rename must be supplied by Git (`--no-renames --name-only`).
+ */
+export function prototypeTargets(paths: string[], tree: Tree, root = 'web/protos'): { files: string[]; flows: string[] } {
+  const shared = paths.some((p) => /^(src|tokens|scripts|web\/app)\//.test(p)
+    || /^(web\/)?(package(-lock)?\.json|[^/]*config\.[^/]+|shims\.d\.ts)$/.test(p)
+    || /^web\/protos\/(generated|standards)\//.test(p)
+    || /^web\/protos\/[^/]+\.md$/.test(p))
+  const folders = shared
+    ? tree.list(root).filter((p) => p.endsWith('/')).map((p) => `${root}/${p.slice(0, -1)}`)
+    : paths.flatMap((p) => {
+      const designer = inDesigner(p)
+      return designer?.folder.startsWith(`${root}/`) ? [designer.folder] : []
+    })
+  const flows = [...new Set(folders.flatMap((f) => flowFoldersUnder(f, tree)))].sort()
+  const files = [...new Set([...folders.flatMap((f) => screensUnder(f, tree)), ...flows.flatMap((f) => tsxNames(f, tree).map((n) => `${f}/${n}.tsx`))])].sort()
+  return { files, flows }
 }
 
 /** The top-level `.tsx` files of a folder, by name: what a designer folder routes as screens (and `<Link>`s reach), and what a flow folder holds as states. */
