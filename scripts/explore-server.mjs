@@ -27,7 +27,7 @@ import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
-const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
+const DIALKIT = fileURLToPath(new URL('./explore-dialkit/', import.meta.url))
 const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
 // Served without a token (like the overlay): fixed files, no state.
 const ASSETS = {

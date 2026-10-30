@@ -33,6 +33,10 @@ npm run tokens:check       # generated tokens and guides match tokens/tokens.jso
 
 The shared app has its own install: `cd web && npm install && npm run dev`.
 
+Exploration controls use the [built-in DialKit vanilla build](scripts/explore-dialkit/README.md)
+from the pinned `Lbcz98/dialkit` fork. Opening `/tune` never installs or builds DialKit.
+Options without a tune spec still require agent preparation before they become editable.
+
 ### Claude Code dependencies
 
 `/proto` and `/explore` (the `proto-writer` and `proto-explorer` agents) load two things that are not in this repo:
