@@ -7,7 +7,12 @@
 
 /** Control types the runtime (explore-tune.js) can draw. */
 export const TYPES = ['slider', 'color', 'select', 'easing']
-const VARS = /\/\* tune:vars \*\/[\s\S]*?\/\* \/tune:vars \*\//
+const VARS = /\/\* tune:vars \*\/[\s\S]*?\/\* \/tune:vars \*\//g
+
+/** The tune:vars blocks that style option `n` (`[data-option="n"] {`), as { start, end, text }. The style may sit anywhere in the page, not inside the article. */
+const varsBlocks = (html, n) => [...html.matchAll(VARS)]
+  .filter((m) => new RegExp(`\\[data-option="${n}"\\]\\s*\\{`).test(m[0]))
+  .map((m) => ({ start: m.index, end: m.index + m[0].length, text: m[0] }))
 
 const article = (html, n) => html.match(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`))?.[0]
 
@@ -52,7 +57,8 @@ function declare(c) {
   return []
 }
 
-export const controls = (spec) => (spec?.folders ?? []).flatMap((f) => f.controls ?? [])
+const list = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : [])
+export const controls = (spec) => list(spec?.folders).flatMap((f) => list(f.controls))
 
 // The tune:vars block for option `n`: one declaration per property; a value that left its token carries a `tune` comment.
 export function varsBlock(spec, n) {
@@ -73,17 +79,22 @@ export function specJson({ folders, ...top }) {
  */
 export function applyTuned(html, n, values) {
   const spec = tuneSpec(html, n)
-  if (!spec || !VARS.test(html)) return { html, changed: 0 }
+  if (!spec) return { html, changed: 0 }
+  if (typeof spec !== 'object' || !Array.isArray(spec.folders)) return { html, changed: 0, error: 'spec' }
+  const blocks = varsBlocks(html, n)
+  if (blocks.length !== 1) return { html, changed: 0, error: blocks.length ? 'vars-duplicate' : 'vars-missing' }
   let changed = 0
-  spec.folders.forEach((f, i) => (f.controls ?? []).forEach((c) => {
+  spec.folders.forEach((f, i) => list(f?.controls).forEach((c) => {
     const v = clean(c, values?.[`${i}.${c.id}`])
     if (v !== undefined && JSON.stringify(v) !== JSON.stringify(c.value)) (c.value = v, changed++)
   }))
   if (!changed) return { html, changed }
-  const json = specJson(spec).replace(/</g, '\\u003c')
-  const next = html
-    .replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, b) => `${a}${json}${b}`)
-    .replace(VARS, () => varsBlock(spec, n))
+  let json, vars
+  try { json = specJson(spec).replace(/</g, '\\u003c'); vars = varsBlock(spec, n) } catch { return { html, changed: 0, error: 'spec' } }
+  const [b] = blocks
+  const swapped = html.slice(0, b.start) + vars + html.slice(b.end)
+  // Only the option's own spec script is rewritten; the block above kept every other option byte-for-byte.
+  const next = swapped.replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, c) => `${a}${json}${c}`)
   return { html: next, changed }
 }
 
@@ -91,15 +102,17 @@ export function applyTuned(html, n, values) {
 export function lintSpec(html, n, kit) {
   const spec = tuneSpec(html, n), bad = []
   if (!article(html, n)?.includes('data-tuned')) bad.push(`o <article data-option="${n}"> não tem data-tuned`)
-  if (!spec) return [...bad, `falta <script type="application/json" data-tune="${n}"> com JSON válido`]
-  if (!VARS.test(html)) return [...bad, 'falta o bloco /* tune:vars */ … /* /tune:vars */']
+  if (!spec || typeof spec !== 'object') return [...bad, `falta <script type="application/json" data-tune="${n}"> com JSON válido`]
+  const blocks = varsBlocks(html, n)
+  if (!blocks.length) return [...bad, `falta o bloco /* tune:vars */ … /* /tune:vars */ de [data-option="${n}"]`]
+  if (blocks.length > 1) bad.push(`há ${blocks.length} blocos tune:vars para [data-option="${n}"]; deve haver exatamente um`)
   if (!Array.isArray(spec.folders) || !spec.folders.length) bad.push('folders vazio')
   const ids = new Set(), names = new Set(), fin = Number.isFinite
-  for (const f of spec.folders ?? []) {
+  for (const f of list(spec.folders)) {
     if (!f.name || names.has(f.name) || f.name === 'Simulador' || f.name === 'Palco') bad.push(`pasta "${f.name}": nome vazio, repetido ou reservado (Simulador, Palco)`)
     names.add(f.name)
     const labels = new Set()
-    for (const c of f.controls ?? []) {
+    for (const c of list(f.controls)) {
       const at = `${f.name} › ${c.label}`
       if (!c.id || ids.has(c.id)) bad.push(`${at}: id vazio ou repetido (${c.id})`)
       if (!c.label || labels.has(c.label)) bad.push(`${at}: label vazio ou repetido na pasta`)
@@ -118,8 +131,10 @@ export function lintSpec(html, n, kit) {
   }
   if (!Array.isArray(spec.states) || spec.states.length < 1) bad.push('states: liste os estados que o CSS lê em [data-state="…"]')
   else for (const s of spec.states.slice(1)) if (!html.includes(`data-state="${s}"`)) bad.push(`estado "${s}" não aparece em nenhum seletor [data-state="${s}"]`)
-  const have = html.match(VARS)?.[0].replace(/\s+/g, ' ')
-  if (have !== varsBlock(spec, n).replace(/\s+/g, ' ')) bad.push('o bloco tune:vars não é o que "Aplicar valores" escreveria a partir do spec: escreva-o no formato exato (uma declaração por --var, token como var(--token), easing em ms e cubic-bezier)')
+  const have = blocks[0].text.replace(/\s+/g, ' ')
+  let want
+  try { want = varsBlock(spec, n).replace(/\s+/g, ' ') } catch { bad.push('o spec tem controles malformados: não dá para gerar o bloco tune:vars') }
+  if (want !== undefined && have !== want) bad.push('o bloco tune:vars não é o que "Aplicar valores" escreveria a partir do spec: escreva-o no formato exato (uma declaração por --var, token como var(--token), easing em ms e cubic-bezier)')
   return bad
 }
 

@@ -10,7 +10,7 @@
  * Only 127.0.0.1; every `/__explore/*` call but the overlay needs the per-run token.
  */
 import { randomBytes } from 'node:crypto'
-import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, normalize, resolve, sep } from 'node:path'
@@ -56,6 +56,16 @@ export function setDiscarded(html, option, discarded) {
   })
 }
 
+/** Persisted local files are written whole or not at all: a temp file next to the target, then a rename. */
+const writeAtomic = (file, data) => {
+  const tmp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`
+  writeFileSync(tmp, data)
+  renameSync(tmp, file)
+}
+/** Parsed JSON file, or null when it does not exist; a file that exists but is not JSON throws. */
+const readJson = (file) => (existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+
 const STATUSES = ['enviado', 'aguardando', 'aplicando', 'aplicado', 'falhou'] // what the session may set; `cancelado` is the designer's
 const clip = (v, n) => String(v ?? '').slice(0, n)
 
@@ -80,7 +90,9 @@ export function startServer(opts) {
     new Promise((ok) => {
       let s = ''
       req.on('data', (d) => (s += d, s.length > 50_000 && req.destroy()))
-      req.on('end', () => { try { ok(JSON.parse(s)) } catch { ok(null) } })
+      req.on('error', () => ok(null))
+      req.on('close', () => ok(null))
+      req.on('end', () => { try { const b = JSON.parse(s); ok(isObject(b) ? b : null) } catch { ok(null) } })
     })
 
   /** The page with the live layer; `tune` also loads the stage, which must run before the overlay (it defines window.exploreDials). */
@@ -89,7 +101,7 @@ export function startServer(opts) {
     return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, () => tags + '</body>') : html + tags
   }
 
-  const server = createServer(async (req, res) => {
+  const handle = async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://x')
     // Host must be ours (DNS rebinding); a cross-origin page sends a foreign Origin.
     if (req.headers.host !== new URL(origin).host) return json(res, 403, { error: 'host' })
@@ -130,10 +142,10 @@ export function startServer(opts) {
         const n = url.searchParams.get('option') ?? ''
         const file = join(root, `judge-${n}.json`)
         if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
-        return json(res, 200, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null)
+        return json(res, 200, readJson(file))
       }
       // The Figma file this exploration was pushed to (figma.json: url, fileKey, the pushed `snapshot`, the `undo` values of the last pull): written by the session through figma-state.
-      if (url.pathname === '/__explore/figma') return json(res, 200, existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')) : null)
+      if (url.pathname === '/__explore/figma') return json(res, 200, readJson(figmaFile))
       if (url.pathname === '/__explore/pending') return json(res, 200, comments.filter((c) => c.status === 'enviado' || c.status === 'aguardando'))
       if (req.method !== 'POST') return json(res, 405, { error: 'method' })
       const b = await body(req)
@@ -182,16 +194,17 @@ export function startServer(opts) {
         if (!/^\d+$/.test(String(b.option))) return json(res, 400, { error: 'option' })
         const index = join(root, 'index.html'), html = readFileSync(index, 'utf8'), next = setDiscarded(html, String(b.option), b.discarded !== false)
         if (next === html) return json(res, 400, { error: 'option' })
-        writeFileSync(index, next)
+        writeAtomic(index, next)
         broadcast('event: reload\ndata: 1\n\n')
         return json(res, 200, { ok: true })
       }
       // "Aplicar valores" in the stage: the spec holds the numbers, so the server rewrites them (and the CSS they drive) itself.
       if (url.pathname === '/__explore/tune-apply') {
-        if (!/^\d+$/.test(String(b.option)) || !b.values || typeof b.values !== 'object') return json(res, 400, { error: 'values' })
+        if (!/^\d+$/.test(String(b.option)) || !isObject(b.values)) return json(res, 400, { error: 'values' })
         const index = join(root, 'index.html'), html = readFileSync(index, 'utf8')
-        const { html: next, changed } = applyTuned(html, String(b.option), b.values)
-        if (next !== html) { writeFileSync(index, next); broadcast('event: reload\ndata: 1\n\n') }
+        const { html: next, changed, error } = applyTuned(html, String(b.option), b.values)
+        if (error) return json(res, 400, { error })
+        if (next !== html) { writeAtomic(index, next); broadcast('event: reload\ndata: 1\n\n') }
         return json(res, 200, { changed })
       }
       // "Exportar .md": the option's contract for a developer's agent, built from the spec and the stage's live values; written next to the page.
@@ -200,18 +213,20 @@ export function startServer(opts) {
         if (!/^\d+$/.test(n)) return json(res, 400, { error: 'option' })
         const html = readFileSync(join(root, 'index.html'), 'utf8')
         const brief = existsSync(join(root, 'brief.md')) ? readFileSync(join(root, 'brief.md'), 'utf8') : ''
-        const figma = existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')).url : undefined
-        const md = specMarkdown(html, n, { values: b.values && typeof b.values === 'object' ? b.values : {}, label: clip(b.label, 120) || undefined, brief, figma })
+        const figma = readJson(figmaFile)?.url
+        let md
+        try { md = specMarkdown(html, n, { values: isObject(b.values) ? b.values : {}, label: clip(b.label, 120) || undefined, brief, figma }) } catch { md = undefined }
         if (!md) return json(res, 400, { error: 'spec' })
-        writeFileSync(join(root, `spec-${n}.md`), md)
+        writeAtomic(join(root, `spec-${n}.md`), md)
         return json(res, 200, { file: `spec-${n}.md`, md })
       }
       // Merges into figma.json (a null value removes the key). Only a figma.com address is kept as the link.
       if (url.pathname === '/__explore/figma-state') {
         if (b.url != null && !/^https:\/\/([\w-]+\.)?figma\.com\//.test(String(b.url))) return json(res, 400, { error: 'url' })
-        const now = existsSync(figmaFile) ? JSON.parse(readFileSync(figmaFile, 'utf8')) : {}
+        const now = readJson(figmaFile) ?? {}
+        if (!isObject(now)) return json(res, 500, { error: 'figma.json' })
         for (const k of ['url', 'fileKey', 'snapshot', 'undo']) if (k in b) b[k] == null ? delete now[k] : (now[k] = b[k])
-        writeFileSync(figmaFile, JSON.stringify(now, null, 1))
+        writeAtomic(figmaFile, JSON.stringify(now, null, 1))
         return json(res, 200, now)
       }
       // The designer takes a request back: any queued one, and a batch of options while it is being made (an edit under way cannot be undone).
@@ -246,6 +261,14 @@ export function startServer(opts) {
     if (basename(file) === 'index.html') data = withLive(data.toString())
     res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store' })
     res.end(data)
+  }
+
+  // One bad request must never take the server down: a bad URL escape is the caller's fault (400), anything else (a corrupt file, a race) is ours (500).
+  const server = createServer((req, res) => {
+    handle(req, res).catch((err) => {
+      if (res.headersSent) return void res.destroy()
+      json(res, err instanceof URIError || err?.code === 'ERR_INVALID_URL' ? 400 : 500, { error: err instanceof URIError || err?.code === 'ERR_INVALID_URL' ? 'url' : 'internal' })
+    })
   })
 
   // ponytail: idle cutoff polled every 30 s; fine for a one-person local server.
