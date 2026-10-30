@@ -27,7 +27,7 @@ import { applyTuned, specMarkdown, tuneTarget } from './explore-tune.mjs'
 
 const OVERLAY = fileURLToPath(new URL('./explore-overlay.js', import.meta.url))
 const ICONS = fileURLToPath(new URL('./explore-icons/', import.meta.url))
-const DIALKIT = fileURLToPath(new URL('../node_modules/dialkit/dist/vanilla/', import.meta.url))
+const DIALKIT = fileURLToPath(new URL('./explore-dialkit/', import.meta.url))
 const INTER = fileURLToPath(new URL('../node_modules/@fontsource-variable/inter/', import.meta.url))
 const MESURER = fileURLToPath(new URL('./explore-mesurer.tsx', import.meta.url))
 let mesurer // the stage's Mesurer bundle (React package, so built once per run on first request)

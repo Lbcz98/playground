@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/Lbcz98/dialkit.git",
+  "revision": "1ef9fe8c3abfe7fd3338b45e5f4350407d49ac2c",
+  "version": "2.1.0",
+  "build": {
+    "tool": "esbuild",
+    "version": "0.25.12",
+    "entry": "src/vanilla/index.ts",
+    "target": "es2020",
+    "format": "iife"
+  },
+  "sha256": {
+    "browser.global.js": "9f85936b1748dc0d054bcd37de875ab7fc513bd17e07189f955fc85f025b094e",
+    "styles.css": "32151375dfd2e6bd521bbfb3b4a886dca12a2caa3c33d0cecc33b368cf1e8765",
+    "LICENSE.txt": "1fbe8abbaf9585a35d30fee835a022445947064dd9ad1a0f22444f210b1283e0"
+  }
+}
