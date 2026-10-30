@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { createServer } from 'vite'
 import { auditRenderIssues, type RenderIssue, type RenderMeasurement } from '../src/shared/layout/renderAudit'
+import { focusFindings } from '../src/shared/layout/focus-rule'
+import { DTV_SCREEN_LAYERS } from '../src/shared/design-system/screen-layers'
 import { harnessPage, type Page } from './harness-page'
 import { VIEWPORT } from './render-harness/protocol'
 
@@ -42,7 +44,7 @@ function loadPlaywright(): Playwright {
 export type RenderResult =
   | {
       file: string
-      issues: RenderIssue[]
+      issues: (RenderIssue | { ruleId: 'focus.single'; severity: 'block'; message: string })[]
       measured?: RenderMeasurement
       /** What the page reported for `prefers-reduced-motion`: the audit asks for `reduced`. */
       motion?: 'reduced' | 'full'
@@ -108,7 +110,17 @@ export function renderAuditFiles(files: string[]): Promise<RenderResult[]> {
         if ('error' in got) results.push({ file, issues: [], error: got.error })
         else {
           const issues = auditRenderIssues(got.measured)
-          results.push({ file, issues, measured: got.measured, motion: got.motion, settledAfter: got.settledAfter })
+          const focus = await page.focus()
+          if ('error' in focus) {
+            results.push({ file, issues: [], error: focus.error })
+            continue
+          }
+          const model = DTV_SCREEN_LAYERS.models.find((m) => m.id === focus.model)
+          const level = DTV_SCREEN_LAYERS.levels.find((l) => l.level === (model?.level ?? (focus.level === null ? undefined : Number(focus.level))))
+          const single = focusFindings(focus.focused, level).some((f) => f.ruleId === 'focus.single')
+          results.push({ file, issues: [...issues, ...(single ? [{ ruleId: 'focus.single' as const, severity: 'block' as const,
+            message: `${focus.focused.length} elements are drawn focused${focus.focused.length ? ` (${focus.focused.map((f) => `<${f.component}>`).join(', ')})` : ''} — a screen has exactly one (level 0 may have none).`,
+          }] : [])], measured: got.measured, motion: got.motion, settledAfter: got.settledAfter })
         }
       } catch (e) {
         results.push({ file, issues: [], error: String(e).split('\n')[0] })

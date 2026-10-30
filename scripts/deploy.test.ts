@@ -1,9 +1,10 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { afterAll, describe, expect, it } from 'vitest'
 import { branchName, changedPaths, classify, defaultChecks, deploy, slugify, type Options } from './deploy'
+import { type Tree } from '../src/shared/protoFolders'
 import { CASES } from '../tests/checks/corpus/cases'
 import { cleanCorpus, writeCase } from '../tests/checks/run'
 
@@ -13,7 +14,8 @@ describe('deploy — the pure parts', () => {
   })
 
   it('separates a designer’s folder from everything else', () => {
-    const c = classify(['web/protos/ana/home.tsx', 'web/protos/ana/notes.md', 'src/ui-kit/Screen.tsx', 'web/protos/bia/x.tsx'])
+    const tree: Tree = { list: (p) => ({ 'web/protos': ['ana/', 'bia/'], 'web/protos/ana': ['home.tsx'], 'web/protos/bia': ['x.tsx'] })[p] ?? [], read: () => '<Screen />' }
+    const c = classify(['web/protos/ana/home.tsx', 'web/protos/ana/notes.md', 'src/ui-kit/Screen.tsx', 'web/protos/bia/x.tsx'], tree)
     expect(c.designers).toEqual(['ana', 'bia'])
     expect(c.screens).toEqual(['web/protos/ana/home.tsx', 'web/protos/bia/x.tsx'])
     expect(c.outside).toEqual(['src/ui-kit/Screen.tsx'])
@@ -59,14 +61,16 @@ function fixture(ciJson = '[{"name":"protos","state":"SUCCESS","link":"http://ci
   run(work, 'git', 'push', '-q', 'origin', 'main')
   const calls = join(dir, 'gh-calls.txt')
   const made = join(dir, 'pr-made')
+  const failPr = join(dir, 'fail-pr')
+  const closed = join(dir, 'pr-closed')
   writeFileSync(
     join(bin, 'gh'),
     `#!/bin/sh
 echo "$@" >> "${calls}"
 case "$1 $2" in
   "auth status") exit 0 ;;
-  "pr view") [ -f "${made}" ] && echo "https://github.com/o/r/pull/7" && exit 0; exit 1 ;;
-  "pr create") touch "${made}"; echo "https://github.com/o/r/pull/7" ;;
+  "pr list") [ -f "${made}" ] && [ ! -f "${closed}" ] && echo '[{"url":"https://github.com/o/r/pull/7"}]' && exit 0; echo '[]' ;;
+  "pr create") [ -f "${failPr}" ] && echo "fake PR failure" >&2 && exit 1; touch "${made}"; echo "https://github.com/o/r/pull/7" ;;
   "pr checks") echo '${ciJson}' ;;
 esac
 `,
@@ -83,7 +87,7 @@ esac
     now: new Date('2026-10-05T12:30:00Z'),
     ...extra,
   })
-  return { work, remote, calls, options }
+  return { work, remote, calls, options, made, failPr, closed }
 }
 
 const write = (work: string, path: string, body = 'export default 2\n') => {
@@ -146,6 +150,113 @@ describe('deploy — against a real repository', () => {
     const second = await deploy(f.options({ message: 'ajuste' }))
     expect(second).toMatchObject({ ok: true, created: false, branch: first.ok ? first.branch : '' })
     expect(readFileSync(f.calls, 'utf8').match(/pr create/g)).toHaveLength(1)
+  })
+
+  it.each(['push', 'pr'] as const)('resumes a clean branch after %s failed, revalidating without another commit', async (stage) => {
+    const f = fixture()
+    const hook = join(f.remote, 'hooks/pre-receive')
+    if (stage === 'push') {
+      writeFileSync(hook, '#!/bin/sh\nexit 1\n')
+      chmodSync(hook, 0o755)
+    } else writeFileSync(f.failPr, '')
+    write(f.work, 'web/protos/ana/home.tsx', '<Screen />')
+    const first = await deploy(f.options({ wait: false }))
+    expect(first).toMatchObject({ ok: false, stage })
+    const head = run(f.work, 'git', 'rev-parse', 'HEAD')
+    expect(run(f.work, 'git', 'status', '--porcelain')).toBe('')
+    if (stage === 'push') rmSync(hook)
+    else rmSync(f.failPr)
+    const checked: string[][] = []
+    const retry = await deploy(f.options({ wait: false, checks: (files) => {
+      checked.push(files)
+      return { ok: true, output: '' }
+    } }))
+    expect(retry).toMatchObject({ ok: true, created: true })
+    expect(checked).toEqual([['web/protos/ana/home.tsx']])
+    expect(run(f.work, 'git', 'rev-parse', 'HEAD')).toBe(head)
+    expect(run(f.remote, 'git', 'rev-parse', retry.ok ? retry.branch : '')).toBe(head)
+  })
+
+  it('reuses only an OPEN PR on a clean retry, and refuses a failed revalidation', async () => {
+    const f = fixture()
+    write(f.work, 'web/protos/ana/home.tsx', '<Screen />')
+    expect(await deploy(f.options({ wait: false }))).toMatchObject({ ok: true, created: true })
+    const head = run(f.work, 'git', 'rev-parse', 'HEAD')
+    expect(await deploy(f.options({ checks: () => ({ ok: false, output: 'changed laws' }) }))).toMatchObject({ ok: false, stage: 'checks' })
+    expect(await deploy(f.options({ wait: false }))).toMatchObject({ ok: true, created: false })
+    expect(readFileSync(f.calls, 'utf8')).toContain('--state open --json url')
+    writeFileSync(f.closed, '')
+    expect(await deploy(f.options({ wait: false }))).toMatchObject({ ok: true, created: true })
+    expect(run(f.work, 'git', 'rev-parse', 'HEAD')).toBe(head)
+  })
+
+  it.each(['src/kit.ts', 'web/protos/bia/x.tsx'])('rejects committed out-of-boundary changes on recovery: %s', async (path) => {
+    const f = fixture()
+    run(f.work, 'git', 'switch', '-c', 'proto/ana/recovery')
+    write(f.work, 'web/protos/ana/home.tsx', '<Screen />')
+    write(f.work, path)
+    run(f.work, 'git', 'add', '-A')
+    run(f.work, 'git', 'commit', '-qm', 'unsafe prior commit')
+    expect(await deploy(f.options())).toMatchObject({ ok: false, stage: 'changes' })
+    expect(run(f.remote, 'git', 'branch', '--list')).not.toContain('proto/')
+  })
+
+  it.each(['data.ts', 'data.json', 'components/Pick.tsx'])('passes affected screens to the deploy gate for %s', async (path) => {
+    const f = fixture()
+    write(f.work, 'web/protos/ana/first.tsx', '<Screen />')
+    run(f.work, 'git', 'add', '-A')
+    run(f.work, 'git', 'commit', '-qm', 'screen')
+    run(f.work, 'git', 'push', '-q', 'origin', 'main')
+    write(f.work, `web/protos/ana/${path}`, path.endsWith('json') ? '{}' : 'export default {}')
+    let selected: string[] = []
+    const out = await deploy(f.options({ checks: (files) => { selected = files; return { ok: false, output: 'gate exercised' } } }))
+    expect(out).toMatchObject({ ok: false, stage: 'checks' })
+    expect(selected).toEqual(['web/protos/ana/first.tsx'])
+    expect(run(f.work, 'git', 'branch', '--show-current')).toBe('main')
+  })
+
+  it('names the branch, commit and PR after what changed, while the gate checks the whole folder', async () => {
+    const f = fixture()
+    write(f.work, 'web/protos/ana/first.tsx', '<Screen />')
+    run(f.work, 'git', 'add', '-A')
+    run(f.work, 'git', 'commit', '-qm', 'screen')
+    run(f.work, 'git', 'push', '-q', 'origin', 'main')
+    write(f.work, 'web/protos/ana/second.tsx', '<Screen />')
+    let selected: string[] = []
+    const out = await deploy(f.options({ checks: (files) => { selected = files; return { ok: true, output: '' } } }))
+    expect(selected).toEqual(['web/protos/ana/first.tsx', 'web/protos/ana/second.tsx'])
+    expect(out).toMatchObject({ ok: true, branch: 'proto/ana/second-20261005-1230' })
+    expect(run(f.work, 'git', 'log', '-1', '--format=%s')).toBe('proto(ana): atualiza 1 tela(s)')
+    const created = readFileSync(f.calls, 'utf8')
+    expect(created).toContain('ana/second.tsx')
+    expect(created).not.toContain('ana/first.tsx')
+  })
+
+  it('calls a data-only change files, not screens', async () => {
+    const f = fixture()
+    write(f.work, 'web/protos/ana/first.tsx', '<Screen />')
+    run(f.work, 'git', 'add', '-A')
+    run(f.work, 'git', 'commit', '-qm', 'screen')
+    run(f.work, 'git', 'push', '-q', 'origin', 'main')
+    write(f.work, 'web/protos/ana/data.ts', 'export default {}')
+    expect(await deploy(f.options())).toMatchObject({ ok: true, branch: 'proto/ana/data-20261005-1230' })
+    expect(run(f.work, 'git', 'log', '-1', '--format=%s')).toBe('proto(ana): atualiza 1 arquivo(s)')
+  })
+
+  it.each(['delete', 'rename'])('checks surviving dependents on a %s-only deploy', async (action) => {
+    const f = fixture()
+    write(f.work, 'web/protos/ana/home.tsx', '<Screen />')
+    write(f.work, 'web/protos/ana/buy/flow.ts', 'export default {}')
+    write(f.work, 'web/protos/ana/buy/old.tsx', '<Screen />')
+    run(f.work, 'git', 'add', '-A')
+    run(f.work, 'git', 'commit', '-qm', 'screens')
+    run(f.work, 'git', 'push', '-q', 'origin', 'main')
+    if (action === 'delete') rmSync(join(f.work, 'web/protos/ana/buy/old.tsx'))
+    else renameSync(join(f.work, 'web/protos/ana/buy/old.tsx'), join(f.work, 'web/protos/ana/buy/new.tsx'))
+    let selected: string[] = []
+    expect(await deploy(f.options({ checks: (files) => { selected = files; return { ok: false, output: 'gate exercised' } } }))).toMatchObject({ stage: 'checks' })
+    expect(selected).toEqual([...(action === 'rename' ? ['web/protos/ana/buy/new.tsx'] : []), 'web/protos/ana/home.tsx', 'web/protos/ana/buy/flow.ts'])
+    for (const file of selected) expect(existsSync(join(f.work, file))).toBe(true)
   })
 
   it('reports a failing CI with the check that failed', async () => {

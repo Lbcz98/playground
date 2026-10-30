@@ -6,8 +6,9 @@ import { Proto } from './Proto'
 export const dynamicParams = false
 export const generateStaticParams = () => listProtos().map(({ designer, screen }) => ({ designer, screen }))
 
-export default function ProtoPage({ params }: { params: { designer: string; screen: string } }) {
-  const proto = listProtos().find((p) => p.designer === params.designer && p.screen === params.screen)
+export default async function ProtoPage({ params }: { params: Promise<{ designer: string; screen: string }> }) {
+  const { designer, screen } = await params
+  const proto = listProtos().find((p) => p.designer === designer && p.screen === screen)
   if (!proto) notFound()
   return <Proto designer={proto.designer} screen={proto.screen} kind={proto.kind} />
 }

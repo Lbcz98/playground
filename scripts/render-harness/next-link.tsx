@@ -1,9 +1,9 @@
-/** `next/link` for the render harness: an `<a href>` with no layout box of its own, so the kit element inside measures as without it. */
-import type { ReactNode } from 'react'
+/** `next/link` for the render harness: match the anchor used by Next for screen links. */
+import type { CSSProperties, ReactNode } from 'react'
 
-export default function Link({ href, children }: { href: string; children?: ReactNode }) {
+export default function Link({ href, children, style, className, 'aria-label': ariaLabel }: { href: string; children?: ReactNode; style?: CSSProperties; className?: string; 'aria-label'?: string }) {
   return (
-    <a href={href} style={{ display: 'contents' }}>
+    <a href={href} style={{ display: 'inline-block', ...style }} className={className} aria-label={ariaLabel}>
       {children}
     </a>
   )

@@ -36,6 +36,8 @@ export type NotificationKind = 'message' | 'rounded'
 type NotificationState = Extract<InteractionState, 'default' | 'focus'>
 
 interface NotificationProps {
+  /** Use `span` inside a navigation `<Link>`; actions remain buttons. */
+  as?: 'button' | 'span'
   /** `message` carries the text; `rounded` is the logo alone. Default `message`. */
   kind?: NotificationKind
   /** Default `default`. */
@@ -57,6 +59,7 @@ function Logo({ src }: { src?: string }): ReactNode {
 
 /** The message that arrives in the top-right corner: the programme logo and a line saying why it came. */
 export function Notification({
+  as = 'button',
   kind = 'message',
   interactionState,
   title,
@@ -65,14 +68,15 @@ export function Notification({
 }: NotificationProps): ReactNode {
   const state = interactionState ?? 'default'
   const rounded = kind === 'rounded'
+  const Element = as
 
   return (
-    <button
-      className="sfs-notification sfs-motion sfs-focusable"
+    <Element
+      className={`sfs-notification sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-kind={kind}
       data-state={state}
-      type="button"
-      onClick={onClick}
+      {...(as === 'button' ? { type: 'button' as const } : {})}
+      onClick={as === 'button' ? onClick : undefined}
       aria-label={rounded ? 'Notificação' : undefined}
     >
       <span className="sfs-notification-pill">
@@ -86,6 +90,6 @@ export function Notification({
           </span>
         )}
       </span>
-    </button>
+    </Element>
   )
 }

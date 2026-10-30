@@ -33,7 +33,7 @@ export function mayBeDesignerCode(input) {
 export function runHook(input, spawn = spawnSync) {
   if (!mayBeDesignerCode(input)) return 0
   // vite-node's own entry on this node: no `npx` lookup, and no `.bin` shim (a .cmd on Windows).
-  const run = spawn(process.execPath, [join(ROOT, 'node_modules/vite-node/vite-node.mjs'), '--config', 'vitest.config.ts', 'scripts/check-edited.ts'], { cwd: ROOT, input, stdio: ['pipe', 'inherit', 'inherit'] })
+  const run = spawn(process.execPath, [join(ROOT, 'node_modules/vite-node/dist/cli.mjs'), '--config', 'vitest.config.ts', 'scripts/check-edited.ts'], { cwd: ROOT, input, stdio: ['pipe', 'inherit', 'inherit'] })
   return run.status ?? 1
 }
 

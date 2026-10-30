@@ -63,6 +63,10 @@ export function harnessPage(page: Page, origin: string) {
 
   return {
     close: (): Promise<void> => page.close(),
+    /** Read a fixture's DOM or test controls after the harness is ready. */
+    evaluate: <T,>(js: string): Promise<T> => retrying(() => evaluate<T>(js)),
+    waitFor: (js: string): Promise<unknown> => page.waitForFunction(js, null, { timeout: 10_000 }),
+    onPageError: (handler: (message: string) => void): void => page.on('pageerror', (error) => handler(error.message ?? String(error))),
     /** Shows a screen or a flow and waits until the page says it is ready. Resolves to why it failed, if it did. */
     async open(target: Target): Promise<string | undefined> {
       await onPage(page.goto(origin + harnessUrl(target)))

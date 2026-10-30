@@ -20,6 +20,8 @@ import './ui-kit.css'
 export type InteractivityButtonState = Extract<InteractionState, 'default' | 'focus' | 'selected'>
 
 export interface InteractivityButtonProps {
+  /** Use `span` inside a navigation `<Link>` so its anchor is the only interactive element. */
+  as?: 'button' | 'span'
   /** Default `focus`. */
   interactionState?: InteractivityButtonState
   /** The card’s title — as an interactivity, the only text it carries. */
@@ -43,6 +45,7 @@ const isLarge = (state: InteractivityButtonState): boolean => state !== 'default
 
 /** One card in a rail (the catalog’s InteractivityButton): a title, and in the schedule section an overline, subtitle and live badge. */
 export function InteractivityButton({
+  as = 'button',
   interactionState,
   title,
   overline,
@@ -57,13 +60,14 @@ export function InteractivityButton({
   const large = isLarge(state)
   const secondary: TextStyle = large ? 'footnote-bold' : 'caption-bold'
   const titleStyle: TextStyle = large ? 'body-md-bold' : 'body-sm-bold'
+  const Element = as
 
   return (
-    <button
-      type="button"
-      className="sfs-interactivity-button sfs-motion sfs-focusable"
+    <Element
+      {...(as === 'button' ? { type: 'button' as const } : {})}
+      className={`sfs-interactivity-button sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-state={state}
-      onClick={onClick}
+      onClick={as === 'button' ? onClick : undefined}
       // A Card keeps one inset in every state (DESIGN.md 7.3): focused or selected it grows, the inset does not.
       style={vars({ '--_inset': token('--dimension-spacing-semantic-card-inset') })}
     >
@@ -118,6 +122,6 @@ export function InteractivityButton({
           </span>
         )}
       </span>
-    </button>
+    </Element>
   )
 }

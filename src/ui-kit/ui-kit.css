@@ -428,6 +428,7 @@
  */
 .sfs-wide-button {
   position: relative;
+  display: block;
   overflow: hidden;
   width: var(--dimension-size-semantic-wide-button-width);
   height: var(--dimension-size-semantic-control-height);
@@ -436,6 +437,21 @@
   border-radius: var(--dimension-radius-semantic-pill);
   background: none;
   cursor: pointer;
+}
+
+/* Next Link is the single keyboard target. Its kit surface keeps the same
+ * geometry and receives the keyboard outline when it has no painted TV ring. */
+a:focus-visible:has(> .sfs-link-surface) {
+  outline: none;
+}
+
+a:focus-visible > .sfs-link-surface {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}
+
+a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
+  outline: none;
 }
 
 .sfs-wide-button[data-state='disabled'] {
