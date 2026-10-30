@@ -95,8 +95,9 @@ export function applyTuned(html, n, values) {
   const swapped = html.slice(0, b.start) + vars + html.slice(b.end)
   // Only the option's own spec script is rewritten; the block above kept every other option byte-for-byte.
   const next = swapped.replace(new RegExp(`(<script type="application/json" data-tune="${n}">)[\\s\\S]*?(</script>)`), (_, a, c) => `${a}${json}${c}`)
-    .replace(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`), (tag) => tag.replace(/\s+data-pretuned\b/, '')) // the designer made the copy their own: it shows on the page now
-  return { html: next, changed }
+  // A designer-applied change makes a pre-tuned copy visible.
+  const visible = next.replace(new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>`), (tag) => tag.replace(/\s+data-pretuned\b/, ''))
+  return { html: visible, changed }
 }
 
 /** What is wrong with option `n`'s spec, as a list of sentences (empty when it is sound). `kit` is the set of the kit's token names, when known. */
