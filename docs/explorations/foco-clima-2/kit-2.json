@@ -1,0 +1,16 @@
+{
+  "verdict": "Approve",
+  "summary": "A opção 2 respeita as leis e o modelo de teclas; resta só um tamanho 104px escrito como literal onde existe token do kit.",
+  "findings": [
+    {"severity": "LOW", "domain": "tokens", "rule": "--dimension-size-semantic-alert-bug-focus", "location": "docs/explorations/foco-clima-2/index.html:116",
+     "before": "[data-option=\"2\"] .object { width: 104px; height: 104px; }",
+     "after": "width: var(--dimension-size-semantic-alert-bug-focus); height: var(--dimension-size-semantic-alert-bug-focus);",
+     "why": "check-explore-tokens.mjs avisa que 104px é o tamanho de kit alert-bug-focus (104px); escrever o literal desliga o objeto do token e de suas futuras mudanças."}
+  ],
+  "coverage": [
+    {"domain": "rules", "result": "Clear (check-explore-tokens e check-explore-layout: ok)"},
+    {"domain": "tokens", "result": "1 achado"},
+    {"domain": "behavior", "result": "Clear (←/→ sem laço, ↑/↓ sem preventDefault, Esc/Backspace volta à primeira visão e sai no inicial, Tab único no article, aria-live nos dados, sem hover/clique)"}
+  ],
+  "notVerified": ["check-tune-spec.mjs e tune-measure.mjs: sem spec de ajuste nem cópia ajustável; valores medidos (raios, movimento, contorno de foco) não conferidos", "Enter não faz nada nesta opção (não há peça com ação); não tratado como falha"]
+}

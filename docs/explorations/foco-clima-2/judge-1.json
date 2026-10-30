@@ -1,0 +1,19 @@
+{
+  "verdict": "Approve",
+  "summary": "Opção 1 mantém altura constante (o detalhe troca no lugar da palavra do tempo), as três células parecem botões e os contrastes medidos vão de 6,13 a 9,08; resta só a escala do sol.",
+  "findings": [
+    {"severity": "LOW", "domain": "ui", "location": "docs/explorations/foco-clima-2/index.html:228",
+     "before": "O sol (PNG) aparece na imagem com cerca de 44px de corpo, menor que o algarismo de 72px (dígito de cerca de 50px), no canto superior esquerdo do grupo.",
+     "after": "Aumentar o objeto de tempo para 1,5x a 4x a altura do algarismo, encostado ao grupo, ou deixar o banco de nuvens como o objeto claro.",
+     "why": "O brief pede o tempo dito por objeto grande, não por glifo pequeno; hoje o sol lê como ícone solto ao lado do 24°. Medido a olho na imagem, não no CSS."}
+  ],
+  "coverage": [
+    {"domain": "accessibility", "result": "Clear (sem transições nem animações, logo sem regra de movimento necessária; foco por anel do kit em uma célula por vez; palavra com aria-live; teclas no modelo do kit)"},
+    {"domain": "layout", "result": "Clear (check de layout ok; 3 células lado a lado sob ←/→; §9.6: o detalhe troca o texto da linha da palavra, altura fixa; §9.7: células com borda em repouso lêem como botões)"},
+    {"domain": "typography", "result": "Clear (estilos do kit 12/14/72; sem truncamento)"},
+    {"domain": "colors", "result": "Clear (medido: 9,08 texto principal, 6,13 texto secundário, todos acima de 4,5)"},
+    {"domain": "ui", "result": "1 achado"},
+    {"domain": "writing", "result": "Not reviewed: sample data"}
+  ],
+  "notVerified": ["Contraste do anel de foco contra o fundo e contra a borda de repouso (tune-measure não retornou linhas de focus para a opção sem spec)", "Os advisories de 104px e 260px do check de tokens parecem pertencer à opção 2 e não foram atribuídos à opção 1"]
+}
