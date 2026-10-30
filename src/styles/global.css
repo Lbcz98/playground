@@ -350,6 +350,8 @@
   --typography-font-size-xl: 20px;
   --typography-font-size-2xl: 24px;
   --typography-font-size-3xl: 28px;
+  --typography-font-size-4xl: 56px;
+  --typography-font-size-5xl: 72px;
 
   /* ===== Typography · Letter Spacing ===== */
   --typography-letter-spacing-tight: -0.01em;
@@ -428,7 +430,13 @@
 .text-heading-4-medium,
 .text-heading-4-bold,
 .text-heading-3-medium,
-.text-heading-3-bold {
+.text-heading-3-bold,
+.text-display-md-regular,
+.text-display-md-medium,
+.text-display-md-bold,
+.text-display-lg-regular,
+.text-display-lg-medium,
+.text-display-lg-bold {
   font-family: var(--typography-font-family-primary);
 }
 
@@ -563,4 +571,46 @@
   font-weight: var(--typography-font-weight-bold);
   letter-spacing: var(--typography-letter-spacing-tight);
   line-height: var(--typography-line-height-normal);
+}
+
+.text-display-md-regular {
+  font-size: var(--typography-font-size-4xl);
+  font-weight: var(--typography-font-weight-regular);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-display-md-medium {
+  font-size: var(--typography-font-size-4xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-display-md-bold {
+  font-size: var(--typography-font-size-4xl);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-display-lg-regular {
+  font-size: var(--typography-font-size-5xl);
+  font-weight: var(--typography-font-weight-regular);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-display-lg-medium {
+  font-size: var(--typography-font-size-5xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
+}
+
+.text-display-lg-bold {
+  font-size: var(--typography-font-size-5xl);
+  font-weight: var(--typography-font-weight-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter);
+  line-height: var(--typography-line-height-tight);
 }

@@ -57,25 +57,51 @@ export const settle = (page) => page.evaluate(() => {
 
 /**
  * One PNG per option card into `out` (opcao-<N>.png), and with `keys` (e.g. ['ArrowRight', 'Enter']) one more after each key,
- * pressed in order on that card with the focus on it (opcao-<N>-<i>-<key>.png). Returns the paths.
+ * pressed in order on that card with the focus on it (opcao-<N>-<i>-<key>.png). With keys, the states of one card are also
+ * laid side by side, labelled, in opcao-<N>-folha.png, and only the sheets are returned: one image to read per option
+ * instead of one per key. Without keys, returns the resting PNGs.
  */
 export async function shoot(page, out, keys = []) {
+  checkShotsFolder(out)
   mkdirSync(out, { recursive: true })
   // The page's ring around the focused card is chrome: hidden, a key shot differs from the resting one only by what the option does.
   if (keys.length) await page.addStyleTag({ content: '.opt:focus, .opt:focus-visible { outline: none !important }' })
   const files = []
-  const snap = async (card, name) => { await card.scrollIntoViewIfNeeded(); await card.screenshot({ path: join(out, name) }); files.push(join(out, name)) }
+  const snap = async (card, name) => { await card.scrollIntoViewIfNeeded(); return card.screenshot({ path: join(out, name) }) }
   for (const card of await page.locator('.opt[data-option]').all()) {
     const n = await card.getAttribute('data-option')
-    await snap(card, `opcao-${n}.png`)
-    if (!keys.length) continue
+    const states = [['repouso', await snap(card, `opcao-${n}.png`)]]
+    if (!keys.length) { files.push(join(out, `opcao-${n}.png`)); continue }
     await card.focus()
     for (const [i, key] of keys.entries()) {
       await page.keyboard.press(key)
       // ponytail: a state a key handler reveals through a timer is shot before the timer fires; wait here if that ever matters.
       await settle(page)
-      await snap(card, `opcao-${n}-${i + 1}-${key}.png`)
+      states.push([`${i + 1} · ${key}`, await snap(card, `opcao-${n}-${i + 1}-${key}.png`)])
     }
+    files.push(await sheet(page, join(out, `opcao-${n}-folha.png`), states))
   }
   return files
+}
+
+/** Screenshots are scratch: a folder inside the repo (outside docs/explorations/) would end up as untracked files at its root. */
+export function checkShotsFolder(out) {
+  const root = resolve(here('..')) + '/', abs = resolve(out) + '/'
+  if (abs.startsWith(root) && !abs.startsWith(`${root}docs/explorations/`))
+    throw new Error(`pasta de capturas dentro do repositório (${out}): use uma pasta temporária, como "$TMPDIR/explore-shots"`)
+}
+
+/** `checkShotsFolder` for a command line: a clean `erro:` and exit 1, before any browser opens. */
+export function requireShotsFolder(out) {
+  try { checkShotsFolder(out) } catch (e) { console.error(`erro: ${e.message}`); process.exit(1) }
+}
+
+/** The [label, png] states of one card side by side, wrapping after four, into `file`. Returns `file`. */
+async function sheet(page, file, states) {
+  const p = await page.context().browser().newPage()
+  const cells = states.map(([label, png]) => `<figure><figcaption>${label}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`).join('')
+  await p.setContent(`<body style="margin:0;background:#0b0b0d"><div id="s" style="display:inline-grid;grid-template-columns:repeat(${Math.min(states.length, 4)},auto);gap:16px;padding:16px;align-items:start">${cells}</div><style>figure{margin:0}figcaption{font:600 14px system-ui;color:#ccc;margin:0 0 6px}img{display:block}</style></body>`)
+  await p.locator('#s').screenshot({ path: file })
+  await p.close()
+  return file
 }

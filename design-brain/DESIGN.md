@@ -2,7 +2,7 @@
 
 DRAFT 2. Every agent that draws UI reads this file in full before the first line of JSX or CSS. It holds the cross-cutting visual rules only. Per-element recipes live in `references/`, token values in `web/protos/generated/tokens.md`, process and interaction laws in `toolbox/playbook.md`.
 
-Rules name tokens, never raw px or hex. A name not read in a tool result or in `generated/tokens.md` is a guess. Each rule ends with the reason it exists, so an agent can handle a case the rule does not name. See "Known gaps" for what is still undecided.
+Rules name tokens, never raw px or hex. A name not read in a tool result or in `generated/tokens.md` is a guess. Each rule ends with the reason it exists, so an agent can handle a case the rule does not name. What is still undecided is in `DESIGN-gaps.md`.
 
 ## 1. Overview
 
@@ -20,21 +20,23 @@ DTV is a gallery: content on a quiet wall. The posters, key art and numbers are 
 
 ## 2. Hierarchy
 
+0. Every component has one focal group: the set of information that fulfils its goal, named by the designer (never guessed). It is the eye candy: it wins on at least three levers at once (size and weight, empty space around it, position, contrast or colour, visual mass of the image or icon) and everything else recedes into one quiet strip. Squint at the picture: the first thing seen must be that group. *Why: when every piece has the same weight nothing is seen, and the card reads as a list.* Detail: `conceitos/ponto-focal`.
 1. One anchor datum per card, at least 2x the support text (3x for a short number). *Why: without an anchor the eye does not know where to start; with two they compete.* Detail: `conceitos/ancora-e-apoio`.
 2. Hierarchy comes from size and weight, not from colour. *Why: colour is reserved for meaning (section 4).*
-3. Label above the value, smaller and softer. Unit and delta share the value's baseline at about half its size. *Why: the number is what the person came for.*
+3. Label above the value, smaller and softer. Unit and delta share the value's baseline at about half its size. The one exception is the degree sign `°` on a display numeral: it is top-aligned to the digits at about half the size; every other unit (mph, %, km/h) stays on the baseline. *Why: the number is what the person came for, and the raised degree is how a temperature reads.*
 4. A status number is never louder than the title. *Why: the title says what this is; the status only qualifies it.*
 5. In a row of equal items, the chosen one stands out by inverted background, not by larger text. *Why: equal labels stay comparable.*
 6. Judge intent, not taste: does it serve the brief, fit where it lives, bring something new to the system?
 
 ## 3. Type
 
-1. Use the kit's text styles (`.text-*`). No invented sizes, weights or fonts. *Why: type is the main thing inside a design, and the scale is what keeps screens alike.*
+1. Use the kit's text styles (`.text-*`). No invented sizes, weights or fonts. A focal numeral may use `.text-display-lg-*` (72px, up to 3 characters) or `.text-display-md-*` (56px, up to 5 characters), regular, medium or bold: numerals only, one display text per card, never a title or a sentence, and never a `calc()` on a font size. Everything else tops out at `.text-heading-3-*` (28px). *Why: type is the main thing inside a design, and the scale is what keeps screens alike.*
 2. Three weights: regular, medium and bold. Body is regular, labels and buttons medium, the anchor and titles bold. Never extra-bold. Unselected options stay regular. *Why: a short ladder keeps the wall quiet, and bold marks what matters.*
 3. Readable from 3 m. The smallest text an agent may use is `.text-footnote-*` (12px), and only for secondary labels that carry no decision. Everything else is `.text-body-sm-*` (14px) or larger, comfortable at 16 to 18px. `.text-caption-*` (10px) is not used for content. *Why: a TV is read at distance.*
 4. Titles use `text-wrap: balance`, sentences `text-wrap: pretty`, changing numbers `font-variant-numeric: tabular-nums`. *Why: no orphan words, no jumping digits.* Detail: `conceitos/tipografia-de-detalhe`.
 5. A title breaks after the function word ("de"), never before it, and leaves no river of empty space. Sentence case unless a name needs the capital.
 6. Axis and day labels read on their own: three letters for days, same length across the row. *Why: a label that needs a legend has failed.* Detail: `conceitos/rotulo-inequivoco`.
+7. In a support strip, the value is read, so it is 16 to 18px (`.text-body-md-*` or `.text-body-lg-*`) with its label smaller above (`.text-footnote-*`). Never value and label at the same small size. *Why: a number read from 3 m needs body size; the label only names it.*
 
 ## 4. Colour
 
@@ -58,7 +60,7 @@ DTV is a gallery: content on a quiet wall. The posters, key art and numbers are 
    - the dia, tarde and noite theme gradients, as content identity (section 4.3).
    *Why: the kit's gradients each carry a job; a new one is decoration.*
 4. The card scrim is `--gradient-complementary-dark`: charcoal (`--color-core-neutral-charcoal`, #17161B) at the text edge fading to transparent toward the image. At screen level the kit's `Overlay` (`--gradient-semantic-overlay-*`) does the same job. The same gradient also covers the card's text area, so the image blends into the card's own background. It keeps text on art legible. *Why: text on art needs contrast, and a flat fill would hide the art.*
-5. The scrim is used at screen level (as `Screen` does today) and on image cards and buttons that carry text over an image. It appears only when text or a label sits on the image, always with the kit's stops and strength; agents do not tune it. It must be strong enough to survive a TV that crushes shadows. The card-level scrim is new work for the kit (Known gaps).
+5. The scrim is used at screen level (as `Screen` does today) and on image cards and buttons that carry text over an image. It appears only when text or a label sits on the image, always with the kit's stops and strength; agents do not tune it. It must be strong enough to survive a TV that crushes shadows. The card-level scrim is new work for the kit (`DESIGN-gaps.md`).
 
 ## 6. Imagery
 
@@ -97,7 +99,9 @@ Source: the "Extra Info" card spec in the DTV handoff (Figma, section "Especific
 3. One filled strong action per card; the secondary is neutral and smaller.
 4. Nothing relies on hover. States are few: focused, default, disabled, plus selected.
 5. **A focusable piece shows that it can be focused, at rest.** Every button-like piece the remote can reach (a day in a rail, a segment, a choice) carries a 1px outline with the diagonal light gradient: `--gradient-semantic-border-default` at `--dimension-border-width-semantic-button`, drawn inside the piece on `::before` with the same mask recipe as the focus ring (the ring stays on `::after`). The selected piece, being filled, may drop it. A toggle or segmented selector (one choice among a few that swaps the card) does not take it, and a chart whose cells only map the focus shows it on the data mark itself (the dot or bar that reacts), with the focus invisible (round 7). Without it a piece at rest reads as plain text and nobody knows the remote reaches it. *Why: a piece with no sign at rest reads as text, and on a TV nothing else tells the viewer that the remote reaches it.*
-6. Detail: `conceitos/foco-e-selecao`.
+6. **A card keeps one height in every state.** Focus, selection, a key press and an opened detail never make the card grow or shrink: the detail replaces content in a slot that already exists, or the card reserves it from the start. Nothing hangs below the card like a dropdown. *Why: a card that changes height moves what is under it and is costly to build on a TV; and a list that opens on Enter reads as a form, not as a remote-friendly card.*
+7. **Every piece the remote can reach looks like a button at rest** (rule 5), including each segment of a selector. A label alone, with no outline, is not a button. *Why: the viewer must know what is a control before pressing anything.*
+8. Detail: `conceitos/foco-e-selecao`.
 
 ## 10. Motion
 
@@ -125,21 +129,10 @@ Fail any of these without being asked:
 
 ## 13. How this file is used
 
-- Explorers, tuners and writers read it first.
+- Explorers, tuners and writers read it first. `DIRECAO.md` is its companion for taste: how the art director reads references and interviews for them.
 - The judge cites rules here by section and number (for example "DESIGN §5.1") when it flags something.
 - A rule that repeats across review rounds is added here.
 
 ## Known gaps
 
-Checked against `src/styles/global.css`, `src/ui-kit/` and `src/primitives/`.
-
-- **Card-level scrim on buttons.** `CardScrim` now exists and the Content Card image variant uses it. No button has one yet, so §5.5 still describes work for buttons over an image. Figma notes "verify need in code" for the gradient over the text area; the kit draws it over the image only.
-- **Image variant, steps.** `ContentCard` now has the image variant (`image`, `imageSize` G, M or P). The step is chosen by the author from §6.1; the kit does not measure the text. The exact cut-offs between the steps are not measured.
-- **Button width.** Figma draws the example button 240 wide in a 24px inset; with the 32px inset it spans 224. The Wide Button token (240) is not used inside a card. Figma's example also shows a 1px white border at 80%, radius 36, height 384 and an app icon beside the label; the kit keeps 380, radius 40, no border and the arrow icon.
-- **Card insets.** Done in the kit: `--dimension-spacing-semantic-card-inset` is 24px on a Card in every state (the focused, expanded Interactivity Button keeps it), and `-card-inset-expanded` is 32px on the Content Card. The small Interactivity Button card (158×122) is now tight: its content area is 110×74.
-- **Content Card rows.** With the 32px inset the tallest card holds 9 team rows, 9 athlete rows and 7 scout rows (it was 10, 10, 7). The Figma standings card shows ten, so the kit's table card no longer matches that frame.
-- **Card fill.** Figma shows #191F27 solid. The kit has it only as `--color-semantic-functional-background-translucent` (#191F27 at 30% alpha), which §6.2 uses.
-- **Extra-bold and caption.** The kit still defines `.text-*-extra-bold` and `.text-caption-*`, and the resting Interactivity Button still uses `caption-bold` (10px) for its overline and subtitle. DESIGN.md bans them for agents and the judge flags any use. Whether the kit drops them is a kit decision, not made here.
-- **Shadow token.** `--opacity-semantic-shadow-subtle` is defined and nothing in `src/` uses it. The rule matches the kit; the token is dead.
-- **Playbook size law.** Playbook §3 now follows §3.3.
-- **Group gaps.** §7.1 still uses `--dimension-spacing-core-xs` or `-sm` between groups. Whether they scale with the new insets is not decided.
+In `DESIGN-gaps.md`: what this file describes that the kit does not do yet, or has not decided. Read it when you change the kit or this file, not before drawing.

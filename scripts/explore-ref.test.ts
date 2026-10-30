@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { catalog, head, listing, note, padroes, sections, teclas } from './explore-ref.mjs'
+import { catalog, head, listing, note, notes, padroes, sections, teclas } from './explore-ref.mjs'
 
 const body = `# orbita-de-pessoas
 Tags: arranjo radial, foco com rótulo
@@ -52,6 +52,14 @@ describe('explore-ref', () => {
     expect(out).not.toContain('eixo único')
     expect(note(dir, 'orbita-de-pessoas', ['posicao'])).toContain('eixo único')
     expect(note(dir, 'orbita', ['tudo'])).toContain('Porque sim.')
+  })
+
+  it('reads several notes in one call, with the same sections each', () => {
+    const out = notes(dir, 'orbita,trilho-de-dias', ['posicao'])
+    expect(out).toContain('# orbita-de-pessoas')
+    expect(out).toContain('# trilho-de-dias')
+    expect(out.match(/eixo único/g)).toHaveLength(2)
+    expect(notes(dir, 'orbita')).toBe(note(dir, 'orbita'))
   })
 
   it('refuses an unknown or ambiguous name and an unknown section, saying what is valid', () => {

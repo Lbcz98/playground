@@ -17,8 +17,9 @@
 // Opt-outs, for what is deliberate: `data-stack` on the element whose children overlap or are clipped on purpose (a flip card, a drawer that slides in, a carousel, a pile);
 // `data-surface="own"` on a surface that is the idea of the option (not a card), with the reason in the report.
 // --shots: when the page is `ok`, also the PNGs of scripts/explore-shots.mjs (with its --keys), from the same open page: one Chromium, one call.
-import { openExploration, shoot } from './explore-page.mjs'
+import { openExploration, requireShotsFolder, shoot } from './explore-page.mjs'
 
+{ const i = process.argv.indexOf('--shots'); if (i > 2) requireShotsFolder(process.argv[i + 1] ?? '') }
 const { page, close } = await openExploration(process.argv[2])
 const whole = !/\d+\.html$/.test(process.argv[2])
 const result = await page.evaluate((whole) => {
