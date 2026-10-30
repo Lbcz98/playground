@@ -70,9 +70,11 @@ const SUPPORTED_VERSION = 1
 // Per-prop → Zod
 // ---------------------------------------------------------------------------
 
+export type ObjectSchema = z.ZodObject<Record<string, z.ZodTypeAny>>
+
 /** A component's props, or a list item's fields, as one strict object. */
-export function propsToZod(props: Record<string, ManifestProp>, manifest: DesignSystemManifest): z.ZodObject<z.ZodRawShape> {
-  const shape: z.ZodRawShape = {}
+export function propsToZod(props: Record<string, ManifestProp>, manifest: DesignSystemManifest): ObjectSchema {
+  const shape: Record<string, z.ZodTypeAny> = {}
   for (const prop of Object.values(props)) shape[prop.name] = propToZod(prop, manifest)
   return z.object(shape).strict()
 }
@@ -132,7 +134,8 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
   }
 
   if (defaultValue !== undefined) {
-    schema = schema.default(defaultValue as never)
+    // `prefault`, not `default`: the default is checked like any value, so one the schema rejects stays rejected.
+    schema = schema.prefault(defaultValue as never)
   } else if (!prop.required) {
     schema = schema.optional()
   }
@@ -147,7 +150,7 @@ function propToZod(prop: ManifestProp, manifest: DesignSystemManifest): z.ZodTyp
  */
 export function compiledDefaultProps(
   component: ManifestComponent,
-  schema: z.ZodObject<z.ZodRawShape>,
+  schema: ObjectSchema,
 ): Record<string, unknown> {
   const out = deriveDefaultProps(component)
   for (const [name, field] of Object.entries(schema.shape as Record<string, z.ZodTypeAny>)) {
@@ -161,7 +164,7 @@ export function compiledDefaultProps(
 /** Which rules a screen is held to: Faithful (every pattern) or Exploratory (declared patterns may bend). */
 type Policy = 'faithful' | 'exploratory'
 
-type ComponentSchemas = Record<string, z.ZodObject<z.ZodRawShape>>
+type ComponentSchemas = Record<string, ObjectSchema>
 
 /**
  * Compiled once per manifest object and policy. The key is the manifest's
@@ -191,7 +194,7 @@ export function compileManifestSchemas(
 
 /** Proposal's props: what the component is, and its proposed API as a short map (prop name → type or description). */
 export const MAX_PROPOSED_PROPS = 12
-function proposalSchema(): z.ZodObject<z.ZodRawShape> {
+function proposalSchema(): ObjectSchema {
   return z
     .object({
       description: z.string().trim().min(1).max(300),
@@ -473,7 +476,7 @@ function validateScreen(
 }
 
 interface Ctx {
-  schemas: Record<string, z.ZodObject<z.ZodRawShape>>
+  schemas: Record<string, ObjectSchema>
   manifest: DesignSystemManifest
   allowed: string[]
   policy: Policy
@@ -613,7 +616,7 @@ function validateNode(
       // A list item's bad field is pinned by Zod's own path (`[2].label`).
       add(
         'component.api',
-        [...where, ...(parsed.error.issues[0]?.path ?? [])],
+        [...where, ...((parsed.error.issues[0]?.path ?? []) as IssuePath)],
         `${path} <${type}>: prop "${key}" = ${JSON.stringify(props[key])} is not an allowed value.`,
       )
     }

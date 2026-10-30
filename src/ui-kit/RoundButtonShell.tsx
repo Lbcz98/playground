@@ -19,6 +19,8 @@ import './ui-kit.css'
 export type RoundButtonState = Extract<InteractionState, 'default' | 'focus'>
 
 interface RoundButtonShellProps {
+  /** Render a non-interactive surface inside a navigation link. */
+  as?: 'button' | 'span'
   /** Default `default`. */
   interactionState?: RoundButtonState
   /** Accessible name — every consumer so far is icon/image-only. */
@@ -30,6 +32,7 @@ interface RoundButtonShellProps {
 }
 
 export function RoundButtonShell({
+  as = 'button',
   interactionState,
   label,
   onClick,
@@ -38,20 +41,21 @@ export function RoundButtonShell({
 }: RoundButtonShellProps): ReactNode {
   const state = interactionState ?? 'default'
   const focus = state === 'focus'
+  const Element = as
 
   return (
-    <button
-      type="button"
-      className="sfs-round-button sfs-motion sfs-focusable"
+    <Element
+      {...(as === 'button' ? { type: 'button' as const } : {})}
+      className={`sfs-round-button sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-state={state}
       aria-label={label}
       data-focus-item={focusItem}
-      onClick={onClick}
+      onClick={as === 'button' ? onClick : undefined}
     >
       <span className="sfs-round-button-circle">
         {focus ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <span className="sfs-round-button-content">{children}</span>
       </span>
-    </button>
+    </Element>
   )
 }

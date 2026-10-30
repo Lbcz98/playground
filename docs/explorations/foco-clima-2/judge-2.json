@@ -1,0 +1,26 @@
+{
+  "verdict": "Approve",
+  "summary": "O grupo focal (sol grande, 24° em 72 px bold, São Paulo) domina e a faixa recua com contraste de 6,13:1 ou mais; falta apenas o estado expandido que o briefing pede.",
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "domain": "ui",
+      "location": "docs/explorations/foco-clima-2/index.html:386",
+      "before": "O script da opção 2 trata só ←/→ e Escape/Backspace. Enter cai em `else return` e não faz nada, então a opção não tem estado expandido.",
+      "after": "Enter no segmento selecionado abre uma linha de detalhe (por exemplo a palavra do tempo e a faixa em maior destaque) e Voltar recolhe. Se a tese é que o seletor troca só a faixa, registre isso no relatório como decisão do designer e tire o 'expandido' dos estados desta opção.",
+      "why": "O briefing pede foco, selecionado e expandido para as opções 1 a 3, com Enter abrindo o detalhe. A opção 3 já faz isso. Aqui o espectador aperta Enter e nada responde, o que quebra o modelo de teclas do cartão."
+    }
+  ],
+  "coverage": [
+    {"domain": "accessibility", "result": "Clear: o objeto tem alt, não há movimento (por isso não precisa de reduced-motion), o foco usa o token do kit e a peça selecionada tem pista estática (negrito e cor primária)"},
+    {"domain": "layout", "result": "Clear: o texto fica no eixo esquerdo, a faixa tem 3 segmentos e 3 dados (menos de 4), e a folga de 12 px dentro do segmento comporta o anel de 4 px"},
+    {"domain": "typography", "result": "Clear: 72/36/14/12 px, nenhum texto abaixo do menor estilo do kit, sem truncamento"},
+    {"domain": "colors", "result": "Clear: todos os textos medidos têm 6,13:1 ou mais (o mínimo é 4,5:1 e o número chega a 9,08:1); só o objeto de tempo tem cor"},
+    {"domain": "ui", "result": "1 achado"},
+    {"domain": "writing", "result": "Not reviewed: sample data"}
+  ],
+  "notVerified": [
+    "tune-measure devolveu focus: [] e radii: [], então o contraste do anel de foco nas três posições e o raio concêntrico do segmento com o cartão não foram medidos. O anel usa o gradiente do kit (#414FFD a #35C7F3) sobre o cinza do cartão, e a ponta azul parece ficar abaixo de 3:1. Vale conferir em estado focado.",
+    "A opção não tem cópia ajustável nem spec data-tune, então não houve dials para comparar com base."
+  ]
+}

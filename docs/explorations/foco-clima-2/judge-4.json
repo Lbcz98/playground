@@ -1,0 +1,23 @@
+{
+  "verdict": "Approve",
+  "summary": "Opção estática legível e com um único grupo focal claro (24° + nuvem + São Paulo); restam a nuvem cortada na borda e posições em px soltos.",
+  "findings": [
+    {"severity": "MEDIUM", "domain": "ui", "location": "docs/explorations/foco-clima-2/index.html:199",
+     "before": "O ícone do clima (parte do grupo focal) fica em left:144px e é cortado pelo overflow:hidden do card: na imagem a nuvem perde a borda direita e o sol fica colado ao 24°.",
+     "after": "Manter a nuvem inteira dentro do card (mover para a esquerda ou reduzir) e deixar o corte só se o brief pedir o sangramento; confirmar na imagem que o ícone continua legível.",
+     "why": "O ícone é um dos três elementos do grupo focal; cortado, o símbolo do clima fica ambíguo e disputa espaço com 'Umidade 68%' logo abaixo."},
+    {"severity": "LOW", "domain": "layout", "location": "docs/explorations/foco-clima-2/index.html:199",
+     "before": "left: 144px; top: 8px em px literais no .object.",
+     "after": "Usar tokens de espaçamento do kit (ou ancorar com right/top a partir do padding do card).",
+     "why": "Valores soltos quebram se o texto do número mudar de largura (ex.: 3 dígitos) e fogem da regra de tokens do kit."}
+  ],
+  "coverage": [
+    {"domain": "accessibility", "result": "Clear (sem foco interno no brief; imagem com alt; sem movimento, regra de reduced-motion não se aplica)"},
+    {"domain": "layout", "result": "1 achado"},
+    {"domain": "typography", "result": "Clear (menor texto 12px = footnote do kit)"},
+    {"domain": "colors", "result": "Clear (medido: menor razão 6.13:1, texto 9.08:1)"},
+    {"domain": "ui", "result": "1 achado"},
+    {"domain": "writing", "result": "Not reviewed: sample data"}
+  ],
+  "notVerified": ["Anel de foco do card: a medição não trouxe estados de foco (opção estática por decisão do brief)", "Medidas de raio concêntrico: nenhuma retornada pela medição"]
+}

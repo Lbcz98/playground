@@ -13,7 +13,8 @@
  */
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { inDesigner, isCheckable } from '../src/shared/protoFolders'
+import { diskTree, inDesigner, type Tree } from '../src/shared/protoFolders'
+import { screensOf } from './protos-ci'
 import { reportLines, runChecks } from './check-laws'
 
 const PROTOS = 'web/protos'
@@ -27,22 +28,26 @@ export function changedPaths(porcelainZ: string): string[] {
   for (let i = 0; i < parts.length; i++) {
     const entry = parts[i]
     out.push(entry.slice(3))
-    if (/^[RC]/.test(entry)) out.push(parts[++i]) // the original path follows
+    if (/[RC]/.test(entry.slice(0, 2))) out.push(parts[++i]) // the original path follows
   }
   return out
 }
 
+const isScreenFile = (p: string): boolean => /\.tsx$|(^|\/)flow\.ts$/.test(p)
+
 interface Classified {
   designers: string[]
-  /** `web/protos/<designer>/…` files that are screens (`.tsx`) or a flow's transitions (`flow.ts`). */
+  /** Surviving screens and flow.ts files affected by the changes: what the gate checks. */
   screens: string[]
+  /** What the designer changed, the screens if any: what the branch, commit and PR are named after. */
+  changed: string[]
   /** Anything under `web/protos/` at all. */
   inside: string[]
   /** Everything else: not the designer's to publish. */
   outside: string[]
 }
 
-export function classify(paths: string[]): Classified {
+export function classify(paths: string[], tree: Tree = diskTree): Classified {
   const inside: string[] = []
   const outside: string[] = []
   const designers = new Set<string>()
@@ -53,13 +58,14 @@ export function classify(paths: string[]): Classified {
       designers.add(d.designer)
     } else outside.push(p)
   }
-  return { designers: [...designers].sort(), screens: inside.filter(isCheckable), inside, outside }
+  const changedScreens = inside.filter(isScreenFile)
+  return { designers: [...designers].sort(), screens: screensOf(paths, tree), changed: changedScreens.length > 0 ? changedScreens : inside, inside, outside }
 }
 
 /** The name a screen goes by: its file, or for a flow's `flow.ts` the folder. */
 const screenName = (p: string): string => {
   const parts = p.split('/')
-  return parts[parts.length - 1] === 'flow.ts' ? parts[parts.length - 2] : parts[parts.length - 1].replace(/\.tsx$/, '')
+  return parts[parts.length - 1] === 'flow.ts' ? parts[parts.length - 2] : parts[parts.length - 1].replace(/\.[^.]+$/, '')
 }
 
 export function slugify(text: string): string {
@@ -91,7 +97,7 @@ export interface Options {
   base: string
   wait: boolean
   now?: Date
-  /** The gate. Default: `check:laws` on the changed screens. */
+  /** The gate. Default: `check:laws` on the affected screens. */
   checks?: (screens: string[], root: string) => Gate | Promise<Gate>
   /** How long to wait for CI, ms. */
   ciTimeoutMs?: number
@@ -113,7 +119,7 @@ function sh(cmd: string, args: string[], cwd: string): { ok: boolean; out: strin
 /** The checks `npm run check:laws` runs, in this process; what it would print is what the designer is told. */
 export async function defaultChecks(screens: string[], root: string): Promise<Gate> {
   try {
-    const run = await runChecks(screens.map((s) => resolve(root, s)))
+    const run = await runChecks(screens.map((s) => resolve(root, s)), { requireRender: true })
     return { ok: run.exitCode === 0, output: [...reportLines(run), ...run.notes].join('\n') }
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
@@ -132,8 +138,24 @@ export async function deploy(options: Options): Promise<Outcome> {
 
   // 2. What changed, and whether it is the designer's to publish.
   const status = spawnSync('git', ['status', '--porcelain=v1', '-z', '-uall'], { cwd: root, encoding: 'utf8' })
-  const found = classify(changedPaths(status.stdout ?? ''))
-  if (found.inside.length === 0 && found.outside.length === 0) return fail('changes', 'Não há nada para publicar.')
+  if (status.status !== 0) return fail('changes', status.stderr || 'git status falhou.')
+  const dirty = changedPaths(status.stdout)
+  const currentResult = git('symbolic-ref', '--quiet', '--short', 'HEAD')
+  if (!currentResult.ok) return fail('branch', 'Publique a partir de uma branch, não de um HEAD destacado.')
+  const current = currentResult.out
+  const branchDesigner = /^proto\/([^/]+)\//.exec(current)?.[1]
+  if (dirty.length === 0 && !branchDesigner) return fail('changes', 'Não há nada para publicar.')
+  const tree: Tree = { list: (p) => diskTree.list(resolve(root, p)), read: (p) => diskTree.read(resolve(root, p)) }
+  // Refresh branch state even with a clean worktree: a previous run may have committed, then failed to push/open a PR.
+  const fetched = git('fetch', '--prune', 'origin')
+  if (!fetched.ok) return fail('branch', `Não consegui buscar origin: ${fetched.err}`)
+  const baseRef = `refs/remotes/origin/${base}`
+  if (!git('rev-parse', '--verify', baseRef).ok) return fail('branch', `Não encontrei origin/${base}.`)
+  const branchDiff = branchDesigner ? git('diff', '-z', '--name-only', '--no-renames', `${baseRef}...HEAD`) : undefined
+  if (branchDiff && !branchDiff.ok) return fail('branch', branchDiff.err)
+  const paths = [...new Set([...dirty, ...(branchDiff?.out.split('\0').filter(Boolean) ?? [])])]
+  const found = classify(paths, tree)
+  if (paths.length === 0) return fail('changes', 'Não há nada para publicar.')
   if (found.outside.length > 0) {
     return fail(
       'changes',
@@ -142,6 +164,9 @@ export async function deploy(options: Options): Promise<Outcome> {
   }
   if (found.designers.length > 1) return fail('changes', `As alterações estão em mais de uma pasta de designer (${found.designers.join(', ')}). Publique uma por vez.`)
   const designer = found.designers[0]
+  if (branchDesigner && branchDesigner !== designer) {
+    return fail('changes', `A branch é de "${branchDesigner}", mas as alterações estão em ${PROTOS}/${designer}/.`)
+  }
   if (options.designer && options.designer !== designer) {
     return fail('changes', `Você pediu "${options.designer}", mas as alterações estão em ${PROTOS}/${designer}/.`)
   }
@@ -153,36 +178,55 @@ export async function deploy(options: Options): Promise<Outcome> {
 
   // 4. Branch: keep working on this designer's own branch, else start one from the base.
   const now = options.now ?? new Date()
-  const current = git('rev-parse', '--abbrev-ref', 'HEAD').out
   let branch = current
   if (!current.startsWith(`proto/${designer}/`)) {
-    const fetched = git('fetch', 'origin', base)
-    if (!fetched.ok) return fail('branch', `Não consegui buscar origin/${base}: ${fetched.err}`)
-    const slug = slugify(options.message ?? found.screens.map(screenName).join('-'))
+    const slug = slugify(options.message ?? found.changed.map(screenName).join('-'))
     branch = branchName(designer, slug, now)
-    const made = git('switch', '-c', branch, `origin/${base}`)
+    const before = git('rev-parse', 'HEAD').out
+    const made = git('switch', '-c', branch, baseRef)
     if (!made.ok) return fail('branch', `Não consegui criar a branch ${branch} a partir de origin/${base}: ${made.err}`)
+    if (git('rev-parse', 'HEAD').out !== before) {
+      // Switching to an updated base can change the kit and the other screens used by the gate.
+      found.screens = screensOf(paths, tree)
+      const again = await (options.checks ?? defaultChecks)(found.screens, root)
+      if (!again.ok) return fail('checks', again.output || 'check:laws falhou.')
+    }
   }
   if (branch === base || branch === 'main' || branch === 'master') return fail('branch', `Recusei publicar direto em "${branch}".`)
 
   // 5. Commit only the designer's folder.
-  const added = git('add', '-A', '--', `${PROTOS}/${designer}`)
-  if (!added.ok) return fail('commit', added.err)
-  const title = options.message ?? `atualiza ${found.screens.length} tela(s)`
-  // --no-verify: the gate above (check:laws) is this flow's own; the repo's pre-commit hook is for people committing by hand.
-  const committed = git('commit', '--no-verify', '-m', `proto(${designer}): ${title}`)
-  if (!committed.ok) return fail('commit', committed.err || committed.out)
+  const title = options.message ?? `atualiza ${found.changed.length} ${found.changed.every(isScreenFile) ? 'tela(s)' : 'arquivo(s)'}`
+  if (dirty.length > 0) {
+    const added = git('add', '-A', '--', `${PROTOS}/${designer}`)
+    if (!added.ok) return fail('commit', added.err)
+    // --no-verify: the gate above (check:laws) is this flow's own; the repo's pre-commit hook is for people committing by hand.
+    const committed = git('commit', '--no-verify', '-m', `proto(${designer}): ${title}`)
+    if (!committed.ok) return fail('commit', committed.err || committed.out)
+  }
 
   // 6. Push and open (or update) the pull request.
-  const pushed = git('push', '-u', 'origin', branch)
-  if (!pushed.ok) return fail('push', pushed.err)
-  const existing = sh('gh', ['pr', 'view', branch, '--json', 'url', '-q', '.url'], root)
-  let pr = existing.ok ? existing.out : ''
+  const remoteHead = git('rev-parse', '--verify', `refs/remotes/origin/${branch}`)
+  const head = git('rev-parse', 'HEAD').out
+  if (!remoteHead.ok || remoteHead.out !== head) {
+    // A normal push refuses divergence; recovery never force-pushes someone else's work.
+    const pushed = git('push', '-u', 'origin', branch)
+    if (!pushed.ok) return fail('push', pushed.err)
+  }
+  const existing = sh('gh', ['pr', 'list', '--head', branch, '--base', base, '--state', 'open', '--json', 'url'], root)
+  if (!existing.ok) return fail('pr', existing.err || existing.out)
+  let pr: string
+  try {
+    const prs: { url: string }[] = JSON.parse(existing.out)
+    if (!Array.isArray(prs) || prs.some((p) => typeof p.url !== 'string')) throw new Error('invalid PR response')
+    pr = prs[0]?.url ?? ''
+  } catch {
+    return fail('pr', 'Não consegui ler a lista de pull requests abertos.')
+  }
   const created = pr === ''
   if (created) {
     const body = [
-      `Telas de **${designer}**:`,
-      ...found.screens.map((p) => `- \`${p.replace(`${PROTOS}/`, '')}\``),
+      `Mudanças de **${designer}**:`,
+      ...found.changed.map((p) => `- \`${p.replace(`${PROTOS}/`, '')}\``),
       '',
       'Passou no `check:laws` antes de subir.',
     ].join('\n')

@@ -10,6 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // The checker builds a TypeScript program per screen: well under a second alone, seconds on a loaded full run.
+    testTimeout: 30_000,
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts', 'tests/**/*.test.ts'],
   },
 })

@@ -6,23 +6,25 @@
  * NUL-terminated, for `xargs -0` and `read -d ''`.
  *
  *   outside <designer>  the paths that are not under web/protos/<designer>/ (the folder lock)
- *   screens             the .tsx and flow.ts of a designer folder (what the laws run on)
- *   flows               every flow folder of every designer folder touched (what is played)
+ *   screens             surviving affected screens and flow.ts files (what the laws run on)
+ *   flows               affected flow folders (what is played)
  *
  * Run from the root of the checkout.
  */
 import { readFileSync } from 'node:fs'
-import { diskTree, flowFoldersUnder, inDesigner, isCheckable, type Tree } from '../src/shared/protoFolders'
+import { diskTree, inDesigner, prototypeTargets, type Tree } from '../src/shared/protoFolders'
 
 const PROTOS = 'web/protos'
-const designerOf = (path: string): string | undefined => (path.startsWith(`${PROTOS}/`) ? inDesigner(path)?.designer : undefined)
 
 export const outsideOf = (designer: string, paths: string[]): string[] => paths.filter((p) => inDesigner(p)?.folder !== `${PROTOS}/${designer}`)
 
-export const screensOf = (paths: string[]): string[] => paths.filter((p) => designerOf(p) !== undefined && isCheckable(p))
+export const screensOf = (paths: string[], tree: Tree = diskTree): string[] => {
+  const { files, flows } = prototypeTargets(paths, tree)
+  return [...files, ...flows.map((f) => `${f}/flow.ts`)]
+}
 
 export const flowsOf = (paths: string[], tree: Tree): string[] =>
-  [...new Set(paths.map(designerOf).filter((d): d is string => d !== undefined))].sort().flatMap((d) => flowFoldersUnder(`${PROTOS}/${d}`, tree))
+  prototypeTargets(paths, tree).flows
 
 function main(): void {
   const [mode, designer] = process.argv.slice(2).filter((a) => a !== '--')
