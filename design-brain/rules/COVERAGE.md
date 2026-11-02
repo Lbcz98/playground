@@ -29,7 +29,7 @@ One rule, one file. The indexes (`DESIGN.md`, `toolbox/playbook.md`, `toolbox/ju
 | DESIGN §8 shape and radii | `surfaces.md`; §8.1 detail `conceitos/raios-concentricos.md` |
 | DESIGN §9 focus, selection, ring | `focus.md`; detail `conceitos/foco-e-selecao.md` |
 | DESIGN §10 motion | `motion.md` |
-| DESIGN §11 frame and safe area | `frame.md` |
+| DESIGN §11 frame and safe area | `frame.md` (screen margin 32pt, separate from card padding) |
 | DESIGN §12 Don'ts | the Don't line of the topic each don't names |
 | DESIGN §13 how the file is used | `DESIGN.md` |
 | DESIGN known gaps | `DESIGN-gaps.md` (unchanged; not a drawing rule) |
@@ -38,7 +38,7 @@ One rule, one file. The indexes (`DESIGN.md`, `toolbox/playbook.md`, `toolbox/ju
 | Playbook §3 laws: keys, one pattern | `remote-keys.md` |
 | Playbook §3 laws: states, no hover | `focus.md` |
 | Playbook §3 laws: colour, type, motion | `color.md`, `type.md`, `motion.md` |
-| Playbook §3 laws: safe area | `frame.md` |
+| Playbook §3 laws: safe area | `frame.md`. The old "40 on the sides, 32 top and bottom" was the card radius (40px) and the card padding (32px), not a second safe area |
 | Playbook §3 laws: arrangement, 4 items, richness | `arrangement.md`, `repeated-items.md` |
 | Playbook §3 laws: resting outline, ring room | `focus.md` |
 | Playbook §3 laws: icons are PNG | `icons.md` |

@@ -34,6 +34,27 @@ describe('topic rules', () => {
   })
 })
 
+describe('card padding and radius', () => {
+  it('treats 40 as the radius and 32 as the padding, and does not leave the old safe-area split open', () => {
+    const frame = read('design-brain/rules/frame.md')
+    const craft = read('design-brain/rules/craft/frame.md')
+    const surfaces = read('design-brain/rules/surfaces.md')
+    for (const md of [frame, craft, surfaces]) {
+      expect(md).not.toMatch(/40 on the sides/)
+      expect(md).not.toMatch(/40\/32/)
+      expect(md).not.toMatch(/show the difference/i)
+      expect(md).not.toMatch(/kit vs playbook/)
+    }
+    expect(frame).toContain('32pt')
+    expect(frame).toContain('32px')
+    expect(frame).toContain('40px')
+    expect(frame).toMatch(/40 is the radius/)
+    expect(surfaces).toContain('32px')
+    expect(surfaces).toMatch(/radius is 40px/)
+    expect(craft).toMatch(/40px is the card radius/)
+  })
+})
+
 describe('what an explorer is told to open', () => {
   it('does not send the explorer back to the full handbooks or the tuner', () => {
     const explorer = read('.claude/agents/proto-explorer.md')
