@@ -209,3 +209,66 @@ The two lines above that say "not added yet" (round 2 option 1, round 4 `/explor
 - `references/pompeia-seletor-card/` is cmp-1-playbook option 2 ("Seletor segmentado"). Designer, round 4: "even better than the option 1 we had saved" — the best hierarchy, contrast, alignment, spacing, rounding and interaction.
 
 Each folder has a `why.md` with that note. `references/gold.json` lists them, and `references/gold-sheet.png` is the contact sheet (`node scripts/gold-sheet.mjs`). `/explore` puts two or three of these, sheet plus notes, in every explorer pack. The explorer studies them and does not copy the HTML.
+
+## Round 7: the BBB brief again, with the closed critique loop (`bbb-3-loop`)
+
+Pending designer review.
+
+Same brief as round 6 (`bbb-2-playbook`), four options, same content and the same four theses. The designer was not available, so the two interview rounds were not run and no new intent was written. The brief has no Direção visual and no Foco; Prioridade from round 6 stands in for the focal group. Two mechanical edits were required before the packer and the stitch would accept that brief, and they are noted under bugs. Nothing in the flow's code, agents or commands was changed.
+
+Who ran what. Round 6 was Claude; this log did not record the exact model id. This round is also Claude, via the local `claude` CLI on the user's account (`claude -p`, cwd = the worktree for `cursor/exploration-gold-critique-d1ea`, never the checkout at `/Users/lucas/playground`):
+
+| Role | Tool | Model the CLI resolved |
+|---|---|---|
+| Four explorers, and the one follow-up that added option 3's controls | `claude -p --model sonnet --effort high --agent proto-explorer` | `claude-sonnet-5-5` |
+| Art director, both critique rounds | `claude -p --model opus --effort high --agent proto-art-director` | `claude-opus-5-5` |
+| Playbook judge, both rounds | `claude -p --model opus --effort high` (the judge in `design-brain/toolbox/judge.md`, not the tune judge) | `claude-opus-5-5` |
+
+A Grok explorer pass was started by mistake and its parts were discarded before this run; they are not in the page. Codex was only probed (`gpt-6.1-sol`) and did not write an option, a critique or a judgment. The comparison with round 6 is still confounded if that round used an older Claude snapshot than Sonnet 5.5 and Opus 5.5.
+
+The critique loop ran once through. Wall clock from the first critic pair to the second judge finishing was about 9 minutes. The whole Claude run, from the first explorer to the final shots, was about 16 minutes.
+
+| | Before the loop | After one application (second critique said `none: ready`) |
+|---|---|---|
+| `check-explore-tokens` / `check-explore-layout` | ok / ok | ok / ok, no advisories |
+| Options with a Critical | 0 of 4 | 0 of 4 |
+| Closer to the gold set | 1, 2, 3 good; 4 closer to the crowded set (filled emoji cells) | all 4 good; 4 still has four equal counts competing for first place |
+| Art director | all four Quase, one move each | all four `Um ajuste: none: ready` |
+| Estalecas with the name and the age | 1 together on the support line; 2 and 3 split; 4 together | 1 and 4 still together; 3 still split (Note, the thesis asks for two groups); 2 split further (the applied move opened the gap until the name and the estalecas are as far apart as the estalecas and the emojis) |
+
+Moves applied, one per option, then the second critique stopped the loop. No second application.
+
+- Option 1: drop the silhouette so the head fits inside the card and the shoulders start just under it. The black band at the top goes away.
+- Option 2: one gap between identity, estalecas and emojis, larger than the gap inside each group (`--dimension-spacing-core-sm`, 16px).
+- Option 3: emoji counts to medium and `text-muted`, so 3.250 is the only bold light value in the lower group.
+- Option 4: remove the fill and the radius of the four cells; space alone separates each emoji from its count.
+
+Judge, after the loop, besides the estalecas note: option 1's "3.250" is 14px, the same size as the age (Warning, same finding as round 6). Option 2's 56px number is a Note, allowed by the thesis and DESIGN §3.1 for a short numeral, and the 64px avatar is a raw px (Warning). Option 4's 56px emoji is a Warning (round 6 called the same size a Note, "kit vs playbook"), the four 28px counts still share the first place (Warning), and the visible right margin is 77px against 32px on the left (Note). No Critical before or after. The scrim on option 1 was not a finding.
+
+### Against round 6
+
+| | round 6 `/explore-playbook` | round 7 `/explore` + loop |
+|---|---|---|
+| Check scripts | ok, 8 advisories for loose px | ok, no advisories |
+| Options with a Critical | 0 of 4 | 0 of 4 (before and after the loop) |
+| Closer to the gold set | all 4 (3 with a density caveat, 4 at the limit) | all 4 after the loop; 4 was on the crowded side before the loop |
+| Estalecas with name and age | split on 2 and 3, as the thesis asks; 1 and 4 keep them with the identity | 1 and 4 still keep them. 3 still splits them. 2 is farther apart than in round 6: the number sits in its own band, with a section label, as far from the name as from the emojis |
+| Emoji cells that look clickable | option 4, filled boxes | gone after the loop |
+| Photo placeholder | a person-shaped silhouette on 1, 2 and 4 | 1 and 3 keep a silhouette; 2 is a generic person icon; 4 invents the initials "CD" |
+
+Shots of both rounds are in `tests/bbb-3-loop/shots/` (final options and `contact-sheet.png`, plus `shots/round6/` re-rendered from the round 6 page). Read against those pictures, not only against the judge:
+
+- This is not a clear improvement on round 6. Criticals were already zero, and they stayed zero.
+- Option 1 is the same poster idea as round 6: name on the photo, age and estalecas on one line, emojis along the bottom. The loop fixed a cropped head that round 6 did not have. It did not fix the 14px estalecas.
+- Option 4 is the one real gain: the four filled cells that round 6 flagged as fake choices are gone. The cost is the monogram instead of a photo, four equal counts that still compete, and a loose right edge.
+- Option 2 got worse for the designer's round-5 request (estalecas closer to the name). Round 6 already separated them; this loop opened the gap on purpose, because the art director asked for equal group spacing. The judge then flagged that equal gap.
+- Option 3 is a bit quieter than round 6 (no "Estalecas" / "Emojis recebidos" labels, counts in muted after the loop) and still splits the name from the estalecas, which the thesis asks for and the designer has asked to undo.
+
+### Bugs in the new flow, not fixed here
+
+- `scripts/explore-pack.mjs` exits 1 on **Interação:** `nenhuma (só visual)`, the words round 6 used. It accepts the line only when it contains `estático`. The brief in this folder adds that word; the meaning is unchanged.
+- `scripts/explore-stitch.mjs` deletes `parts/` after a successful stitch and refuses to overwrite an existing `index.html`. Option 3 came back without `data-tuned`. Sending it back could only write `parts/3.html`, which the stitch would not merge. The tuned option 3 was spliced into `index.html` by hand (style block and article only).
+- The critique expects a Direção visual and a Foco. This brief has neither, because the interview was not re-run. The art director judged Prioridade and each thesis, wrote its own fidelity test, and could still say `none: ready`. "Ready" here does not mean a designer-confirmed thread.
+- The untracked `.codex/agents/proto-art-director.toml` in the user's checkout is the older critique ("the designer decides, do not ask the writers to redo"). This run did not use it. The art director was the PR-branch agent `.claude/agents/proto-art-director.md`, which does emit `Um ajuste` / `none: ready`.
+
+The page the explorers wrote also sits, uncommitted, at `docs/explorations/bbb-3-loop/` in the worktree. The saved round is this folder.
