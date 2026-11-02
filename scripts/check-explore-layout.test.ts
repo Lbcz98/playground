@@ -90,6 +90,8 @@ describe.skipIf(!chromiumUp)('check-explore-layout', () => {
     // ArrowRight does nothing here, Enter changes the text: the shots say so.
     expect(readFileSync(join(shots, 'opcao-1-1-ArrowRight.png'))).toEqual(readFileSync(join(shots, 'opcao-1.png')))
     expect(readFileSync(join(shots, 'opcao-1-2-Enter.png'))).not.toEqual(readFileSync(join(shots, 'opcao-1.png')))
+    const again = check(keyed, `.c{${card}}`, '', ['--shots', shots, '--keys', 'ArrowRight,Enter'])
+    expect(again.out).toContain(`inalterado: ${join(shots, 'opcao-1-folha.png')}`)
     const failing = join(dir, 'shots-failing')
     expect(check('<div class="c" style="width:400px;flex:none"><b>x</b></div>', `.c{${card}}`, '', ['--shots', failing]).code).toBe(1)
     expect(existsSync(failing)).toBe(false)

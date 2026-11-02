@@ -1,18 +1,17 @@
-# Toolbox do playbook de design com IA
+# Toolbox do playbook
 
-Tudo que o playbook produz ou usa mora aqui. Cada arquivo novo entra nesta tabela e na seção "Toolbox" de `playbook.md` (a regra 1 de lá obriga isso).
+O que um agente desenha está em [`../rules/`](../rules/). [`../DESIGN.md`](../DESIGN.md) é o índice. [`playbook.md`](playbook.md) é o objetivo. [`judge.md`](judge.md) diz ao juiz para ler só o pacote de checagens. O processo (passos, papéis, hand-off) está em [`../rules/process.md`](../rules/process.md).
 
-| Arquivo | Tipo | Para que serve | Aprovado |
-|---|---|---|---|
-| [`playbook.md`](playbook.md) | doc | O playbook: objetivo, passos, regras, anti-padrões, papéis, pronto, teste | rascunho aprovado pelo designer nos pontos da seção 10 |
-| [`../DESIGN.md`](../DESIGN.md) | doc | A linguagem visual do kit: cor, gradientes, sombras, tipografia, imagens, respiro. Lida por quem desenha UI; o juiz cita as regras | rascunho; decisões do designer de 2026-10-26 |
-| [`interview-notes.md`](interview-notes.md) | doc | Notas da entrevista com o designer: a fonte do playbook, com as palavras dele | notas de trabalho |
-| [`judge.md`](judge.md) | doc | O juiz independente: passos, severidade e formato do relatório; roda como agente à parte | pedido pelo designer; calibrar com as rodadas de teste |
-| [`test-log.md`](test-log.md) | doc | Registro das rodadas de teste: o que ficou fixo, o veredito do designer, o que o juiz achou e as lacunas | notas de trabalho |
-| [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | exemplo | Card "bom" salvo: opção 1 da rodada 2, escolhida pelo designer; o juiz compara com ele | escolhido pelo designer |
-| [`tests/`](tests/) | testes | As rodadas de teste do playbook: `pb-test-0` (baseline do `/explore`) e `pb-test-1` a `pb-test-3` (só o playbook), cada uma com `brief.md`, `index.html` e o relatório do juiz | notas de trabalho |
-| [`references/pompeia-seletor-card/`](references/pompeia-seletor-card/index.html) | exemplo | Segundo card "bom" salvo: opção 2 do `/explore-playbook` (rodada 4), "melhor que a opção 1 guardada" segundo o designer | escolhido pelo designer |
+| Arquivo | Para que serve |
+|---|---|
+| [`../rules/`](../rules/) | A fonte única das regras, um tópico por arquivo |
+| [`playbook.md`](playbook.md) | O objetivo do playbook, sem repetir as regras |
+| [`../DESIGN.md`](../DESIGN.md) | Índice da linguagem visual |
+| [`judge.md`](judge.md) | O juiz avisa e não edita; lê `pack/judge.md` |
+| [`references/gold.json`](references/gold.json) | Quais cards de ouro o pacote pode mostrar |
+| [`references/gold-sheet.png`](references/gold-sheet.png) | A folha de contato. O explorador estuda a imagem e não copia. `node scripts/gold-sheet.mjs` gera de novo |
+| [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | Card bom, com `why.md` |
+| [`references/pompeia-seletor-card/`](references/pompeia-seletor-card/index.html) | Card bom, o que o designer preferiu |
+| [`archive/`](archive/) | Rodadas antigas, o diário e as notas de entrevista. Nenhum agente é mandado ler |
 
-O comando `/explore-playbook` (`.claude/commands/explore-playbook.md`) usa estes arquivos: é o `/explore` com os agentes lendo o playbook e o juiz rodando no fim.
-
-Scripts e templates: nenhum ainda. Só entram aqui depois que o designer aprovar.
+O `/explore` é `.claude/commands/explore.md`. `/explore-playbook` faz o mesmo. A crítica aplica um ajuste, uma vez, nas opções que o diretor escolhe. Os controles de ajuste nascem quando o designer pede.

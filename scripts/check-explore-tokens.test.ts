@@ -50,6 +50,42 @@ it('treats a tuned option as data: spec colors and `/* tune */` values are advis
   expect(bad.status).toBe(1)
 })
 
+it('names the allowed token for a literal, a retyped value, an unknown var, and a banned token', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'explore-'))
+  writeFileSync(join(dir, 'index.html'), `<style>
+:root {
+  --pad: 14px;
+  --color-semantic-functional-text-primary: #eeeeee;
+}
+.a {
+  padding: var(--pad);
+  background: #112233;
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+}
+.b { color: var(--color-semantic-functional-text-inverse); font-size: var(--typography-font-size-xs); font-weight: var(--typography-font-weight-extra-bold); }
+.c { color: var(--color-semantic-functional-text-primry); }
+</style>
+<p class="text-caption-bold text-body-sm-extra-bold">Oi</p>`)
+  const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+  expect(run.status).toBe(1)
+  const err = run.stderr
+  expect(err).toContain('--color-semantic-functional-text-inverse is banned on TV (pure black #000000); use --color-semantic-functional-background-primary')
+  expect(err).toContain('--typography-font-size-xs is banned on TV (min readable size); use --typography-font-size-sm')
+  expect(err).toContain('--typography-font-weight-extra-bold is banned on TV (three weights only: regular, medium, bold); use --typography-font-weight-bold')
+  expect(err).toContain('font-size: 10px is banned on TV (min readable size); use --typography-font-size-sm')
+  expect(err).toContain('font-weight: 800 is banned on TV (three weights only: regular, medium, bold); use --typography-font-weight-bold')
+  expect(err).toContain('.text-caption-bold is banned on TV (min readable size); use .text-footnote-bold for a secondary label, or .text-body-sm-bold otherwise')
+  expect(err).toContain('.text-body-sm-extra-bold is banned on TV (three weights only: regular, medium, bold); use .text-body-sm-bold')
+  expect(err).toContain('literal color #000: use var(--color-semantic-functional-background-primary)')
+  expect(err).toMatch(/literal color #112233: use var\(--color-/)
+  expect(err).toContain(':root redeclares --color-semantic-functional-text-primary: use var(--color-semantic-functional-text-primary)')
+  expect(err).toContain(':root redeclares --pad: use var(--dimension-spacing-core-sm)')
+  expect(err).toContain('var(--color-semantic-functional-text-primry) is not a kit token; use var(--color-semantic-functional-text-primary)')
+  expect(err).not.toContain('--color-semantic-*')
+})
+
 it('stays fast on a page the size of a finished exploration (a backtracking regex once took 25 s on 250 KB)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'explore-'))
   const rules = Array.from({ length: 2500 }, (_, i) => `[data-option="${(i % 4) + 1}"] .piece-${i} { display: block; width: 40%; padding: var(--dimension-spacing-core-sm); color: var(--color-semantic-functional-text-primary); }`).join('\n')

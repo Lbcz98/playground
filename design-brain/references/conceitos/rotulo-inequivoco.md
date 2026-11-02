@@ -17,8 +17,8 @@ Um rótulo existe para dispensar a legenda. Quando a fileira repete o mesmo sina
 - Se a fileira não comporta o rótulo, mude a fileira (menos itens, outro arranjo) antes de encurtar o rótulo até ficar ambíguo.
 
 ## Uso no kit
-- Rótulo: `.text-caption-medium`, em `--color-semantic-functional-text-muted`. O destacado: `.text-caption-bold` em `--color-semantic-functional-text-primary`, ou em `--color-semantic-functional-text-inverse` sobre uma casa invertida.
-- `.text-caption-*` é o piso do kit: não desça abaixo dele, e confira no `check-explore-layout` que três letras cabem na casa.
+- Rótulo: `.text-footnote-medium`, em `--color-semantic-functional-text-muted`. O destacado: `.text-footnote-bold` em `--color-semantic-functional-text-primary`, ou em `--color-semantic-functional-background-primary` sobre uma casa invertida.
+- `.text-footnote-*` é o piso que um agente pode usar, e só para um rótulo secundário que não carrega decisão: não desça abaixo dele, e confira no `check-explore-layout` que três letras cabem na casa.
 - Sete casas iguais num Content Card: colunas iguais com `--dimension-spacing-core-3xs` entre elas.
 
 ## Ajuste

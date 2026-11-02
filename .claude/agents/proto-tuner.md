@@ -1,7 +1,8 @@
 ---
 name: proto-tuner
-description: Makes one exploration option tunable for /tune: a copy whose every meaningful value is a live dial (CSS custom properties plus a JSON spec), or an edit of such a copy. Used by /tune and /explore. Cannot talk to the user.
+description: Makes one exploration option tunable for /tune: a copy whose every meaningful value is a live dial (CSS custom properties plus a JSON spec), or an edit of such a copy. Used when the designer asks to tune. Cannot talk to the user.
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__storybook__docs-list, mcp__storybook__docs-show, mcp__storybook__docs-show-story
+model: sonnet
 effort: high
 ---
 

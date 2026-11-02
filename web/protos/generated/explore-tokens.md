@@ -4,6 +4,7 @@
 
 For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--name)`: every kit variable an option uses is here. A `/proto` screen never uses this file: it takes `tokens.md` and the kit props (`GridSpacing`, `RadiusStep`, `Text`), not raw core variables.
 "Prop step" is the value the kit prop of that name takes.
+Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, and pure black. A secondary label that carries no decision is footnote (12px); every other text style starts at body-sm (14px). Dark text on a light fill is background-primary. In this file that is `.text-footnote-*`, `.text-body-sm-*` and `--color-semantic-functional-background-primary`.
 
 ## Colours
 
@@ -40,7 +41,6 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--color-semantic-functional-status-live` | #FD4142 |
 | `--color-semantic-functional-status-success` | #11BB0E |
 | `--color-semantic-functional-status-warning` | #FFA90A |
-| `--color-semantic-functional-text-inverse` | #000000 |
 | `--color-semantic-functional-text-muted` | #FFFFFFB3 |
 | `--color-semantic-functional-text-primary` | #EEEEEE |
 | `--color-semantic-functional-text-secondary` | #888888 |
@@ -246,7 +246,6 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | CSS variable | Value |
 | --- | --- |
 | `--typography-font-family-primary` | Inter |
-| `--typography-font-size-xs` | 10px |
 | `--typography-font-size-sm` | 12px |
 | `--typography-font-size-md` | 14px |
 | `--typography-font-size-base` | 16px |
@@ -259,7 +258,6 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--typography-font-weight-regular` | 400 |
 | `--typography-font-weight-medium` | 500 |
 | `--typography-font-weight-bold` | 700 |
-| `--typography-font-weight-extra-bold` | 800 |
 | `--typography-letter-spacing-tighter` | -0.02em |
 | `--typography-letter-spacing-tight` | -0.01em |
 | `--typography-line-height-tight` | 1.1 |
@@ -275,11 +273,7 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `.text-body-md-medium` | 16px | 500 | -0.01em | 1.2 |
 | `.text-body-md-regular` | 16px | 400 | -0.01em | 1.2 |
 | `.text-body-sm-bold` | 14px | 700 | -0.01em | 1.2 |
-| `.text-body-sm-extra-bold` | 14px | 800 | -0.02em | 1.1 |
 | `.text-body-sm-medium` | 14px | 500 | -0.01em | 1.2 |
-| `.text-caption-bold` | 10px | 700 | -0.01em | 1.2 |
-| `.text-caption-extra-bold` | 10px | 800 | -0.01em | 1.2 |
-| `.text-caption-medium` | 10px | 500 | -0.01em | 1.2 |
 | `.text-display-lg-bold` | 72px | 700 | -0.02em | 1.1 |
 | `.text-display-lg-medium` | 72px | 500 | -0.02em | 1.1 |
 | `.text-display-lg-regular` | 72px | 400 | -0.02em | 1.1 |

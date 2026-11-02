@@ -1,6 +1,6 @@
 // Opens an exploration in Chromium for the render checks: a folder (its index.html) or one part (parts/<N>.html, put into the template on the fly).
 // A temporary copy is what gets opened, with the live server's /__explore/ links pointed at the repo's own files, so the page looks as it does live.
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -9,6 +9,29 @@ import { stitch } from './explore-stitch.mjs'
 
 const here = (rel) => fileURLToPath(new URL(rel, import.meta.url))
 const url = (file) => pathToFileURL(file).href
+/** Agents read these pictures. Wider than this is shrunk so the read stays cheap. */
+const MAX_SHOT = 800
+
+const pngWidth = (buf) => (buf.length > 24 && buf[0] === 0x89 ? buf.readUInt32BE(16) : 0)
+
+/** Writes `buf` only when the file's bytes would change. An unchanged path comes back prefixed, so a later read can skip it. */
+export function commitShot(file, buf) {
+  if (existsSync(file) && readFileSync(file).equals(buf)) return `inalterado: ${file}`
+  writeFileSync(file, buf)
+  return file
+}
+
+/** A PNG wider than `maxW`, redrawn at that width. Already narrow: the same buffer. */
+export async function fitShot(browser, buf, maxW = MAX_SHOT) {
+  if (pngWidth(buf) <= maxW) return buf
+  const p = await browser.newPage()
+  await p.setContent(`<img id="i" style="display:block;width:${maxW}px;height:auto">`)
+  await p.locator('#i').evaluate((img, src) => { img.src = src }, `data:image/png;base64,${buf.toString('base64')}`)
+  await p.locator('#i').evaluate((img) => (img.decode ? img.decode() : null))
+  const out = await p.locator('#i').screenshot()
+  await p.close()
+  return out
+}
 
 /** Chromium, or exits with 2 when it cannot start. */
 export async function launchChromium() {
@@ -67,17 +90,24 @@ export async function shoot(page, out, keys = []) {
   // The page's ring around the focused card is chrome: hidden, a key shot differs from the resting one only by what the option does.
   if (keys.length) await page.addStyleTag({ content: '.opt:focus, .opt:focus-visible { outline: none !important }' })
   const files = []
-  const snap = async (card, name) => { await card.scrollIntoViewIfNeeded(); return card.screenshot({ path: join(out, name) }) }
+  const browser = page.context().browser()
+  const snap = async (card, name) => {
+    await card.scrollIntoViewIfNeeded()
+    const buf = await fitShot(browser, await card.screenshot())
+    return { buf, line: commitShot(join(out, name), buf) }
+  }
   for (const card of await page.locator('.opt[data-option]').all()) {
     const n = await card.getAttribute('data-option')
-    const states = [['repouso', await snap(card, `opcao-${n}.png`)]]
-    if (!keys.length) { files.push(join(out, `opcao-${n}.png`)); continue }
+    const first = await snap(card, `opcao-${n}.png`)
+    const states = [['repouso', first.buf]]
+    if (!keys.length) { files.push(first.line); continue }
     await card.focus()
     for (const [i, key] of keys.entries()) {
       await page.keyboard.press(key)
       // ponytail: a state a key handler reveals through a timer is shot before the timer fires; wait here if that ever matters.
       await settle(page)
-      states.push([`${i + 1} · ${key}`, await snap(card, `opcao-${n}-${i + 1}-${key}.png`)])
+      const shot = await snap(card, `opcao-${n}-${i + 1}-${key}.png`)
+      states.push([`${i + 1} · ${key}`, shot.buf])
     }
     files.push(await sheet(page, join(out, `opcao-${n}-folha.png`), states))
   }
@@ -98,10 +128,13 @@ export function requireShotsFolder(out) {
 
 /** The [label, png] states of one card side by side, wrapping after four, into `file`. Returns `file`. */
 async function sheet(page, file, states) {
-  const p = await page.context().browser().newPage()
-  const cells = states.map(([label, png]) => `<figure><figcaption>${label}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`).join('')
-  await p.setContent(`<body style="margin:0;background:#0b0b0d"><div id="s" style="display:inline-grid;grid-template-columns:repeat(${Math.min(states.length, 4)},auto);gap:16px;padding:16px;align-items:start">${cells}</div><style>figure{margin:0}figcaption{font:600 14px system-ui;color:#ccc;margin:0 0 6px}img{display:block}</style></body>`)
-  await p.locator('#s').screenshot({ path: file })
+  const browser = page.context().browser()
+  const p = await browser.newPage()
+  const cols = Math.min(states.length, 4)
+  const imgW = Math.max(80, Math.floor((MAX_SHOT - 16 * (cols + 1)) / cols))
+  const cells = states.map(([label, png]) => `<figure><figcaption>${label}</figcaption><img style="width:${imgW}px;height:auto" src="data:image/png;base64,${png.toString('base64')}"></figure>`).join('')
+  await p.setContent(`<body style="margin:0;background:#0b0b0d"><div id="s" style="display:inline-grid;grid-template-columns:repeat(${cols},auto);gap:16px;padding:16px;align-items:start;max-width:${MAX_SHOT}px">${cells}</div><style>figure{margin:0}figcaption{font:600 14px system-ui;color:#ccc;margin:0 0 6px}img{display:block}</style></body>`)
+  const buf = await fitShot(browser, await p.locator('#s').screenshot())
   await p.close()
-  return file
+  return commitShot(file, buf)
 }

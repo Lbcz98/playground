@@ -1,5 +1,6 @@
 // node scripts/explore-stitch.mjs docs/explorations/<slug> "<title>"                        new page from the template
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --append "<group>" [--parent N]  a batch of variations into the page
+// node scripts/explore-stitch.mjs docs/explorations/<slug> --update N[,N…]                  replace those options from parts/N.html; other parts are left alone
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --list                           what the page holds
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --drop                           throw the parts away (the designer cancelled)
 // node scripts/explore-stitch.mjs docs/explorations/<slug> --pretune N[,N…]                 hold numbers for tunable copies (tune-parts/); `missing` = every option with none yet
@@ -15,23 +16,104 @@ const put = (page, re, to) => {
   return page.replace(re, to)
 }
 
+const markStyle = (n, css) => `/* @explore ${n} */\n${css}\n/* /@explore ${n} */`
+const markScript = (n, js) => `<!-- @explore ${n} -->\n${js}\n<!-- /@explore ${n} -->`
+
 /** Each part split into its style, card and script. `parts` is [[number, html], …]; a part is exactly one card with its own number. */
 function split(parts) {
   const styles = [], cards = [], scripts = []
   for (const [n, html] of [...parts].sort((a, b) => a[0] - b[0])) {
+    const css = [], js = []
     // ponytail: regex split, so a <style> or <script> inside an option's SVG moves out with the rest; parse the HTML if that ever bites.
     const rest = html
-      .replace(/<style>([\s\S]*?)<\/style>/g, (_, css) => (styles.push(css.trim()), ''))
-      .replace(/<script>[\s\S]*?<\/script>/g, (js) => (scripts.push(js), ''))
+      .replace(/<style>([\s\S]*?)<\/style>/g, (_, c) => (css.push(c.trim()), ''))
+      .replace(/<script>[\s\S]*?<\/script>/g, (s) => (js.push(s), ''))
       .trim()
     if (!rest.startsWith('<article') || (rest.match(/<article/g) ?? []).length !== 1 || !rest.includes(`data-option="${n}"`))
       throw new Error(`parts/${n}.html: expected exactly one <article class="opt" data-option="${n}">`)
+    styles.push([n, css.join('\n')])
+    scripts.push([n, js.join('\n')])
     cards.push(rest)
   }
   return { styles, cards, scripts }
 }
 const withAssets = (page, { styles, scripts }) =>
-  put(put(page, /<\/style>/, () => `${styles.join('\n')}\n</style>`), /<\/body>/, () => `${scripts.join('\n')}\n</body>`)
+  put(
+    put(page, /<\/style>/, () => `${styles.filter(([, css]) => css).map(([n, css]) => markStyle(n, css)).join('\n')}\n</style>`),
+    /<\/body>/,
+    () => `${scripts.filter(([, js]) => js).map(([n, js]) => markScript(n, js)).join('\n')}\n</body>`,
+  )
+
+/** Style rules, each with the comment and whitespace that precede it. Nested braces stay one rule. */
+function rulesOf(css) {
+  const out = []
+  let i = 0
+  while (i < css.length) {
+    const start = i
+    while (i < css.length) {
+      if (/\s/.test(css[i])) { i++; continue }
+      if (css.startsWith('/*', i)) {
+        const end = css.indexOf('*/', i + 2)
+        i = end < 0 ? css.length : end + 2
+        continue
+      }
+      break
+    }
+    if (i >= css.length) { if (i > start) out.push(css.slice(start)); break }
+    let depth = 0, started = false
+    for (; i < css.length; i++) {
+      if (css.startsWith('/*', i)) {
+        const end = css.indexOf('*/', i + 2)
+        i = end < 0 ? css.length - 1 : end + 1
+        continue
+      }
+      if (css[i] === '{') { depth++; started = true }
+      else if (css[i] === '}' && started && --depth === 0) { i++; break }
+    }
+    out.push(css.slice(start, i))
+  }
+  return out
+}
+
+/** A rule is this option's when every `[data-option]` it names is N, or it is `@keyframes oN-`. */
+const owns = (rule, n) => {
+  const ids = [...rule.matchAll(/\[data-option="(\d+)"\]/g)].map((m) => m[1])
+  const keyframes = new RegExp(`@keyframes\\s+o${n}-`).test(rule)
+  if (!ids.length && !keyframes) return false
+  return ids.every((id) => id === String(n))
+}
+
+const stripOptionCss = (page, n) => page.replace(/<style>([\s\S]*?)<\/style>/, (_, css) => `<style>${rulesOf(css).filter((rule) => !owns(rule, n)).join('')}</style>`)
+
+/** A script belongs to N when the only `data-option` it names is N. The page's own view-toggle script names none. */
+const stripOptionScripts = (page, n) => page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, (script) => {
+  const ids = [...script.matchAll(/data-option="(\d+)"/g)].map((m) => m[1])
+  return ids.length && ids.every((id) => id === String(n)) ? '' : script
+})
+
+/**
+ * Replace options already on `page` with `parts` ([[n, html], …]).
+ * Each option's style and script are wrapped once, so a second call with the same part changes nothing
+ * and does not duplicate the card. A page stitched before the markers existed is updated by dropping
+ * the rules and scripts that name only that option.
+ */
+export function update(page, parts) {
+  const p = split(parts)
+  let out = page
+  for (let i = 0; i < p.cards.length; i++) {
+    const n = p.styles[i][0]
+    const art = new RegExp(`<article\\b[^>]*\\bdata-option="${n}"[^>]*>[\\s\\S]*?</article>`)
+    if (!art.test(out)) throw new Error(`opção ${n} não está na página`)
+    const styleRe = new RegExp(`/\\* @explore ${n} \\*/[\\s\\S]*?/\\* /@explore ${n} \\*/`)
+    const scriptRe = new RegExp(`<!-- @explore ${n} -->[\\s\\S]*?<!-- /@explore ${n} -->`)
+    const style = p.styles[i][1] ? markStyle(n, p.styles[i][1]) : ''
+    const script = p.scripts[i][1] ? markScript(n, p.scripts[i][1]) : ''
+    out = styleRe.test(out) ? out.replace(styleRe, () => style) : (style ? stripOptionCss(out, n).replace(/<\/style>/, () => `${style}\n</style>`) : stripOptionCss(out, n))
+    out = scriptRe.test(out) ? out.replace(scriptRe, () => script) : (script ? stripOptionScripts(out, n).replace(/<\/body>/, () => `${script}\n</body>`) : stripOptionScripts(out, n))
+    out = out.replace(art, () => p.cards[i])
+  }
+  return out
+}
 
 /** The template with the title set and each part's style, card and script in place. */
 export function stitch(template, title, parts) {
@@ -156,7 +238,22 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(0)
   }
   if (dir && rest.includes('--drop')) { rmSync(`${dir}/parts`, { recursive: true, force: true }); console.log('ok: partes descartadas'); process.exit(0) }
-  if (!dir || (!group && !title)) fail('uso: node scripts/explore-stitch.mjs docs/explorations/<slug> "<título>" | --append "<grupo>" [--parent N] | --list')
+  if (rest.includes('--update')) {
+    if (!has) fail(`${index} não existe: nada para atualizar`)
+    const nums = String(flag('--update') ?? '').split(',').map((s) => s.trim()).filter((s) => /^\d+$/.test(s))
+    if (!nums.length) fail('uso: --update N[,N…]  (só esses números entram; uma parte atrasada não substitui a página)')
+    const missing = nums.filter((n) => !existsSync(`${dir}/parts/${n}.html`))
+    if (missing.length) fail(`faltam parts: ${missing.join(', ')}`)
+    const fresh = nums.map((n) => [Number(n), readFileSync(`${dir}/parts/${n}.html`, 'utf8')])
+    try { writeFileSync(index, update(readFileSync(index, 'utf8'), fresh)) } catch (e) { fail(e.message) }
+    for (const n of nums) rmSync(`${dir}/parts/${n}.html`)
+    const left = existsSync(`${dir}/parts`) ? readdirSync(`${dir}/parts`).filter((f) => /^\d+\.html$/.test(f)) : []
+    if (existsSync(`${dir}/parts`) && !readdirSync(`${dir}/parts`).length) rmSync(`${dir}/parts`, { recursive: true })
+    console.log(`ok: opções ${nums.join(', ')} atualizadas em ${index}`)
+    if (left.length) console.log(`aviso: partes fora da leva, não entraram: ${left.join(', ')}`)
+    process.exit(0)
+  }
+  if (!dir || (!group && !title)) fail('uso: node scripts/explore-stitch.mjs docs/explorations/<slug> "<título>" | --append "<grupo>" [--parent N] | --update N[,N…] | --list')
   if (group ? !has : has) fail(group ? `${index} não existe: nada para variar` : `${index} já existe: não sobrescrevo outra exploração`)
 
   const page = group ? readFileSync(index, 'utf8') : ''

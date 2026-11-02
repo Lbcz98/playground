@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Ficha do participante</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --raio: var(--dimension-radius-semantic-content-card);
+  --respiro: var(--dimension-spacing-semantic-card-inset-expanded);
+  --fundo: var(--color-semantic-functional-background-elevated);
+  --campo: var(--color-semantic-functional-background-primary);
+  --tom: var(--color-semantic-functional-text-primary);
+  --presenca: var(--opacity-semantic-content-muted);
+  --cabeca: 50%;
+  --ombros: 160%;
+  --busto: 0%;
+  --ombro-altura: 50%;
+  --cabeca-topo: 52%;
+  --veu: 100%;
+  --nome: var(--color-semantic-functional-text-primary);
+  --vao-nome: var(--dimension-spacing-core-2xs);
+  --ponto: var(--dimension-spacing-core-3xs);
+  --vao-unidade: var(--dimension-spacing-core-3xs);
+  --vao-emojis: var(--dimension-spacing-core-sm);
+  --vao-par: var(--dimension-spacing-core-2xs);
+}
+/* /tune:vars */
+
+[data-option="1"] .ficha {
+  position: relative;
+  width: var(--dimension-size-semantic-content-card-width);
+  height: var(--dimension-size-semantic-content-card-image-height);
+  box-sizing: border-box;
+  padding: var(--respiro);
+  border-radius: var(--raio);
+  background: var(--fundo);
+  overflow: hidden;
+}
+
+[data-option="1"] .palco {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+[data-option="1"] .foto {
+  position: absolute;
+  inset: 0;
+  background: var(--campo);
+}
+
+[data-option="1"] .figura {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: var(--presenca);
+  z-index: 1;
+}
+
+[data-option="1"] .ombro,
+[data-option="1"] .cabeca {
+  display: block;
+  position: absolute;
+  left: 50%;
+  background: var(--tom);
+  transform: translateX(-50%);
+}
+
+[data-option="1"] .ombro {
+  bottom: var(--busto);
+  width: var(--ombros);
+  height: var(--ombro-altura);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+[data-option="1"] .cabeca {
+  bottom: var(--cabeca-topo);
+  width: var(--cabeca);
+  aspect-ratio: 1;
+  border-radius: var(--dimension-radius-core-full);
+}
+
+[data-option="1"] .scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--veu);
+  background: var(--gradient-complementary-dark);
+  z-index: 2;
+}
+
+[data-option="1"] .texto {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+  padding: 0 var(--respiro) var(--respiro);
+}
+
+[data-option="1"] .nome {
+  margin: 0;
+  color: var(--nome);
+  text-wrap: balance;
+}
+
+[data-option="1"] .meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vao-nome);
+  margin-top: var(--vao-nome);
+}
+
+[data-option="1"] .idade {
+  color: var(--color-semantic-functional-text-muted);
+}
+
+[data-option="1"] .ponto {
+  display: block;
+  width: var(--ponto);
+  height: var(--ponto);
+  flex: 0 0 auto;
+  align-self: center;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+
+[data-option="1"] .estalecas {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vao-unidade);
+}
+
+[data-option="1"] .valor {
+  color: var(--nome);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="1"] .unidade,
+[data-option="1"] .contagem {
+  color: var(--color-semantic-functional-text-muted);
+}
+
+[data-option="1"] .contagem {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="1"] .emojis {
+  display: flex;
+  align-items: center;
+  gap: var(--vao-par);
+  margin-top: var(--vao-emojis);
+}
+
+[data-option="1"] .par {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vao-unidade);
+}
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --avatar: 64px;
+  --avatar-gap: var(--dimension-spacing-core-xs);
+  --label-gap: var(--dimension-spacing-core-3xs);
+  --emoji-gap: var(--dimension-spacing-core-3xs);
+}
+/* /tune:vars */
+[data-option="2"] .card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* grupo A: quem é + estalecas, um assunto só */
+[data-option="2"] .who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--group-gap);
+}
+[data-option="2"] .identity {
+  display: flex;
+  align-items: center;
+  gap: var(--avatar-gap);
+}
+[data-option="2"] .avatar {
+  position: relative;
+  display: block;
+  flex: none;
+  width: var(--avatar);
+  height: var(--avatar);
+  overflow: hidden;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+}
+[data-option="2"] .avatar-head {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  display: block;
+  width: 34%;
+  height: 34%;
+  margin-left: -17%;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-50);
+}
+[data-option="2"] .avatar-body {
+  position: absolute;
+  top: 62%;
+  left: 50%;
+  display: block;
+  width: 64%;
+  height: 60%;
+  margin-left: -32%;
+  border-radius: var(--dimension-radius-core-full) var(--dimension-radius-core-full) 0 0;
+  background: var(--color-opacity-light-50);
+}
+[data-option="2"] .name-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--label-gap);
+  min-width: 0;
+}
+[data-option="2"] .name {
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  text-wrap: balance;
+}
+[data-option="2"] .age {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .estalecas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--label-gap);
+}
+[data-option="2"] .estalecas-label {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .estalecas-value {
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+/* grupo B: faixa quieta dos emojis */
+[data-option="2"] .emojis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--label-gap);
+}
+[data-option="2"] .emojis-label {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .emoji-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--emoji-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-option="2"] .emoji-item {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs);
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* tune:vars */
+[data-option="3"] {
+  --card-radius: var(--dimension-radius-semantic-content-card);
+  --card-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-gap: var(--dimension-spacing-core-sm);
+  --card-bg: var(--color-semantic-functional-background-elevated);
+  --photo-height: var(--dimension-size-semantic-content-card-image-p);
+  --photo-radius: var(--dimension-radius-core-sm);
+  --head-size: 36%;
+  --head-top: 14%;
+  --body-width: 72%;
+  --body-top: 62%;
+  --who-gap: var(--dimension-spacing-core-2xs);
+  --name-size: var(--typography-font-size-3xl);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --ident-gap: var(--dimension-spacing-core-3xs);
+  --age-size: var(--typography-font-size-md);
+  --stalecas-size: var(--typography-font-size-lg);
+  --stalecas-color: var(--color-semantic-functional-text-primary);
+  --unit-size: var(--typography-font-size-md);
+  --given-gap: var(--dimension-spacing-core-3xs);
+  --emoji-size: var(--typography-font-size-lg);
+  --count-size: var(--typography-font-size-base);
+}
+/* /tune:vars */
+[data-option="3"] .card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--card-inset);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+[data-option="3"] .who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--who-gap);
+}
+/* Photo placeholder: the card's inner radius is the card radius minus the inset (concentric). */
+[data-option="3"] .photo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--photo-height);
+  overflow: hidden;
+  border-radius: var(--photo-radius);
+  background: var(--color-opacity-light-10);
+}
+[data-option="3"] .photo-head {
+  position: absolute;
+  display: block;
+  left: calc((100% - var(--head-size)) / 2);
+  top: var(--head-top);
+  width: var(--head-size);
+  aspect-ratio: 1;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+}
+[data-option="3"] .photo-body {
+  position: absolute;
+  display: block;
+  left: calc((100% - var(--body-width)) / 2);
+  top: var(--body-top);
+  width: var(--body-width);
+  height: 80%;
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+}
+[data-option="3"] .ident {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ident-gap);
+}
+[data-option="3"] .name {
+  margin: 0;
+  font-size: var(--name-size);
+  color: var(--name-color);
+  text-wrap: balance;
+}
+[data-option="3"] .age {
+  margin: 0;
+  font-size: var(--age-size);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="3"] .given {
+  display: flex;
+  flex-direction: column;
+  gap: var(--given-gap);
+}
+[data-option="3"] .stalecas {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dimension-spacing-core-3xs);
+  margin: 0;
+}
+[data-option="3"] .stalecas-value {
+  font-size: var(--stalecas-size);
+  color: var(--stalecas-color);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="3"] .stalecas-unit {
+  font-size: var(--unit-size);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="3"] .emojis {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-option="3"] .emoji {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dimension-spacing-core-3xs);
+}
+[data-option="3"] .emoji-glyph {
+  font-size: var(--emoji-size);
+}
+[data-option="3"] .emoji-count {
+  font-size: var(--count-size);
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --id-gap: var(--dimension-spacing-core-2xs);
+  --avatar-size: var(--dimension-size-semantic-header-xl);
+  --cell-gap: var(--dimension-spacing-core-xs);
+  --emoji-size: var(--typography-font-size-4xl);
+}
+/* /tune:vars */
+
+[data-option="4"] .card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box;
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+[data-option="4"] .who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--id-gap);
+}
+[data-option="4"] .photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="4"] .name {
+  display: block;
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  text-wrap: balance;
+}
+[data-option="4"] .meta {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  margin-top: calc(-1 * var(--dimension-spacing-core-3xs));
+}
+[data-option="4"] .meta .coins { color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="4"] .meta .age { color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .dot {
+  display: block;
+  width: var(--dimension-spacing-core-3xs);
+  height: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+[data-option="4"] .reactions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--cell-gap);
+}
+[data-option="4"] .cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--dimension-spacing-core-3xs);
+}
+[data-option="4"] .emoji {
+  display: block;
+  font-size: var(--emoji-size);
+  line-height: var(--typography-line-height-tight);
+}
+[data-option="4"] .count {
+  display: block;
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="padrao">
+  <!-- tese: a foto ocupa o card e o nome ancora; as demais informações são apoio curto sobre ela. -->
+  <p class="opt-label" data-part="label">Opção 1 - Foto como contexto</p>
+  <div class="opt-content" data-part="content">
+    <div class="ficha" data-part="card">
+      <div class="palco" data-stack data-part="palco">
+        <div class="foto" data-part="foto"></div>
+        <div class="figura" data-part="figura">
+          <span class="ombro" data-part="ombros"></span>
+          <span class="cabeca" data-part="cabeca"></span>
+        </div>
+        <div class="scrim" data-part="scrim"></div>
+        <div class="texto" data-part="texto">
+          <p class="nome text-heading-3-bold" data-part="nome">Camila Duarte</p>
+          <div class="meta" data-part="meta">
+            <span class="idade text-body-sm-medium" data-part="idade">27 anos</span>
+            <span class="ponto" data-part="ponto"></span>
+            <span class="estalecas" data-part="estalecas">
+              <span class="valor text-body-sm-bold">3.250</span>
+              <span class="unidade text-footnote-medium">estalecas</span>
+            </span>
+          </div>
+          <div class="emojis" data-part="emojis">
+            <span class="par" data-part="emoji-cobra"><span class="glyph">🐍</span><span class="contagem text-body-sm-medium">12</span></span>
+            <span class="ponto" data-part="ponto-emoji"></span>
+            <span class="par" data-part="emoji-coracao"><span class="glyph">💔</span><span class="contagem text-body-sm-medium">7</span></span>
+            <span class="ponto" data-part="ponto-emoji"></span>
+            <span class="par" data-part="emoji-broto"><span class="glyph">🌱</span><span class="contagem text-body-sm-medium">5</span></span>
+            <span class="ponto" data-part="ponto-emoji"></span>
+            <span class="par" data-part="emoji-alvo"><span class="glyph">🎯</span><span class="contagem text-body-sm-medium">3</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">
+  {"states":["padrao"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"raio","label":"Raio","type":"slider","var":"--raio","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"respiro","label":"Respiro","type":"slider","var":"--respiro","value":32,"base":32,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"fundo","label":"Fundo","type":"color","var":"--fundo","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+    ]},
+    {"name":"Foto","part":"foto","controls":[
+      {"id":"campo","label":"Campo","type":"color","var":"--campo","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"}
+    ]},
+    {"name":"Figura","part":"figura","controls":[
+      {"id":"tom","label":"Tom","type":"color","var":"--tom","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"presenca","label":"Presença","type":"slider","var":"--presenca","value":0.5,"base":0.5,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-content-muted"},
+      {"id":"cabeca","label":"Cabeça","type":"slider","var":"--cabeca","value":50,"base":50,"min":24,"max":70,"step":1,"unit":"%"},
+      {"id":"ombros","label":"Ombros","type":"slider","var":"--ombros","value":160,"base":160,"min":80,"max":200,"step":1,"unit":"%"},
+      {"id":"busto","label":"Base do busto","type":"slider","var":"--busto","value":0,"base":0,"min":0,"max":40,"step":1,"unit":"%"},
+      {"id":"ombro-altura","label":"Altura dos ombros","type":"slider","var":"--ombro-altura","value":50,"base":50,"min":40,"max":100,"step":1,"unit":"%"},
+      {"id":"cabeca-topo","label":"Cabeça acima","type":"slider","var":"--cabeca-topo","value":52,"base":52,"min":50,"max":85,"step":1,"unit":"%"}
+    ]},
+    {"name":"Véu","part":"scrim","controls":[
+      {"id":"veu","label":"Altura","type":"slider","var":"--veu","value":100,"base":100,"min":50,"max":100,"step":1,"unit":"%"}
+    ]},
+    {"name":"Nome","part":"nome","controls":[
+      {"id":"nome-cor","label":"Cor","type":"color","var":"--nome","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+    ]},
+    {"name":"Apoio","part":"meta","controls":[
+      {"id":"vao-nome","label":"Distância do nome","type":"slider","var":"--vao-nome","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"ponto","label":"Ponto","type":"slider","var":"--ponto","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"vao-unidade","label":"Unidade","type":"slider","var":"--vao-unidade","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+    ]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"vao-emojis","label":"Distância","type":"slider","var":"--vao-emojis","value":16,"base":16,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"vao-par","label":"Entre pares","type":"slider","var":"--vao-par","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+    ]}
+  ]}
+  </script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso">
+  <!-- tese: o número de estalecas é o dado âncora; foto, nome e idade são identidade, e os emojis são apoio. -->
+  <p class="opt-label" data-part="label">Opção 2 - Estalecas em destaque</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="who">
+        <div class="identity" data-part="identity">
+          <span class="avatar" data-part="photo" data-stack aria-label="Foto do participante (espaço reservado)">
+            <span class="avatar-head"></span>
+            <span class="avatar-body"></span>
+          </span>
+          <div class="name-block" data-part="name-block">
+            <p class="name text-body-lg-bold" data-part="name">Camila Duarte</p>
+            <p class="age text-body-md-medium" data-part="age">27 anos</p>
+          </div>
+        </div>
+        <div class="estalecas" data-part="estalecas">
+          <p class="estalecas-label text-body-sm-medium" data-part="estalecas-label">Estalecas</p>
+          <p class="estalecas-value text-display-md-bold" data-part="estalecas-value">3.250</p>
+        </div>
+      </div>
+      <div class="emojis" data-part="emojis">
+        <p class="emojis-label text-footnote-medium" data-part="emojis-label">Emojis recebidos</p>
+        <ul class="emoji-row" data-part="emoji-row">
+          <li class="emoji-item"><span class="text-body-lg-medium">🐍</span><span class="text-body-md-medium">12</span></li>
+          <li class="emoji-item"><span class="text-body-lg-medium">💔</span><span class="text-body-md-medium">7</span></li>
+          <li class="emoji-item"><span class="text-body-lg-medium">🌱</span><span class="text-body-md-medium">5</span></li>
+          <li class="emoji-item"><span class="text-body-lg-medium">🎯</span><span class="text-body-md-medium">3</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Identidade","part":"identity","controls":[
+      {"id":"avatar","label":"Tamanho da foto","type":"slider","var":"--avatar","value":64,"base":64,"min":48,"max":96,"step":1,"unit":"px"},
+      {"id":"avatar-gap","label":"Vão foto e nome","type":"slider","var":"--avatar-gap","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"}]},
+    {"name":"Estalecas","part":"estalecas","controls":[
+      {"id":"label-gap","label":"Vão rótulo e valor","type":"slider","var":"--label-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"emoji-gap","label":"Vão entre emojis","type":"slider","var":"--emoji-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]}]}
+  </script>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="repouso">
+  <!-- tese: em cima, quem é (foto, nome, idade); embaixo, o que o público deu (estalecas e emojis). O espaço, não divisores, separa os grupos. -->
+  <p class="opt-label" data-part="label">Opção 3 - Ficha em dois grupos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="who">
+        <span class="photo" data-part="photo" data-stack role="img" aria-label="Foto de Camila Duarte (espaço reservado)">
+          <span class="photo-head"></span>
+          <span class="photo-body"></span>
+        </span>
+        <div class="ident">
+          <p class="name text-heading-3-bold" data-part="name">Camila Duarte</p>
+          <p class="age text-body-sm-medium" data-part="age">27 anos</p>
+        </div>
+      </div>
+      <div class="given" data-part="given">
+        <p class="stalecas" data-part="stalecas">
+          <span class="stalecas-value text-body-lg-bold">3.250</span>
+          <span class="stalecas-unit text-body-sm-medium">estalecas</span>
+        </p>
+        <ul class="emojis" data-part="emojis">
+          <li class="emoji"><span class="emoji-glyph text-body-lg-medium" aria-label="Cobra">🐍</span><span class="emoji-count text-body-md-medium">12</span></li>
+          <li class="emoji"><span class="emoji-glyph text-body-lg-medium" aria-label="Coração partido">💔</span><span class="emoji-count text-body-md-medium">7</span></li>
+          <li class="emoji"><span class="emoji-glyph text-body-lg-medium" aria-label="Planta">🌱</span><span class="emoji-count text-body-md-medium">5</span></li>
+          <li class="emoji"><span class="emoji-glyph text-body-lg-medium" aria-label="Alvo">🎯</span><span class="emoji-count text-body-md-medium">3</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"card-radius","label":"Raio","type":"slider","var":"--card-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"card-inset","label":"Margem interna","type":"slider","var":"--card-inset","value":32,"base":32,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"card-gap","label":"Vão entre os grupos","type":"slider","var":"--card-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"card-bg","label":"Fundo","type":"color","var":"--card-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Foto","part":"photo","controls":[
+      {"id":"photo-height","label":"Altura","type":"slider","var":"--photo-height","value":176,"base":176,"min":120,"max":216,"step":1,"unit":"px","token":"--dimension-size-semantic-content-card-image-p"},
+      {"id":"photo-radius","label":"Raio","type":"slider","var":"--photo-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+      {"id":"head-size","label":"Cabeça: tamanho","type":"slider","var":"--head-size","value":36,"base":36,"min":20,"max":60,"step":1,"unit":"%"},
+      {"id":"head-top","label":"Cabeça: posição","type":"slider","var":"--head-top","value":14,"base":14,"min":0,"max":40,"step":1,"unit":"%"},
+      {"id":"body-width","label":"Ombros: largura","type":"slider","var":"--body-width","value":72,"base":72,"min":40,"max":100,"step":1,"unit":"%"},
+      {"id":"body-top","label":"Ombros: posição","type":"slider","var":"--body-top","value":62,"base":62,"min":40,"max":90,"step":1,"unit":"%"},
+      {"id":"who-gap","label":"Vão até o nome","type":"slider","var":"--who-gap","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Nome","part":"name","controls":[
+      {"id":"name-size","label":"Tamanho","type":"slider","var":"--name-size","value":28,"base":28,"min":20,"max":32,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"ident-gap","label":"Vão até a idade","type":"slider","var":"--ident-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Idade","part":"age","controls":[
+      {"id":"age-size","label":"Tamanho","type":"slider","var":"--age-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"}]},
+    {"name":"Estalecas","part":"stalecas","controls":[
+      {"id":"stalecas-size","label":"Tamanho do valor","type":"slider","var":"--stalecas-size","value":18,"base":18,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-lg"},
+      {"id":"stalecas-color","label":"Cor do valor","type":"color","var":"--stalecas-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"unit-size","label":"Tamanho da unidade","type":"slider","var":"--unit-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"given-gap","label":"Vão até os emojis","type":"slider","var":"--given-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"emoji-size","label":"Tamanho do emoji","type":"slider","var":"--emoji-size","value":18,"base":18,"min":14,"max":28,"step":1,"unit":"px","token":"--typography-font-size-lg"},
+      {"id":"count-size","label":"Tamanho da contagem","type":"slider","var":"--count-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"}]}]}
+  </script>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="repouso">
+  <!-- tese: a reação do público é o assunto; os emojis recebidos, com suas contagens, ficam em evidência, e o resto identifica o participante. -->
+  <p class="opt-label" data-part="label">Opção 4 - Emojis como protagonista</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="who" data-part="participante">
+        <span class="photo text-body-md-bold" data-part="foto" aria-label="Foto do participante (espaço reservado)">CD</span>
+        <p class="name text-body-lg-bold" data-part="nome">Camila Duarte</p>
+        <p class="meta text-body-sm-medium" data-part="dados">
+          <span class="coins text-body-sm-bold" data-part="estalecas">3.250 estalecas</span>
+          <span class="dot"></span>
+          <span class="age" data-part="idade">27 anos</span>
+        </p>
+      </div>
+      <div class="reactions" data-part="emojis">
+        <div class="cell" data-part="emoji-1"><span class="emoji">🐍</span><span class="count text-heading-3-bold">12</span></div>
+        <div class="cell" data-part="emoji-2"><span class="emoji">💔</span><span class="count text-heading-3-bold">7</span></div>
+        <div class="cell" data-part="emoji-3"><span class="emoji">🌱</span><span class="count text-heading-3-bold">5</span></div>
+        <div class="cell" data-part="emoji-4"><span class="emoji">🎯</span><span class="count text-heading-3-bold">3</span></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Participante","part":"participante","controls":[
+      {"id":"id-gap","label":"Vão interno","type":"slider","var":"--id-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Foto","part":"foto","controls":[
+      {"id":"avatar-size","label":"Tamanho","type":"slider","var":"--avatar-size","value":48,"base":48,"min":32,"max":80,"step":1,"unit":"px","token":"--dimension-size-semantic-header-xl"}]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"cell-gap","label":"Vão entre pares","type":"slider","var":"--cell-gap","value":12,"base":12,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"emoji-size","label":"Tamanho do emoji","type":"slider","var":"--emoji-size","value":56,"base":56,"min":28,"max":72,"step":1,"unit":"px","token":"--typography-font-size-4xl"}]}]}
+  </script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+
+</body>
+</html>
