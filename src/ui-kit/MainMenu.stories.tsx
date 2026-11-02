@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Box } from '@/primitives'
 import { MainMenu } from './MainMenu'
+import globoMark from './story-assets/bug-globo.png'
 import couponIcon from './story-assets/carousel-coupon.png'
 import premiereIcon from './story-assets/carousel-premiere.png'
 import realityIcon from './story-assets/carousel-bbb.png'
@@ -35,6 +36,7 @@ const meta = {
     miscellaneousSubtitle: 'São Paulo, SP',
     programTitle: 'Copa do Mundo: Equador x Argentina',
     programSubtitle: 'A seguir Central da Copa',
+    bugSrc: globoMark,
   },
   decorators: [
     (Story) => (
@@ -50,8 +52,8 @@ type Story = StoryObj<typeof meta>
 
 /**
  * Program focused — how Home opens. Its rail sits on the right and holds the
- * programme's context. No avatarSrc/logoSrc/bugSrc: they are per-viewer and
- * per-broadcast content, so the default renders their token-coloured placeholder.
+ * programme's context. The channel bug is the Globo mark; no avatarSrc/logoSrc: they are
+ * per-viewer and per-broadcast content, so the default renders their token-coloured placeholder.
  */
 export const Default: Story = {}
 

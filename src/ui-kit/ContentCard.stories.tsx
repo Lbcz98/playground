@@ -5,6 +5,8 @@ import { ContentCard, ContentCardBody, ContentCardFooter, ContentCardHeader } fr
 import { TableCell } from './TableCell'
 import { WideButton } from './WideButton'
 import oscar from './story-assets/extra-info-oscar.png'
+import contaGlobo from './story-assets/conta-globo.svg'
+import qrLogin from './story-assets/qr-login.gif'
 
 /** A stand-in crest, so the stories show the badge slot without shipping club artwork. */
 function Badge({ color }: { color: string }): ReactNode {
@@ -374,4 +376,27 @@ export const ImagemComBotao: Story = {
       </ContentCardFooter>
     </ContentCard>
   ),
+}
+
+// ---------------------------------------------------------------------------
+// The QR variant — the login page on staging (/ems/login/qr). The logo, the code
+// and the activation code in a centred column that the card hugs.
+// ---------------------------------------------------------------------------
+
+/** Focused, as the login page shows it: the activation code is the card's anchor. */
+export const QrCode: Story = {
+  name: 'QR Code',
+  args: { interactionState: 'focus', qr: qrLogin, qrLogo: contaGlobo },
+  render: (args) => (
+    <ContentCard {...args}>
+      <ContentCardHeader title="LQN632" subtitle="Leia o QR Code ou acesse:" address="ativar.globo.com" />
+    </ContentCard>
+  ),
+}
+
+/** At rest the logo and the text are muted like any resting card's; the code keeps full strength, so a phone can still read it. */
+export const QrCodeEmRepouso: Story = {
+  name: 'QR Code em repouso',
+  args: { interactionState: 'default', qr: qrLogin, qrLogo: contaGlobo },
+  render: QrCode.render,
 }

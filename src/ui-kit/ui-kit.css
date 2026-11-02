@@ -509,7 +509,6 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 .sfs-interactivity-button[data-state='default'] {
   width: var(--dimension-size-semantic-card-width);
   height: var(--dimension-size-semantic-card-height);
-  border-radius: var(--dimension-radius-semantic-card);
 }
 
 /* Default / Selected: the translucent fill, with the resting border drawn over it as a sibling. */
@@ -520,8 +519,24 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   background-color: var(--color-semantic-functional-background-translucent);
 }
 
-.sfs-interactivity-button[data-state='default'] > .sfs-interactivity-button-fill {
-  border-radius: var(--dimension-radius-semantic-card);
+/* Poster: hidden at rest, so a resting rail stays plain; only the focused card shows its art. */
+.sfs-interactivity-button-poster {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 0;
+}
+
+.sfs-interactivity-button[data-state='focus'] > .sfs-interactivity-button-poster {
+  opacity: 1;
+}
+
+.sfs-interactivity-button-poster > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sfs-interactivity-button-header {
@@ -973,6 +988,38 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 
 .sfs-content-card:has(.sfs-content-card-footer .sfs-wide-button)[data-state='default'] > .sfs-content-card-zones {
   opacity: var(--opacity-semantic-visible);
+}
+
+/*
+ * The QR variant: the logo, the code and the zones centred in one column that the card hugs. The code keeps
+ * full strength at rest, so a phone can still read it: only what is around it is muted.
+ */
+.sfs-content-card[data-qr] > .sfs-content-card-zones {
+  align-items: center;
+  text-align: center;
+}
+
+.sfs-content-card[data-qr][data-state='default'] > .sfs-content-card-zones {
+  opacity: var(--opacity-semantic-visible);
+}
+
+.sfs-content-card[data-qr][data-state='default'] > .sfs-content-card-zones > :not(.sfs-content-card-qr) {
+  opacity: var(--opacity-semantic-content-muted);
+}
+
+.sfs-content-card-qr-logo {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-content-card-qr-logo);
+  height: auto;
+}
+
+.sfs-content-card-qr {
+  display: block;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-content-card-qr);
+  height: var(--dimension-size-semantic-content-card-qr);
+  border-radius: var(--dimension-radius-core-lg);
 }
 
 /* The zones' column. `--_gap` is the kit's gutter, or the `gap` set per use. */

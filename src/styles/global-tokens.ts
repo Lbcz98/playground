@@ -153,6 +153,8 @@ export const CSS_VARS = [
   '--dimension-size-semantic-content-card-image-p',
   '--dimension-size-semantic-content-card-image-m',
   '--dimension-size-semantic-content-card-image-g',
+  '--dimension-size-semantic-content-card-qr',
+  '--dimension-size-semantic-content-card-qr-logo',
   '--dimension-size-semantic-round-button',
   '--dimension-size-semantic-round-button-circle',
   '--dimension-size-semantic-avatar',

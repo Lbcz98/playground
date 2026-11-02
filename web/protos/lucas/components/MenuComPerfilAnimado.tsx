@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { MainMenu } from '@/ui-kit/MainMenu'
+import { BUG_GLOBO_SRC } from '../dados-bug-globo'
 import { ICONE_PERFIL } from '../dados-menu-perfil'
 
 /** Opção 11 de docs/explorations/motion-botao-de-perfil/index.html (Reflexo e duas ondas juntos), sobre o botão Login do MainMenu. Só CSS no motion; o React só põe os três elementos dentro do botão. */
@@ -11,14 +12,14 @@ const CSS = `
   --o11-band-opacity: 0.45;
   --o11-band-soft: 12px;
   --o11-rim: 6px;
-  --o11-avatar: var(--dimension-size-semantic-avatar);
+  --o11-avatar: 44px; /* tune */
   --o11-wave-color: var(--color-semantic-functional-text-primary);
   --o11-wave-width: var(--dimension-border-width-core-thin);
   --o11-wave-reach: 1.65;
   --o11-wave-peak: 0.55;
   --o11-wave2-peak: 0.25;
   --o11-wave-lag: 150ms;
-  --o11-cycle-dur: 6510ms; /* 1510 ms de efeito + 5 s até o próximo */
+  --o11-cycle-dur: 8500ms; /* 1510 ms de efeito + pausa até 8500 ms */
   --o11-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mpa [data-focus-item=login] .sfs-round-button-circle .sfs-round-button-content { z-index: 2; }
@@ -73,34 +74,34 @@ const CSS = `
 }
 @-webkit-keyframes o11-sweep {
   0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
-  3.9% { opacity: var(--o11-band-opacity); }
-  13.1% { opacity: var(--o11-band-opacity); }
-  15.7% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  3% { opacity: var(--o11-band-opacity); }
+  10% { opacity: var(--o11-band-opacity); }
+  12% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
   100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
 }
 @keyframes o11-sweep {
   0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
-  3.9% { opacity: var(--o11-band-opacity); }
-  13.1% { opacity: var(--o11-band-opacity); }
-  15.7% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  3% { opacity: var(--o11-band-opacity); }
+  10% { opacity: var(--o11-band-opacity); }
+  12% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
   100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
 }
 @-webkit-keyframes o11-wave {
   0%   { opacity: 0; -webkit-transform: scale(1); }
-  1.3% { opacity: var(--o11-wave-peak); -webkit-transform: scale(1); }
-  20.9% { opacity: 0; -webkit-transform: scale(var(--o11-wave-reach)); }
+  1% { opacity: var(--o11-wave-peak); -webkit-transform: scale(1); }
+  16% { opacity: 0; -webkit-transform: scale(var(--o11-wave-reach)); }
   100% { opacity: 0; -webkit-transform: scale(var(--o11-wave-reach)); }
 }
 @keyframes o11-wave {
   0%   { opacity: 0; transform: scale(1); }
-  1.3% { opacity: var(--o11-wave-peak); transform: scale(1); }
-  20.9% { opacity: 0; transform: scale(var(--o11-wave-reach)); }
+  1% { opacity: var(--o11-wave-peak); transform: scale(1); }
+  16% { opacity: 0; transform: scale(var(--o11-wave-reach)); }
   100% { opacity: 0; transform: scale(var(--o11-wave-reach)); }
 }
-@-webkit-keyframes o11-glint { 0%, 15.7%, 100% { opacity: 0; } 7.8% { opacity: var(--o11-band-opacity); } }
-@keyframes o11-glint { 0%, 15.7%, 100% { opacity: 0; } 7.8% { opacity: var(--o11-band-opacity); } }
-@-webkit-keyframes o11-fade { 0%, 20.9%, 100% { opacity: 0; } 7.8% { opacity: var(--o11-wave-peak); } }
-@keyframes o11-fade { 0%, 20.9%, 100% { opacity: 0; } 7.8% { opacity: var(--o11-wave-peak); } }
+@-webkit-keyframes o11-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o11-band-opacity); } }
+@keyframes o11-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o11-band-opacity); } }
+@-webkit-keyframes o11-fade { 0%, 16%, 100% { opacity: 0; } 6% { opacity: var(--o11-wave-peak); } }
+@keyframes o11-fade { 0%, 16%, 100% { opacity: 0; } 6% { opacity: var(--o11-wave-peak); } }
 @media (prefers-reduced-motion: reduce) {
   .mpa .o11-band {
     left: 34%;
@@ -121,7 +122,7 @@ export interface MenuComPerfilAnimadoProps {
  * @exploration motion-botao-de-perfil#11
  * @proposal
  * why: o Login do MainMenu não tem motion ocioso; o designer quer ver o efeito da opção 11 dentro do menu real, junto dos outros botões
- * description: MainMenu do kit com a faixa de luz atrás do avatar e duas ondas saindo do botão Login, em loop só de CSS (efeito de 1,5 s, depois 5 s de pausa)
+ * description: MainMenu do kit com a faixa de luz atrás do avatar e duas ondas saindo do botão Login, em loop só de CSS (efeito de 1,5 s, depois pausa até fechar o ciclo de 8,5 s)
  * proposedApi:
  *   focusedItem: "'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug' | null"
  *   programTitle: "string"
@@ -162,6 +163,7 @@ export function MenuComPerfilAnimado({ focusedItem = 'channel-bug', programTitle
         programTitle={programTitle}
         programSubtitle={programSubtitle}
         avatarSrc={ICONE_PERFIL}
+        bugSrc={BUG_GLOBO_SRC}
       />
     </div>
   )

@@ -136,6 +136,12 @@ A button label names the action it performs.
 
 Applies to: `Button`, `WideButton`, `InteractivityButton`
 
+### `flow.rail-preview` Second-level hint
+
+On Home (level 1) each focused menu button shows its rail above the menu as a hint of the second level: smaller and dimmed, the menu still on screen, the focus on the button. The rail only takes the focus at level 2.
+
+Applies to: `MainMenu`
+
 ### `flow.rail-side` Rail side matches back-button side
 
 The persistents rail sits on the left with a left back button; the program (contextual) rail sits on the right with a right back button.

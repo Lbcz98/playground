@@ -25,6 +25,7 @@ const meta = {
   title: 'UI Kit/Alert Bug',
   component: AlertBug,
   parameters: { layout: 'fullscreen', docs: { story: { inline: false, height: '34em' } } },
+  args: { src: globoMark },
   argTypes: {
     bugStyle: { control: 'inline-radio', options: ['interface', 'transmission'] },
     interactionState: { control: 'inline-radio', options: ['default', 'focus'] },
@@ -64,7 +65,7 @@ export const AllStyles: Story = {
           ] as const
         ).map(([bugStyle, state]) => (
           <Stack key={`${bugStyle}-${state}`} gap="2xs" align="center">
-            <AlertBug bugStyle={bugStyle} interactionState={state} />
+            <AlertBug bugStyle={bugStyle} interactionState={state} src={globoMark} />
             <Text variant="footnote-medium" color="secondary">
               {`${bugStyle} · ${state}`}
             </Text>

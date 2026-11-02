@@ -208,8 +208,8 @@
   /* ===== Dimension · Radius · Semantic ===== */
   /* Fully rounded ends: pill buttons, status pills, circles */
   --dimension-radius-semantic-pill: var(--dimension-radius-core-full);
-  /* Resting content card (24px, as in Figma radius/card) */
-  --dimension-radius-semantic-card: var(--dimension-radius-core-2xl);
+  /* Resting card (40px, same as the focused one: the radius does not change with state) */
+  --dimension-radius-semantic-card: var(--dimension-radius-core-6xl);
   /* Focused or selected content card */
   --dimension-radius-semantic-card-expanded: var(--dimension-radius-core-6xl);
   /* Content Card — Figma UI Kit "Button Tall" (2472:120292), resting and focused alike */
@@ -279,6 +279,10 @@
   --dimension-size-semantic-content-card-image-m: 264px;
   /* Content Card image variant, step G (20rem): a one-line title and one line of description. Figma: Extra Info, Tamanho Imagem=G. */
   --dimension-size-semantic-content-card-image-g: 320px;
+  /* Content Card QR variant, the QR code's side (8.25rem), as the login page on staging draws it, so it sits off the 8pt grid. */
+  --dimension-size-semantic-content-card-qr: 132px;
+  /* Content Card QR variant, the width of the logo above the QR code (6rem), as the login page on staging draws it. */
+  --dimension-size-semantic-content-card-qr-logo: 96px;
   /* Round button hit target — Figma UI Kit node 2273:96230 */
   --dimension-size-semantic-round-button: 88px;
   /* The visible circle inside a round button's hit target */

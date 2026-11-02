@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ContentCard, ContentCardBody } from './ContentCard'
+import { ContentCard, ContentCardBody, ContentCardHeader } from './ContentCard'
 
 const html = (node: ReactElement): string => renderToStaticMarkup(node)
 const css = readFileSync(new URL('./ui-kit.css', import.meta.url), 'utf8')
@@ -51,6 +51,33 @@ describe('<ContentCard>', () => {
     const focused = html(<ContentCard interactionState="focus" image="a.png" imageSize="M" />)
     expect(focused).toContain('data-image="M"')
     expect(focused).toContain('data-focus-ring')
+  })
+
+  it('with a qr centres its column and keeps the code at full strength at rest', () => {
+    const out = html(
+      <ContentCard qr="qr.gif" qrLogo="logo.svg">
+        <ContentCardHeader title="LQN632" subtitle="Leia o QR Code ou acesse:" address="ativar.globo.com" />
+      </ContentCard>,
+    )
+    expect(out).toContain('data-qr=""')
+    expect(out).toContain('<img class="sfs-content-card-qr-logo" src="logo.svg"')
+    expect(out).toContain('<img class="sfs-content-card-qr" src="qr.gif" alt="QR Code"')
+    expect(out).toContain('text-heading-3-bold')
+    expect(out).toContain('ativar.globo.com')
+    expect(rule(".sfs-content-card[data-qr][data-state='default'] > .sfs-content-card-zones")).toContain(
+      'opacity: var(--opacity-semantic-visible);',
+    )
+    expect(rule(".sfs-content-card[data-qr][data-state='default'] > .sfs-content-card-zones > :not(.sfs-content-card-qr)")).toContain(
+      'opacity: var(--opacity-semantic-content-muted);',
+    )
+  })
+
+  it('without a qr, or with an image, draws no code', () => {
+    expect(html(<ContentCard qrLogo="logo.svg" />)).not.toContain('sfs-content-card-qr')
+    const both = html(<ContentCard image="a.png" qr="qr.gif" qrLogo="logo.svg" />)
+    expect(both).toContain('data-image="G"')
+    expect(both).not.toContain('data-qr')
+    expect(both).not.toContain('sfs-content-card-qr')
   })
 
   it('is one button only when it has something to do', () => {

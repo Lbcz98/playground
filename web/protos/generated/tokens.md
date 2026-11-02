@@ -30,7 +30,7 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 
 | Path | Value | Screen name |
 | --- | --- | --- |
-| `dimension.radius.semantic.card` | 24px | `RadiusRole` `card` |
+| `dimension.radius.semantic.card` | 40px | `RadiusRole` `card` |
 | `dimension.radius.semantic.card-expanded` | 40px | `RadiusRole` `card-expanded` |
 | `dimension.radius.semantic.content-card` | 40px | `RadiusRole` `content-card` |
 | `dimension.radius.semantic.pill` | 100px | `RadiusRole` `pill` |
@@ -54,6 +54,8 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `dimension.size.semantic.content-card-image-height` | 380px | `SizeRole` `content-card-image-height` |
 | `dimension.size.semantic.content-card-image-m` | 264px | `SizeRole` `content-card-image-m` |
 | `dimension.size.semantic.content-card-image-p` | 176px | `SizeRole` `content-card-image-p` |
+| `dimension.size.semantic.content-card-qr` | 132px | `SizeRole` `content-card-qr` |
+| `dimension.size.semantic.content-card-qr-logo` | 96px | `SizeRole` `content-card-qr-logo` |
 | `dimension.size.semantic.content-card-width` | 288px | `SizeRole` `content-card-width` |
 | `dimension.size.semantic.control-height` | 40px | `SizeRole` `control-height` |
 | `dimension.size.semantic.control-height-lg` | 48px | `SizeRole` `control-height-lg` |
