@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { ALWAYS, chapters, field, goldBlock, loadGold, named, pack, pickGold, split } from './explore-pack.mjs'
+import { ALWAYS, chapters, field, goldBlock, isStatic, loadGold, named, pack, pickGold, split } from './explore-pack.mjs'
 
 const brief = `pedido do designer
 
@@ -95,6 +95,21 @@ describe('explore-pack', () => {
     expect(p.text).toContain('A direção não cita uma referência do catálogo')
   })
 
+  it('treats a visual-only interaction line as static, and a catalog pattern as interactive', () => {
+    for (const line of ['nenhuma (só visual)', 'nenhuma', 'só visual', 'apenas visual', 'sem interação', 'sem teclas', 'Estático']) {
+      const p = pack('clima', 'x', 8, `## Opção 8\n- **Interação:** ${line}.`, src)
+      expect(p.problems, line).toEqual([])
+      expect(p.static, line).toBe(true)
+      expect(p.text, line).not.toContain('Teclas dentro do card')
+    }
+    expect(isStatic('Seletor segmentado. Enter não faz nada')).toBe(false)
+    expect(isStatic('')).toBe(false)
+    const moving = pack('clima', 'x', 9, '## Opção 9\n- **Interação:** Trilho de passos. ←/→ move o dia.', src)
+    expect(moving.problems).toEqual([])
+    expect(moving.static).toBe(false)
+    expect(moving.text).toContain('## Teclas dentro do card')
+  })
+
   it('does not count a name that only extends a rule name as unknown', () => {
     expect(pack('clima', 'x', 7, '## Opção 7\n- **Interação:** Estático.\n- **Regras:** esqueleto-fixos', src).unknown).toEqual([])
   })
@@ -150,6 +165,13 @@ describe('explore-pack', () => {
       expect(r.status).toBe(1)
       expect(r.stderr).toContain('erro: Opção 1: nenhum padrão')
       expect(r.stdout).toContain('pack/1.md')
+    })
+    it('accepts nenhuma (só visual) and still rejects a gesture that is not a pattern', () => {
+      const ok = run('- **Interação:** nenhuma (só visual).')
+      expect(ok.status).toBe(0)
+      expect(ok.stderr).not.toContain('erro:')
+      const bad = run('- **Interação:** Gesto de arrastar.')
+      expect(bad.status).toBe(1)
     })
     it('writes the gold notes into every pack', () => {
       const dir = mkdtempSync(join(tmpdir(), 'explore-pack-gold-'))

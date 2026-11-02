@@ -1,10 +1,14 @@
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { adopt, append, hold, liveHeld, missingCopies, nextOption, options, show, stitch } from './explore-stitch.mjs'
+import { adopt, append, hold, liveHeld, missingCopies, nextOption, options, show, stitch, update } from './explore-stitch.mjs'
 
 const template = readFileSync(new URL('../docs/explorations/_template/index.html', import.meta.url), 'utf8')
-const part = (n: number) => `<style>[data-option="${n}"] .x { color: var(--c$1); }</style>\n<article class="opt" data-option="${n}"><p>$& ${n}</p></article>\n<script>(() => { /* ${n} */ })()</script>`
+const part = (n: number) => `<style>[data-option="${n}"] .x { color: var(--c$1); }</style>\n<article class="opt" data-option="${n}"><p>$& ${n}</p></article>\n<script>(() => { const root = document.querySelector('[data-option="${n}"]'); /* ${n} */ })()</script>`
 
 describe('explore-stitch', () => {
   it('puts every part in the template, in option order, and drops the placeholder card', () => {
@@ -68,6 +72,58 @@ describe('explore-stitch', () => {
     expect(missingCopies(page, { 6: '4' })).toEqual([2]) // 4's copy is on the way
     const variation = append(page, 'Variações da Opção 2 · sutil', [[6, card(6, ' data-tuned').replace('Opção 6 - X', 'Opção 6 - Variação')]], '2') // a tuned variation is not a copy of its parent
     expect(missingCopies(variation)).toEqual([2, 4])
+  })
+
+  it('replaces one stitched option in place, and a second pass with the same part changes nothing', () => {
+    const page = stitch(template, 't', [[1, part(1)], [2, part(2)]])
+    const next = part(2).replace('var(--c$1)', 'var(--c$9)').replace('$& 2', 'novo 2')
+    const once = update(page, [[2, next]])
+    expect(once).toContain('var(--c$9)')
+    expect(once).toContain('novo 2')
+    expect(once).toContain('[data-option="1"] .x { color: var(--c$1); }')
+    expect(once.match(/data-option="2"/g)?.length).toBe(page.match(/data-option="2"/g)?.length)
+    expect(once).not.toContain('$& 2')
+    expect(update(once, [[2, next]])).toBe(once)
+  })
+
+  it('updates a page whose option styles were not marked, without keeping the old rule', () => {
+    const bare = stitch(template, 't', [[1, part(1)], [2, part(2)]])
+      .replace(/\/\* @explore \d+ \*\/\n/g, '')
+      .replace(/\/\* \/@explore \d+ \*\/\n/g, '')
+      .replace(/<!-- @explore \d+ -->\n/g, '')
+      .replace(/<!-- \/@explore \d+ -->\n/g, '')
+    const once = update(bare, [[2, part(2).replace('var(--c$1)', 'var(--fresh)')]])
+    expect(once).toContain('var(--fresh)')
+    expect(once).not.toContain('[data-option="2"] .x { color: var(--c$1); }')
+    expect(once).toContain('[data-option="1"] .x { color: var(--c$1); }')
+    expect(once).toContain('--explore-container-max')
+    expect(once.match(/<article\b/g)).toHaveLength(2)
+  })
+
+  it('refuses to update an option the page does not have', () => {
+    expect(() => update(stitch(template, 't', [[1, part(1)]]), [[4, part(4)]])).toThrow('opção 4 não está na página')
+  })
+
+  it('merges only the named parts back into the page and leaves a late part untouched', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'explore-stitch-'))
+    mkdirSync(join(dir, 'parts'))
+    writeFileSync(join(dir, 'parts', '1.html'), part(1))
+    writeFileSync(join(dir, 'parts', '2.html'), part(2))
+    const cli = fileURLToPath(new URL('explore-stitch.mjs', import.meta.url))
+    const run = (...args: string[]) => spawnSync('node', [cli, dir, ...args], { encoding: 'utf8' })
+    expect(run('Clima').status).toBe(0)
+    mkdirSync(join(dir, 'parts'))
+    writeFileSync(join(dir, 'parts', '1.html'), part(1).replace('var(--c$1)', 'var(--novo)'))
+    writeFileSync(join(dir, 'parts', '2.html'), part(2).replace('var(--c$1)', 'var(--atrasado)'))
+    const upd = run('--update', '1')
+    expect(upd.status, upd.stderr).toBe(0)
+    expect(upd.stdout).toContain('aviso: partes fora da leva')
+    const page = readFileSync(join(dir, 'index.html'), 'utf8')
+    expect(page).toContain('var(--novo)')
+    expect(page).not.toContain('var(--atrasado)')
+    expect(page).toContain('[data-option="2"] .x { color: var(--c$1); }')
+    expect(readFileSync(join(dir, 'parts', '2.html'), 'utf8')).toContain('var(--atrasado)')
+    expect(run('Outra').status).not.toBe(0) // an existing page is not replaced wholesale
   })
 
   it('forgets copies whose tuner is gone: no file and held.json older than a session', () => {

@@ -24,6 +24,19 @@ export function split(md) {
 /** The text after "**<label>:**" on a direction's line, '' when absent. */
 export const field = (block, label) => new RegExp(`\\*\\*${label}:\\*\\*\\s*(.*)$`, 'mi').exec(block)?.[1].trim() ?? ''
 
+/**
+ * A direction with no keys: "estático", or a visual-only line such as "nenhuma (só visual)".
+ * "nenhuma" counts only as the statement of the line, so a pattern note that happens to say it does not.
+ */
+export const isStatic = (interacao) => {
+  const t = plain(interacao).trim()
+  if (!t) return false
+  if (/\b(estatico|so visual|apenas visual|visual only|no interaction)\b/.test(t)) return true
+  // "interação" still has letters after the stem, so the stem cannot end on a word boundary.
+  if (/\b(sem interac|nenhuma interac|sem tecla)/.test(t)) return true
+  return /^nenhuma\b/.test(t)
+}
+
 /** Names from `names` that occur in `text`, in the order they appear there. */
 export const named = (text, names) => {
   const t = plain(text)
@@ -87,7 +100,8 @@ export function pack(slug, shared, n, block, src) {
   const refs = named(field(block, 'Refer[eê]ncias?'), refNames).slice(0, 3)
   const interacao = field(block, 'Intera[cç][aã]o')
   const pattern = named(interacao, patternNames(src.interacoes))[0]
-  const interactive = Boolean(pattern) && !/est[aá]tic/i.test(interacao)
+  const visualOnly = isStatic(interacao)
+  const interactive = Boolean(pattern) && !visualOnly
   const regras = field(block, 'Regras')
   const asked = named(regras, ruleNames)
   // Only a token shaped like a rule name (a-b-c) can be a typo of one; prose such as "nenhuma" or "e" is not a rule.
@@ -111,8 +125,8 @@ export function pack(slug, shared, n, block, src) {
     `## Direção: vocabulário e crítica (DIRECAO.md §3 e §7)\n\n${chapters(src.direcao, ['3', '7']).replace(/^## /gm, '### ')}`,
   ].filter(Boolean).join('\n\n') + '\n'
   // An interaction that names no pattern fails the run (the agent would build without its row); an unknown rule name only warns, since a hyphenated word of prose looks like one.
-  const problems = [!pattern && !/est[aá]tic/i.test(interacao) && `nenhum padrão de \`--padroes\` em **Interação:** "${interacao.slice(0, 40)}"`].filter(Boolean)
-  return { text: out, refs, pattern, interactive, problems, unknown, static: /est[aá]tic/i.test(interacao), rules: rules.map(([r]) => r), gold: src.gold ? pickGold(`${shared}\n${block}`, src.gold.cards).map((c) => c.id) : [] }
+  const problems = [!pattern && !visualOnly && `nenhum padrão de \`--padroes\` em **Interação:** "${interacao.slice(0, 40)}"`].filter(Boolean)
+  return { text: out, refs, pattern, interactive, problems, unknown, static: visualOnly, rules: rules.map(([r]) => r), gold: src.gold ? pickGold(`${shared}\n${block}`, src.gold.cards).map((c) => c.id) : [] }
 }
 
 if (process.argv[1]?.endsWith('explore-pack.mjs')) {

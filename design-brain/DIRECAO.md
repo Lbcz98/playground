@@ -122,7 +122,7 @@ Input: the brief's Direção visual and the PNG of each option (plus the keys' P
 
 **Stock moves (the "generic" tells).** Name any that appear: centred stack of icon, number and label; rows of equal weight; every piece the same size within 1.5×; an accent colour used for decoration; a gradient with no data behind it; an illustration that could belong to any app; chrome that outweighs content; text pairs with no scale jump; empty space that is leftover rather than placed; a control that is louder than the thing it controls; four options that differ only in layout.
 
-Rules: a verdict is evidence from the PNG, never taste. "Quase" always says the one move that would make it "Tem a cara". The critic never edits and never says an option is "good": it says whether it is *this* direction. `Um ajuste: none: ready` means the option already holds the direction, so it is not touched. `/explore` forwards that one adjustment to the writer, for at most two rounds, and then the designer sees the set.
+Rules: a verdict is evidence from the PNG, never taste. "Quase" always says the one move that would make it "Tem a cara". The critic never edits and never says an option is "good": it says whether it is *this* direction. `Um ajuste: none: ready` means the option already holds the direction, and only when the brief has a Direção visual block. Without that block, ready is not a verdict. `/explore` forwards one adjustment to the writer, for at most two rounds, and does not close an option on `none: ready` while the judge still has a Critical or a Warning on it. Then the designer sees the set.
 
 ## 8. Learnings from past explorations
 
