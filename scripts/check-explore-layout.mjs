@@ -164,7 +164,7 @@ const result = await page.evaluate((whole) => {
       const bg = s.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0], filled = (bg[3] ?? 1) > 0.05
       const radius = px(s.borderTopLeftRadius)
       if (e === content || !filled || r.width < 120 || r.height < 72 || radius < 8) continue
-      if (radius >= kit('--dimension-radius-core-full') - 1 && r.height > CONTROL * 2) say('pílula', `${name(e)} tem raio de pílula (${radius}px) em uma caixa de ${Math.round(r.height)}px de altura; use o raio de card do kit`)
+      if (radius >= kit('--dimension-radius-core-full') - 1 && r.height > CONTROL * 2) say('pílula', `${name(e)} tem raio de pílula (${radius}px) em uma caixa de ${Math.round(r.height)}px de altura; use var(--dimension-radius-semantic-card) ou var(--dimension-radius-semantic-content-card)`)
       // Text touching the rounded corner: the corner of its box lies outside the arc.
       const eff = Math.min(radius, r.width / 2, r.height / 2)
       for (const { e: t, r: tr } of texts) {

@@ -4,6 +4,7 @@
 
 The tokens a screen can name: "Screen name" is the value a kit prop takes (its type in `src/primitives/token-names.ts` or `tokens.ts`). Core tokens, and tokens no kit prop takes (gradients, motion, some colours), are not here: a screen cannot name them. Text styles read `size / line height · weight · letter spacing`, in Inter.
 Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep` props of the kit.
+Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, and pure black. A secondary label that carries no decision is footnote (12px); every other text style starts at body-sm (14px). Dark text on a light fill is background-primary.
 
 ## color.semantic
 
@@ -20,7 +21,6 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | `color.semantic.functional.status-live` | #FD4142 | `StatusColor` `live` or `TextColor` `status-live` |
 | `color.semantic.functional.status-success` | #11BB0E | `StatusColor` `success` or `TextColor` `status-success` |
 | `color.semantic.functional.status-warning` | #FFA90A | `StatusColor` `warning` or `TextColor` `status-warning` |
-| `color.semantic.functional.text-inverse` | #000000 | `TextRole` `inverse` |
 | `color.semantic.functional.text-muted` | #FFFFFFB3 | `TextRole` `muted` |
 | `color.semantic.functional.text-primary` | #EEEEEE | `TextRole` `primary` |
 | `color.semantic.functional.text-secondary` | #888888 | `TextRole` `secondary` |
@@ -121,16 +121,7 @@ Spacing and radius steps are core scales: use the `GridSpacing` and `RadiusStep`
 | Path | Value | Screen name |
 | --- | --- | --- |
 | `typography.body-sm.bold` | 14px / 1.2 · 700 · -0.01em | `Text variant="body-sm-bold"` |
-| `typography.body-sm.extra-bold` | 14px / 1.1 · 800 · -0.02em | `Text variant="body-sm-extra-bold"` |
 | `typography.body-sm.medium` | 14px / 1.2 · 500 · -0.01em | `Text variant="body-sm-medium"` |
-
-## typography.caption
-
-| Path | Value | Screen name |
-| --- | --- | --- |
-| `typography.caption.bold` | 10px / 1.2 · 700 · -0.01em | `Text variant="caption-bold"` |
-| `typography.caption.extra-bold` | 10px / 1.2 · 800 · -0.01em | `Text variant="caption-extra-bold"` |
-| `typography.caption.medium` | 10px / 1.2 · 500 · -0.01em | `Text variant="caption-medium"` |
 
 ## typography.display-lg
 

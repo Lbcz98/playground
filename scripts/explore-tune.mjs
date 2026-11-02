@@ -1,3 +1,5 @@
+import { banForCssVar, banSentence, closestName } from './agent-token-bans.mjs'
+
 // Pure helpers for /tune, shared by the live server and its tests.
 //
 // A tuned option (written by proto-tuner) is an <article data-option="M" data-tuned data-parent="N"> that holds
@@ -127,7 +129,12 @@ export function lintSpec(html, n, kit) {
       if (c.type === 'easing' && clean(c, c.value) === undefined) bad.push(`${at}: easing precisa de duration (s) e ease [x1,y1,x2,y2]`)
       if (c.token) {
         if (c.base === undefined) bad.push(`${at}: com token, base é o valor original do token`)
-        if (kit && !kit.has(c.token)) bad.push(`${at}: ${c.token} não é um token do kit`)
+        const ban = banForCssVar(c.token)
+        if (ban) bad.push(`${at}: ${banSentence(c.token, ban)}`)
+        else if (kit && !kit.has(c.token)) {
+          const use = closestName(c.token, kit)
+          bad.push(use ? `${at}: ${c.token} não é um token do kit; use ${use}` : `${at}: ${c.token} não é um token do kit`)
+        }
       }
     }
   }

@@ -53,6 +53,21 @@ Options without a tune spec still require agent preparation before they become e
 
   It writes the skill to `~/.agents/skills/` and links it into `~/.claude/skills/`. Read the script first if you want to see what it does: `curl -sL interfacecraft.dev/api/install-skills | less`.
 
+### Agent models
+
+Opus writes a direction or a critique. Sonnet executes one build or one adjustment. The split is in each agent's frontmatter (`.claude/agents/*.md`).
+
+| Agent | Model | Why |
+| --- | --- | --- |
+| `proto-art-director` | opus | Writes the visual direction and critiques finished options |
+| `proto-judge` | opus | Judges one tuned option against the rules |
+| `proto-kit-auditor` | opus | Reviews one option against the kit |
+| `proto-reviewer` | opus | Reviews a screen or flow before it is shown |
+| `proto-reference-analyst` | opus | Writes the anatomy notes later agents read instead of the reference image. That reading is an input to direction, not a mechanical build |
+| `proto-explorer` | sonnet | Builds one exploration option from a pack |
+| `proto-tuner` | sonnet | Instruments or adjusts one option |
+| `proto-writer` | sonnet | Builds one screen or flow |
+
 ## What is where
 
 ```

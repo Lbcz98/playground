@@ -219,6 +219,14 @@ describe('lintSpec', () => {
     expect(bad).toContain('Modo: value deve estar em options')
     expect(bad).toContain('--dimension-radius-semantic-content-card não é um token do kit')
     expect((await lint(page().replace('--radius: var(', '--radio: var('))).join('\n')).toContain('não é o que "Aplicar valores" escreveria')
+    const banned = structuredClone(spec)
+    banned.folders[0].controls[1].token = '--color-semantic-functional-text-inverse'
+    const bannedPage = page().replace(varsBlock(spec, 2), varsBlock(banned, 2)).replace(JSON.stringify(spec), JSON.stringify(banned))
+    expect((await lint(bannedPage, new Set(['--color-semantic-functional-text-inverse']))).join('\n')).toContain('Fundo: --color-semantic-functional-text-inverse is banned on TV (pure black #000000); use --color-semantic-functional-background-primary')
+    const typo = structuredClone(spec)
+    typo.folders[0].controls[0].token = '--dimension-radius-semantic-content-cardd'
+    const typoPage = page().replace(varsBlock(spec, 2), varsBlock(typo, 2)).replace(JSON.stringify(spec), JSON.stringify(typo))
+    expect((await lint(typoPage, new Set(['--dimension-radius-semantic-content-card']))).join('\n')).toContain('Raio: --dimension-radius-semantic-content-cardd não é um token do kit; use --dimension-radius-semantic-content-card')
     expect(await lint('<article data-option="2"></article>')).toEqual(['o <article data-option="2"> não tem data-tuned', 'falta <script type="application/json" data-tune="2"> com JSON válido'])
   })
 })
