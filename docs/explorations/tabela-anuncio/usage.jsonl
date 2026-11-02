@@ -1,0 +1,9 @@
+{"at":"2026-11-02T22:51:34.012Z","role":"art-director-entrevista","input":10,"output":3557,"cache_read":62026,"cache_write":20641}
+{"at":"2026-11-02T22:54:14.223Z","role":"art-director-direcao","input":8,"output":2524,"cache_read":101350,"cache_write":7242}
+{"role": "orchestrator", "model": "sonnet", "input": 82, "output": 10493, "cache_read": 2110901, "cache_write": 84870, "calls": 31, "source": "session log"}
+{"role": "explorer-1/4", "model": "sonnet", "input": 54, "output": 21210, "cache_read": 2160245, "cache_write": 105436, "calls": 27, "source": "session log"}
+{"role": "explorer-1/4", "model": "sonnet", "input": 58, "output": 17596, "cache_read": 2254193, "cache_write": 89581, "calls": 29, "source": "session log"}
+{"role": "explorer-2", "model": "sonnet", "input": 72, "output": 21753, "cache_read": 2755489, "cache_write": 93198, "calls": 34, "source": "session log"}
+{"role": "explorer-3", "model": "sonnet", "input": 62, "output": 23009, "cache_read": 2095071, "cache_write": 171543, "calls": 30, "source": "session log"}
+{"role": "art-director-critica", "model": "opus", "input": 40, "output": 18668, "cache_read": 479101, "cache_write": 49206, "calls": 19, "source": "session log"}
+{"role": "playbook-judge", "model": "sonnet", "input": 16, "output": 4219, "cache_read": 133238, "cache_write": 32619, "calls": 8, "source": "session log"}
