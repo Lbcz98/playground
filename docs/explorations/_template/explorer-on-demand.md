@@ -4,11 +4,11 @@ Read by `proto-explorer` in edit mode, with DialKit, without a pack, or for the 
 
 ## Without a pack
 
-`/explore` hands each option a pack (`docs/explorations/<slug>/pack/<N>.md`, from `scripts/explore-pack.mjs`), including 2 or 3 gold cards and a contact sheet. An older message gives only `brief.md` and a direction; then gather by hand what the pack would hold, with `node scripts/explore-ref.mjs` (never `Read` a file of `design-brain/references/`). The gold set is the exception: read `design-brain/toolbox/references/gold.json`, the sheet it names, and the `why.md` of two or three cards. Learn from them; do not copy the HTML. Unless the message says **fluxo legado**, also read `design-brain/toolbox/playbook.md` and `design-brain/toolbox/judge.md`.
+`/explore` hands each option a pack (`docs/explorations/<slug>/pack/<N>.md`, from `scripts/explore-pack.mjs`): the topics that option needs, the concepts, and 2 or 3 gold cards. An older message gives only `brief.md` and a direction; then gather by hand what the pack would hold, with `node scripts/explore-ref.mjs` (never `Read` a file of `design-brain/references/`). The gold set is the exception: read `design-brain/toolbox/references/gold.json`, the sheet it names, and the `why.md` of two or three cards. Learn from them; do not copy the HTML. Do not read `DESIGN.md`, `playbook.md` or `judge.md` in full. Without a pack, read from `design-brain/rules/`: `focal-point`, `type`, `color`, `surfaces`, `elevation`, `frame`, `principles`, `icons`; add `focus`, `remote-keys` and `motion` when the option takes keys; add `data-card` for data, `imagery` for an image, `repeated-items` and `arrangement` for a row.
 - **Rules.** `--conceitos` lists them; each line ends with `vale para:`, the kind of card it is for. Always `--conceito ponto-focal cerne receita uso`. Then, in one call, `--conceito ancora-e-apoio,grupo-por-espaco,uma-cor-um-significado receita uso`, adding `foco-e-selecao` when the option takes focus, `raios-concentricos` when it nests shapes, `rotulo-inequivoco` when it labels days or an axis, `tipografia-de-detalhe` whenever a text takes two lines or a number changes, `esqueleto-fixo` when items share one mould. `ajuste` says when to bend a rule.
 - **References.** `--list <word>` (one line per reference, narrowed by a word); then your direction's references (at most 3) in one call, `<name>,<name>` (default sections `cerne receita`).
 - **Interaction.** `--padroes <name>` for your pattern's row and `--teclas` for the keys.
-- **Direction.** `design-brain/DIRECAO.md` §3 and §7.
+- **Direction.** `design-brain/rules/direction-vocabulary.md`, `direction-boldness.md` and `direction-critique.md`. Not the rest of the direction handbook.
 
 ## DialKit (only when the designer named it)
 

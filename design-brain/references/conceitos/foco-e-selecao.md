@@ -19,7 +19,7 @@ Três coisas pedem para ser a mais forte do card: onde está o foco, o que está
 - Diga o estado em forma ou em texto; a cor ou o brilho nunca são o único sinal.
 
 ## Uso no kit
-- O anel de foco é do kit, não desenhe outro: `--gradient-semantic-focus-ring` com `--dimension-border-width-semantic-focus-ring` e `--dimension-spacing-semantic-focus-offset`, e as cores `--color-semantic-focus-*`. A receita do anel (máscara) está em `proto-explorer`, passo 5.
+- O anel de foco é do kit, não desenhe outro: `--gradient-semantic-focus-ring` com `--dimension-border-width-semantic-focus-ring` e `--dimension-spacing-semantic-focus-offset`, e as cores `--color-semantic-focus-*`. A receita do anel (máscara) está em `design-brain/rules/focus.md`.
 - Na TV, ←/→ movem o único foco, Enter age, Voltar desfaz; o card nunca usa hover. As teclas completas: `get_keys`.
 - Selecionado, por exemplo: fundo `--color-semantic-functional-text-primary` e número `--color-semantic-functional-background-primary`.
 - O check do escolhido: um ícone de traço do tamanho `--dimension-size-semantic-icon-sm`, em `currentColor` (acompanha o texto invertido do escolhido), ao lado do nome. Antes de desenhar um, confira se o kit já tem (`docs-list`).

@@ -1,6 +1,6 @@
 # DESIGN.md: known gaps
 
-What `DESIGN.md` describes that the kit does not do yet, or has not decided. Kept apart so the agents that read `DESIGN.md` in full before drawing do not pay for it; read this when you change the kit or `DESIGN.md` itself.
+What the drawing rules describe that the kit does not do yet, or has not decided. Kept apart so an agent drawing a card does not pay for it; read this when you change the kit or a topic file.
 
 Checked against `src/styles/global.css`, `src/ui-kit/` and `src/primitives/`.
 

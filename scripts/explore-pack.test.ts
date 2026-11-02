@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { ALWAYS, chapters, field, goldBlock, isStatic, loadGold, named, pack, pickGold, split } from './explore-pack.mjs'
+import { ALWAYS, chapters, field, goldBlock, isStatic, judgeText, loadCraftDir, loadGold, loadTopicDir, named, pack, pickGold, selectCraft, selectTopics, split } from './explore-pack.mjs'
 
 const brief = `pedido do designer
 
@@ -173,7 +173,38 @@ describe('explore-pack', () => {
       const bad = run('- **Interação:** Gesto de arrastar.')
       expect(bad.status).toBe(1)
     })
-    it('writes the gold notes into every pack', () => {
+    it('pastes only the topics a static or an interactive option needs', () => {
+    const topics = loadTopicDir(fileURLToPath(new URL('../design-brain/rules/', import.meta.url)))
+    const craft = loadCraftDir(fileURLToPath(new URL('../design-brain/rules/craft/', import.meta.url)))
+    const { shared, options } = split(brief)
+    const visual = pack('clima', shared, 2, options[1][1], { ...src, topics })
+    const moving = pack('clima', shared, 1, options[0][1], { ...src, topics })
+    const weather = pack('clima', 'previsão do clima, a temperatura e a foto do céu', 9, '## Opção 9\n- **Interação:** Trilho de passos.', { ...src, topics })
+    expect(selectTopics({ shared: 'a foto do poster', interactive: false, rules: [] })).toContain('imagery')
+    expect(visual.topics).toContain('type')
+    expect(visual.topics).not.toContain('focus')
+    const drawn = pack('clima', '**Estados:** foco e selecionado', 4, '## Opção 4\n- **Interação:** Estático.', { ...src, topics })
+    expect(drawn.topics).toContain('focus')
+    expect(drawn.topics).not.toContain('remote-keys')
+    expect(visual.topics).not.toContain('remote-keys')
+    expect(visual.topics).not.toContain('data-card')
+    expect(visual.text).toContain('### Type')
+    expect(visual.text).not.toContain('### Focus, selection, action')
+    expect(visual.text).toContain('### Direction: vocabulary')
+    expect(visual.text).not.toContain('### Direction: ten lenses')
+    expect(visual.text).not.toContain('Leia `design-brain/DESIGN.md` inteiro')
+    expect(moving.topics).toEqual(expect.arrayContaining(['focus', 'remote-keys', 'repeated-items', 'arrangement']))
+    expect(moving.text).toContain('### Focus, selection, action')
+    expect(weather.topics).toEqual(expect.arrayContaining(['data-card', 'imagery', 'focus']))
+    const checks = selectCraft(visual.topics, craft)
+    expect(checks).toContain('severity')
+    expect(checks).not.toContain('remote-keys')
+    expect(selectCraft(moving.topics, craft)).toContain('remote-keys')
+    expect(judgeText(visual.topics, craft)).toContain('Leia só este arquivo')
+    expect(judgeText(visual.topics, craft)).not.toContain('# Check: remote keys')
+  })
+
+  it('writes the gold notes into every pack', () => {
       const dir = mkdtempSync(join(tmpdir(), 'explore-pack-gold-'))
       writeFileSync(join(dir, 'brief.md'), 'pedido\n\n## Opção 1\n- **Interação:** Estático.\n')
       const r = spawnSync('node', [fileURLToPath(new URL('explore-pack.mjs', import.meta.url)), dir], { encoding: 'utf8' })

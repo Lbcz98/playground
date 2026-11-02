@@ -26,7 +26,9 @@ for (const card of gold.cards) {
 const browser = await chromium.launch()
 const page = await browser.newPage()
 const cells = shots.map(([label, png]) => `<figure><figcaption>${label}</figcaption><img src="data:image/png;base64,${png.toString('base64')}"></figure>`).join('')
-await page.setContent(`<body style="margin:0;background:#0b0b0d"><div id="s" style="display:inline-grid;grid-template-columns:repeat(${shots.length},auto);gap:24px;padding:24px;align-items:start">${cells}</div><style>figure{margin:0}figcaption{font:600 16px system-ui;color:#ccc;margin:0 0 8px}img{display:block}</style></body>`)
+const cols = shots.length
+const imgW = Math.max(120, Math.floor((800 - 24 * (cols + 1)) / cols))
+await page.setContent(`<body style="margin:0;background:#0b0b0d"><div id="s" style="display:inline-grid;grid-template-columns:repeat(${cols},${imgW}px);gap:24px;padding:24px;align-items:start;max-width:800px">${cells}</div><style>figure{margin:0}figcaption{font:600 16px system-ui;color:#ccc;margin:0 0 8px}img{display:block;width:${imgW}px;height:auto}</style></body>`)
 const tmp = join(tmpdir(), 'gold-sheet.png')
 await page.locator('#s').screenshot({ path: tmp })
 await browser.close()

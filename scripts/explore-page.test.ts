@@ -1,10 +1,23 @@
 import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { checkShotsFolder } from './explore-page.mjs'
+import { checkShotsFolder, commitShot } from './explore-page.mjs'
+
+describe('commitShot', () => {
+  it('writes a new picture and skips the same bytes the next time', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'shot-')), 'a.png')
+    const buf = Buffer.from('png-bytes')
+    expect(commitShot(file, buf)).toBe(file)
+    expect(readFileSync(file)).toEqual(buf)
+    expect(commitShot(file, buf)).toBe(`inalterado: ${file}`)
+    expect(commitShot(file, Buffer.from('other'))).toBe(file)
+    expect(readFileSync(file).toString()).toBe('other')
+  })
+})
 
 describe('the screenshot folder', () => {
   it('takes a temporary folder or one under docs/explorations, and refuses the repo root and its other folders', () => {

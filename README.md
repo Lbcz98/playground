@@ -40,7 +40,7 @@ Options without a tune spec still require agent preparation before they become e
 
 ### Claude Code dependencies
 
-`/explore` is the playbook flow (`.claude/commands/explore.md`): each option's pack includes two or three gold cards (`design-brain/toolbox/references/`, contact sheet plus notes), the explorer reads the playbook, and after stitching a critique loop applies one adjustment per option for at most two rounds. `/explore-playbook` is the same command. The previous flow, where the direction critique only advises, is `/explore-legacy`.
+`/explore` (`.claude/commands/explore.md`) packs, per option, only the design topics that option needs, plus two or three gold cards (`design-brain/toolbox/references/`). After stitching, the art director picks the best one or two options and one adjustment is applied once. `/explore-playbook` is the same command. Tune controls are built when the designer asks.
 
 `/proto` and `/explore` (the `proto-writer` and `proto-explorer` agents) load two things that are not in this repo:
 
@@ -60,7 +60,8 @@ Opus writes a direction or a critique. Sonnet executes one build or one adjustme
 | Agent | Model | Why |
 | --- | --- | --- |
 | `proto-art-director` | opus | Writes the visual direction and critiques finished options |
-| `proto-judge` | opus | Judges one tuned option against the rules |
+| `proto-judge` | sonnet | Judges one tuned option against the craft checks in play |
+| `proto-playbook-judge` | sonnet | Judges the options the art director picked, during `/explore` |
 | `proto-kit-auditor` | opus | Reviews one option against the kit |
 | `proto-reviewer` | opus | Reviews a screen or flow before it is shown |
 | `proto-reference-analyst` | opus | Writes the anatomy notes later agents read instead of the reference image. That reading is an input to direction, not a mechanical build |
