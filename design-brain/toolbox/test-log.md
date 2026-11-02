@@ -224,7 +224,7 @@ Who ran what. Round 6 was Claude; this log did not record the exact model id. Th
 | Art director, both critique rounds | `claude -p --model opus --effort high --agent proto-art-director` | `claude-opus-5-5` |
 | Playbook judge, both rounds | `claude -p --model opus --effort high` (the judge in `design-brain/toolbox/judge.md`, not the tune judge) | `claude-opus-5-5` |
 
-A Grok explorer pass was started by mistake and its parts were discarded before this run; they are not in the page. Codex was only probed (`gpt-6.1-sol`) and did not write an option, a critique or a judgment. The comparison with round 6 is still confounded if that round used an older Claude snapshot than Sonnet 5.5 and Opus 5.5.
+A Grok explorer pass was started by mistake and its parts were moved aside. Three of those explorers finished after the page was already stitched. The option 1 explorer wrote `docs/explorations/bbb-3-loop/parts/1.html` and replaced option 1 on the stitched page. The published option 1 is that card: the Sonnet adjustment only changed `--cabeca-topo` to 52%, `--ombro-altura` to 50%, and the shoulder radius. Options 2, 3 and 4 stayed the Sonnet cards. The late write did not touch the user's checkout, and it did not change the page again after this round was committed. Codex was only probed (`gpt-6.1-sol`) and did not write an option, a critique or a judgment. The comparison with round 6 is still confounded if that round used an older Claude snapshot than Sonnet 5.5 and Opus 5.5.
 
 The critique loop ran once through. Wall clock from the first critic pair to the second judge finishing was about 9 minutes. The whole Claude run, from the first explorer to the final shots, was about 16 minutes.
 
