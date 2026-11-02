@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Ficha do participante</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* @explore 1 */
+/* tune:vars */
+[data-option="1"] {
+  --card-radius: var(--dimension-radius-semantic-content-card);
+  --card-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-bg: var(--color-semantic-functional-background-elevated);
+  --photo-h: var(--dimension-size-semantic-content-card-image-p);
+  --photo-bg: var(--color-semantic-functional-background-primary);
+  --sil-color: var(--color-semantic-functional-background-elevated);
+  --head-size: 56px;
+  --head-x: 176px;
+  --head-y: 28px;
+  --body-w: 150px;
+  --body-x: 132px;
+  --body-y: 100px;
+  --tag-x: var(--dimension-spacing-semantic-card-inset-expanded);
+  --tag-y: var(--dimension-spacing-semantic-card-inset-expanded);
+  --tag-pad-y: var(--dimension-spacing-core-3xs);
+  --tag-pad-x: var(--dimension-spacing-core-xs);
+  --name-gap: var(--dimension-spacing-core-2xs);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --strip-gap: var(--dimension-spacing-core-2xs);
+  --emoji-gap: var(--dimension-spacing-core-xs);
+  --dot-gap: var(--dimension-spacing-core-2xs);
+  --dot-size: 4px;
+}
+/* /tune:vars */
+
+[data-option="1"] .card {
+  box-sizing: border-box;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--card-inset);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+/* A foto sangra no topo e nas laterais; o card dá o raio. */
+[data-option="1"] .photo {
+  position: relative;
+  display: block;
+  height: var(--photo-h);
+  margin: calc(-1 * var(--card-inset)) calc(-1 * var(--card-inset)) 0;
+  background: var(--photo-bg);
+  overflow: hidden;
+}
+[data-option="1"] .head {
+  position: absolute;
+  display: block;
+  left: var(--head-x);
+  top: var(--head-y);
+  width: var(--head-size);
+  height: var(--head-size);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--sil-color);
+}
+[data-option="1"] .shoulders {
+  position: absolute;
+  display: block;
+  left: var(--body-x);
+  top: var(--body-y);
+  bottom: 0;
+  width: var(--body-w);
+  border-radius: var(--dimension-radius-core-full) var(--dimension-radius-core-full) 0 0;
+  background: var(--sil-color);
+}
+[data-option="1"] .tag {
+  position: absolute;
+  display: block;
+  left: var(--tag-x);
+  bottom: var(--tag-y);
+  padding: var(--tag-pad-y) var(--tag-pad-x);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+[data-option="1"] .name {
+  display: block;
+  margin: var(--name-gap) 0 0;
+  color: var(--name-color);
+  text-wrap: balance;
+}
+[data-option="1"] .support {
+  display: grid;
+  gap: var(--strip-gap);
+  margin-top: var(--group-gap);
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="1"] .facts,
+[data-option="1"] .emojis {
+  display: flex;
+  align-items: center;
+}
+[data-option="1"] .facts { gap: var(--dot-gap); }
+[data-option="1"] .emojis { gap: var(--emoji-gap); }
+[data-option="1"] .dot {
+  display: block;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+[data-option="1"] .emoji {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs);
+}
+/* /@explore 1 */
+/* @explore 2 */
+/* @explore 2 */
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --photo-h: 160px; /* tune */
+  --veil-h: 60%;
+  --head-size: 92px;
+  --head-top: 20px;
+  --head-left: 136px;
+  --shoulder-w: 200px;
+  --shoulder-h: 120px;
+  --tag-pad-x: var(--dimension-spacing-core-sm);
+  --tag-pad-y: var(--dimension-spacing-core-2xs);
+  --name-bottom: 0px; /* tune */
+  --name-color: var(--color-semantic-functional-text-primary);
+  --gap-strip: var(--dimension-spacing-core-sm);
+  --gap-in: var(--dimension-spacing-core-2xs);
+  --dot-size: var(--dimension-spacing-core-3xs);
+  --emoji-gap: var(--dimension-spacing-core-lg);
+  --emoji-count-gap: var(--dimension-spacing-core-3xs);
+}
+/* /tune:vars */
+
+[data-option="2"] .card {
+  display: flex;
+  flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+[data-option="2"] .photo {
+  position: relative;
+  display: block;
+  height: var(--photo-h);
+  background: var(--color-semantic-functional-background-elevated);
+  overflow: hidden;
+}
+/* photo placeholder: head and shoulders in kit translucents */
+[data-option="2"] .head {
+  position: absolute;
+  top: var(--head-top);
+  left: var(--head-left);
+  display: block;
+  width: var(--head-size);
+  height: var(--head-size);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+}
+[data-option="2"] .shoulders {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--head-left) + var(--head-size) / 2 - var(--shoulder-w) / 2);
+  display: block;
+  width: var(--shoulder-w);
+  height: var(--shoulder-h);
+  border-radius: var(--dimension-radius-core-2xl) var(--dimension-radius-core-2xl) 0 0;
+  background: var(--color-opacity-light-20);
+}
+/* the veil: the kit's card scrim, only under the name */
+[data-option="2"] .veil {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  height: var(--veil-h);
+  background: var(--gradient-semantic-card-scrim);
+  pointer-events: none;
+}
+[data-option="2"] .tag {
+  position: absolute;
+  top: var(--inset);
+  left: var(--inset);
+  display: block;
+  padding: var(--tag-pad-y) var(--tag-pad-x);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+[data-option="2"] .name {
+  position: absolute;
+  left: var(--inset);
+  right: var(--inset);
+  bottom: var(--name-bottom);
+  margin: 0;
+  color: var(--name-color);
+  text-wrap: balance;
+}
+[data-option="2"] .support {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-in);
+  padding: var(--gap-strip) var(--inset) var(--inset);
+  background: var(--bg);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .facts {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-2xs);
+  margin: 0;
+}
+[data-option="2"] .dot {
+  display: block;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .estalecas { font-variant-numeric: tabular-nums; }
+[data-option="2"] .emojis {
+  display: flex;
+  gap: var(--emoji-gap);
+}
+[data-option="2"] .emoji {
+  display: flex;
+  align-items: center;
+  gap: var(--emoji-count-gap);
+}
+[data-option="2"] .emoji-glyph { display: block; }
+[data-option="2"] .emoji-count {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+/* /@explore 2 */
+/* /@explore 2 */
+/* @explore 3 */
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --pad-y: var(--dimension-spacing-core-xl);
+  --pad-right: var(--dimension-spacing-semantic-card-inset-expanded);
+  --photo-w: 148px;
+  --photo-ratio: 0.5625;
+  --photo-bg: var(--color-semantic-functional-background-primary);
+  --head-w: 34%;
+  --tag-left: var(--dimension-spacing-core-xl);
+  --tag-bottom: var(--dimension-spacing-core-xl);
+  --tag-pad-x: var(--dimension-spacing-core-xs);
+  --tag-pad-y: var(--dimension-spacing-core-3xs);
+  --col-gap: var(--dimension-spacing-core-xs);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --name-support-gap: var(--dimension-spacing-core-sm);
+  --support-gap: var(--dimension-spacing-core-xs);
+  --facts-gap: var(--dimension-spacing-core-3xs);
+  --emoji-col-gap: var(--dimension-spacing-core-xs);
+  --emoji-row-gap: var(--dimension-spacing-core-2xs);
+  --item-gap: var(--dimension-spacing-core-3xs);
+}
+/* /tune:vars */
+
+[data-option="3"] .card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--pad-y) var(--pad-right) var(--pad-y) 0;
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foto: sangra no topo, na esquerda e embaixo; o card arredonda os cantos */
+[data-option="3"] .photo {
+  position: relative;
+  flex: 0 0 var(--photo-w);
+  width: var(--photo-w);
+  aspect-ratio: var(--photo-ratio);
+  margin: calc(-1 * var(--pad-y)) 0;
+  background: var(--photo-bg);
+  overflow: hidden;
+}
+[data-option="3"] .head {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 18%;
+  width: var(--head-w);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-opacity-light-20);
+}
+[data-option="3"] .shoulders {
+  position: absolute;
+  display: block;
+  left: 8%;
+  bottom: 0;
+  width: 84%;
+  height: 50%;
+  border-radius: var(--dimension-radius-semantic-content-card) var(--dimension-radius-semantic-content-card) 0 0;
+  background: var(--color-opacity-light-20);
+}
+[data-option="3"] .scrim {
+  position: absolute;
+  display: block;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  background: var(--gradient-semantic-card-scrim);
+}
+[data-option="3"] .tag {
+  position: absolute;
+  display: block;
+  left: var(--tag-left);
+  bottom: var(--tag-bottom);
+  padding: var(--tag-pad-y) var(--tag-pad-x);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+/* Coluna ao lado: nome e apoio formam um grupo, separados por 16px */
+[data-option="3"] .col {
+  align-self: stretch;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--name-support-gap);
+  padding-left: var(--col-gap);
+}
+[data-option="3"] .name {
+  margin: 0;
+  color: var(--name-color);
+  text-wrap: balance;
+}
+[data-option="3"] .support {
+  display: flex;
+  flex-direction: column;
+  gap: var(--support-gap);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="3"] .facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--facts-gap);
+}
+[data-option="3"] .facts p { margin: 0; }
+[data-option="3"] .stalecas {
+  display: flex;
+  align-items: baseline;
+  gap: var(--facts-gap);
+}
+[data-option="3"] .num { font-variant-numeric: tabular-nums; }
+[data-option="3"] .emojis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: start;
+  column-gap: var(--emoji-col-gap);
+  row-gap: var(--emoji-row-gap);
+}
+[data-option="3"] .emojis li {
+  display: flex;
+  align-items: center;
+  gap: var(--item-gap);
+}
+[data-option="3"] .count { font-variant-numeric: tabular-nums; }
+/* /@explore 3 */
+/* @explore 4 */
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --block-gap: var(--dimension-spacing-core-sm);
+  --photo-h: 224px;
+  --scrim-h: 60%;
+  --tag-pad-x: var(--dimension-spacing-core-xs);
+  --tag-pad-y: var(--dimension-spacing-core-3xs);
+  --name-bottom: var(--dimension-spacing-core-sm);
+  --support-gap: var(--dimension-spacing-core-2xs);
+  --dot: 4px;
+  --emoji-col-gap: var(--dimension-spacing-core-sm);
+  --emoji-row-gap: var(--dimension-spacing-core-sm);
+  --emoji-pair-gap: var(--dimension-spacing-core-2xs);
+}
+/* /tune:vars */
+
+[data-option="4"] .card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  display: flex; flex-direction: column; gap: var(--block-gap);
+  background: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+/* a foto sangra no topo e nas laterais; o card é dono do arredondamento */
+[data-option="4"] .photo {
+  position: relative;
+  margin: calc(-1 * var(--inset)) calc(-1 * var(--inset)) 0;
+  height: var(--photo-h);
+  overflow: hidden;
+}
+[data-option="4"] .photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+[data-option="4"] .photo::after {
+  content: ''; display: block; position: absolute; left: 0; right: 0; bottom: 0; height: var(--scrim-h);
+  background: var(--gradient-semantic-card-scrim); pointer-events: none;
+}
+[data-option="4"] .tag {
+  position: absolute; z-index: 1; top: var(--inset); left: var(--inset);
+  display: block; padding: var(--tag-pad-y) var(--tag-pad-x);
+  background: var(--color-opacity-light-20); color: var(--color-semantic-functional-text-primary);
+  border-radius: var(--dimension-radius-semantic-pill); white-space: nowrap;
+}
+[data-option="4"] .who {
+  position: absolute; z-index: 1; left: var(--inset); right: var(--inset); bottom: var(--name-bottom);
+}
+[data-option="4"] .name { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="4"] .support { display: flex; align-items: center; gap: var(--support-gap); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="4"] .dot { display: block; width: var(--dot); height: var(--dot); border-radius: var(--dimension-radius-semantic-pill); background: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .emojis {
+  display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--emoji-col-gap); row-gap: var(--emoji-row-gap);
+}
+[data-option="4"] .reaction { display: flex; align-items: center; gap: var(--emoji-pair-gap); }
+[data-option="4"] .glyph { display: block; }
+[data-option="4"] .count { display: block; color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+/* /@explore 4 */
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: a foto é a massa (~60% da altura), a tag "Paredão" senta no canto inferior esquerdo dela e o nome cola logo abaixo, a 2× o apoio. -->
+  <p class="opt-label" data-part="label">Opção 1 - Tag no canto</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="photo" data-part="photo" data-stack role="img" aria-label="Foto de Camila Duarte (espaço reservado)">
+        <span class="head"></span>
+        <span class="shoulders"></span>
+        <span class="tag text-body-sm-medium" data-part="tag">Paredão</span>
+      </div>
+      <h2 class="name text-heading-3-bold" data-part="name">Camila Duarte</h2>
+      <div class="support text-body-sm-medium" data-part="support">
+        <div class="facts" data-part="facts">
+          <span><span class="text-body-md-medium">27</span> anos</span>
+          <span class="dot"></span>
+          <span><span class="text-body-md-medium">3.250</span> estalecas</span>
+        </div>
+        <div class="emojis" data-part="emojis" aria-live="polite">
+          <span class="emoji"><span aria-hidden="true">🐍</span><span class="text-body-md-medium">12</span></span>
+          <span class="emoji"><span aria-hidden="true">💔</span><span class="text-body-md-medium">7</span></span>
+          <span class="emoji"><span aria-hidden="true">🌱</span><span class="text-body-md-medium">5</span></span>
+          <span class="emoji"><span aria-hidden="true">🎯</span><span class="text-body-md-medium">3</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--card-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro","type":"slider","var":"--card-inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--card-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Foto","part":"photo","controls":[
+      {"id":"photoH","label":"Altura da foto","type":"slider","var":"--photo-h","value":176,"base":176,"min":120,"max":264,"step":1,"unit":"px","token":"--dimension-size-semantic-content-card-image-p"},
+      {"id":"photoBg","label":"Fundo da foto","type":"color","var":"--photo-bg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+      {"id":"silColor","label":"Cor do vulto","type":"color","var":"--sil-color","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"headSize","label":"Cabeça","type":"slider","var":"--head-size","value":56,"base":56,"min":24,"max":96,"step":1,"unit":"px"},
+      {"id":"headX","label":"Cabeça, x","type":"slider","var":"--head-x","value":176,"base":176,"min":0,"max":232,"step":1,"unit":"px"},
+      {"id":"headY","label":"Cabeça, y","type":"slider","var":"--head-y","value":28,"base":28,"min":0,"max":80,"step":1,"unit":"px"},
+      {"id":"bodyW","label":"Ombros, largura","type":"slider","var":"--body-w","value":150,"base":150,"min":80,"max":260,"step":1,"unit":"px"},
+      {"id":"bodyX","label":"Ombros, x","type":"slider","var":"--body-x","value":132,"base":132,"min":0,"max":200,"step":1,"unit":"px"},
+      {"id":"bodyY","label":"Ombros, y","type":"slider","var":"--body-y","value":100,"base":100,"min":60,"max":150,"step":1,"unit":"px"}]},
+    {"name":"Tag","part":"tag","controls":[
+      {"id":"tagX","label":"Margem esquerda","type":"slider","var":"--tag-x","value":32,"base":32,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"tagY","label":"Margem de baixo","type":"slider","var":"--tag-y","value":32,"base":32,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"tagPadY","label":"Respiro vertical","type":"slider","var":"--tag-pad-y","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"tagPadX","label":"Respiro horizontal","type":"slider","var":"--tag-pad-x","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"}]},
+    {"name":"Nome","part":"name","controls":[
+      {"id":"nameGap","label":"Vão até a foto","type":"slider","var":"--name-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"nameColor","label":"Cor do nome","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Faixa de apoio","part":"support","controls":[
+      {"id":"groupGap","label":"Vão até o nome","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"stripGap","label":"Vão entre linhas","type":"slider","var":"--strip-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"emojiGap","label":"Vão entre emojis","type":"slider","var":"--emoji-gap","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"dotGap","label":"Vão do ponto","type":"slider","var":"--dot-gap","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"dotSize","label":"Ponto","type":"slider","var":"--dot-size","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px"}]}]}
+  </script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso">
+  <!-- tese: o nome senta sobre o scrim na borda de baixo da foto, a tag fica num canto superior, e o apoio fica abaixo da foto, com 16px entre o nome e os dados. -->
+  <p class="opt-label" data-part="label">Opção 2 - Nome no véu</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="photo" data-part="photo">
+        <span class="head" data-part="photo-head"></span>
+        <span class="shoulders" data-part="photo-shoulders"></span>
+        <span class="veil" data-part="veil"></span>
+        <span class="tag text-body-sm-medium" data-part="tag">Paredão</span>
+        <h2 class="name text-heading-3-bold" data-part="name">Camila Duarte</h2>
+      </div>
+      <div class="support" data-part="support">
+        <p class="facts text-body-sm-medium" data-part="facts">
+          <span data-part="age">27 anos</span>
+          <span class="dot" data-part="dot"></span>
+          <span class="estalecas" data-part="estalecas">3.250 estalecas</span>
+        </p>
+        <div class="emojis" data-part="emojis">
+          <span class="emoji"><span class="emoji-glyph text-body-sm-medium">🐍</span><span class="emoji-count text-body-sm-medium">12</span></span>
+          <span class="emoji"><span class="emoji-glyph text-body-sm-medium">💔</span><span class="emoji-count text-body-sm-medium">7</span></span>
+          <span class="emoji"><span class="emoji-glyph text-body-sm-medium">🌱</span><span class="emoji-count text-body-sm-medium">5</span></span>
+          <span class="emoji"><span class="emoji-glyph text-body-sm-medium">🎯</span><span class="emoji-count text-body-sm-medium">3</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Foto","part":"photo","controls":[
+      {"id":"photo-h","label":"Altura da foto","type":"slider","var":"--photo-h","value":160,"base":264,"min":128,"max":320,"step":4,"unit":"px","token":"--dimension-size-semantic-content-card-image-m"},
+      {"id":"veil-h","label":"Altura do véu","type":"slider","var":"--veil-h","value":60,"base":60,"min":30,"max":80,"step":5,"unit":"%"}]},
+    {"name":"Rosto","part":"photo-head","controls":[
+      {"id":"head-size","label":"Tamanho","type":"slider","var":"--head-size","value":92,"base":92,"min":60,"max":130,"step":2,"unit":"px"},
+      {"id":"head-top","label":"Posição vertical","type":"slider","var":"--head-top","value":20,"base":20,"min":8,"max":100,"step":2,"unit":"px"},
+      {"id":"head-left","label":"Posição horizontal","type":"slider","var":"--head-left","value":136,"base":136,"min":80,"max":176,"step":2,"unit":"px"}]},
+    {"name":"Ombros","part":"photo-shoulders","controls":[
+      {"id":"shoulder-w","label":"Largura","type":"slider","var":"--shoulder-w","value":200,"base":200,"min":140,"max":280,"step":4,"unit":"px"},
+      {"id":"shoulder-h","label":"Altura","type":"slider","var":"--shoulder-h","value":120,"base":120,"min":60,"max":160,"step":4,"unit":"px"}]},
+    {"name":"Tag","part":"tag","controls":[
+      {"id":"tag-pad-x","label":"Respiro lateral","type":"slider","var":"--tag-pad-x","value":16,"base":16,"min":8,"max":24,"step":4,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"tag-pad-y","label":"Respiro vertical","type":"slider","var":"--tag-pad-y","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Nome","part":"name","controls":[
+      {"id":"name-bottom","label":"Distância da borda","type":"slider","var":"--name-bottom","value":0,"base":24,"min":0,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Apoio","part":"support","controls":[
+      {"id":"gap-strip","label":"Vão até a foto","type":"slider","var":"--gap-strip","value":16,"base":16,"min":0,"max":64,"step":4,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"gap-in","label":"Vão entre linhas","type":"slider","var":"--gap-in","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"dot-size","label":"Ponto","type":"slider","var":"--dot-size","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"emoji-gap","label":"Vão entre emojis","type":"slider","var":"--emoji-gap","value":24,"base":24,"min":8,"max":40,"step":4,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"emoji-count-gap","label":"Vão até a contagem","type":"slider","var":"--emoji-count-gap","value":4,"base":4,"min":0,"max":12,"step":2,"unit":"px","token":"--dimension-spacing-core-3xs"}]}]}
+  </script>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="repouso">
+  <!-- tese: a foto ocupa cerca de 60% da largura, com a tag sobre ela, e o nome com a faixa de apoio formam uma coluna ao lado. -->
+  <p class="opt-label" data-part="label">Opção 3 - Coluna ao lado</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card" data-surface="own">
+      <div class="photo" data-part="photo" role="img" aria-label="Foto de Camila Duarte (espaço reservado)">
+        <span class="head"></span>
+        <span class="shoulders"></span>
+        <span class="scrim"></span>
+        <span class="tag text-body-sm-medium" data-part="tag">Paredão</span>
+      </div>
+      <div class="col">
+        <h3 class="name text-heading-3-bold" data-part="name">Camila Duarte</h3>
+        <div class="support" data-part="support">
+          <div class="facts" data-part="facts">
+            <p class="text-body-sm-medium">27 anos</p>
+            <p class="stalecas"><span class="num text-body-sm-medium">3.250</span><span class="text-footnote-medium">estalecas</span></p>
+          </div>
+          <ul class="emojis" data-part="emojis">
+            <li><span class="text-body-md-medium">🐍</span><span class="count text-body-sm-medium">12</span></li>
+            <li><span class="text-body-md-medium">💔</span><span class="count text-body-sm-medium">7</span></li>
+            <li><span class="text-body-md-medium">🌱</span><span class="count text-body-sm-medium">5</span></li>
+            <li><span class="text-body-md-medium">🎯</span><span class="count text-body-sm-medium">3</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"pad-y","label":"Respiro em cima e embaixo","type":"slider","var":"--pad-y","value":32,"base":32,"min":16,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-core-xl"},
+      {"id":"pad-right","label":"Respiro à direita","type":"slider","var":"--pad-right","value":32,"base":32,"min":8,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"}]},
+    {"name":"Foto","part":"photo","controls":[
+      {"id":"photo-w","label":"Largura da foto","type":"slider","var":"--photo-w","value":148,"base":148,"min":120,"max":180,"step":4,"unit":"px"},
+      {"id":"photo-ratio","label":"Proporção (largura/altura)","type":"slider","var":"--photo-ratio","value":0.5625,"base":0.5625,"min":0.45,"max":0.8,"step":0.01,"unit":""},
+      {"id":"photo-bg","label":"Fundo do espaço reservado","type":"color","var":"--photo-bg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+      {"id":"head-w","label":"Tamanho da cabeça","type":"slider","var":"--head-w","value":34,"base":34,"min":20,"max":50,"step":1,"unit":"%"}]},
+    {"name":"Tag","part":"tag","controls":[
+      {"id":"tag-left","label":"Distância da esquerda","type":"slider","var":"--tag-left","value":32,"base":32,"min":8,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-core-xl"},
+      {"id":"tag-bottom","label":"Distância de baixo","type":"slider","var":"--tag-bottom","value":32,"base":32,"min":8,"max":64,"step":4,"unit":"px","token":"--dimension-spacing-core-xl"},
+      {"id":"tag-pad-x","label":"Respiro horizontal","type":"slider","var":"--tag-pad-x","value":12,"base":12,"min":4,"max":20,"step":4,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"tag-pad-y","label":"Respiro vertical","type":"slider","var":"--tag-pad-y","value":4,"base":4,"min":0,"max":12,"step":4,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Nome","part":"name","controls":[
+      {"id":"col-gap","label":"Vão entre foto e coluna","type":"slider","var":"--col-gap","value":12,"base":12,"min":4,"max":24,"step":4,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"name-color","label":"Cor do nome","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Apoio","part":"support","controls":[
+      {"id":"name-support-gap","label":"Vão abaixo do nome","type":"slider","var":"--name-support-gap","value":16,"base":16,"min":0,"max":32,"step":4,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"support-gap","label":"Vão entre dados e emojis","type":"slider","var":"--support-gap","value":12,"base":12,"min":4,"max":24,"step":4,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"facts-gap","label":"Vão entre idade e estalecas","type":"slider","var":"--facts-gap","value":4,"base":4,"min":0,"max":12,"step":4,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"emoji-col-gap","label":"Vão entre emojis (coluna)","type":"slider","var":"--emoji-col-gap","value":12,"base":12,"min":4,"max":24,"step":4,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"emoji-row-gap","label":"Vão entre emojis (linha)","type":"slider","var":"--emoji-row-gap","value":8,"base":8,"min":0,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"item-gap","label":"Vão entre emoji e número","type":"slider","var":"--item-gap","value":4,"base":4,"min":0,"max":8,"step":4,"unit":"px","token":"--dimension-spacing-core-3xs"}]}]}
+  </script>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="repouso">
+  <!-- tese: a foto e o nome ainda ganham o primeiro olhar, e os emojis recebidos formam uma segunda massa de cor abaixo do nome, invertendo o vazio. -->
+  <p class="opt-label" data-part="label">Opção 4 - Emojis como segunda massa</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="photo" data-part="photo" data-stack>
+        <img src="assets/camila.png" alt="Foto de Camila Duarte (espaço reservado)">
+        <span class="tag text-body-sm-medium" data-part="tag">Paredão</span>
+        <div class="who" data-part="who">
+          <h2 class="name text-heading-3-bold" data-part="name">Camila Duarte</h2>
+        </div>
+      </div>
+      <p class="support text-body-sm-medium" data-part="support" style="margin:0"><span data-part="age">27 anos</span><span class="dot" aria-hidden="true"></span><span data-part="estalecas">3.250 estalecas</span></p>
+      <div class="emojis" data-part="emojis">
+        <div class="reaction" data-part="emoji-cobra"><span class="glyph text-heading-4-bold" role="img" aria-label="cobra">🐍</span><span class="count text-body-sm-bold">12</span></div>
+        <div class="reaction" data-part="emoji-coracao"><span class="glyph text-heading-4-bold" role="img" aria-label="coração partido">💔</span><span class="count text-body-sm-bold">7</span></div>
+        <div class="reaction" data-part="emoji-planta"><span class="glyph text-heading-4-bold" role="img" aria-label="muda de planta">🌱</span><span class="count text-body-sm-bold">5</span></div>
+        <div class="reaction" data-part="emoji-alvo"><span class="glyph text-heading-4-bold" role="img" aria-label="alvo">🎯</span><span class="count text-body-sm-bold">3</span></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">
+  {"states":["repouso"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"block-gap","label":"Vão entre grupos","type":"slider","var":"--block-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Foto","part":"photo","controls":[
+      {"id":"photo-h","label":"Altura da foto","type":"slider","var":"--photo-h","value":224,"base":224,"min":160,"max":300,"step":2,"unit":"px"},
+      {"id":"scrim-h","label":"Altura do scrim","type":"slider","var":"--scrim-h","value":60,"base":60,"min":30,"max":90,"step":1,"unit":"%"}]},
+    {"name":"Tag","part":"tag","controls":[
+      {"id":"tag-pad-x","label":"Respiro lateral","type":"slider","var":"--tag-pad-x","value":12,"base":12,"min":4,"max":20,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"tag-pad-y","label":"Respiro vertical","type":"slider","var":"--tag-pad-y","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Nome","part":"who","controls":[
+      {"id":"name-bottom","label":"Distância da base da foto","type":"slider","var":"--name-bottom","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Apoio","part":"support","controls":[
+      {"id":"support-gap","label":"Vão do ponto","type":"slider","var":"--support-gap","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"dot","label":"Tamanho do ponto","type":"slider","var":"--dot","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px"}]},
+    {"name":"Emojis","part":"emojis","controls":[
+      {"id":"emoji-col-gap","label":"Vão entre colunas","type":"slider","var":"--emoji-col-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"emoji-row-gap","label":"Vão entre linhas","type":"slider","var":"--emoji-row-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"emoji-pair-gap","label":"Vão emoji e contagem","type":"slider","var":"--emoji-pair-gap","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]}
+  ]}
+  </script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+
+</body>
+</html>

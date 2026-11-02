@@ -272,3 +272,40 @@ Shots of both rounds are in `tests/bbb-3-loop/shots/` (final options and `contac
 - The untracked `.codex/agents/proto-art-director.toml` in the user's checkout is the older critique ("the designer decides, do not ask the writers to redo"). This run did not use it. The art director was the PR-branch agent `.claude/agents/proto-art-director.md`, which does emit `Um ajuste` / `none: ready`.
 
 The page the explorers wrote also sits, uncommitted, at `docs/explorations/bbb-3-loop/` in the worktree. The saved round is this folder.
+
+## Round 8: BBB with a fresh interview (`bbb-4-entrevista`)
+
+Pending designer review.
+
+New interview on the updated `/explore` flow (packer accepts `nenhuma (só visual)`, stitch can `--update` a part, and `none: ready` does not close an option that still has a Critical or a Warning). The designer answered both rounds. Foco, literal: "photo and name (who it is)". Intenção, literal: "a mix between quick and objective and fun, reality-show energy". Controle: só visual. Two references: a "Walk done" pill on a photo, and tall gradient cards with a central graphic. Round 2 picked the status tag on the photo and the wide empty field around the centre, rejected the multicolour gradient and the opaque white pill, set the photo at about 60% of the card, and set the thread to photo and name in one glance. No discard criterion was given. The status on the tag is `Paredão`, marked `Suposição`, because the pedido does not name one.
+
+Who ran what. The art director's direction block was Claude Opus (`claude-opus-5-5`, session `2b86f0c3-193c-47e6-a9b2-9d4bdffd9e1d`). Explorers 1, 2 and 4 were Claude Sonnet (`claude-sonnet-5-5`). Explorer 3 wrote a part and then the 5-hour Claude limit hit (resets 7:40pm, São Paulo); that part failed layout and the tune spec. Codex (`gpt-6.1-sol`, `codex exec`) fixed options 2 and 3 before the stitch, and ran every critique and the first application. The second application, options 2, 3 and 4 only, was Grok 4.7: Codex had hit its own usage window until 4:38pm. Option 1 was not touched in that pass.
+
+Wall clock from the first explorer to the final shots was about 70 minutes, of which about 33 minutes was waiting for the Codex window. The critique loop, not counting that wait, was about 30 minutes. Two applications, then a closing critique that was not applied (the cap is 2).
+
+| | Before the loop | After application 1 | After application 2 (closing critique, not applied) |
+|---|---|---|---|
+| Checks | parts 2 and 3 failed until Codex fixed them; page then ok, one advisory on option 2's bleed | ok, same advisory | ok, same advisory |
+| Critical | 0 of 4 | 0 of 4 | 0 of 4 |
+| Highest judge level | Warning on all 4 | 1 Note; 2, 3, 4 Warning | 1 Note; 2, 3, 4 Warning |
+| Ready under the new gate | none | option 1 only (`none: ready` and no Warning) | option 1 only |
+| Closer to the gold set | 1, 2, 4 good; 3 crowded | 1, 2, 3, 4 good | 1, 2, 4 good; 3 crowded again |
+
+Moves. Application 1: option 1, support values from 14px to 16px (the first Warning, because `none: ready` did not close it); option 2, emojis and counts on one 14px line; option 3, support 16px under the name; option 4, age and estalecas off the photo. Application 2, Grok, options 2–4: option 2, 16px between name and data (the photo also shrank to 160px); option 3, 32px right inset (the photo shrank to 148px, 51% of the width); option 4, emoji glyphs from 28px to 24px. Still open, not applied: option 2, the tag "Paredão" sits on the shoulders at 3.27:1; option 3, the photo is 51% of the width, the column is 96px, and the tag is 53% of the photo; option 4, 32px between the name and the age/estalecas.
+
+### Against rounds 6 and 7
+
+| | round 6 | round 7 | round 8 |
+|---|---|---|---|
+| Critical | 0 of 4 | 0 of 4 | 0 of 4 |
+| A direction the designer confirmed | no | no | yes (tag, void, 60% photo, photo+name) |
+| Closed by the loop | no loop | all 4 said ready; the old gate ignored Warnings | only option 1 |
+| Estalecas with name and age | split on 2 and 3 | 1 and 4 together; 2 pushed apart; 3 split | 1 together under the name; 2 together on one line under the name; 3 stacked in a narrow column; 4 still 32px away from the name |
+| Looks clickable | option 4's filled cells | gone after the loop | no filled emoji cells; the tag is a translucent pill, not a white button |
+| Closer to the gold set | all 4, 4 at the limit | all 4 after the loop | 1, 2 and 4; 3 is the cramped one |
+
+Option 1 is the gain: photo, name, and a small "Paredão" tag, with age and estalecas on the line under the name, and the new gate actually closed it (Note only). It is the first card in this series with a designer-confirmed thread. Options 2 and 4 still read as posters, and 4 keeps a second emoji mass without boxes. Option 3 got worse than round 7's two-group card: the side column is too narrow, the photo missed 60% of the width, and the judge put it back with the crowded set. The second application did not finish the three open moves, and on option 2 it put the tag on the shoulders.
+
+### Bugs
+
+No flow bug blocked this run. The packer accepted `nenhuma (só visual)`. `--update 2,3,4` replaced only those options. The ready gate refused to close option 1 while it still had Warnings, then closed it once the Warning was gone. What did block the tools: the Claude 5-hour limit at the end of option 3, and the Codex usage window during the second application. Those are quota, not the flow. The page also sits uncommitted at `docs/explorations/bbb-4-entrevista/` in the worktree. The saved round is this folder.
