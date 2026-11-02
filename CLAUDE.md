@@ -1,5 +1,7 @@
 Background, not a plan to follow: docs/plan-AI-Orchestration.md records how the rules and contracts came about.
 
+Economia de tokens vem primeiro, em todo agente e modelo (Claude, Codex, Grok): leia só o necessário e uma vez, prefira o pacote ao documento inteiro, use o modelo mais barato que mantém a qualidade e não repita ciclos sem motivo.
+
 A linguagem visual (cor, gradientes, sombras, tipografia, imagens, respiro) está em `design-brain/rules/`, um tópico por arquivo. `design-brain/DESIGN.md` é o índice: quem desenha lê o índice e só os tópicos daquela tela, não a pasta inteira.
 
 Para escrever telas em web/protos/: siga web/protos/CLAUDE.md.
