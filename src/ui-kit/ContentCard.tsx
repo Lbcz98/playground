@@ -37,6 +37,12 @@
  * scrim (`CardScrim`) fades the picture into the card, the zones are anchored to
  * the bottom edge with the card's expanded inset (`card-inset-expanded`), and the title drops to 16 bold.
  * Focused, the ring and its light sit over the picture without darkening it.
+ *
+ * QR variant (the login page on staging, /ems/login/qr): give it a `qr` and the
+ * card hugs a centred column, an optional logo (`qrLogo`, 96 wide) over the code
+ * (132, corners of 16), then the zones. The header's title is the activation code
+ * at 28 bold, its subtitle the instruction and its `address` the site to type. The
+ * code keeps full strength at rest, so a phone can still read it.
  */
 
 import {
@@ -104,6 +110,13 @@ interface ContentCardProps {
    * list). Default `G`. Only with `image`.
    */
   imageSize?: 'P' | 'M' | 'G'
+  /**
+   * The QR code of the QR variant: its URL. Omitted or empty: the plain card. With a code the card centres its
+   * column and the header's title is the activation code. Ignored with `image`.
+   */
+  qr?: string
+  /** The logo above the QR code: its URL, drawn 96 wide. Omitted or empty: not drawn. Only with `qr`. */
+  qrLogo?: string
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -160,12 +173,13 @@ const IMAGE_SIZE_TOKEN = {
 const BODY_GAP_TOKEN = '--dimension-spacing-semantic-table-row-gap'
 
 /** Which page of rows the card is on, for its body. */
-const CardPage = createContext<{ page: number; rowsPerPage?: number; image?: boolean }>({ page: 0 })
+const CardPage = createContext<{ page: number; rowsPerPage?: number; image?: boolean; qr?: boolean }>({ page: 0 })
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 9 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
-export function ContentCard({ asLink = false, interactionState, height, gap, onClick, rowsPerPage, image, imageSize, children }: ContentCardProps): ReactNode {
+export function ContentCard({ asLink = false, interactionState, height, gap, onClick, rowsPerPage, image, imageSize, qr, qrLogo, children }: ContentCardProps): ReactNode {
   const state = (interactionState ?? 'default')
   const focus = state === 'focus'
+  const qrCode = image ? undefined : qr || undefined
   const [page, setPage] = useState(0)
   const card = useRef<HTMLDivElement>(null)
   const act = asLink
@@ -190,6 +204,7 @@ export function ContentCard({ asLink = false, interactionState, height, gap, onC
       data-sized={height === undefined ? undefined : ''}
       data-pressable={act ? '' : undefined}
       data-image={image ? (imageSize ?? 'G') : undefined}
+      data-qr={qrCode ? '' : undefined}
       // Omitted: hug the content, capped at the tallest card — what doesn't fit is
       // cut off by the body, where the render check sees it.
       style={vars({
@@ -206,8 +221,10 @@ export function ContentCard({ asLink = false, interactionState, height, gap, onC
         </div>
       ) : null}
       {focus ? <FocusRing shape="content-card" fill={!image} /> : <RestingBorder shape="content-card" width="card" />}
-      <CardPage.Provider value={{ page, rowsPerPage: asLink ? undefined : rowsPerPage, image: Boolean(image) }}>
+      <CardPage.Provider value={{ page, rowsPerPage: asLink ? undefined : rowsPerPage, image: Boolean(image), qr: Boolean(qrCode) }}>
         <div className="sfs-content-card-zones" style={vars({ '--_gap': gap === undefined ? spacing('sm') : `${gap}px` })}>
+          {qrCode && qrLogo ? <img className="sfs-content-card-qr-logo" src={qrLogo} alt="" draggable={false} /> : null}
+          {qrCode ? <img className="sfs-content-card-qr" src={qrCode} alt="QR Code" draggable={false} /> : null}
           {children}
         </div>
       </CardPage.Provider>
@@ -240,6 +257,8 @@ interface ContentCardHeaderProps {
   title?: string
   /** Small line under the title. Omitted or empty: not drawn. */
   subtitle?: string
+  /** A site the viewer types, in bold on its own line under the subtitle. Omitted or empty: not drawn. */
+  address?: string
   /** A badge beside the title and subtitle — a flag, a crest, a channel mark. */
   icon?: ReactNode
   /** Two sides facing each other, instead of a title. */
@@ -284,14 +303,16 @@ export function ContentCardHeader({
   overline,
   title,
   subtitle,
+  address,
   icon,
   match,
   stats,
   partner,
   ad,
 }: ContentCardHeaderProps): ReactNode {
-  // On the image variant the title is 16 bold and the subtitle is the description.
-  const { image } = useContext(CardPage)
+  // On the image variant the title is 16 bold and the subtitle is the description;
+  // on the QR variant the title is the activation code, the card's anchor, at 28 bold.
+  const { image, qr } = useContext(CardPage)
   const text = (
     <div className="sfs-content-card-text">
       {overline ? (
@@ -300,7 +321,7 @@ export function ContentCardHeader({
         </Text>
       ) : null}
       {title ? (
-        <Text as="span" variant={image ? 'body-md-bold' : 'body-lg-bold'}>
+        <Text as="span" variant={image ? 'body-md-bold' : qr ? 'heading-3-bold' : 'body-lg-bold'}>
           {title}
         </Text>
       ) : null}
@@ -323,6 +344,11 @@ export function ContentCardHeader({
             </div>
           ) : null}
         </div>
+      ) : null}
+      {address ? (
+        <Text as="span" variant="body-sm-bold">
+          {address}
+        </Text>
       ) : null}
     </div>
   )
@@ -356,7 +382,7 @@ export function ContentCardHeader({
         </div>
       ) : null}
 
-      {overline || title || subtitle || stats?.length || icon ? (
+      {overline || title || subtitle || address || stats?.length || icon ? (
         <div className="sfs-content-card-heading">
           {icon ? <span className="sfs-content-card-badge">{icon}</span> : null}
           {text}

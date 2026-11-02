@@ -205,6 +205,16 @@ export const RULES = [
     source: 'flow.ts',
   },
   {
+    id: 'flow.rail-preview',
+    title: 'Second-level hint',
+    statement:
+      'On Home (level 1) each focused menu button shows its rail above the menu as a hint of the second level: smaller and dimmed, the menu still on screen, the focus on the button. The rail only takes the focus at level 2.',
+    flexibility: 'convention',
+    category: 'flow',
+    source: 'flow.ts',
+    appliesTo: ['MainMenu'],
+  },
+  {
     id: 'flow.link-roles',
     title: 'Link roles',
     statement:

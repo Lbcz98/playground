@@ -245,6 +245,10 @@ export const contentCardSchema = z
     image: z.string().default(''),
     /** How tall the picture is: G 320, M 264, P 176. Only with `image`. */
     imageSize: z.enum(['P', 'M', 'G']).default('G'),
+    /** The QR code of the QR variant (its URL). Empty: the plain card. Ignored with `image`. */
+    qr: z.string().default(''),
+    /** The logo above the QR code (its URL). Only with `qr`. */
+    qrLogo: z.string().default(''),
   })
   .strict()
 
@@ -254,6 +258,8 @@ export const contentCardHeaderSchema = z
     /** Empty: not drawn — a header may be only a match, a partner or an ad tag. */
     title: z.string().default(''),
     subtitle: z.string().default(''),
+    /** A site the viewer types, in bold on its own line under the subtitle. */
+    address: z.string().default(''),
     /** A match: the two sides' short names, facing each other. Drawn only when both are set. */
     homeTeam: z.string().default(''),
     awayTeam: z.string().default(''),
@@ -539,7 +545,7 @@ export const Catalog = {
     label: 'Content Card',
     category: 'content',
     summary:
-      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. With an image it is the image variant: 380 tall, the picture across the top in step G, M or P (320, 264, 176) under the card scrim, and the zones anchored to the bottom; the Header's title and subtitle are the title and the description, and a Body holds bullets. Pick the step by the text: G for a one-line title and one line of description, M for a two-line title with up to two lines or five bullets, P for a long list.`,
+      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. With an image it is the image variant: 380 tall, the picture across the top in step G, M or P (320, 264, 176) under the card scrim, and the zones anchored to the bottom; the Header's title and subtitle are the title and the description, and a Body holds bullets. Pick the step by the text: G for a one-line title and one line of description, M for a two-line title with up to two lines or five bullets, P for a long list. With a qr it is the QR variant: a centred column that hugs an optional logo (qrLogo), the 132 code at full strength in every state, and the zones; the Header's title is the activation code at 28 bold, its subtitle the instruction and its address the site to type.`,
     acceptsChildren: true,
     slots: CONTENT_CARD_ZONES,
     schema: contentCardSchema,
@@ -557,6 +563,8 @@ export const Catalog = {
       rowsPerPage: { kind: 'number', label: 'Rows per page', min: 1, max: CARD_ROWS_MAX, step: 1 },
       image: { kind: 'text', label: 'Image URL' },
       imageSize: { kind: 'select', label: 'Image size', options: ['G', 'M', 'P'] },
+      qr: { kind: 'text', label: 'QR code URL' },
+      qrLogo: { kind: 'text', label: 'QR logo URL' },
     },
   },
   ContentCardHeader: {
@@ -573,6 +581,7 @@ export const Catalog = {
       overline: { kind: 'text', label: 'Overline' },
       title: { kind: 'text', label: 'Title' },
       subtitle: { kind: 'text', label: 'Subtitle' },
+      address: { kind: 'text', label: 'Address' },
       homeTeam: { kind: 'text', label: 'Home team' },
       awayTeam: { kind: 'text', label: 'Away team' },
       stat1: { kind: 'text', label: 'Column 1 heading' },

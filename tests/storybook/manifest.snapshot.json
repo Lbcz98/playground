@@ -1062,6 +1062,18 @@
           "required": false,
           "description": "Makes the whole card one button (Enter / Space too). The card is the only\ninteractive surface: nothing inside it may be a `<button>` or `<a>`."
         },
+        "qr": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The QR code of the QR variant: its URL. Omitted or empty: the plain card. With a code the card centres its\ncolumn and the header's title is the activation code. Ignored with `image`."
+        },
+        "qrLogo": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The logo above the QR code: its URL, drawn 96 wide. Omitted or empty: not drawn. Only with `qr`."
+        },
         "rowsPerPage": {
           "type": "number",
           "kind": "number",
@@ -1084,6 +1096,8 @@
         "ui-kit-content-card--imagem-m",
         "ui-kit-content-card--imagem-p",
         "ui-kit-content-card--opt-outs",
+        "ui-kit-content-card--qr-code",
+        "ui-kit-content-card--qr-code-em-repouso",
         "ui-kit-content-card--sports-table",
         "ui-kit-content-card--tabela-de-campeonato",
         "ui-kit-content-card--tabela-de-grupos"
@@ -1140,6 +1154,12 @@
               "kind": "object",
               "required": false,
               "description": "An advertising tag over a rule: its wording, and the advertiser's mark."
+            },
+            "address": {
+              "type": "string",
+              "kind": "string",
+              "required": false,
+              "description": "A site the viewer types, in bold on its own line under the subtitle. Omitted or empty: not drawn."
             },
             "icon": {
               "type": "ReactNode",
@@ -1245,6 +1265,12 @@
           "required": false,
           "description": "Small line above the title (schedule section only)."
         },
+        "posterSrc": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The programme's art (schedule section only): it fills the card and dissolves in under focus, with the scrim behind the text."
+        },
         "subtitle": {
           "type": "string",
           "kind": "string",
@@ -1269,6 +1295,8 @@
         "ui-kit-interactivity-button--all-states",
         "ui-kit-interactivity-button--default",
         "ui-kit-interactivity-button--focus",
+        "ui-kit-interactivity-button--poster",
+        "ui-kit-interactivity-button--poster-all-states",
         "ui-kit-interactivity-button--selected",
         "ui-kit-interactivity-button--sponsored",
         "ui-kit-interactivity-button--with-check"

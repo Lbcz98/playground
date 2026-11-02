@@ -95,7 +95,7 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 
 | CSS variable | Value |
 | --- | --- |
-| `--dimension-radius-semantic-card` | 24px |
+| `--dimension-radius-semantic-card` | 40px |
 | `--dimension-radius-semantic-pill` | 100px |
 | `--dimension-radius-semantic-card-expanded` | 40px |
 | `--dimension-radius-semantic-content-card` | 40px |
@@ -110,11 +110,13 @@ For `docs/explorations/<slug>/index.html`, written as plain HTML with `var(--nam
 | `--dimension-size-semantic-card-expanded-height` | 160px |
 | `--dimension-size-semantic-card-expanded-width` | 208px |
 | `--dimension-size-semantic-channel-bug` | 64px |
+| `--dimension-size-semantic-content-card-qr` | 132px |
 | `--dimension-size-semantic-content-card-width` | 288px |
 | `--dimension-size-semantic-content-card-image-p` | 176px |
 | `--dimension-size-semantic-content-card-image-m` | 264px |
 | `--dimension-size-semantic-content-card-image-g` | 320px |
 | `--dimension-size-semantic-content-card-image-height` | 380px |
+| `--dimension-size-semantic-content-card-qr-logo` | 96px |
 | `--dimension-size-semantic-control-height` | 40px |
 | `--dimension-size-semantic-control-height-lg` | 48px |
 | `--dimension-size-semantic-focus-glow` | 70% |

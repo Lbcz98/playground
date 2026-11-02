@@ -61,7 +61,7 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
   },
   InteractivityButton: {
     component: 'ui-kit-interactivity-button',
-    codeOnly: { thumbnail: 'asset-slot', as: 'link-surface' },
+    codeOnly: { thumbnail: 'asset-slot', posterSrc: 'asset-slot', as: 'link-surface' },
     // The sponsor's wording; its logo is an image slot the agent can't fill.
     propMap: { advertisingLabel: ['advertising'] },
     defaultOverrides: { interactionState: RESTS },

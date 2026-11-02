@@ -38,6 +38,8 @@ export interface InteractivityButtonProps {
   advertising?: { label: string; logoSrc?: string }
   /** Fills the thumbnail slot. */
   thumbnail?: ReactNode
+  /** The programme's art (schedule section only): it fills the card and dissolves in under focus, with the scrim behind the text. */
+  posterSrc?: string
   onClick?: () => void
 }
 
@@ -54,6 +56,7 @@ export function InteractivityButton({
   check = false,
   advertising,
   thumbnail,
+  posterSrc,
   onClick,
 }: InteractivityButtonProps): ReactNode {
   const state = interactionState ?? 'focus'
@@ -71,8 +74,15 @@ export function InteractivityButton({
       // A Card keeps one inset in every state (DESIGN.md 7.3): focused or selected it grows, the inset does not.
       style={vars({ '--_inset': token('--dimension-spacing-semantic-card-inset') })}
     >
+      {posterSrc ? (
+        // Under the ring, as on the Content Card. A span: `CardScrim` is a div, and this sits inside a button.
+        <span className="sfs-interactivity-button-poster">
+          <img src={posterSrc} alt="" draggable={false} />
+          <span aria-hidden className="sfs-card-scrim" />
+        </span>
+      ) : null}
       {state === 'focus' ? (
-        <FocusRing shape="card-expanded" />
+        <FocusRing shape="card-expanded" fill={!posterSrc} />
       ) : (
         <>
           <span className="sfs-interactivity-button-fill" />

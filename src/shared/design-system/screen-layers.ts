@@ -56,7 +56,7 @@ export const DTV_SCREEN_LAYERS: ManifestScreenLayers = {
       level: 1,
       name: 'Home',
       rootColumn: true,
-      rule: 'The first navigation level, right after login: the main menu and the content rail. Everything on screen is reachable, and the channel logo leads back to the clean broadcast.',
+      rule: 'The first navigation level, right after login: the main menu and the content rail. Everything on screen is reachable, and the channel logo leads back to the clean broadcast. Each focused menu button reveals its rail above it as a hint of the second level: smaller and dimmed, with the menu still on screen, until the viewer moves up into it.',
       maxModules: null,
       allowsAnchor: true,
       initialFocus: {

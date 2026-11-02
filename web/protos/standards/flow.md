@@ -28,6 +28,6 @@ export default {
 - Sem wrap: do último item de uma linha, `left`/`right` não faz nada; não declare transição do último para o primeiro. Seta sem transição não faz nada.
 - Voltar na Home tem dois passos: de um item da barra vai para o bug (`back` explícito); do bug esconde o app (`hidden`, nível 0). Em `hidden` qualquer seta volta ao `start`.
 - Voltar automático volta ao estado anterior exato: da interatividade 3 reabre a trilha com o cartão que a abriu focado.
-- Um estado Home por item focado da barra (o foco revela a trilha acima dele). O foco inicial da Home é o bug (`start`).
+- Um estado Home por item focado da barra (o foco revela a trilha acima dele). Essa trilha é só a dica do nível 2: menor e esmaecida, com o menu ainda na tela e o foco no botão; ela só recebe o foco quando o espectador sobe (`up`). O foco inicial da Home é o bug (`start`).
 - Lado da trilha: persistentes à esquerda, programa/contextual à direita; o botão Voltar do nível 3 fica do mesmo lado.
 - Um destino por tecla e estado; todo estado é alcançável a partir de `start`.

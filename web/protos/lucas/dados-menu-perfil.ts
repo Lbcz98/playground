@@ -1,3 +1,4 @@
+import { POSTERS } from './dados-grade-posters'
 /** Dados do protótipo menu-perfil. A grade foi lida de https://redeglobo.globo.com/rio/programacao/ em 30/10/2026, às 11:25 (o site monta a grade no navegador, então é uma leitura pontual, não ao vivo); o programa no ar e o seguinte saem do relógio. */
 
 /** Playlist HLS da TV Globo Rio, passada pelo designer. O token (`exp` 1793391775, 30/10/2026 ~17h20) expira: cole outro URL aqui quando parar de tocar. */
@@ -46,3 +47,14 @@ export function programaAgora(agora: Date = new Date()): { noAr: string; seguint
 
 /** Ícone de perfil dentro do avatar do Login (opção 11 do estudo de motion). */
 export const ICONE_PERFIL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAACXBIWXMAABCcAAAQnAEmzTo0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAABBRJREFUeAHNWDtSG0EQbUmuAjL5BF5OYHECVkURI05gKXOGlPBLWBJ+ifAJJE6AyKHY0JnlE7CcABFBUQXya7ln3Tua/UgmoKsWzQ79edPT092zRB+MSjQnHR8fe+PxuFapVLy3t7cqz5XL5dHr62tUKpWGe3t7Ec1BMwECCB/GNjBs4PFy2CM8IUAfzgKuECD2BoD0MPRpPuoXBZYL6OzsbAtbcj4lWCqNYGSIYYTfe5muYv4rnhrmqg6ZYGdn55DmARQEQXVxcfGSpr1itiGkDOLtxU8TIL5ZoAZPT08t6B9RUUAC5hbD2qxAHMB4u1mXp6aHz8/PdReoTy4lS0tLPT5B5l2ABDQHSdwsA1gAYAcyXRPv123+ij1xenp6AADf3wOMppubm3BtbQ2YSr5Meevr64/X19c/NV9iy8S9d0XACO8WJVMAB/kw60RZnmIby5q3nECnGEFRGhg+eQK8TcnY4G3mQL5jT7tkRWeobPb0/8sKucfKFPK6SyEbcqUBmyAfpIFiD6pXX05kEpDlnb7L5RBssiE1xSevjhPzeXd3t8RjLhsa1NHRUcPWIyc1VFMxjz5lvlJ0QQ6y9v4CipsOQysA3jf5B/Wti5+BrYu9ZAJcylF7wk8Ub5cn/xy5co241ZPXCE9AKYQj3WY98urpLdHgLR4vBoRV6JwzdBnRPKAwqy51Op0R4uwqRZZctgyPiSFPMf12CZsWQ3juKZ8il6wFSOvxYkCWgLPGcK9jxnD1F8ohzaNlKQd0mQoSBIbKWIPrXRqvxIPvks0jE0O5q5dAj3jMrQUCt5umVE6jJ69RWkEGX7wog8Ec+0jxeZRuqAMwl/LaROKrYfUdNsgeW1hYqAkY38hYSdCmr2ocTYDxH2s7amnSaK4G2gB3BNxanJycjOGxB2kzfA0GYPuUvsDYlsEwASRHOBIlVVfeMISm/oEKEOeYjGCe5DXVVUYmjehMzXljS5Sx20OtwHSQWIlPBUiMdeG9DZSWTbsZszrJ0AzKSoFO74mCpzpIX/FEElPLXMf4gUdW8N6iZEz6LKtPpaOQx2EQe4gDE6sJjVHtJXSQB1YH+QP8bbJoe3t70g/h6dsdIuvAb0d03yqxRCHPbND4loDnCtv0S6+maAfpaMbq8OKq7hjsBm2qyUe70JYKbUCNVPD1sTUtmoGQGi4h33Doci5uKlPv7++fkwoyWwHNSJynXLr4OuTytLN0IMFt6kZLFKQe4RzyHLJDvpu5mFMvit1ut/ry8tIz7lbUl+YspAyS7wCJrC0UutJALiClOLDa27+C/67SfMt4lDmug17GVbqDbH+eZa/wxwb8BPa1eAbi3rv1Lh8bNClgq1TgcwxAcPYfzHL9/q8PVtJ2Jj5YMRAulPN+sPpw9Acey2wUYFz1RgAAAABJRU5ErkJggg=='
+
+/** Os programas do rail de Schedule: o que está no ar e os quatro seguintes, com hora de início e pôster quando o site traz um. */
+export function programasDoRail(agora: Date = new Date()): ReadonlyArray<{ hora: string; nome: string; poster?: string; aoVivo: boolean }> {
+  const hhmm = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
+  const proximo = GRADE.findIndex(([inicio]) => inicio > hhmm)
+  const atual = (proximo === -1 ? GRADE.length : proximo) - 1
+  return [0, 1, 2, 3, 4].map((passo) => {
+    const [hora, nome] = GRADE[(((atual < 0 ? GRADE.length - 1 : atual) + passo) % GRADE.length)]
+    return { hora, nome, poster: POSTERS[hora], aoVivo: passo === 0 }
+  })
+}
