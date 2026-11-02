@@ -1,0 +1,2822 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Motion do botão de perfil</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --avatar-size: var(--dimension-size-semantic-avatar);
+  --avatar-bg: var(--color-semantic-functional-background-elevated);
+  --wave-color: var(--color-semantic-functional-text-primary);
+  --wave-width: var(--dimension-border-width-core-thin);
+  --wave-reach: 1.45;
+  --wave-peak: 0.55;
+  --wave-stagger: 320ms;
+  --wave-pause: 7000ms;
+  --wave-dur: 1200ms;
+  --wave-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Compat: Chrome 68 / Safari 16. No inset, no flex gap, -webkit-mask with xor, motion in CSS only. */
+[data-option="1"] .o1-stage {
+  display: -webkit-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+[data-option="1"] .o1-btn {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="1"] .o1-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Resting border of the round control (kit RestingBorder), old mask syntax first. */
+[data-option="1"] .o1-circle::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="1"] .o1-avatar {
+  display: block;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--avatar-bg);
+}
+
+/* The waves: two thin rings born on the avatar's circle, growing outward and fading. */
+[data-option="1"] .o1-waves {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+}
+[data-option="1"] .o1-wave {
+  position: absolute;
+  display: block;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  margin-top: calc(var(--dimension-size-semantic-round-button-circle) / -2);
+  margin-left: calc(var(--dimension-size-semantic-round-button-circle) / -2);
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--wave-width) solid var(--wave-color);
+  opacity: 0;
+  -webkit-transform: scale(1);
+  transform: scale(1);
+  will-change: transform, opacity;
+}
+/* Idle loop, CSS only: the gesture fills the first 15% of each period, the rest is silence. */
+[data-option="1"][data-state="ocioso"] .o1-wave {
+  -webkit-animation: o1-loop calc(var(--wave-dur) + var(--wave-pause)) var(--wave-ease) 600ms infinite both;
+  animation: o1-loop calc(var(--wave-dur) + var(--wave-pause)) var(--wave-ease) 600ms infinite both;
+}
+[data-option="1"][data-state="ocioso"] .o1-wave + .o1-wave {
+  -webkit-animation-delay: calc(600ms + var(--wave-stagger));
+  animation-delay: calc(600ms + var(--wave-stagger));
+}
+/* Repouso: the reference, no idle loop (Tocar efeito still plays once). */
+[data-option="1"][data-state="repouso"] .o1-wave { opacity: 0; }
+/* Tocar efeito: one pass, replaces the loop while the class is on (JS only toggles it). */
+[data-option="1"] .o1-waves.o1-once .o1-wave {
+  -webkit-animation: o1-once var(--wave-dur) var(--wave-ease) 0ms 1 both;
+  animation: o1-once var(--wave-dur) var(--wave-ease) 0ms 1 both;
+}
+[data-option="1"] .o1-waves.o1-once .o1-wave + .o1-wave {
+  -webkit-animation-delay: var(--wave-stagger);
+  animation-delay: var(--wave-stagger);
+}
+@-webkit-keyframes o1-loop {
+  0% { opacity: var(--wave-peak); -webkit-transform: scale(1); }
+  15% { opacity: 0; -webkit-transform: scale(var(--wave-reach)); }
+  100% { opacity: 0; -webkit-transform: scale(var(--wave-reach)); }
+}
+@keyframes o1-loop {
+  0% { opacity: var(--wave-peak); transform: scale(1); }
+  15% { opacity: 0; transform: scale(var(--wave-reach)); }
+  100% { opacity: 0; transform: scale(var(--wave-reach)); }
+}
+@-webkit-keyframes o1-once {
+  0% { opacity: var(--wave-peak); -webkit-transform: scale(1); }
+  100% { opacity: 0; -webkit-transform: scale(var(--wave-reach)); }
+}
+@keyframes o1-once {
+  0% { opacity: var(--wave-peak); transform: scale(1); }
+  100% { opacity: 0; transform: scale(var(--wave-reach)); }
+}
+@keyframes o1-fade {
+  0% { opacity: 0; }
+  6% { opacity: var(--wave-peak); }
+  15% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"][data-state="ocioso"] .o1-wave { animation-name: o1-fade; }
+}
+
+/* CTA "Tocar efeito": analysis control, identical in the 4 options (only the prefix changes). */
+[data-option="1"] .o1-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="1"] .o1-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="1"] .o1-play:hover,
+[data-option="1"] .o1-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-play:active,
+[data-option="1"] .o1-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="2"] {
+  --o2-band-w: 32;
+  --o2-band-tilt: 20;
+  --o2-band-opacity: 0.5;
+  --o2-band-soft: 6px;
+  --o2-avatar: var(--dimension-size-semantic-avatar);
+  --o2-cycle-dur: 8500ms;
+  --o2-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-. */
+[data-option="2"] .o2-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="2"] .o2-btn {
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="2"] .o2-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  /* recorte garantido no Safari: clip-path + camada própria */
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  isolation: isolate;
+}
+[data-option="2"] .o2-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 2;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="2"] .o2-avatar {
+  display: block; width: var(--o2-avatar); height: var(--o2-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="2"] .o2-band {
+  position: absolute; display: block; z-index: 1;
+  top: -30%; left: 0;
+  width: calc(var(--o2-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o2-band-soft));
+  filter: blur(var(--o2-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o2-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o2-band-tilt) * 1deg));
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+/* Um ciclo = passe (~18%, ~1,5 s) + pausa longa (~82%, ~7 s). Só CSS. */
+[data-option="2"][data-state="ocioso"] .o2-band.o2-run {
+  -webkit-animation: o2-sweep var(--o2-cycle-dur) var(--o2-cycle-ease) 600ms infinite both;
+  animation: o2-sweep var(--o2-cycle-dur) var(--o2-cycle-ease) 600ms infinite both;
+}
+[data-option="2"][data-state="ocioso"] .o2-band.o2-now { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+@-webkit-keyframes o2-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o2-band-opacity); }
+  14%  { opacity: var(--o2-band-opacity); }
+  18%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+}
+@keyframes o2-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o2-band-opacity); }
+  14%  { opacity: var(--o2-band-opacity); }
+  18%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o2-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o2-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o2-band-opacity); } }
+@keyframes o2-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o2-band-opacity); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="2"][data-state="ocioso"] .o2-band.o2-run {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o2-band-tilt) * 1deg));
+    transform: rotate(calc(var(--o2-band-tilt) * 1deg));
+    -webkit-animation-name: o2-glint; animation-name: o2-glint;
+  }
+}
+/* CTA de análise "Tocar efeito" (padrão das 4 opções; não faz parte do componente) */
+[data-option="2"] .o2-play {
+  position: relative; display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="2"] .o2-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="2"] .o2-play:hover,
+[data-option="2"] .o2-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"] .o2-play:active,
+[data-option="2"] .o2-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="3"] {
+  --halo-color: var(--color-semantic-functional-text-primary);
+  --halo-peak: 0.35;
+  --halo-blur: 10px;
+  --halo-size: 72px;
+  --cycle: 8500ms;
+  --ease: cubic-bezier(0.45, 0, 0.55, 1);
+}
+/* /tune:vars */
+
+/* Chrome 68 / Safari 16: no flex gap, no inset, mask only -webkit- */
+[data-option="3"] .stage {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  flex-direction: column;
+  -webkit-box-align: center;
+  align-items: center;
+}
+[data-option="3"] .btn {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="3"] .circle {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* the kit's resting border */
+[data-option="3"] .circle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+[data-option="3"] .avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+/* the breathing halo: light behind the avatar circle, only opacity animates */
+[data-option="3"] .halo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--halo-size);
+  height: var(--halo-size);
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--halo-color);
+  -webkit-filter: blur(var(--halo-blur));
+  filter: blur(var(--halo-blur));
+  opacity: var(--opacity-semantic-hidden);
+  pointer-events: none;
+}
+[data-option="3"][data-state="ocioso"] .halo,
+[data-option="3"][data-state="cta-hover"] .halo,
+[data-option="3"][data-state="cta-pressed"] .halo {
+  -webkit-animation: o3-breathe var(--cycle) var(--ease) infinite;
+  animation: o3-breathe var(--cycle) var(--ease) infinite;
+}
+[data-option="3"][data-state="tocando"] .halo {
+  -webkit-animation: o3-once calc(var(--cycle) * 0.18) var(--ease) 1;
+  animation: o3-once calc(var(--cycle) * 0.18) var(--ease) 1;
+}
+@keyframes o3-breathe {
+  0% { opacity: 0; }
+  9% { opacity: var(--halo-peak); }
+  18% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes o3-once {
+  0% { opacity: 0; }
+  50% { opacity: var(--halo-peak); }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .halo { -webkit-animation: none !important; animation: none !important; opacity: calc(var(--halo-peak) / 2); }
+}
+
+/* CTA "Tocar efeito": analysis control for the designer, identical in the 4 options */
+[data-option="3"] .o3-play {
+  position: relative;
+  display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: 0;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: var(--typography-font-family-primary);
+  font-size: var(--typography-font-size-md);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-appearance: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="3"] .o3-play::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: linear-gradient(var(--color-semantic-functional-border-default), var(--color-semantic-functional-border-default));
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+[data-option="3"] .o3-play:hover,
+[data-option="3"] .o3-play[data-cta="hover"],
+[data-option="3"][data-state="cta-hover"] .o3-play {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .o3-play:active,
+[data-option="3"] .o3-play[data-cta="pressed"],
+[data-option="3"][data-state="cta-pressed"] .o3-play {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="4"] {
+  --arc-color: var(--color-semantic-functional-text-primary);
+  --arc-width: var(--dimension-border-width-core-thin);
+  --arc-peak: 0.9;
+  --arc-start: -45deg;
+  --dur: 1500ms;
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+}
+/* /tune:vars */
+
+/* Chrome 68 / Safari 16: no flex gap, no inset, no unprefixed mask, no conic-gradient. */
+[data-option="4"] .opt-content { -webkit-flex-direction: column; flex-direction: column; }
+[data-option="4"] .shell {
+  position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button); height: var(--dimension-size-semantic-round-button);
+}
+[data-option="4"] .circle {
+  position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle); height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* The kit's resting outline: 1px diagonal light gradient, cut to a ring with the prefixed mask. */
+[data-option="4"] .circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+[data-option="4"] .avatar {
+  display: block; width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+
+/* The arc: a ring of transparent border with one coloured side (a quarter turn), rotated one lap, faded by opacity. */
+[data-option="4"] .arc {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: block;
+  box-sizing: border-box; border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--arc-width) solid transparent;
+  border-top-color: var(--arc-color);
+  opacity: 0; -webkit-transform: rotate(var(--arc-start)); transform: rotate(var(--arc-start));
+  pointer-events: none;
+}
+/* the lap is the first 18% of the loop: about 1.5 s of motion, 7 s of silence */
+[data-option="4"][data-state="ocioso"] .arc { -webkit-animation: o4-orbit calc(var(--dur) / 0.18) var(--ease) infinite; animation: o4-orbit calc(var(--dur) / 0.18) var(--ease) infinite; }
+[data-option="4"][data-state="repouso"] .arc { -webkit-animation: none; animation: none; opacity: 0; }
+/* Analysis only: one lap on demand, then the loop resumes. */
+[data-option="4"][data-play] .arc { -webkit-animation: o4-once var(--dur) var(--ease) 1; animation: o4-once var(--dur) var(--ease) 1; }
+@keyframes o4-orbit {
+  0% { opacity: 0; transform: rotate(var(--arc-start)); }
+  4% { opacity: var(--arc-peak); }
+  14% { opacity: var(--arc-peak); }
+  18% { opacity: 0; transform: rotate(calc(var(--arc-start) + 360deg)); }
+  100% { opacity: 0; transform: rotate(calc(var(--arc-start) + 360deg)); }
+}
+@keyframes o4-once {
+  0% { opacity: 0; transform: rotate(var(--arc-start)); }
+  22% { opacity: var(--arc-peak); }
+  78% { opacity: var(--arc-peak); }
+  100% { opacity: 0; transform: rotate(calc(var(--arc-start) + 360deg)); }
+}
+@keyframes o4-glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: var(--arc-peak); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="4"][data-state="ocioso"] .arc,
+  [data-option="4"][data-play] .arc { -webkit-animation-name: o4-glow; animation-name: o4-glow; transform: rotate(var(--arc-start)); }
+}
+
+/* CTA "Tocar efeito": the page's analysis control, the same in all 4 options. */
+[data-option="4"] .o4-play {
+  position: relative; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  cursor: pointer; -webkit-user-select: none; user-select: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="4"] .o4-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+[data-option="4"] .o4-play:focus { outline: none; }
+[data-option="4"] .o4-play:hover,
+[data-option="4"] .o4-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="4"] .o4-play:active,
+[data-option="4"] .o4-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="5"] {
+  --o5-band-w: 32;
+  --o5-band-tilt: 20;
+  --o5-band-opacity: 0.5;
+  --o5-band-soft: 4px;
+  --o5-rim: var(--dimension-spacing-core-2xs);
+  --o5-avatar: var(--dimension-size-semantic-avatar);
+  --o5-cycle-dur: 8500ms;
+  --o5-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-. */
+[data-option="5"] .o5-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="5"] .o5-btn {
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="5"] .o5-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+[data-option="5"] .o5-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa circular atrás do avatar: recorta a faixa; o avatar opaco por cima deixa a luz só no aro de fora. */
+[data-option="5"] .o5-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o5-avatar) + var(--o5-rim) * 2);
+  height: calc(var(--o5-avatar) + var(--o5-rim) * 2);
+  margin-top: calc(var(--o5-avatar) / -2 - var(--o5-rim));
+  margin-left: calc(var(--o5-avatar) / -2 - var(--o5-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="5"] .o5-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o5-avatar); height: var(--o5-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="5"] .o5-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o5-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o5-band-soft));
+  filter: blur(var(--o5-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o5-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o5-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* Um ciclo = passe (~18%, ~1,5 s) + pausa longa (~82%, ~7 s). Só CSS. */
+[data-option="5"][data-state="ocioso"] .o5-band.o5-run {
+  -webkit-animation: o5-sweep var(--o5-cycle-dur) var(--o5-cycle-ease) 600ms infinite both;
+  animation: o5-sweep var(--o5-cycle-dur) var(--o5-cycle-ease) 600ms infinite both;
+}
+[data-option="5"][data-state="ocioso"] .o5-band.o5-now { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+@-webkit-keyframes o5-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o5-band-opacity); }
+  14%  { opacity: var(--o5-band-opacity); }
+  18%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+}
+@keyframes o5-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o5-band-opacity); }
+  14%  { opacity: var(--o5-band-opacity); }
+  18%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o5-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o5-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o5-band-opacity); } }
+@keyframes o5-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o5-band-opacity); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"][data-state="ocioso"] .o5-band.o5-run {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o5-band-tilt) * 1deg));
+    transform: rotate(calc(var(--o5-band-tilt) * 1deg));
+    -webkit-animation-name: o5-glint; animation-name: o5-glint;
+  }
+}
+/* CTA de análise "Tocar efeito" (idêntico à opção 2; não faz parte do componente) */
+[data-option="5"] .o5-play {
+  position: relative; display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="5"] .o5-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="5"] .o5-play:hover,
+[data-option="5"] .o5-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="5"] .o5-play:active,
+[data-option="5"] .o5-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="6"] {
+  --o6-halo-grow: 1.7;
+  --o6-halo-opacity: 0.6;
+  --o6-halo-soft: 2px;
+  --o6-avatar: var(--dimension-size-semantic-avatar);
+  --o6-cycle-dur: 8500ms;
+  --o6-cycle-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-. */
+[data-option="6"] .o6-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="6"] .o6-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+/* Halo: atrás do círculo; cresce de dentro para fora e atravessa o contorno. */
+[data-option="6"] .o6-halo {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  margin: calc(var(--dimension-size-semantic-round-button-circle) / -2) 0 0 calc(var(--dimension-size-semantic-round-button-circle) / -2);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-image:
+    linear-gradient(120deg, transparent 38%, var(--color-opacity-light-70) 50%, transparent 62%),
+    radial-gradient(circle at 50% 50%, transparent 44%, var(--color-opacity-light-50) 60%, transparent 71%);
+  background-size: 300% 300%, 100% 100%;
+  background-position: 100% 100%, 50% 50%;
+  background-repeat: no-repeat;
+  -webkit-filter: blur(var(--o6-halo-soft));
+  filter: blur(var(--o6-halo-soft));
+  opacity: 0;
+  -webkit-transform: scale(0.7);
+  transform: scale(0.7);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+[data-option="6"] .o6-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  z-index: 1;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+}
+[data-option="6"] .o6-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 2;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="6"] .o6-avatar {
+  display: block; width: var(--o6-avatar); height: var(--o6-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+/* Um ciclo = halo cresce (~20%, ~1,7 s) com a faixa cruzando + pausa longa. Só CSS. */
+[data-option="6"][data-state="ocioso"] .o6-halo.o6-run {
+  -webkit-animation: o6-grow var(--o6-cycle-dur) var(--o6-cycle-ease) 600ms infinite both;
+  animation: o6-grow var(--o6-cycle-dur) var(--o6-cycle-ease) 600ms infinite both;
+}
+[data-option="6"][data-state="ocioso"] .o6-halo.o6-now { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+@-webkit-keyframes o6-grow {
+  0%   { opacity: 0; -webkit-transform: scale(0.7); background-position: 100% 100%, 50% 50%; }
+  5%   { opacity: var(--o6-halo-opacity); }
+  20%  { opacity: 0; -webkit-transform: scale(var(--o6-halo-grow)); background-position: 0% 0%, 50% 50%; }
+  100% { opacity: 0; -webkit-transform: scale(var(--o6-halo-grow)); background-position: 0% 0%, 50% 50%; }
+}
+@keyframes o6-grow {
+  0%   { opacity: 0; transform: scale(0.7); background-position: 100% 100%, 50% 50%; }
+  5%   { opacity: var(--o6-halo-opacity); }
+  20%  { opacity: 0; transform: scale(var(--o6-halo-grow)); background-position: 0% 0%, 50% 50%; }
+  100% { opacity: 0; transform: scale(var(--o6-halo-grow)); background-position: 0% 0%, 50% 50%; }
+}
+@-webkit-keyframes o6-glow { 0%, 20%, 100% { opacity: 0; } 10% { opacity: var(--o6-halo-opacity); } }
+@keyframes o6-glow { 0%, 20%, 100% { opacity: 0; } 10% { opacity: var(--o6-halo-opacity); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"][data-state="ocioso"] .o6-halo.o6-run {
+    -webkit-transform: scale(1.2); transform: scale(1.2);
+    -webkit-animation-name: o6-glow; animation-name: o6-glow;
+  }
+}
+/* CTA de análise "Tocar efeito" (idêntico à opção 2; não faz parte do componente) */
+[data-option="6"] .o6-play {
+  position: relative; display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="6"] .o6-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="6"] .o6-play:hover,
+[data-option="6"] .o6-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="6"] .o6-play:active,
+[data-option="6"] .o6-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="7"] {
+  --o7-band-w: 34;
+  --o7-band-h: 70;
+  --o7-band-opacity: 0.6;
+  --o7-band-soft: 8px;
+  --o7-reach: 300;
+  --o7-avatar: var(--dimension-size-semantic-avatar);
+  --o7-cycle-dur: 8500ms;
+  --o7-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-. */
+[data-option="7"] .o7-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="7"] .o7-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+/* Luz de palco: faixa horizontal atrás do botão, bem mais larga que o círculo. */
+[data-option="7"] .o7-light {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  width: calc(var(--o7-reach) * 1%);
+  height: calc(var(--o7-band-h) * 1%);
+  overflow: hidden;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  -webkit-mask-image: linear-gradient(to right, transparent, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-outline) 70%, transparent);
+  pointer-events: none;
+}
+[data-option="7"] .o7-band {
+  position: absolute; display: block;
+  top: 0; left: 0;
+  width: calc(var(--o7-band-w) * 1%); height: 100%;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o7-band-soft));
+  filter: blur(var(--o7-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-110%);
+  transform: translateX(-110%);
+  will-change: transform, opacity;
+}
+[data-option="7"] .o7-circle {
+  position: relative; z-index: 1;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  /* translúcido do kit sobre o fundo opaco: a luz não atravessa o círculo */
+  background: linear-gradient(var(--color-semantic-functional-background-translucent), var(--color-semantic-functional-background-translucent)), var(--color-semantic-functional-background-primary);
+}
+[data-option="7"] .o7-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="7"] .o7-avatar {
+  display: block; width: var(--o7-avatar); height: var(--o7-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+/* Um ciclo = passe (~18%, ~1,5 s) + pausa longa (~82%, ~7 s). Só CSS. */
+[data-option="7"][data-state="ocioso"] .o7-band.o7-run {
+  -webkit-animation: o7-sweep var(--o7-cycle-dur) var(--o7-cycle-ease) 600ms infinite both;
+  animation: o7-sweep var(--o7-cycle-dur) var(--o7-cycle-ease) 600ms infinite both;
+}
+[data-option="7"][data-state="ocioso"] .o7-band.o7-now { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+@-webkit-keyframes o7-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-110%); }
+  4%   { opacity: var(--o7-band-opacity); }
+  14%  { opacity: var(--o7-band-opacity); }
+  18%  { opacity: 0; -webkit-transform: translateX(310%); }
+  100% { opacity: 0; -webkit-transform: translateX(310%); }
+}
+@keyframes o7-sweep {
+  0%   { opacity: 0; transform: translateX(-110%); }
+  4%   { opacity: var(--o7-band-opacity); }
+  14%  { opacity: var(--o7-band-opacity); }
+  18%  { opacity: 0; transform: translateX(310%); }
+  100% { opacity: 0; transform: translateX(310%); }
+}
+@-webkit-keyframes o7-glow { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o7-band-opacity); } }
+@keyframes o7-glow { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o7-band-opacity); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="7"][data-state="ocioso"] .o7-band.o7-run {
+    left: 0; width: 100%;
+    -webkit-transform: none; transform: none;
+    -webkit-animation-name: o7-glow; animation-name: o7-glow;
+  }
+}
+/* CTA de análise "Tocar efeito" (padrão das opções; não faz parte do componente) */
+[data-option="7"] .o7-play {
+  position: relative; display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="7"] .o7-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="7"] .o7-play:hover,
+[data-option="7"] .o7-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="7"] .o7-play:active,
+[data-option="7"] .o7-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="8"] {
+  --o8-crown: 6px;
+  --o8-band-w: 40;
+  --o8-band-tilt: 45;
+  --o8-band-opacity: 0.7;
+  --o8-band-soft: 3px;
+  --o8-avatar: var(--dimension-size-semantic-avatar);
+  --o8-cycle-dur: 8500ms;
+  --o8-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-. */
+[data-option="8"] .o8-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="8"] .o8-btn {
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="8"] .o8-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  isolation: isolate;
+}
+[data-option="8"] .o8-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* A coroa: um disco atrás do avatar, maior que ele pela largura da coroa. O avatar cobre o centro; só a borda acende. */
+[data-option="8"] .o8-crown {
+  position: absolute; display: block; z-index: 1; overflow: hidden;
+  top: 50%; left: 50%;
+  width: calc(var(--o8-avatar) + var(--o8-crown) * 2);
+  height: calc(var(--o8-avatar) + var(--o8-crown) * 2);
+  border-radius: var(--dimension-radius-semantic-pill);
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  pointer-events: none;
+}
+[data-option="8"] .o8-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o8-avatar); height: var(--o8-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="8"] .o8-band {
+  position: absolute; display: block;
+  top: -50%; left: 0;
+  width: calc(var(--o8-band-w) * 1%); height: 200%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o8-band-soft));
+  filter: blur(var(--o8-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-140%) rotate(calc(var(--o8-band-tilt) * 1deg));
+  transform: translateX(-140%) rotate(calc(var(--o8-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* Um ciclo = passe (~18%, ~1,5 s) + pausa longa (~82%, ~7 s). Só CSS. */
+[data-option="8"][data-state="ocioso"] .o8-band.o8-run {
+  -webkit-animation: o8-sweep var(--o8-cycle-dur) var(--o8-cycle-ease) 600ms infinite both;
+  animation: o8-sweep var(--o8-cycle-dur) var(--o8-cycle-ease) 600ms infinite both;
+}
+[data-option="8"][data-state="ocioso"] .o8-band.o8-now { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+@-webkit-keyframes o8-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-140%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o8-band-opacity); }
+  14%  { opacity: var(--o8-band-opacity); }
+  18%  { opacity: 0; -webkit-transform: translateX(280%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(280%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+}
+@keyframes o8-sweep {
+  0%   { opacity: 0; transform: translateX(-140%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+  4%   { opacity: var(--o8-band-opacity); }
+  14%  { opacity: var(--o8-band-opacity); }
+  18%  { opacity: 0; transform: translateX(280%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(280%) rotate(calc(var(--o8-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o8-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o8-band-opacity); } }
+@keyframes o8-glint { 0%, 18%, 100% { opacity: 0; } 9% { opacity: var(--o8-band-opacity); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="8"][data-state="ocioso"] .o8-band.o8-run {
+    left: 30%;
+    -webkit-transform: rotate(calc(var(--o8-band-tilt) * 1deg));
+    transform: rotate(calc(var(--o8-band-tilt) * 1deg));
+    -webkit-animation-name: o8-glint; animation-name: o8-glint;
+  }
+}
+/* CTA de análise "Tocar efeito" (idêntico ao da opção 2; não faz parte do componente) */
+[data-option="8"] .o8-play {
+  position: relative; display: block;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none; border-radius: var(--dimension-radius-semantic-pill);
+  font-family: inherit; line-height: 1; text-decoration: none;
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="8"] .o8-play::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+[data-option="8"] .o8-play:hover,
+[data-option="8"] .o8-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="8"] .o8-play:active,
+[data-option="8"] .o8-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="9"] {
+  --o9-band-w: 32;
+  --o9-band-tilt: 20;
+  --o9-band-opacity: 0.5;
+  --o9-band-soft: 4px;
+  --o9-rim: var(--dimension-spacing-core-2xs);
+  --o9-avatar: var(--dimension-size-semantic-avatar);
+  --o9-wave-color: var(--color-semantic-functional-text-primary);
+  --o9-wave-width: var(--dimension-border-width-core-thin);
+  --o9-wave-reach: 1.45;
+  --o9-wave-peak: 0.55;
+  --o9-cycle-dur: 8500ms;
+  --o9-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-, motion só em CSS. */
+[data-option="9"] .o9-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="9"] .o9-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="9"] .o9-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Contorno de repouso do kit (RestingBorder). */
+[data-option="9"] .o9-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa atrás do avatar: recorta a faixa, só o aro acende. */
+[data-option="9"] .o9-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o9-avatar) + var(--o9-rim) * 2);
+  height: calc(var(--o9-avatar) + var(--o9-rim) * 2);
+  margin-top: calc(var(--o9-avatar) / -2 - var(--o9-rim));
+  margin-left: calc(var(--o9-avatar) / -2 - var(--o9-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="9"] .o9-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o9-avatar); height: var(--o9-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="9"] .o9-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o9-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o9-band-soft)); filter: blur(var(--o9-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o9-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o9-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* A onda: um anel do tamanho da chapa, que a luz dispara ao fechar o passe. */
+[data-option="9"] .o9-wave {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--o9-avatar) + var(--o9-rim) * 2);
+  height: calc(var(--o9-avatar) + var(--o9-rim) * 2);
+  margin-top: calc(var(--o9-avatar) / -2 - var(--o9-rim));
+  margin-left: calc(var(--o9-avatar) / -2 - var(--o9-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--o9-wave-width) solid var(--o9-wave-color);
+  opacity: 0;
+  -webkit-transform: scale(1); transform: scale(1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Um ciclo só, compartilhado: passe 0-12% (~1 s), onda 11-24% (~1,1 s), pausa até 100% (~6,5 s). */
+[data-option="9"][data-state="ocioso"] .o9-run .o9-band {
+  -webkit-animation: o9-sweep var(--o9-cycle-dur) var(--o9-cycle-ease) 600ms infinite both;
+  animation: o9-sweep var(--o9-cycle-dur) var(--o9-cycle-ease) 600ms infinite both;
+}
+[data-option="9"][data-state="ocioso"] .o9-run .o9-wave {
+  -webkit-animation: o9-wave var(--o9-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  animation: o9-wave var(--o9-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+}
+[data-option="9"][data-state="ocioso"] .o9-now .o9-band,
+[data-option="9"][data-state="ocioso"] .o9-now .o9-wave { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+/* Repouso: referência sem loop. */
+[data-option="9"][data-state="repouso"] .o9-band,
+[data-option="9"][data-state="repouso"] .o9-wave { opacity: 0; }
+@-webkit-keyframes o9-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o9-band-opacity); }
+  10%  { opacity: var(--o9-band-opacity); }
+  12%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+}
+@keyframes o9-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o9-band-opacity); }
+  10%  { opacity: var(--o9-band-opacity); }
+  12%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o9-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o9-wave {
+  0%, 10% { opacity: 0; -webkit-transform: scale(1); }
+  11%     { opacity: var(--o9-wave-peak); -webkit-transform: scale(1); }
+  24%     { opacity: 0; -webkit-transform: scale(var(--o9-wave-reach)); }
+  100%    { opacity: 0; -webkit-transform: scale(var(--o9-wave-reach)); }
+}
+@keyframes o9-wave {
+  0%, 10% { opacity: 0; transform: scale(1); }
+  11%     { opacity: var(--o9-wave-peak); transform: scale(1); }
+  24%     { opacity: 0; transform: scale(var(--o9-wave-reach)); }
+  100%    { opacity: 0; transform: scale(var(--o9-wave-reach)); }
+}
+@-webkit-keyframes o9-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o9-band-opacity); } }
+@keyframes o9-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o9-band-opacity); } }
+@-webkit-keyframes o9-fade { 0%, 10%, 24%, 100% { opacity: 0; } 14% { opacity: var(--o9-wave-peak); } }
+@keyframes o9-fade { 0%, 10%, 24%, 100% { opacity: 0; } 14% { opacity: var(--o9-wave-peak); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="9"][data-state="ocioso"] .o9-run .o9-band {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o9-band-tilt) * 1deg)); transform: rotate(calc(var(--o9-band-tilt) * 1deg));
+    -webkit-animation-name: o9-glint; animation-name: o9-glint;
+  }
+  [data-option="9"][data-state="ocioso"] .o9-run .o9-wave { -webkit-animation-name: o9-fade; animation-name: o9-fade; }
+}
+/* CTA "Tocar efeito": idêntico ao das outras opções (só o prefixo muda). */
+[data-option="9"] .o9-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="9"] .o9-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="9"] .o9-play:hover,
+[data-option="9"] .o9-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="9"] .o9-play:active,
+[data-option="9"] .o9-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="10"] {
+  --o10-band-w: 32;
+  --o10-band-tilt: 20;
+  --o10-band-opacity: 0.5;
+  --o10-band-soft: 4px;
+  --o10-rim: var(--dimension-spacing-core-2xs);
+  --o10-avatar: var(--dimension-size-semantic-avatar);
+  --o10-wave-color: var(--color-semantic-functional-text-primary);
+  --o10-wave-width: var(--dimension-border-width-core-thin);
+  --o10-wave-reach: 1.6;
+  --o10-wave-peak: 0.55;
+  --o10-cycle-dur: 8500ms;
+  --o10-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-, motion só em CSS. */
+[data-option="10"] .o10-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="10"] .o10-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="10"] .o10-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Contorno de repouso do kit (RestingBorder). */
+[data-option="10"] .o10-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa atrás do avatar: recorta a faixa, só o aro acende. */
+[data-option="10"] .o10-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o10-avatar) + var(--o10-rim) * 2);
+  height: calc(var(--o10-avatar) + var(--o10-rim) * 2);
+  margin-top: calc(var(--o10-avatar) / -2 - var(--o10-rim));
+  margin-left: calc(var(--o10-avatar) / -2 - var(--o10-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="10"] .o10-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o10-avatar); height: var(--o10-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="10"] .o10-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o10-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o10-band-soft)); filter: blur(var(--o10-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o10-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o10-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* A onda: um anel do tamanho da chapa, que sai junto com a luz. */
+[data-option="10"] .o10-wave {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--o10-avatar) + var(--o10-rim) * 2);
+  height: calc(var(--o10-avatar) + var(--o10-rim) * 2);
+  margin-top: calc(var(--o10-avatar) / -2 - var(--o10-rim));
+  margin-left: calc(var(--o10-avatar) / -2 - var(--o10-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--o10-wave-width) solid var(--o10-wave-color);
+  opacity: 0;
+  -webkit-transform: scale(1); transform: scale(1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Um ciclo só: passe e onda partem juntos em 0% e terminam juntos em 14% (~1,2 s); pausa até 100%. */
+[data-option="10"][data-state="ocioso"] .o10-run .o10-band {
+  -webkit-animation: o10-sweep var(--o10-cycle-dur) var(--o10-cycle-ease) 600ms infinite both;
+  animation: o10-sweep var(--o10-cycle-dur) var(--o10-cycle-ease) 600ms infinite both;
+}
+[data-option="10"][data-state="ocioso"] .o10-run .o10-wave {
+  -webkit-animation: o10-wave var(--o10-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  animation: o10-wave var(--o10-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+}
+[data-option="10"][data-state="ocioso"] .o10-now .o10-band,
+[data-option="10"][data-state="ocioso"] .o10-now .o10-wave { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+/* Repouso: referência sem loop. */
+[data-option="10"][data-state="repouso"] .o10-band,
+[data-option="10"][data-state="repouso"] .o10-wave { opacity: 0; }
+@-webkit-keyframes o10-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o10-band-opacity); }
+  11%  { opacity: var(--o10-band-opacity); }
+  14%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+}
+@keyframes o10-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o10-band-opacity); }
+  11%  { opacity: var(--o10-band-opacity); }
+  14%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o10-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o10-wave {
+  0%      { opacity: var(--o10-wave-peak); -webkit-transform: scale(1); }
+  14%     { opacity: 0; -webkit-transform: scale(var(--o10-wave-reach)); }
+  100%    { opacity: 0; -webkit-transform: scale(var(--o10-wave-reach)); }
+}
+@keyframes o10-wave {
+  0%      { opacity: var(--o10-wave-peak); transform: scale(1); }
+  14%     { opacity: 0; transform: scale(var(--o10-wave-reach)); }
+  100%    { opacity: 0; transform: scale(var(--o10-wave-reach)); }
+}
+@-webkit-keyframes o10-glint { 0%, 14%, 100% { opacity: 0; } 7% { opacity: var(--o10-band-opacity); } }
+@keyframes o10-glint { 0%, 14%, 100% { opacity: 0; } 7% { opacity: var(--o10-band-opacity); } }
+@-webkit-keyframes o10-fade { 0%, 14%, 100% { opacity: 0; } 7% { opacity: var(--o10-wave-peak); } }
+@keyframes o10-fade { 0%, 14%, 100% { opacity: 0; } 7% { opacity: var(--o10-wave-peak); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="10"][data-state="ocioso"] .o10-run .o10-band {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o10-band-tilt) * 1deg)); transform: rotate(calc(var(--o10-band-tilt) * 1deg));
+    -webkit-animation-name: o10-glint; animation-name: o10-glint;
+  }
+  [data-option="10"][data-state="ocioso"] .o10-run .o10-wave { -webkit-animation-name: o10-fade; animation-name: o10-fade; }
+}
+/* CTA "Tocar efeito": idêntico ao das outras opções (só o prefixo muda). */
+[data-option="10"] .o10-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="10"] .o10-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="10"] .o10-play:hover,
+[data-option="10"] .o10-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="10"] .o10-play:active,
+[data-option="10"] .o10-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="11"] {
+  --o11-band-w: 40;
+  --o11-band-tilt: 20;
+  --o11-band-opacity: 0.45;
+  --o11-band-soft: 12px;
+  --o11-rim: 6px; /* tune */
+  --o11-avatar: 44px; /* tune */
+  --o11-wave-color: var(--color-semantic-functional-text-primary);
+  --o11-wave-width: var(--dimension-border-width-core-thin);
+  --o11-wave-reach: 1.65;
+  --o11-wave-peak: 0.55;
+  --o11-wave2-peak: 0.25;
+  --o11-wave-lag: 150ms;
+  --o11-cycle-dur: 8500ms;
+  --o11-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-, motion só em CSS. */
+[data-option="11"] .o11-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="11"] .o11-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="11"] .o11-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Contorno de repouso do kit (RestingBorder). */
+[data-option="11"] .o11-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa atrás do avatar: recorta a faixa, só o aro acende. */
+[data-option="11"] .o11-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o11-avatar) + var(--o11-rim) * 2);
+  height: calc(var(--o11-avatar) + var(--o11-rim) * 2);
+  margin-top: calc(var(--o11-avatar) / -2 - var(--o11-rim));
+  margin-left: calc(var(--o11-avatar) / -2 - var(--o11-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="11"] .o11-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o11-avatar); height: var(--o11-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAACXBIWXMAABCcAAAQnAEmzTo0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAABBRJREFUeAHNWDtSG0EQbUmuAjL5BF5OYHECVkURI05gKXOGlPBLWBJ+ifAJJE6AyKHY0JnlE7CcABFBUQXya7ln3Tua/UgmoKsWzQ79edPT092zRB+MSjQnHR8fe+PxuFapVLy3t7cqz5XL5dHr62tUKpWGe3t7Ec1BMwECCB/GNjBs4PFy2CM8IUAfzgKuECD2BoD0MPRpPuoXBZYL6OzsbAtbcj4lWCqNYGSIYYTfe5muYv4rnhrmqg6ZYGdn55DmARQEQXVxcfGSpr1itiGkDOLtxU8TIL5ZoAZPT08t6B9RUUAC5hbD2qxAHMB4u1mXp6aHz8/PdReoTy4lS0tLPT5B5l2ABDQHSdwsA1gAYAcyXRPv123+ij1xenp6AADf3wOMppubm3BtbQ2YSr5Meevr64/X19c/NV9iy8S9d0XACO8WJVMAB/kw60RZnmIby5q3nECnGEFRGhg+eQK8TcnY4G3mQL5jT7tkRWeobPb0/8sKucfKFPK6SyEbcqUBmyAfpIFiD6pXX05kEpDlnb7L5RBssiE1xSevjhPzeXd3t8RjLhsa1NHRUcPWIyc1VFMxjz5lvlJ0QQ6y9v4CipsOQysA3jf5B/Wti5+BrYu9ZAJcylF7wk8Ub5cn/xy5co241ZPXCE9AKYQj3WY98urpLdHgLR4vBoRV6JwzdBnRPKAwqy51Op0R4uwqRZZctgyPiSFPMf12CZsWQ3juKZ8il6wFSOvxYkCWgLPGcK9jxnD1F8ohzaNlKQd0mQoSBIbKWIPrXRqvxIPvks0jE0O5q5dAj3jMrQUCt5umVE6jJ69RWkEGX7wog8Ec+0jxeZRuqAMwl/LaROKrYfUdNsgeW1hYqAkY38hYSdCmr2ocTYDxH2s7amnSaK4G2gB3BNxanJycjOGxB2kzfA0GYPuUvsDYlsEwASRHOBIlVVfeMISm/oEKEOeYjGCe5DXVVUYmjehMzXljS5Sx20OtwHSQWIlPBUiMdeG9DZSWTbsZszrJ0AzKSoFO74mCpzpIX/FEElPLXMf4gUdW8N6iZEz6LKtPpaOQx2EQe4gDE6sJjVHtJXSQB1YH+QP8bbJoe3t70g/h6dsdIuvAb0d03yqxRCHPbND4loDnCtv0S6+maAfpaMbq8OKq7hjsBm2qyUe70JYKbUCNVPD1sTUtmoGQGi4h33Doci5uKlPv7++fkwoyWwHNSJynXLr4OuTytLN0IMFt6kZLFKQe4RzyHLJDvpu5mFMvit1ut/ry8tIz7lbUl+YspAyS7wCJrC0UutJALiClOLDa27+C/67SfMt4lDmug17GVbqDbH+eZa/wxwb8BPa1eAbi3rv1Lh8bNClgq1TgcwxAcPYfzHL9/q8PVtJ2Jj5YMRAulPN+sPpw9Acey2wUYFz1RgAAAABJRU5ErkJggg==); background-size: 100% 100%; background-repeat: no-repeat;
+}
+[data-option="11"] .o11-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o11-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o11-band-soft)); filter: blur(var(--o11-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* A onda: um anel do tamanho da chapa, que a luz dispara ao fechar o passe. */
+[data-option="11"] .o11-wave {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--o11-avatar) + var(--o11-rim) * 2);
+  height: calc(var(--o11-avatar) + var(--o11-rim) * 2);
+  margin-top: calc(var(--o11-avatar) / -2 - var(--o11-rim));
+  margin-left: calc(var(--o11-avatar) / -2 - var(--o11-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--o11-wave-width) solid var(--o11-wave-color);
+  opacity: 0;
+  -webkit-transform: scale(1); transform: scale(1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Repouso: referência sem loop. */
+[data-option="11"][data-state="repouso"] .o11-band,
+[data-option="11"][data-state="repouso"] .o11-wave { opacity: 0; }
+/* CTA "Tocar efeito": idêntico ao das outras opções (só o prefixo muda). */
+[data-option="11"] .o11-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="11"] .o11-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="11"] .o11-play:hover,
+[data-option="11"] .o11-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="11"] .o11-play:active,
+[data-option="11"] .o11-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* A segunda onda: mesma forma, mais fraca, sai ~300 ms depois. */
+[data-option="11"] .o11-wave-2 { --o11-wave-peak: var(--o11-wave2-peak); }
+/* ─────────────────────────────────────────────────────────
+ * ANIMATION STORYBOARD · opção 11
+ *
+ * Um ciclo = --o11-cycle-dur (8500ms), repete para sempre.
+ * Tempos = ms depois do início do ciclo, com os valores padrão.
+ * O primeiro ciclo espera 600ms (animation-delay); "Tocar efeito" pula essa espera.
+ *
+ *    0ms   faixa fora da chapa, à esquerda (translateX -160%), invisível
+ *          onda 1 parada no tamanho da chapa, invisível
+ *   85ms   onda 1 acende, opacity 0 → --o11-wave-peak (1%)
+ *  150ms   onda 2 parte igual, mais fraca: --o11-wave2-peak (atraso --o11-wave-lag)
+ *  255ms   faixa acende, opacity 0 → --o11-band-opacity (3%)
+ *  850ms   faixa começa a apagar (10%)
+ * 1020ms   faixa sai pela direita, translateX -160% → 420%, opacity → 0 (12%)
+ * 1360ms   onda 1 chega ao fim, scale 1 → --o11-wave-reach, opacity → 0 (16%)
+ * 1510ms   onda 2 chega ao fim (16% + lag)
+ * 1510ms → 8500ms   pausa; tudo invisível até o próximo ciclo
+ *
+ * Reduzir movimento: a faixa fica parada (left 34%) e só acende e apaga (glint);
+ * a onda não cresce, só acende e apaga (fade).
+ *
+ * Chrome 68 / Safari 16: movimento só em keyframes CSS, com cópia -webkit- de cada animation
+ * e transform; só transform e opacity animam (nada de layout); o blur da faixa é fixo
+ * (--o11-band-soft), nunca animado.
+ * ───────────────────────────────────────────────────────── */
+/* Um ciclo só: passe 0-12% e onda 1 0-16% partem juntos; onda 2 atrasada pelo lag; pausa até 100%. */
+[data-option="11"][data-state="ocioso"] .o11-run .o11-band {
+  -webkit-animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) 600ms infinite both;
+  animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) 600ms infinite both;
+}
+[data-option="11"][data-state="ocioso"] .o11-run .o11-wave {
+  -webkit-animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+}
+[data-option="11"][data-state="ocioso"] .o11-run .o11-wave-2 {
+  -webkit-animation-delay: calc(600ms + var(--o11-wave-lag)); animation-delay: calc(600ms + var(--o11-wave-lag));
+}
+[data-option="11"][data-state="ocioso"] .o11-now .o11-band,
+[data-option="11"][data-state="ocioso"] .o11-now .o11-wave { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+[data-option="11"][data-state="ocioso"] .o11-now .o11-wave-2 { -webkit-animation-delay: var(--o11-wave-lag); animation-delay: var(--o11-wave-lag); }
+@-webkit-keyframes o11-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o11-band-opacity); }
+  10%  { opacity: var(--o11-band-opacity); }
+  12%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+}
+@keyframes o11-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o11-band-opacity); }
+  10%  { opacity: var(--o11-band-opacity); }
+  12%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o11-wave {
+  0%   { opacity: 0; -webkit-transform: scale(1); }
+  1%   { opacity: var(--o11-wave-peak); -webkit-transform: scale(1); }
+  16%  { opacity: 0; -webkit-transform: scale(var(--o11-wave-reach)); }
+  100% { opacity: 0; -webkit-transform: scale(var(--o11-wave-reach)); }
+}
+@keyframes o11-wave {
+  0%   { opacity: 0; transform: scale(1); }
+  1%   { opacity: var(--o11-wave-peak); transform: scale(1); }
+  16%  { opacity: 0; transform: scale(var(--o11-wave-reach)); }
+  100% { opacity: 0; transform: scale(var(--o11-wave-reach)); }
+}
+@-webkit-keyframes o11-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o11-band-opacity); } }
+@keyframes o11-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o11-band-opacity); } }
+@-webkit-keyframes o11-fade { 0%, 16%, 100% { opacity: 0; } 6% { opacity: var(--o11-wave-peak); } }
+@keyframes o11-fade { 0%, 16%, 100% { opacity: 0; } 6% { opacity: var(--o11-wave-peak); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="11"][data-state="ocioso"] .o11-run .o11-band {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o11-band-tilt) * 1deg)); transform: rotate(calc(var(--o11-band-tilt) * 1deg));
+    -webkit-animation-name: o11-glint; animation-name: o11-glint;
+  }
+  [data-option="11"][data-state="ocioso"] .o11-run .o11-wave { -webkit-animation-name: o11-fade; animation-name: o11-fade; }
+}
+/* tune:vars */
+[data-option="12"] {
+  --o12-band-w: 32;
+  --o12-band-tilt: 20;
+  --o12-band-opacity: 0.5;
+  --o12-band-soft: 4px;
+  --o12-rim: var(--dimension-spacing-core-2xs);
+  --o12-avatar: var(--dimension-size-semantic-avatar);
+  --o12-wave-color: var(--color-semantic-functional-text-primary);
+  --o12-wave-width: var(--dimension-border-width-core-medium);
+  --o12-wave-soft: 1.5px;
+  --o12-wave-reach: 1.7;
+  --o12-wave-peak: 0.45;
+  --o12-cycle-dur: 8500ms;
+  --o12-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-, motion só em CSS. */
+[data-option="12"] .o12-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="12"] .o12-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="12"] .o12-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Contorno de repouso do kit (RestingBorder). */
+[data-option="12"] .o12-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa atrás do avatar: recorta a faixa, só o aro acende. */
+[data-option="12"] .o12-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o12-avatar) + var(--o12-rim) * 2);
+  height: calc(var(--o12-avatar) + var(--o12-rim) * 2);
+  margin-top: calc(var(--o12-avatar) / -2 - var(--o12-rim));
+  margin-left: calc(var(--o12-avatar) / -2 - var(--o12-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="12"] .o12-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o12-avatar); height: var(--o12-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="12"] .o12-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o12-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o12-band-soft)); filter: blur(var(--o12-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o12-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o12-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* O halo: anel grosso e macio do tamanho da chapa, que cresce enquanto a luz passa. */
+[data-option="12"] .o12-wave {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--o12-avatar) + var(--o12-rim) * 2);
+  height: calc(var(--o12-avatar) + var(--o12-rim) * 2);
+  margin-top: calc(var(--o12-avatar) / -2 - var(--o12-rim));
+  margin-left: calc(var(--o12-avatar) / -2 - var(--o12-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--o12-wave-width) solid var(--o12-wave-color);
+  -webkit-filter: blur(var(--o12-wave-soft)); filter: blur(var(--o12-wave-soft));
+  opacity: 0;
+  -webkit-transform: scale(1); transform: scale(1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Um ciclo só: passe 0-12% e halo 0-18% partem juntos (~1,5 s), pausa até 100% (~7 s). */
+[data-option="12"][data-state="ocioso"] .o12-run .o12-band {
+  -webkit-animation: o12-sweep var(--o12-cycle-dur) var(--o12-cycle-ease) 600ms infinite both;
+  animation: o12-sweep var(--o12-cycle-dur) var(--o12-cycle-ease) 600ms infinite both;
+}
+[data-option="12"][data-state="ocioso"] .o12-run .o12-wave {
+  -webkit-animation: o12-wave var(--o12-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  animation: o12-wave var(--o12-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+}
+[data-option="12"][data-state="ocioso"] .o12-now .o12-band,
+[data-option="12"][data-state="ocioso"] .o12-now .o12-wave { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+/* Repouso: referência sem loop. */
+[data-option="12"][data-state="repouso"] .o12-band,
+[data-option="12"][data-state="repouso"] .o12-wave { opacity: 0; }
+@-webkit-keyframes o12-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o12-band-opacity); }
+  10%  { opacity: var(--o12-band-opacity); }
+  12%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+}
+@keyframes o12-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o12-band-opacity); }
+  10%  { opacity: var(--o12-band-opacity); }
+  12%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o12-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o12-wave {
+  0%   { opacity: 0; -webkit-transform: scale(1); }
+  3%   { opacity: var(--o12-wave-peak); -webkit-transform: scale(1.12); }
+  18%  { opacity: 0; -webkit-transform: scale(var(--o12-wave-reach)); }
+  100% { opacity: 0; -webkit-transform: scale(var(--o12-wave-reach)); }
+}
+@keyframes o12-wave {
+  0%   { opacity: 0; transform: scale(1); }
+  3%   { opacity: var(--o12-wave-peak); transform: scale(1.12); }
+  18%  { opacity: 0; transform: scale(var(--o12-wave-reach)); }
+  100% { opacity: 0; transform: scale(var(--o12-wave-reach)); }
+}
+@-webkit-keyframes o12-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o12-band-opacity); } }
+@keyframes o12-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o12-band-opacity); } }
+@-webkit-keyframes o12-fade { 0%, 18%, 100% { opacity: 0; } 6% { opacity: var(--o12-wave-peak); } }
+@keyframes o12-fade { 0%, 18%, 100% { opacity: 0; } 6% { opacity: var(--o12-wave-peak); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="12"][data-state="ocioso"] .o12-run .o12-band {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o12-band-tilt) * 1deg)); transform: rotate(calc(var(--o12-band-tilt) * 1deg));
+    -webkit-animation-name: o12-glint; animation-name: o12-glint;
+  }
+  [data-option="12"][data-state="ocioso"] .o12-run .o12-wave { -webkit-animation-name: o12-fade; animation-name: o12-fade; }
+}
+/* CTA "Tocar efeito": idêntico ao da opção 9 (só o prefixo muda). */
+[data-option="12"] .o12-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="12"] .o12-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="12"] .o12-play:hover,
+[data-option="12"] .o12-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="12"] .o12-play:active,
+[data-option="12"] .o12-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* tune:vars */
+[data-option="13"] {
+  --o13-band-w: 32;
+  --o13-band-tilt: 20;
+  --o13-band-opacity: 0.5;
+  --o13-band-soft: 4px;
+  --o13-rim: var(--dimension-spacing-core-2xs);
+  --o13-avatar: var(--dimension-size-semantic-avatar);
+  --o13-wave-color: var(--color-semantic-functional-text-primary);
+  --o13-wave-width: var(--dimension-border-width-core-thin);
+  --o13-wave-reach: 1.6;
+  --o13-wave-peak: 0.55;
+  --o13-cycle-dur: 8500ms;
+  --o13-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* /tune:vars */
+/* Chrome 68 / Safari 16: sem gap em flex, sem inset, máscara com prefixo -webkit-, motion só em CSS. */
+[data-option="13"] .o13-stage { display: -webkit-box; display: flex; -webkit-box-orient: vertical; flex-direction: column; -webkit-box-align: center; align-items: center; }
+[data-option="13"] .o13-btn {
+  position: relative;
+  display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border-radius: var(--dimension-radius-semantic-pill);
+}
+[data-option="13"] .o13-circle {
+  position: relative; display: -webkit-box; display: flex; -webkit-box-align: center; align-items: center; -webkit-box-pack: center; justify-content: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+}
+/* Contorno de repouso do kit (RestingBorder). */
+[data-option="13"] .o13-circle::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; z-index: 3;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box exclude, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  pointer-events: none;
+}
+/* Chapa atrás do avatar: recorta a faixa, só o aro acende. */
+[data-option="13"] .o13-plate {
+  position: absolute; display: block; z-index: 1;
+  top: 50%; left: 50%;
+  width: calc(var(--o13-avatar) + var(--o13-rim) * 2);
+  height: calc(var(--o13-avatar) + var(--o13-rim) * 2);
+  margin-top: calc(var(--o13-avatar) / -2 - var(--o13-rim));
+  margin-left: calc(var(--o13-avatar) / -2 - var(--o13-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-clip-path: circle(50% at 50% 50%);
+  clip-path: circle(50% at 50% 50%);
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+  pointer-events: none;
+}
+[data-option="13"] .o13-avatar {
+  position: relative; display: block; z-index: 2;
+  width: var(--o13-avatar); height: var(--o13-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-elevated);
+}
+[data-option="13"] .o13-band {
+  position: absolute; display: block;
+  top: -30%; left: 0;
+  width: calc(var(--o13-band-w) * 1%); height: 160%;
+  background-color: var(--color-opacity-light-50);
+  -webkit-filter: blur(var(--o13-band-soft)); filter: blur(var(--o13-band-soft));
+  opacity: 0;
+  -webkit-transform: translateX(-160%) rotate(calc(var(--o13-band-tilt) * 1deg));
+  transform: translateX(-160%) rotate(calc(var(--o13-band-tilt) * 1deg));
+  will-change: transform, opacity;
+}
+/* A onda: um anel do tamanho da chapa, que parte junto com a luz. */
+[data-option="13"] .o13-wave {
+  position: absolute; display: block; z-index: 0;
+  top: 50%; left: 50%;
+  box-sizing: border-box;
+  width: calc(var(--o13-avatar) + var(--o13-rim) * 2);
+  height: calc(var(--o13-avatar) + var(--o13-rim) * 2);
+  margin-top: calc(var(--o13-avatar) / -2 - var(--o13-rim));
+  margin-left: calc(var(--o13-avatar) / -2 - var(--o13-rim));
+  border-radius: var(--dimension-radius-semantic-pill);
+  border: var(--o13-wave-width) solid var(--o13-wave-color);
+  opacity: 0;
+  -webkit-transform: scale(1); transform: scale(1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Um ciclo só, compartilhado: passe e onda juntos 0-12% (~1 s), pausa até 100% (~7,5 s). */
+[data-option="13"][data-state="ocioso"] .o13-run .o13-band {
+  -webkit-animation: o13-sweep var(--o13-cycle-dur) var(--o13-cycle-ease) 600ms infinite both;
+  animation: o13-sweep var(--o13-cycle-dur) var(--o13-cycle-ease) 600ms infinite both;
+}
+[data-option="13"][data-state="ocioso"] .o13-run .o13-wave {
+  -webkit-animation: o13-wave var(--o13-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  animation: o13-wave var(--o13-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+}
+[data-option="13"][data-state="ocioso"] .o13-now .o13-band,
+[data-option="13"][data-state="ocioso"] .o13-now .o13-wave { -webkit-animation-delay: 0ms; animation-delay: 0ms; }
+/* Repouso: referência sem loop. */
+[data-option="13"][data-state="repouso"] .o13-band,
+[data-option="13"][data-state="repouso"] .o13-wave { opacity: 0; }
+@-webkit-keyframes o13-sweep {
+  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o13-band-opacity); }
+  10%  { opacity: var(--o13-band-opacity); }
+  12%  { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+}
+@keyframes o13-sweep {
+  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+  3%   { opacity: var(--o13-band-opacity); }
+  10%  { opacity: var(--o13-band-opacity); }
+  12%  { opacity: 0; transform: translateX(420%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o13-band-tilt) * 1deg)); }
+}
+@-webkit-keyframes o13-wave {
+  /* parte junto com a faixa (0%), pico quando a faixa cruza o centro (5%), some junto com ela (12%) */
+  0%   { opacity: 0; -webkit-transform: scale(1); }
+  5%   { opacity: var(--o13-wave-peak); -webkit-transform: scale(1.08); }
+  12%  { opacity: 0; -webkit-transform: scale(var(--o13-wave-reach)); }
+  100% { opacity: 0; -webkit-transform: scale(var(--o13-wave-reach)); }
+}
+@keyframes o13-wave {
+  0%   { opacity: 0; transform: scale(1); }
+  5%   { opacity: var(--o13-wave-peak); transform: scale(1.08); }
+  12%  { opacity: 0; transform: scale(var(--o13-wave-reach)); }
+  100% { opacity: 0; transform: scale(var(--o13-wave-reach)); }
+}
+@-webkit-keyframes o13-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o13-band-opacity); } }
+@keyframes o13-glint { 0%, 12%, 100% { opacity: 0; } 6% { opacity: var(--o13-band-opacity); } }
+@-webkit-keyframes o13-fade { 0%, 12%, 100% { opacity: 0; } 5% { opacity: var(--o13-wave-peak); } }
+@keyframes o13-fade { 0%, 12%, 100% { opacity: 0; } 5% { opacity: var(--o13-wave-peak); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="13"][data-state="ocioso"] .o13-run .o13-band {
+    left: 34%;
+    -webkit-transform: rotate(calc(var(--o13-band-tilt) * 1deg)); transform: rotate(calc(var(--o13-band-tilt) * 1deg));
+    -webkit-animation-name: o13-glint; animation-name: o13-glint;
+  }
+  [data-option="13"][data-state="ocioso"] .o13-run .o13-wave { -webkit-animation-name: o13-fade; animation-name: o13-fade; }
+}
+/* CTA "Tocar efeito": idêntico ao das outras opções (só o prefixo muda). */
+[data-option="13"] .o13-play {
+  position: relative;
+  display: -webkit-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--dimension-spacing-core-2xl);
+  margin: var(--dimension-spacing-core-lg) 0 0;
+  padding: 0 var(--dimension-spacing-core-lg);
+  border: none;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: transparent;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+  -webkit-transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-option="13"] .o13-play::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--color-semantic-functional-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline)) content-box, linear-gradient(var(--color-semantic-focus-outline), var(--color-semantic-focus-outline));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+[data-option="13"] .o13-play:hover,
+[data-option="13"] .o13-play[data-cta="hover"] {
+  background-color: var(--color-opacity-light-10);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="13"] .o13-play:active,
+[data-option="13"] .o13-play[data-cta="pressed"] {
+  background-color: var(--color-opacity-light-20);
+  color: var(--color-semantic-functional-text-primary);
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: o olhar segue uma onda que nasce no avatar e se afasta, como uma gota na água. -->
+  <p class="opt-label" data-part="label">Opção 1 - Ondas</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-stage" data-surface="own">
+      <div class="o1-btn" data-part="login" aria-label="Login">
+        <span class="o1-waves" data-part="ondas" data-stack aria-hidden="true">
+          <span class="o1-wave"></span>
+          <span class="o1-wave"></span>
+        </span>
+        <span class="o1-circle"><span class="o1-avatar" data-part="avatar"></span></span>
+      </div>
+      <button type="button" class="o1-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"avatarSize","label":"Tamanho","type":"slider","var":"--avatar-size","value":40,"base":40,"min":24,"max":72,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"},
+      {"id":"avatarBg","label":"Placeholder","type":"color","var":"--avatar-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Ondas","part":"ondas","controls":[
+      {"id":"waveColor","label":"Cor","type":"color","var":"--wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"waveWidth","label":"Espessura","type":"slider","var":"--wave-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"waveReach","label":"Alcance (escala)","type":"slider","var":"--wave-reach","value":1.45,"base":1.45,"min":1.1,"max":2,"step":0.05,"unit":""},
+      {"id":"wavePeak","label":"Opacidade inicial","type":"slider","var":"--wave-peak","value":0.55,"base":0.55,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"waveStagger","label":"Atraso da 2a onda","type":"slider","var":"--wave-stagger","value":320,"base":320,"min":0,"max":1000,"step":20,"unit":"ms"},
+      {"id":"wavePause","label":"Silêncio entre pulsos","type":"slider","var":"--wave-pause","value":7000,"base":7000,"min":2000,"max":12000,"step":250,"unit":"ms"}]},
+    {"name":"Movimento","controls":[
+      {"id":"waveMove","label":"Onda","type":"easing","durVar":"--wave-dur","easeVar":"--wave-ease","value":{"duration":1.2,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: uma faixa de luz atravessa o avatar na diagonal, como reflexo em vidro, e o olhar acompanha a faixa até ele. -->
+  <p class="opt-label" data-part="label">Opção 2 - Brilho que passa</p>
+  <div class="opt-content" data-part="content">
+    <div class="o2-stage">
+      <div class="o2-btn" data-part="login" aria-label="Login">
+        <div class="o2-circle" data-stack>
+          <span class="o2-avatar" data-part="avatar"></span>
+          <span class="o2-band o2-run" data-part="brilho" aria-hidden="true"></span>
+        </div>
+      </div>
+      <button type="button" class="o2-play text-body-sm-medium" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="tocar">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["ocioso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o2bandw","label":"Largura da faixa","type":"slider","var":"--o2-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o2tilt","label":"Inclinação","type":"slider","var":"--o2-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o2op","label":"Intensidade","type":"slider","var":"--o2-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o2soft","label":"Suavidade da borda","type":"slider","var":"--o2-band-soft","value":6,"base":6,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o2avatar","label":"Tamanho do avatar","type":"slider","var":"--o2-avatar","value":40,"base":40,"min":24,"max":72,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Movimento","controls":[
+      {"id":"o2cycle","label":"Ciclo (passe 18% + pausa)","type":"easing","durVar":"--o2-cycle-dur","easeVar":"--o2-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: um halo suave ao redor do avatar sobe e desce de intensidade, como respiração, e o olhar descansa nele. -->
+  <p class="opt-label" data-part="label">Opção 3 - Respiração do contorno</p>
+  <div class="opt-content" data-part="content">
+    <div class="stage">
+      <div class="btn" data-part="login" data-stack>
+        <span class="halo" data-part="halo" aria-hidden="true"></span>
+        <span class="circle"><span class="avatar" data-part="avatar"></span></span>
+      </div>
+      <button type="button" class="o3-play" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="play">Tocar efeito</button>
+    </div>
+    <script type="application/json" data-tune="3">
+{"states":["ocioso","tocando","cta-hover","cta-pressed"],"folders":[
+  {"name":"Halo","part":"halo","controls":[
+    {"id":"halo-color","label":"Cor","type":"color","var":"--halo-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+    {"id":"halo-peak","label":"Intensidade no pico","type":"slider","var":"--halo-peak","value":0.35,"base":0.35,"min":0,"max":1,"step":0.05,"unit":""},
+    {"id":"halo-blur","label":"Difusão","type":"slider","var":"--halo-blur","value":10,"base":10,"min":0,"max":32,"step":1,"unit":"px"},
+    {"id":"halo-size","label":"Tamanho","type":"slider","var":"--halo-size","value":72,"base":72,"min":56,"max":104,"step":1,"unit":"px"}]},
+  {"name":"Movimento","controls":[
+    {"id":"breathe","label":"Ciclo da respiração","type":"easing","durVar":"--cycle","easeVar":"--ease","value":{"duration":8.5,"ease":[0.45,0,0.55,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: um arco de luz percorre o contorno do avatar uma volta, desenhando o caminho que o olhar deve fazer. -->
+  <p class="opt-label" data-part="label">Opção 4 - Arco que orbita</p>
+  <div class="opt-content" data-part="content">
+    <div class="shell" data-part="login">
+      <div class="circle"><span class="avatar" data-part="avatar"></span><span class="arc" data-part="arco" data-stack aria-hidden="true"></span></div>
+    </div>
+    <button type="button" class="o4-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+  </div>
+  <script type="application/json" data-tune="4">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Arco","part":"arco","controls":[
+      {"id":"arcColor","label":"Cor","type":"color","var":"--arc-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"arcWidth","label":"Espessura","type":"slider","var":"--arc-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"arcPeak","label":"Intensidade","type":"slider","var":"--arc-peak","value":0.9,"base":0.9,"min":0.2,"max":1,"step":0.05,"unit":""},
+      {"id":"arcStart","label":"Ponto de partida","type":"slider","var":"--arc-start","value":-45,"base":-45,"min":-180,"max":180,"step":15,"unit":"deg"}]},
+    {"name":"Movimento","controls":[
+      {"id":"orbit","label":"Curva da volta","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":1.5,"ease":[0.65,0,0.35,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Variações da Opção 2 · livre</h2>
+<article data-parent="2" class="opt" data-option="5" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: uma faixa de luz passa atrás do avatar, numa chapa um pouco maior que ele, e só o aro de fora acende, como um reflexo que contorna a imagem e leva o olhar até ela. -->
+  <p class="opt-label" data-part="label">Opção 5 - Reflexo por trás</p>
+  <div class="opt-content" data-part="content">
+    <div class="o5-stage">
+      <div class="o5-btn" data-part="login" aria-label="Login">
+        <div class="o5-circle" data-stack>
+          <span class="o5-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o5-band o5-run" data-part="brilho"></span></span>
+          <span class="o5-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o5-play text-body-sm-medium" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="tocar">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="5">
+  {"states":["ocioso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o5bandw","label":"Largura da faixa","type":"slider","var":"--o5-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o5tilt","label":"Inclinação","type":"slider","var":"--o5-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o5op","label":"Intensidade","type":"slider","var":"--o5-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o5soft","label":"Suavidade da borda","type":"slider","var":"--o5-band-soft","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Chapa","part":"chapa","controls":[
+      {"id":"o5rim","label":"Aro em volta do avatar","type":"slider","var":"--o5-rim","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o5avatar","label":"Tamanho do avatar","type":"slider","var":"--o5-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Movimento","controls":[
+      {"id":"o5cycle","label":"Ciclo (passe 18% + pausa)","type":"easing","durVar":"--o5-cycle-dur","easeVar":"--o5-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="6" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: uma coroa de luz nasce por trás do avatar e cresce para fora atravessando o contorno, com um reflexo diagonal dentro dela; o avatar fica intacto na frente. -->
+  <!-- razão: a note pede o efeito por trás da foto; o halo vive atrás do círculo (z-index 0), o avatar opaco tapa o miolo e só a coroa passa do contorno, então a foto nunca recebe luz por cima. Luz clara sobre fundo escuro (sem sombra, sem branco puro: --color-opacity-light-50/-70). Gradientes radial e diagonal são novos, fora de DESIGN §5.3, porque a direção os pede. -->
+  <!-- divergência: DESIGN §10 e playbook §3 pedem só dissolve; o brief é um estudo de motion do botão, então segue o brief. -->
+  <p class="opt-label" data-part="label">Opção 6 - Coroa por trás</p>
+  <div class="opt-content" data-part="content">
+    <div class="o6-stage">
+      <div class="o6-btn" data-part="login" aria-label="Login" data-stack>
+        <span class="o6-halo o6-run" data-part="halo" aria-hidden="true"></span>
+        <div class="o6-circle">
+          <span class="o6-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o6-play text-body-sm-medium" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="tocar">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="6">
+  {"states":["ocioso"],"folders":[
+    {"name":"Halo","part":"halo","controls":[
+      {"id":"o6grow","label":"Alcance (escala final)","type":"slider","var":"--o6-halo-grow","value":1.7,"base":1.7,"min":1.1,"max":2.4,"step":0.05,"unit":""},
+      {"id":"o6op","label":"Intensidade do halo","type":"slider","var":"--o6-halo-opacity","value":0.6,"base":0.6,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o6soft","label":"Suavidade","type":"slider","var":"--o6-halo-soft","value":2,"base":2,"min":0,"max":12,"step":1,"unit":"px"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o6avatar","label":"Tamanho do avatar","type":"slider","var":"--o6-avatar","value":40,"base":40,"min":24,"max":72,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Movimento","controls":[
+      {"id":"o6cycle","label":"Ciclo (halo 20% + pausa)","type":"easing","durVar":"--o6-cycle-dur","easeVar":"--o6-cycle-ease","value":{"duration":8.5,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="7" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: uma faixa de luz passa por trás do avatar, de um lado ao outro, e só aparece nas laterais, como luz de palco atrás de uma pessoa; o olhar vai ao recorte que ela desenha. -->
+  <!-- racional: a luz atrás desenha a silhueta do avatar sem tocar nele (o conteúdo é o protagonista, DESIGN §1); a cor é só o branco translúcido do kit, sem novo matiz nem sombra (§4.1, §5.1); o botão não muda de tamanho nem de lugar (§9.1); com movimento reduzido vira um dissolve no lugar (§10). -->
+  <!-- divergência: DESIGN §10 e o playbook permitem só dissolve; o brief pede uma passagem de luz, segue o brief. -->
+
+  <p class="opt-label" data-part="label">Opção 7 - Luz de palco</p>
+  <div class="opt-content" data-part="content">
+    <div class="o7-stage">
+      <div class="o7-btn" data-part="login" aria-label="Login" data-stack>
+        <span class="o7-light" data-part="luz" aria-hidden="true" data-stack><span class="o7-band o7-run"></span></span>
+        <div class="o7-circle">
+          <span class="o7-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o7-play text-body-sm-medium" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="tocar">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="7">
+  {"states":["ocioso"],"folders":[
+    {"name":"Luz","part":"luz","controls":[
+      {"id":"o7bandw","label":"Largura da faixa","type":"slider","var":"--o7-band-w","value":34,"base":34,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o7bandh","label":"Altura da faixa","type":"slider","var":"--o7-band-h","value":70,"base":70,"min":20,"max":140,"step":1,"unit":""},
+      {"id":"o7op","label":"Intensidade","type":"slider","var":"--o7-band-opacity","value":0.6,"base":0.6,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o7soft","label":"Suavidade da borda","type":"slider","var":"--o7-band-soft","value":8,"base":8,"min":0,"max":20,"step":1,"unit":"px"},
+      {"id":"o7reach","label":"Alcance lateral","type":"slider","var":"--o7-reach","value":300,"base":300,"min":150,"max":500,"step":10,"unit":""}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o7avatar","label":"Tamanho do avatar","type":"slider","var":"--o7-avatar","value":40,"base":40,"min":24,"max":72,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Movimento","controls":[
+      {"id":"o7cycle","label":"Ciclo (passe 18% + pausa)","type":"easing","durVar":"--o7-cycle-dur","easeVar":"--o7-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="8" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz nasce de trás do avatar e escorrega pela sua borda numa coroa estreita, de um lado ao outro em diagonal, e o olhar segue o contorno até a imagem. -->
+  <p class="opt-label" data-part="label">Opção 8 - Coroa por trás</p>
+  <div class="opt-content" data-part="content">
+    <div class="o8-stage">
+      <div class="o8-btn" data-part="login" aria-label="Login">
+        <div class="o8-circle" data-stack>
+          <span class="o8-crown" data-part="coroa" data-stack aria-hidden="true">
+            <span class="o8-band o8-run" data-part="brilho"></span>
+          </span>
+          <span class="o8-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o8-play text-body-sm-medium" tabindex="-1" aria-label="Tocar efeito" data-cta="idle" data-part="tocar">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="8">
+  {"states":["ocioso"],"folders":[
+    {"name":"Coroa","part":"coroa","controls":[
+      {"id":"o8crown","label":"Largura da coroa","type":"slider","var":"--o8-crown","value":6,"base":6,"min":2,"max":14,"step":1,"unit":"px"}]},
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o8bandw","label":"Largura da faixa","type":"slider","var":"--o8-band-w","value":40,"base":40,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o8tilt","label":"Inclinação","type":"slider","var":"--o8-band-tilt","value":45,"base":45,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o8op","label":"Intensidade","type":"slider","var":"--o8-band-opacity","value":0.7,"base":0.7,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o8soft","label":"Suavidade da borda","type":"slider","var":"--o8-band-soft","value":3,"base":3,"min":0,"max":12,"step":1,"unit":"px"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o8avatar","label":"Tamanho do avatar","type":"slider","var":"--o8-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Movimento","controls":[
+      {"id":"o8cycle","label":"Ciclo (passe 18% + pausa)","type":"easing","durVar":"--o8-cycle-dur","easeVar":"--o8-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Híbrido das Opções 1 e 5</h2>
+<article data-parent="5" class="opt" data-option="9" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz passa pela chapa atrás do avatar e, ao fechar o passe, dispara uma onda que sai da chapa e se afasta: o reflexo aponta, a onda leva o olhar. Razão: o reflexo sozinho é discreto demais à distância e a onda sozinha não tem origem; juntos viram um gesto só, com causa e efeito, no mesmo ciclo de ~1,5 s e ~7 s de silêncio. -->
+  <p class="opt-label" data-part="label">Opção 9 - Híbrido ondas + reflexo</p>
+  <div class="opt-content" data-part="content">
+    <div class="o9-stage">
+      <div class="o9-btn o9-run" data-part="login" aria-label="Login">
+        <span class="o9-wave" data-part="onda" data-stack aria-hidden="true"></span>
+        <div class="o9-circle" data-stack>
+          <span class="o9-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o9-band" data-part="brilho"></span></span>
+          <span class="o9-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o9-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="9">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o9bandw","label":"Largura da faixa","type":"slider","var":"--o9-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o9tilt","label":"Inclinação","type":"slider","var":"--o9-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o9op","label":"Intensidade","type":"slider","var":"--o9-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o9soft","label":"Suavidade da borda","type":"slider","var":"--o9-band-soft","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Chapa","part":"chapa","controls":[
+      {"id":"o9rim","label":"Aro em volta do avatar","type":"slider","var":"--o9-rim","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o9avatar","label":"Tamanho do avatar","type":"slider","var":"--o9-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Onda","part":"onda","controls":[
+      {"id":"o9wcolor","label":"Cor","type":"color","var":"--o9-wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"o9wwidth","label":"Espessura","type":"slider","var":"--o9-wave-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"o9wreach","label":"Alcance (escala)","type":"slider","var":"--o9-wave-reach","value":1.45,"base":1.45,"min":1.1,"max":2,"step":0.05,"unit":""},
+      {"id":"o9wpeak","label":"Opacidade inicial","type":"slider","var":"--o9-wave-peak","value":0.55,"base":0.55,"min":0.1,"max":1,"step":0.05,"unit":""}]},
+    {"name":"Movimento","controls":[
+      {"id":"o9cycle","label":"Ciclo (passe + onda 24% + pausa)","type":"easing","durVar":"--o9-cycle-dur","easeVar":"--o9-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Variações da Opção 9 · livre</h2>
+<article data-parent="9" class="opt" data-option="10" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz passa pela chapa e, no mesmo instante, uma onda maior sai dela e se afasta: um gesto único, reflexo e onda juntos, de ~1,2 s e ~7 s de silêncio. -->
+  <!-- racional: a note pede luz e onda ao mesmo tempo e a onda maior; partir juntos tira a sensação de dois efeitos em fila e faz um gesto só, e o alcance 1,6x leva o olhar mais longe sem mexer no botão (DESIGN §9.1: o botão não muda de tamanho nem de lugar). Cor só o branco do kit (text-primary, #EEEEEE, sem branco puro, §4.6), sem sombra (§5.1), sem gradiente novo (§5.3): a faixa é um preenchimento translúcido com desfoque. Com movimento reduzido vira um dissolve no lugar (§10). -->
+  <!-- divergência: DESIGN §10 e playbook §3 permitem só dissolve; o brief é um estudo de motion do botão e a coordenação manda seguir o brief. -->
+  <!-- divergência: o contorno de repouso usa o gradiente do kit (§5.3, permitido); o CTA "Tocar efeito" é idêntico ao da opção 9 por instrução, embora tenha :hover (playbook §3 proíbe hover); ele é controle da página de exploração, não do componente. -->
+  <p class="opt-label" data-part="label">Opção 10 - Luz e onda juntas</p>
+  <div class="opt-content" data-part="content">
+    <div class="o10-stage">
+      <div class="o10-btn o10-run" data-part="login" aria-label="Login">
+        <span class="o10-wave" data-part="onda" data-stack aria-hidden="true"></span>
+        <div class="o10-circle" data-stack>
+          <span class="o10-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o10-band" data-part="brilho"></span></span>
+          <span class="o10-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o10-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="10">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o10bandw","label":"Largura da faixa","type":"slider","var":"--o10-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o10tilt","label":"Inclinação","type":"slider","var":"--o10-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o10op","label":"Intensidade","type":"slider","var":"--o10-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o10soft","label":"Suavidade da borda","type":"slider","var":"--o10-band-soft","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Chapa","part":"chapa","controls":[
+      {"id":"o10rim","label":"Aro em volta do avatar","type":"slider","var":"--o10-rim","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o10avatar","label":"Tamanho do avatar","type":"slider","var":"--o10-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Onda","part":"onda","controls":[
+      {"id":"o10wcolor","label":"Cor","type":"color","var":"--o10-wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"o10wwidth","label":"Espessura","type":"slider","var":"--o10-wave-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"o10wreach","label":"Alcance (escala)","type":"slider","var":"--o10-wave-reach","value":1.6,"base":1.6,"min":1.1,"max":2.2,"step":0.05,"unit":""},
+      {"id":"o10wpeak","label":"Opacidade inicial","type":"slider","var":"--o10-wave-peak","value":0.55,"base":0.55,"min":0.1,"max":1,"step":0.05,"unit":""}]},
+    {"name":"Movimento","controls":[
+      {"id":"o10cycle","label":"Ciclo (passe e onda juntos 14% + pausa)","type":"easing","durVar":"--o10-cycle-dur","easeVar":"--o10-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+<article data-parent="9" class="opt" data-option="11" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz passa pela chapa e, no mesmo instante, duas ondas em cascata saem dela e vão mais longe que antes: reflexo e ondas são um gesto só, a segunda onda mais fraca prolonga o rastro até o olhar chegar ao avatar. -->
+  <p class="opt-label" data-part="label">Opção 11 - Reflexo e duas ondas juntos</p>
+  <div class="opt-content" data-part="content">
+    <div class="o11-stage">
+      <div class="o11-btn o11-run" data-part="login" aria-label="Login">
+        <span class="o11-wave" data-part="onda" data-stack aria-hidden="true"></span>
+        <span class="o11-wave o11-wave-2" data-part="onda-2" data-stack aria-hidden="true"></span>
+        <div class="o11-circle" data-stack>
+          <span class="o11-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o11-band" data-part="brilho"></span></span>
+          <span class="o11-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o11-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="11">{"states":["ocioso","repouso"],"folders":[
+{"name":"Brilho","part":"brilho","controls":[
+{"id":"o11bandw","label":"Largura da faixa","type":"slider","var":"--o11-band-w","value":40,"base":32,"min":10,"max":80,"step":1,"unit":""},
+{"id":"o11tilt","label":"Inclinação","type":"slider","var":"--o11-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+{"id":"o11op","label":"Intensidade","type":"slider","var":"--o11-band-opacity","value":0.45,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+{"id":"o11soft","label":"Suavidade da borda","type":"slider","var":"--o11-band-soft","value":12,"base":4,"min":0,"max":16,"step":1,"unit":"px"}
+]},
+{"name":"Chapa","part":"chapa","controls":[
+{"id":"o11rim","label":"Aro em volta do avatar","type":"slider","var":"--o11-rim","value":6,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Avatar","part":"avatar","controls":[
+{"id":"o11avatar","label":"Tamanho do avatar","type":"slider","var":"--o11-avatar","value":44,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}
+]},
+{"name":"Ondas","part":"onda","controls":[
+{"id":"o11wcolor","label":"Cor","type":"color","var":"--o11-wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"o11wwidth","label":"Espessura","type":"slider","var":"--o11-wave-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+{"id":"o11wreach","label":"Alcance (escala)","type":"slider","var":"--o11-wave-reach","value":1.65,"base":1.9,"min":1.1,"max":2.6,"step":0.05,"unit":""},
+{"id":"o11wpeak","label":"Opacidade da 1ª onda","type":"slider","var":"--o11-wave-peak","value":0.55,"base":0.55,"min":0.1,"max":1,"step":0.05,"unit":""},
+{"id":"o11w2peak","label":"Opacidade da 2ª onda","type":"slider","var":"--o11-wave2-peak","value":0.25,"base":0.3,"min":0.05,"max":1,"step":0.05,"unit":""},
+{"id":"o11lag","label":"Atraso da 2ª onda","type":"slider","var":"--o11-wave-lag","value":150,"base":300,"min":0,"max":800,"step":50,"unit":"ms"}
+]},
+{"name":"Movimento","controls":[
+{"id":"o11cycle","label":"Ciclo (passe + ondas ~20% + pausa)","type":"easing","durVar":"--o11-cycle-dur","easeVar":"--o11-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}
+]}
+]}</script>
+</article>
+<article data-parent="9" class="opt" data-option="12" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz e o halo partem juntos: enquanto o brilho atravessa a chapa, um anel grosso e macio cresce dela até ~1,7x, como se o reflexo vazasse para fora e levasse o olhar ao avatar. -->
+  <!-- razão: a note pede brilho e onda ao mesmo tempo e a onda maior; o anel parte com o passe (0%) e chega a 1,7x. Luz clara em fundo escuro, sem sombra (DESIGN §5.1), sem gradiente novo (§5.3), sem branco puro (texto primário #EEEEEE, §4.6); o botão não muda de tamanho nem de lugar e com movimento reduzido vira dissolve (§10). -->
+  <!-- divergência: DESIGN §10 e playbook §3 pedem só dissolve; o brief é um estudo de motion do botão, segue o brief. O blur de 1,5 px no anel não é sombra nem gradiente, mas é um brilho difuso fora da lista do kit (só a luz do foco é brilho previsto, §5.3) e um anel macio a 45% pode sumir em TV que esmaga tons (playbook, anti-padrão 6); fica pequeno e ajustável a 0 no tune, decisão do designer. -->
+  <p class="opt-label" data-part="label">Opção 12 - Halo que vaza do reflexo</p>
+  <div class="opt-content" data-part="content">
+    <div class="o12-stage">
+      <div class="o12-btn o12-run" data-part="login" aria-label="Login">
+        <span class="o12-wave" data-part="onda" data-stack aria-hidden="true"></span>
+        <div class="o12-circle" data-stack>
+          <span class="o12-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o12-band" data-part="brilho"></span></span>
+          <span class="o12-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o12-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="12">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o12bandw","label":"Largura da faixa","type":"slider","var":"--o12-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o12tilt","label":"Inclinação","type":"slider","var":"--o12-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o12op","label":"Intensidade","type":"slider","var":"--o12-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o12soft","label":"Suavidade da borda","type":"slider","var":"--o12-band-soft","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Chapa","part":"chapa","controls":[
+      {"id":"o12rim","label":"Aro em volta do avatar","type":"slider","var":"--o12-rim","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o12avatar","label":"Tamanho do avatar","type":"slider","var":"--o12-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Halo","part":"onda","controls":[
+      {"id":"o12wcolor","label":"Cor","type":"color","var":"--o12-wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"o12wwidth","label":"Espessura","type":"slider","var":"--o12-wave-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-core-medium"},
+      {"id":"o12wsoft","label":"Maciez (blur)","type":"slider","var":"--o12-wave-soft","value":1.5,"base":1.5,"min":0,"max":6,"step":0.5,"unit":"px"},
+      {"id":"o12wreach","label":"Alcance (escala)","type":"slider","var":"--o12-wave-reach","value":1.7,"base":1.7,"min":1.2,"max":2.4,"step":0.05,"unit":""},
+      {"id":"o12wpeak","label":"Opacidade inicial","type":"slider","var":"--o12-wave-peak","value":0.45,"base":0.45,"min":0.1,"max":1,"step":0.05,"unit":""}]},
+    {"name":"Movimento","controls":[
+      {"id":"o12cycle","label":"Ciclo (brilho + halo 18% + pausa)","type":"easing","durVar":"--o12-cycle-dur","easeVar":"--o12-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+<article data-parent="9" class="opt" data-option="13" data-tuned data-state="ocioso" tabindex="0">
+  <!-- tese: a luz e a onda partem juntas: a faixa empurra a onda, que nasce no auge quando a luz cruza o centro da chapa e se abre bem além do avatar, e as duas terminam no mesmo instante; um gesto só, depois ~7 s de silêncio. -->
+  <p class="opt-label" data-part="label">Opção 13 - Luz empurra a onda</p>
+  <div class="opt-content" data-part="content">
+    <div class="o13-stage">
+      <div class="o13-btn o13-run" data-part="login" aria-label="Login">
+        <span class="o13-wave" data-part="onda" data-stack aria-hidden="true"></span>
+        <div class="o13-circle" data-stack>
+          <span class="o13-plate" data-part="chapa" data-stack aria-hidden="true"><span class="o13-band" data-part="brilho"></span></span>
+          <span class="o13-avatar" data-part="avatar"></span>
+        </div>
+      </div>
+      <button type="button" class="o13-play text-body-sm-medium" data-part="tocar" data-cta="idle" tabindex="-1" aria-label="Tocar efeito">Tocar efeito</button>
+    </div>
+  </div>
+  <script type="application/json" data-tune="13">
+  {"states":["ocioso","repouso"],"folders":[
+    {"name":"Brilho","part":"brilho","controls":[
+      {"id":"o13bandw","label":"Largura da faixa","type":"slider","var":"--o13-band-w","value":32,"base":32,"min":10,"max":80,"step":1,"unit":""},
+      {"id":"o13tilt","label":"Inclinação","type":"slider","var":"--o13-band-tilt","value":20,"base":20,"min":0,"max":60,"step":1,"unit":""},
+      {"id":"o13op","label":"Intensidade","type":"slider","var":"--o13-band-opacity","value":0.5,"base":0.5,"min":0.1,"max":1,"step":0.05,"unit":""},
+      {"id":"o13soft","label":"Suavidade da borda","type":"slider","var":"--o13-band-soft","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px"}]},
+    {"name":"Chapa","part":"chapa","controls":[
+      {"id":"o13rim","label":"Aro em volta do avatar","type":"slider","var":"--o13-rim","value":8,"base":8,"min":2,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Avatar","part":"avatar","controls":[
+      {"id":"o13avatar","label":"Tamanho do avatar","type":"slider","var":"--o13-avatar","value":40,"base":40,"min":24,"max":56,"step":1,"unit":"px","token":"--dimension-size-semantic-avatar"}]},
+    {"name":"Onda","part":"onda","controls":[
+      {"id":"o13wcolor","label":"Cor","type":"color","var":"--o13-wave-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"o13wwidth","label":"Espessura","type":"slider","var":"--o13-wave-width","value":2,"base":2,"min":1,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"o13wreach","label":"Alcance (escala)","type":"slider","var":"--o13-wave-reach","value":1.6,"base":1.6,"min":1.1,"max":2,"step":0.05,"unit":""},
+      {"id":"o13wpeak","label":"Opacidade inicial","type":"slider","var":"--o13-wave-peak","value":0.55,"base":0.55,"min":0.1,"max":1,"step":0.05,"unit":""}]},
+    {"name":"Movimento","controls":[
+      {"id":"o13cycle","label":"Ciclo (passe e onda juntos 12% + pausa)","type":"easing","durVar":"--o13-cycle-dur","easeVar":"--o13-cycle-ease","value":{"duration":8.5,"ease":[0.4,0,0.2,1]}}]}]}
+  </script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(function () {
+  var root = document.querySelector('.opt[data-option="1"]')
+  var waves = root.querySelector('.o1-waves')
+  // Only restarts the CSS animation; the motion itself is all CSS.
+  function play() {
+    waves.classList.remove('o1-once')
+    void waves.offsetWidth
+    waves.classList.add('o1-once')
+  }
+  waves.lastElementChild.addEventListener('animationend', function () { waves.classList.remove('o1-once') })
+  root.querySelector('.o1-play').addEventListener('click', play)
+  root.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return // ↑/↓ leave the card
+    play()
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="2"]')
+  const band = root.querySelector('.o2-band')
+  const play = () => { band.classList.remove('o2-run'); void band.offsetWidth; band.classList.add('o2-run', 'o2-now') }
+  root.querySelector('.o2-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(function () {
+  var root = document.querySelector('.opt[data-option="3"]')
+  var halo = root.querySelector('.halo')
+  function play() {
+    root.setAttribute('data-state', 'ocioso')
+    void halo.offsetWidth
+    root.setAttribute('data-state', 'tocando')
+  }
+  root.querySelector('.o3-play').addEventListener('click', play)
+  halo.addEventListener('animationend', function (e) {
+    if (e.animationName === 'o3-once') root.setAttribute('data-state', 'ocioso')
+  })
+  root.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    play()
+  })
+})()
+</script>
+<script>
+(function () {
+  var root = document.querySelector('.opt[data-option="4"]')
+  var arc = root.querySelector('.arc')
+  function play() {
+    root.removeAttribute('data-play')
+    void arc.offsetWidth
+    root.setAttribute('data-play', '')
+  }
+  arc.addEventListener('animationend', function () { root.removeAttribute('data-play') })
+  root.querySelector('.o4-play').addEventListener('click', play)
+  root.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return
+    play()
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="5"]')
+  const band = root.querySelector('.o5-band')
+  const play = () => { band.classList.remove('o5-run'); void band.offsetWidth; band.classList.add('o5-run', 'o5-now') }
+  root.querySelector('.o5-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="6"]')
+  const halo = root.querySelector('.o6-halo')
+  const play = () => { halo.classList.remove('o6-run'); void halo.offsetWidth; halo.classList.add('o6-run', 'o6-now') }
+  root.querySelector('.o6-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="7"]')
+  const band = root.querySelector('.o7-band')
+  const play = () => { band.classList.remove('o7-run'); void band.offsetWidth; band.classList.add('o7-run', 'o7-now') }
+  root.querySelector('.o7-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="8"]')
+  const band = root.querySelector('.o8-band')
+  const play = () => { band.classList.remove('o8-run'); void band.offsetWidth; band.classList.add('o8-run', 'o8-now') }
+  root.querySelector('.o8-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="9"]')
+  const btn = root.querySelector('.o9-btn')
+  const play = () => { btn.classList.remove('o9-run'); void btn.offsetWidth; btn.classList.add('o9-run', 'o9-now') }
+  root.querySelector('.o9-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="10"]')
+  const btn = root.querySelector('.o10-btn')
+  const play = () => { btn.classList.remove('o10-run'); void btn.offsetWidth; btn.classList.add('o10-run', 'o10-now') }
+  root.querySelector('.o10-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="11"]')
+  const btn = root.querySelector('.o11-btn')
+  const play = () => { btn.classList.remove('o11-run'); void btn.offsetWidth; btn.classList.add('o11-run', 'o11-now') }
+  root.querySelector('.o11-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="12"]')
+  const btn = root.querySelector('.o12-btn')
+  const play = () => { btn.classList.remove('o12-run'); void btn.offsetWidth; btn.classList.add('o12-run', 'o12-now') }
+  root.querySelector('.o12-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+<script>
+(() => {
+  // Só reinicia a animação CSS; o loop é todo em CSS.
+  const root = document.querySelector('.opt[data-option="13"]')
+  const btn = root.querySelector('.o13-btn')
+  const play = () => { btn.classList.remove('o13-run'); void btn.offsetWidth; btn.classList.add('o13-run', 'o13-now') }
+  root.querySelector('.o13-play').addEventListener('click', play)
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target !== root) return
+    e.preventDefault(); play()
+  })
+})()
+</script>
+</body>
+</html>
