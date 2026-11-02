@@ -12,8 +12,8 @@ Agents produce TV UI the designer would approve: on brand, built from kit tokens
 
 1. **Ask (questioner, "PO hat").** Read the brief and any PRD. Ask about the goal, the screen's role in the flow, the audience and the tone of the product until the objective is clear. Ask what the component is *for* before how it looks. Stop and ask again whenever a rule is missing.
 2. **Collect references (designer hat).** The designer brings references and says what they like in each. The agent extracts the parts that build the component (layout, hierarchy, colour logic, behaviour), never the whole. A reference is "um ponto de partida, nunca a chegada".
-3. **Explore, 4 to 6 options.** Different concepts, not variations of one. Before drawing, read the repo's design concepts that apply to the element: `node scripts/explore-ref.mjs --conceitos` lists them (type details such as balanced line breaks, grouping by proximity, one colour one meaning, focus and selection). Before showing, the explorer runs the judge's token check on its own work and fixes what is clear. For each option, write the rationale: what each choice is for and how it ties to the objective or brief. Options sit side by side; clicking one opens its rationale. Above 6 options in a round, warn the designer that quality may drop.
-4. **Judge (warns, never intervenes).** The judge lists, with precision, which elements break which token or rule, with a severity level, citing the documented rule. It never repaints, retunes or blocks. The designer can explore as far as they want, always with visibility.
+3. **Explore, 4 to 6 options.** Different concepts, not variations of one. Before drawing, read the repo's design concepts that apply to the element: `node scripts/explore-ref.mjs --conceitos` lists them (type details such as balanced line breaks, grouping by proximity, one colour one meaning, focus and selection). Also study the gold set (`design-brain/toolbox/references/`, the contact sheet and the short notes): learn the spacing, hierarchy and how one interaction sits in a card, and do not copy the cards. Before showing, the explorer runs the judge's token check on its own work and fixes what is clear. For each option, write the rationale: what each choice is for and how it ties to the objective or brief. Options sit side by side; clicking one opens its rationale. Above 6 options in a round, warn the designer that quality may drop.
+4. **Judge (warns, never intervenes).** The judge lists, with precision, which elements break which token or rule, with a severity level, citing the documented rule. It never repaints, retunes or blocks. `/explore` then sends each option's single direction-critique adjustment back to its writer (a judge Critical only when the critique already said the option was ready), for at most two rounds or until the critique says `none: ready`, and only then shows the set. The designer can explore as far as they want, always with visibility.
 5. **Designer decides.** Compare options: what draws attention in each (layout and hierarchy, or colour)? If two are close, build a **hybrid** of their strengths. The designer, not the agent, decides what is done.
 6. **Fix (surgical).** The designer's feedback has four parts: what went wrong, which principle was misused, how it felt to see it, and the change history. The fixer changes *only* the aspect pointed at; the rest of the component stays as it is.
 7. **Repeat 5 and 6 until the designer says done.** If the designer keeps asking for more options, the agent says when it starts to recycle ideas, and asks what exactly is being looked for.
@@ -119,7 +119,7 @@ A questionnaire the agent runs with the designer, filling one topic at a time. C
 |---|---|---|
 | Questioner (PO hat) | brief, PRD | clear objective, open questions |
 | Reference collector (designer hat) | references and the designer's notes on them | extracted parts, not copies |
-| Explorer | answers, extracted references, kit tokens, design concepts (`--conceitos`), judge's checks and page format (`judge.md`) | 4 to 6 options with rationale |
+| Explorer | answers, extracted references, the gold set (contact sheet and notes; learn, do not copy), kit tokens, design concepts (`--conceitos`), judge's checks and page format (`judge.md`) | 4 to 6 options with rationale |
 | Writer | chosen option, `web/protos/CLAUDE.md` | the screen in the kit |
 | Judge | tokens, rules, option | findings with severity; never changes anything |
 | Fixer | the designer's four-part feedback | only the aspect pointed at |
@@ -142,13 +142,15 @@ Everything this playbook produces or uses lives in `design-brain/toolbox/`.
 | [`../DESIGN.md`](../DESIGN.md) | doc | every role that draws UI: the visual language (colour, gradients, shadows, type, imagery, insets); the judge cites it |
 | [`judge.md`](judge.md) | doc | the independent judge (step 4): read by the agent that judges an exploration |
 | [`test-log.md`](test-log.md) | doc | anyone adjusting the playbook: what each test round fixed, found and left open |
-| [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | example | the judge: the saved "good" card to compare against (not for the explorer, to avoid copying) |
-| [`references/pompeia-seletor-card/`](references/pompeia-seletor-card/index.html) | example | the judge: a second saved "good" card (segmented selector), the designer's pick of round 4; not for the explorer |
+| [`references/gold.json`](references/gold.json) | example | the gold set index: which saved cards the pack may show, and the contact sheet |
+| [`references/gold-sheet.png`](references/gold-sheet.png) | example | one image of the gold cards; explorers study it and do not copy it (`node scripts/gold-sheet.mjs` rebuilds it) |
+| [`references/pompeia-poster-card/`](references/pompeia-poster-card/index.html) | example | saved good card, pb-test-2 option 1; the judge compares, the explorer studies the sheet and `why.md` |
+| [`references/pompeia-seletor-card/`](references/pompeia-seletor-card/index.html) | example | saved good card, cmp-1-playbook option 2; the designer called it better than the poster card |
 | [`tests/`](tests/) | test rounds | anyone adjusting the playbook: the explorations of each round, with their briefs and judge reports (`test-log.md` says what each found) |
 | [`interview-notes.md`](interview-notes.md) | doc | anyone adjusting the playbook: the designer's own words, vocabulary and rejected things behind each rule |
 | [`README.md`](README.md) | index | humans: the same list, with what is approved |
 
-No scripts or templates exist yet. The judge is a doc run by a separate agent; it uses the repo's existing `check-explore-*` scripts.
+No playbook scripts live in this folder. The contact sheet is rebuilt with `node scripts/gold-sheet.mjs`. The judge is a doc run by a separate agent; it uses the repo's existing `check-explore-*` scripts.
 
 ## 10. Decided
 
@@ -159,7 +161,8 @@ No scripts or templates exist yet. The judge is a doc run by a separate agent; i
 - Every finding names the element, the rule or token, the level and the documented value.
 
 ### Correction rounds
-- No cap; the designer ends the work.
+- Before the designer sees a set, `/explore` applies at most two automatic rounds (one adjustment per option, or stop when the critique says `none: ready`).
+- After that, no cap; the designer ends the work.
 - After 3 rounds with no clear gain, or when the designer asks for more options again, the agent says "I'm starting to recycle ideas", then asks what exactly is being looked for or proposes a new direction. The 3 is a first guess to adjust after testing.
 
 ### Reports

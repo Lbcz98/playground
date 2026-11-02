@@ -200,3 +200,12 @@ Same brief as round 5 (copied from `bbb-1-playbook`), run with `/explore-playboo
 - **Kit vs playbook (Note):** option 4's 56px emoji is off the type scale; the kit has no token for it.
 - **Not measured by the judge:** the name's line break in options 1 and 3, and the final height of options 2 to 4 (option 3 estimated near the 456px limit).
 - **Caveats:** one run, no designer review yet; the judge changed after the round-5 review, so the agreement with it is partly tuned. `/explore` (without the playbook) was not re-run.
+
+## Gold set
+
+The two lines above that say "not added yet" (round 2 option 1, round 4 `/explore-playbook` option 2) describe the moment of the review. Both cards were already saved, and the markup matches the test pages:
+
+- `references/pompeia-poster-card/` is pb-test-2 option 1 ("Pôster inteiro"). Designer, round 2: "the best example the agent has generated" — size, white space, the title with its info right below, alignment, and a working interaction, "even if not so conventional".
+- `references/pompeia-seletor-card/` is cmp-1-playbook option 2 ("Seletor segmentado"). Designer, round 4: "even better than the option 1 we had saved" — the best hierarchy, contrast, alignment, spacing, rounding and interaction.
+
+Each folder has a `why.md` with that note. `references/gold.json` lists them, and `references/gold-sheet.png` is the contact sheet (`node scripts/gold-sheet.mjs`). `/explore` puts two or three of these, sheet plus notes, in every explorer pack. The explorer studies them and does not copy the HTML.

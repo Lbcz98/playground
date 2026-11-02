@@ -118,11 +118,11 @@ The "Levar" and "Evitar" lines are the contract: a writer reads them like a rule
 
 Input: the brief's Direção visual and the PNG of each option (plus the keys' PNGs). Output: one verdict per option, in this form, written to `docs/explorations/<slug>/direcao.md`:
 
-`Opção N: <Tem a cara | Quase | Genérica>. Levar: <ok or what is missing, with the measure>. Evitar: <ok or what crept in>. Teste de fidelidade: <sim/não>. Genérico a olho: <the stock moves found, from the list below>. Um ajuste: <one move>.`
+`Opção N: <Tem a cara | Quase | Genérica>. Levar: <ok or what is missing, with the measure>. Evitar: <ok or what crept in>. Teste de fidelidade: <sim/não>. Genérico a olho: <the stock moves found, from the list below>. Um ajuste: <one move | none: ready>.`
 
 **Stock moves (the "generic" tells).** Name any that appear: centred stack of icon, number and label; rows of equal weight; every piece the same size within 1.5×; an accent colour used for decoration; a gradient with no data behind it; an illustration that could belong to any app; chrome that outweighs content; text pairs with no scale jump; empty space that is leftover rather than placed; a control that is louder than the thing it controls; four options that differ only in layout.
 
-Rules: a verdict is evidence from the PNG, never taste. "Quase" always says the one move that would make it "Tem a cara". The critic never edits and never says an option is "good": it says whether it is *this* direction. The critique goes to the designer, who decides what is passed to the writers.
+Rules: a verdict is evidence from the PNG, never taste. "Quase" always says the one move that would make it "Tem a cara". The critic never edits and never says an option is "good": it says whether it is *this* direction. `Um ajuste: none: ready` means the option already holds the direction, so it is not touched. `/explore` forwards that one adjustment to the writer, for at most two rounds, and then the designer sees the set.
 
 ## 8. Learnings from past explorations
 

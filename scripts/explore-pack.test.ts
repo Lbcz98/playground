@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { ALWAYS, chapters, field, named, pack, split } from './explore-pack.mjs'
+import { ALWAYS, chapters, field, goldBlock, loadGold, named, pack, pickGold, split } from './explore-pack.mjs'
 
 const brief = `pedido do designer
 
@@ -99,6 +99,41 @@ describe('explore-pack', () => {
     expect(pack('clima', 'x', 7, '## Opção 7\n- **Interação:** Estático.\n- **Regras:** esqueleto-fixos', src).unknown).toEqual([])
   })
 
+  it('picks two or three gold cards and leaves the rest out', () => {
+    const cards = [
+      { id: 'a', title: 'A', source: 's-a', tags: ['clima', 'temperatura'], why: 'why a' },
+      { id: 'b', title: 'B', source: 's-b', tags: ['elenco'], why: 'why b' },
+      { id: 'c', title: 'C', source: 's-c', tags: ['filme'], why: 'why c' },
+      { id: 'd', title: 'D', source: 's-d', tags: ['agenda'], why: 'why d' },
+    ]
+    const ids = (list: { id: string }[]) => list.map((c) => c.id)
+    expect(ids(pickGold('previsão do clima e a temperatura', cards))).toEqual(['a', 'b'])
+    expect(ids(pickGold('filme, clima, temperatura e elenco', cards))).toEqual(['a', 'b', 'c'])
+    expect(ids(pickGold('nada a ver com as tags', cards))).toEqual(['a', 'b'])
+    expect(ids(pickGold('filme', cards.slice(0, 1)))).toEqual(['a'])
+    const block = goldBlock('filme, clima, temperatura e elenco', { sheet: 'design-brain/toolbox/references/gold-sheet.png', cards })
+    expect(block).toContain('gold-sheet.png')
+    expect(block).toContain('why a')
+    expect(block).toContain('why c')
+    expect(block).not.toContain('why d')
+    expect(block).toContain('Não copie o assunto')
+  })
+
+  it('puts the repo gold notes in a pack when the catalog is passed', () => {
+    const gold = loadGold(fileURLToPath(new URL('../design-brain/toolbox/references/', import.meta.url)))
+    expect(gold?.cards.map((c: { id: string }) => c.id)).toEqual(['pompeia-poster-card', 'pompeia-seletor-card'])
+    expect(gold?.cards[0].why).toContain('the best example the agent has generated')
+    expect(gold?.cards[1].why).toContain('even better than the option 1 we had saved')
+    expect(existsSync(fileURLToPath(new URL(`../${gold?.sheet}`, import.meta.url)))).toBe(true)
+    const { shared, options } = split(brief)
+    const p = pack('clima', shared, 1, options[0][1], { ...src, gold })
+    expect(p.gold).toEqual(['pompeia-poster-card', 'pompeia-seletor-card'])
+    expect(p.text).toContain('## Exemplos bons (aprenda, não copie)')
+    expect(p.text).toContain('the best example the agent has generated')
+    expect(p.text).toContain('even better than the option 1 we had saved')
+    expect(p.text.indexOf('## Exemplos bons')).toBeLessThan(p.text.indexOf('## Regras lidas'))
+  })
+
   describe('the command line', () => {
     const run = (option: string) => {
       const dir = mkdtempSync(join(tmpdir(), 'explore-pack-cli-'))
@@ -115,6 +150,17 @@ describe('explore-pack', () => {
       expect(r.status).toBe(1)
       expect(r.stderr).toContain('erro: Opção 1: nenhum padrão')
       expect(r.stdout).toContain('pack/1.md')
+    })
+    it('writes the gold notes into every pack', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'explore-pack-gold-'))
+      writeFileSync(join(dir, 'brief.md'), 'pedido\n\n## Opção 1\n- **Interação:** Estático.\n')
+      const r = spawnSync('node', [fileURLToPath(new URL('explore-pack.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+      expect(r.status).toBe(0)
+      expect(r.stdout).toContain('ouro: pompeia-poster-card, pompeia-seletor-card')
+      const text = readFileSync(join(dir, 'pack', '1.md'), 'utf8')
+      expect(text).toContain('design-brain/toolbox/references/gold-sheet.png')
+      expect(text).toContain('the best example the agent has generated')
+      expect(text).toContain('even better than the option 1 we had saved')
     })
   })
 })

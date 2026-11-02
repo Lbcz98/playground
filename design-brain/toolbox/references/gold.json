@@ -1,0 +1,17 @@
+{
+  "sheet": "design-brain/toolbox/references/gold-sheet.png",
+  "cards": [
+    {
+      "id": "pompeia-poster-card",
+      "title": "Pôster inteiro",
+      "source": "pb-test-2, opção 1",
+      "tags": ["pôster", "poster", "imagem", "filme", "programação", "seletor", "ao vivo", "cartaz"]
+    },
+    {
+      "id": "pompeia-seletor-card",
+      "title": "Seletor segmentado",
+      "source": "cmp-1-playbook, opção 2",
+      "tags": ["seletor", "segmentado", "hierarquia", "filme", "programação", "contraste", "alinhamento", "agora"]
+    }
+  ]
+}

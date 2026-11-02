@@ -1,8 +1,12 @@
 ---
-description: Explora opções para uma pergunta de design (componente novo ou existente) em docs/explorations/<nome>/, para comparar lado a lado, comentar e pedir variações direto na página
+description: Explora opções para uma pergunta de design (fluxo do playbook: exemplos bons, juiz e loop de crítica). O fluxo antigo é /explore-legacy.
 argument-hint: "<a pergunta de design, ex.: 3 opções para o ícone de alerta> | <docs/explorations/nome, para reabrir>"
 allowed-tools: Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(node scripts/explore-ref.mjs:*), Bash(node scripts/explore-pack.mjs:*), Bash(node scripts/explore-stitch.mjs:*), Bash(node scripts/check-explore-layout.mjs:*), EnterPlanMode, ExitPlanMode, Bash(npm run explore:serve:*), Bash(npm run explore:status:*), Monitor, TaskStop, Read, Write, Glob, Agent, SendMessage, AskUserQuestion, mcp__Claude_Browser__navigate
 ---
+
+Este comando é o fluxo padrão. Ele é o antigo `/explore-playbook`: cada `proto-explorer` lê o playbook e o juiz, o pacote traz 2 ou 3 exemplos bons (folha de contato e notas) e a crítica volta ao escritor. O fluxo anterior, em que a crítica só avisa, é `/explore-legacy`. `/explore-playbook` faz o mesmo que este comando.
+
+Em toda chamada a um `proto-explorer` (a página inteira, cada opção em paralelo, as variações, as edições e o modo ajuste), acrescente: "Antes de escrever, leia `design-brain/DESIGN.md`, `design-brain/toolbox/playbook.md` e `design-brain/toolbox/judge.md` e siga o playbook: leis, princípios, anti-padrões e o formato de página do juiz. Onde o playbook e as suas instruções divergirem, siga as suas e anote a divergência na resposta. O pacote traz exemplos bons (`Exemplos bons`): leia a folha de contato e as notas antes de desenhar; aprenda o respiro, a hierarquia e como a interação cabe no card, e não copie o assunto nem o arranjo."
 
 Explore opções para o designer. Fale em opções e telas, nunca em Git. Você só escreve o arquivo do plano, que vira `docs/explorations/<slug>/brief.md`.
 
@@ -39,21 +43,39 @@ Explore opções para o designer. Fale em opções e telas, nunca em Git. Você 
 2. **Plano aprovado.** Slug do pedido; `ls docs/explorations`: a pasta existe → acrescente `-2` (`-3`, …). Não reescreva o plano: copie-o, `mkdir -p docs/explorations/<slug> && cp <arquivo do plano> docs/explorations/<slug>/brief.md`. As variações partem dele, até em outra conversa.
    - Monte os pacotes: `node scripts/explore-pack.mjs docs/explorations/<slug>`. Ele escreve `pack/<N>.md` por opção (o brief comum, só a direção dela, e as regras, referências, padrão e teclas que ela cita) e uma linha por pacote. Saída 1 com `erro:` (a interação não é um padrão de `--padroes`) ou `aviso:` com "regra desconhecida" → corrija o nome no brief (regras: `--conceitos`) e rode de novo; `aviso:` "nenhuma referência do catálogo" pode ficar quando a referência é só do designer.
    - 3 opções ou mais e o pedido não cita DialKit: vá a "Em paralelo" e depois ao passo 4.
-   - Senão (um agente só: a página inteira, sem controles), chame o agente `proto-explorer` com o pedido e o slug; as cópias ajustáveis delas saem no passo 4, ao subir o servidor. A todo `proto-explorer` (aqui, em paralelo, nas variações) mande o caminho `docs/explorations/<slug>/pack/<N>.md` de cada opção dele e os números; não cole o brief nem o pacote, nem peça que releia as próprias instruções (já as tem). Resposta `NEEDS_INPUT`: faça a primeira pergunta com AskUserQuestion (com as opções dele), uma por vez, e retome o mesmo agente com `SendMessage`, citando a resposta literal do designer.
-3. Entregue o relatório final como veio. Agente sugeriu `/proto`: diga isso e pare.
+   - Senão (um agente só: a página inteira, sem controles), chame o agente `proto-explorer` com o pedido e o slug; as cópias ajustáveis delas saem no passo 4, ao subir o servidor. A todo `proto-explorer` (aqui, em paralelo, nas variações) mande o caminho `docs/explorations/<slug>/pack/<N>.md` de cada opção dele e os números, mais a frase do playbook no topo deste comando; não cole o brief nem o pacote, nem peça que releia as próprias instruções (já as tem). Resposta `NEEDS_INPUT`: faça a primeira pergunta com AskUserQuestion (com as opções dele), uma por vez, e retome o mesmo agente com `SendMessage`, citando a resposta literal do designer. Quando ele voltar, rode o Loop de crítica (abaixo) e só então entregue o relatório.
+3. Entregue o relatório final como veio, depois do Loop de crítica. Agente sugeriu `/proto`: diga isso e pare.
 
 ## Em paralelo (3 opções ou mais)
 
 Uma opção por agente, todos juntos: sai no tempo de uma opção, e cada ideia nasce num contexto só seu (duas opções do mesmo agente saem parecidas).
 
 a. As direções são as do plano aprovado, com os mesmos números.
-b. Confira que o brief tem **uma** `Superfície` para todas. Na mesma mensagem, chame um `proto-explorer` por opção (até 8; acima disso, 2 opções por agente). A cada um: **modo parte**, o pedido nas palavras do designer, o slug, o caminho do pacote e o número da opção dele (só isso, passo 2).
+b. Confira que o brief tem **uma** `Superfície` para todas. Na mesma mensagem, chame um `proto-explorer` por opção (até 8; acima disso, 2 opções por agente). A cada um: **modo parte**, o pedido nas palavras do designer, o slug, o caminho do pacote, o número da opção dele e a frase do playbook no topo deste comando (passo 2).
 b2. As partes já chegam ajustáveis (`data-tuned`, com os controles): o palco abre nelas, sem cópia e sem `proto-tuner`. Nada a preparar aqui.
 c. Todos voltaram: `node scripts/explore-stitch.mjs docs/explorations/<slug> "<nome da exploração>"`. Parte faltando ou falha → ao dono com `SendMessage` (ainda modo parte) e rode de novo. Depois do stitch, `--list` deve marcar cada opção como `ajustável`; a que não vier marcada volta ao dono (modo parte) para ganhar os controles (sem isso o passo 4 prepara a cópia dela, com a espera de sempre). Depois `node scripts/check-explore-layout.mjs docs/explorations/<slug>`: linha que não for `ok` (inclusive `consistência`, entre as opções) vai ao dono em **modo edição**, até dar `ok`.
-d. **Crítica de direção.** Com o layout `ok`, chame o `proto-art-director` em **modo crítica** (slug). Ele escreve `docs/explorations/<slug>/direcao.md` e devolve uma linha por opção. Ele só avisa: não reenvie aos escritores por conta própria; mostre ao designer e espere o pedido dele.
-e. Relatório final: a linha de classificação (a do primeiro agente), a pergunta que a exploração responde, as opções em uma linha cada (como vieram), o caminho do arquivo, as linhas da crítica de direção (veredicto e um ajuste por opção) e "Isto ainda não está salvo no repositório."
+d. **Loop de crítica.** Com o layout `ok`, rode o Loop de crítica (abaixo) para todas as opções. Só então siga para o relatório. A página ao vivo (passo 4) abre depois do loop: o designer vê o conjunto já passado pela crítica.
+e. Relatório final: a linha de classificação (a do primeiro agente), a pergunta que a exploração responde, as opções em uma linha cada (como vieram), o caminho do arquivo, as linhas da última crítica de direção (veredicto e um ajuste, ou `none: ready`), as linhas do último juiz (nível e conjunto mais perto), o que a segunda rodada deixou aberto, e "Isto ainda não está salvo no repositório."
 
 Aqui ninguém devolve `NEEDS_INPUT`: o agente escolhe a leitura mais plausível e diz qual; repasse no relatório. Uma linha `Proposta:` (mais de 4 itens repetidos) é repassada ao designer com o motivo, e ele decide o rumo; nada é construído antes.
+
+## Loop de crítica
+
+Roda depois que as opções estão na página e `node scripts/check-explore-layout.mjs docs/explorations/<slug>` deu `ok`, e antes de abrir a página ao vivo ou marcar o pedido como `aplicado`. No máximo **2 aplicações** por opção, ou até a crítica dizer que ela está pronta. Uma opção pronta não volta ao escritor.
+
+Cada volta, para as opções desta leva (a exploração inteira, ou só os números novos de uma variação):
+
+1. Chame os dois juntos, sem contar a nenhum o que os `proto-explorer` fizeram:
+   - `proto-art-director` em **modo crítica**, com o slug e, numa leva parcial, os números. Ele escreve `docs/explorations/<slug>/direcao.md` (numa leva parcial, substitui só esses números e mantém o resto). Cada opção termina com `Um ajuste: <um movimento>` ou `Um ajuste: none: ready`.
+   - **um** agente `general-purpose`: "Você é o juiz do playbook. Leia `design-brain/toolbox/judge.md` e siga-o à risca, com as regras de `design-brain/toolbox/playbook.md`. Pasta da exploração: `docs/explorations/<slug>`. Você não muda nada na exploração; o único arquivo que escreve é `docs/explorations/<slug>/playbook-judge.md`. Responda em português: o caminho do relatório e uma linha por opção com o maior nível e o conjunto mais perto." O juiz não edita e não escreve nos escritores.
+2. Para cada opção da leva:
+   - A crítica diz `none: ready` (ou o equivalente: nenhum ajuste, pronta) e o juiz não marcou **Critical** nela → pronta; não mexa.
+   - Senão, **um** ajuste só. É o `Um ajuste` da crítica. Se a crítica disse pronta e o juiz marcou Critical, o ajuste é essa Critical, numa frase (elemento + regra). Não mande o relatório, os outros achados nem um segundo ajuste.
+3. Nenhum ajuste nesta leva → o loop acaba.
+4. Se esta leva já foi aplicada 2 vezes → não aplique de novo. Guarde a linha (`ainda aberto: <ajuste>`) para o relatório e pare.
+5. Senão, retome com `SendMessage` o `proto-explorer` que escreveu a opção (se não der, chame um novo) em **modo ajuste**: slug, número da opção, o pacote `pack/<N>.md` e só o ajuste, com a frase "mude só isso". Diga que a opção já está em `index.html` (não existe mais `parts/<N>.html`). Os que têm ajuste vão na mesma mensagem. Quando voltarem, `node scripts/check-explore-layout.mjs docs/explorations/<slug>` de novo; linha que não for `ok` volta ao dono em **modo edição**, até dar `ok`. Isso conta como uma aplicação. Volte ao passo 1.
+
+O relatório leva as linhas da última crítica e do último juiz, e o que ficou `ainda aberto` depois da segunda aplicação.
 
 ## Página ao vivo
 
@@ -84,8 +106,8 @@ c. Escreva 4 direções numeradas desde a próxima opção, como no passo 1.3 (r
    - `more`: ideias que ainda não estão na página.
 
    Escreva as 4 em `docs/explorations/<slug>/pack/direcoes.md`, um `## Opção N` cada, nos campos do passo 1.3, e rode `node scripts/explore-pack.mjs docs/explorations/<slug> --direcoes docs/explorations/<slug>/pack/direcoes.md`.
-d. Na mesma mensagem, chame quatro `proto-explorer` novos, uma opção cada, dizendo a cada um: **modo parte**, o slug, o caminho do pacote `pack/<N>.md`, `pai: opção <option>` e `ação: <action>` (em `more`: `mais opções` e a lista do passo a), a `note`, e o número dele (só isso, passo 2).
-e. Os quatro voltaram: rode `npm run explore:status -- docs/explorations/<slug> <id> aplicando` de novo. `cancelado` → `node scripts/explore-stitch.mjs docs/explorations/<slug> --drop` e largue o pedido. Senão: `node scripts/explore-stitch.mjs docs/explorations/<slug> --append "<grupo>" --parent <option>` (grupo: `Variações da Opção 5 · forte`; em `more`: `Mais opções`, sem `--parent`). Parte faltando ou recusada → `SendMessage` ao dono e rode de novo. Depois `node scripts/check-explore-layout.mjs docs/explorations/<slug>`; linha que não for `ok` → ao dono, em **modo edição**, até dar `ok`. Nas variações, a `superfície` e o fundo seguem a opção pai.
+d. Na mesma mensagem, chame quatro `proto-explorer` novos, uma opção cada, dizendo a cada um: **modo parte**, o slug, o caminho do pacote `pack/<N>.md`, `pai: opção <option>` e `ação: <action>` (em `more`: `mais opções` e a lista do passo a), a `note`, o número dele e a frase do playbook no topo deste comando (passo 2).
+e. Os quatro voltaram: rode `npm run explore:status -- docs/explorations/<slug> <id> aplicando` de novo. `cancelado` → `node scripts/explore-stitch.mjs docs/explorations/<slug> --drop` e largue o pedido. Senão: `node scripts/explore-stitch.mjs docs/explorations/<slug> --append "<grupo>" --parent <option>` (grupo: `Variações da Opção 5 · forte`; em `more`: `Mais opções`, sem `--parent`). Parte faltando ou recusada → `SendMessage` ao dono e rode de novo. Depois `node scripts/check-explore-layout.mjs docs/explorations/<slug>`; linha que não for `ok` → ao dono, em **modo edição**, até dar `ok`. Nas variações, a `superfície` e o fundo seguem a opção pai. Com o layout `ok`, rode o Loop de crítica só para os números novos desta leva. As opções que já estavam na página não voltam ao escritor.
 f. `aplicado "<os nomes das 4 opções>"`. As 4 já chegam ajustáveis: nada a preparar. Uma variação também pode ser variada: o `option` do pedido é sempre o pai direto.
 
 Nunca faça commit nem `/deploy`; o relatório já diz que a exploração não está salva no repositório. Para virar tela: `/proto docs/explorations/<nome> opção N` (original ou variação).

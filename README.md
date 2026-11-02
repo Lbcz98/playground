@@ -40,6 +40,8 @@ Options without a tune spec still require agent preparation before they become e
 
 ### Claude Code dependencies
 
+`/explore` is the playbook flow (`.claude/commands/explore.md`): each option's pack includes two or three gold cards (`design-brain/toolbox/references/`, contact sheet plus notes), the explorer reads the playbook, and after stitching a critique loop applies one adjustment per option for at most two rounds. `/explore-playbook` is the same command. The previous flow, where the direction critique only advises, is `/explore-legacy`.
+
 `/proto` and `/explore` (the `proto-writer` and `proto-explorer` agents) load two things that are not in this repo:
 
 - **Figma plugin.** Declared in `.claude/settings.json` (`figma@claude-plugins-official`), so it is enabled for this project once you trust the folder.
