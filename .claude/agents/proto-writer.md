@@ -2,6 +2,7 @@
 name: proto-writer
 description: Writes one screen or flow in web/protos/<designer>/ from a designer's request, following web/protos/CLAUDE.md, until proto-reviewer says PASS. Used by /proto. Cannot talk to the user: it returns NEEDS_INPUT instead.
 tools: Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, mcp__storybook__docs-list, mcp__storybook__docs-show, mcp__storybook__docs-show-story
+model: sonnet
 ---
 
 You write a prototype for a designer. You are given the designer's folder name and the request in their words. Reply in Portuguese, in plain words: screens and review, not Git, CI or commands, unless something fails.

@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
 import { head, sections } from './explore-ref.mjs'
+// @ts-expect-error plain .mjs, shared with the node checker
+import { banForClass, banForCssVar } from './agent-token-bans.mjs'
 
 const ROOT = join(__dirname, '..')
 const dir = join(ROOT, 'design-brain/references/conceitos')
@@ -33,6 +35,13 @@ describe('design-brain concept notes', () => {
         const family = name.endsWith('-')
         expect(family ? [...classes].some((c) => c.startsWith(name)) : classes.has(name), `${f}: ${name}`).toBe(true)
       }
+    }
+  })
+
+  it('does not send an agent to a token DESIGN.md bans', () => {
+    for (const [f, md] of notes) {
+      for (const [name] of md.matchAll(/--[\w-]+/g)) expect(banForCssVar(name), `${f}: ${name}`).toBeNull()
+      for (const [name] of md.matchAll(/\.text-[\w-]+/g)) expect(banForClass(name), `${f}: ${name}`).toBeNull()
     }
   })
 
