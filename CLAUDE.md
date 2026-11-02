@@ -19,3 +19,8 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`. They now exist; extend them as terms and decisions are resolved.
+
+## Fluid Functionalism
+
+- Fluid hover and pointer states: not applicable. TV has no pointer; the only states are default, selected (focus) and disabled.
+- Motion: one system spring (motion.semantic.easing, 800ms) for every transition, including width/height/padding on focus expansion. Deliberate, not an off-token duration.
