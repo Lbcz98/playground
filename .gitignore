@@ -41,3 +41,6 @@ design-brain/references/Composition/
 
 # /explore context packs: rebuilt from brief.md by scripts/explore-pack.mjs
 docs/explorations/*/pack/
+
+# Maestri local state
+.maestri/

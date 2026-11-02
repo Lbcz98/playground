@@ -1,8 +1,0 @@
-{
-  "color" : "#007AFF",
-  "icon" : "person.text.rectangle",
-  "id" : "C007531F-2E5D-48A8-89A7-765F1C31C1E0",
-  "name" : "Builder",
-  "prompt" : "An agent responsible to use the necessary tools to build",
-  "schemaVersion" : 1
-}
