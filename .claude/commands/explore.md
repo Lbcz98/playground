@@ -8,6 +8,7 @@ Chaves de economia (`scripts/explore-economy.json`; `false` volta o comportament
 - `headless_exit`: execução não interativa (`claude -p` ou `EXPLORE_HEADLESS=1`) sobe o servidor, imprime a URL e termina, sem Monitor (passo 4).
 - `loop_cap`: o pacote de cada opção traz o limite do `proto-explorer` (uma chamada de checagem, no máximo 2 rodadas de olhar e corrigir).
 - `lean_pack`: `explore-pack.mjs` corta do pacote o que o brief não usa (modo interativo num brief estático, regras de fileira, direção da crítica).
+- `explorer_cap`: no início do `proto-explorer`, uma linha substitui o laço dos passos 6 e 7 (1 Bash de checagem, 2 rodadas). A 3ª rodada é recusada.
 
 `/explore` compara opções. `/explore-playbook` é o mesmo comando. Fale em opções e telas, nunca em Git. Você só escreve o plano, que vira `docs/explorations/<slug>/brief.md`.
 
