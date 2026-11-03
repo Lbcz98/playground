@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -30,5 +30,14 @@ describe('explore-economy', () => {
   it('ships with every switch known', () => {
     const shipped = economy()
     for (const k of ['headless_exit', 'loop_cap', 'lean_pack']) expect(typeof shipped[k]).toBe('boolean')
+  })
+
+  it('the command documents the switches and asks the script before waiting for comments', () => {
+    for (const f of ['.claude/commands/explore.md', '.claude/commands/explore-playbook.md']) {
+      expect(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), f).toContain('Bash(node scripts/explore-economy.mjs:*)')
+    }
+    const cmd = readFileSync(new URL('../.claude/commands/explore.md', import.meta.url), 'utf8')
+    for (const k of ['headless_exit', 'loop_cap', 'lean_pack']) expect(cmd).toContain(`\`${k}\``)
+    expect(cmd).toContain('node scripts/explore-economy.mjs headless')
   })
 })
