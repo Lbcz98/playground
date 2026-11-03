@@ -10,9 +10,11 @@ const NAMES: Record<PlayKey, string[]> = {
   right: ['ArrowRight'],
   enter: ['Enter'],
   back: ['Escape', 'Backspace', 'GoBack', 'BrowserBack', 'Back'],
-  restart: ['r'],
+  restart: ['r', '1'],
 }
 const BACK_CODES = [4, 8, 27, 461, 10009]
+/** TV browsers often report `key` as "Unidentified" or a vendor name: the key codes of the d-pad and OK are the fallback. Red (403) and the numeral 1 (49, numpad 97) restart. */
+const CODE_KEYS: Record<number, PlayKey> = { 37: 'left', 38: 'up', 39: 'right', 40: 'down', 13: 'enter', 403: 'restart', 49: 'restart', 97: 'restart' }
 
 /** What to press for each key (`KeyboardEvent.key`): the inverse of `remoteKey`. */
 export const PRESS = Object.fromEntries(Object.entries(NAMES).map(([key, names]) => [key, names[0]])) as Record<PlayKey, string>
@@ -21,7 +23,7 @@ const KEY_OF = new Map(Object.entries(NAMES).flatMap(([key, names]) => names.map
 
 /** The key of the flow a keydown is, or null when it is not on the remote. */
 export function remoteKey(e: { key: string; keyCode: number }): PlayKey | null {
-  return KEY_OF.get(e.key) ?? (BACK_CODES.includes(e.keyCode) ? 'back' : null)
+  return KEY_OF.get(e.key) ?? (BACK_CODES.includes(e.keyCode) ? 'back' : CODE_KEYS[e.keyCode] ?? null)
 }
 
 /**

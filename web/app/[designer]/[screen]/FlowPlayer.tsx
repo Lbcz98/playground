@@ -171,6 +171,8 @@ export function Flow({ flow, state }: FlowSource) {
           background: 'rgba(255,255,255,.85)',
           padding: '4px 8px',
           borderRadius: 6,
+          opacity: 0,
+          pointerEvents: 'none',
         }}
       >
         {view.name} · ← ↑ ↓ → Enter · Esc volta · R reinicia
