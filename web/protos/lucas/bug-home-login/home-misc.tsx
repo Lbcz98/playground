@@ -1,13 +1,12 @@
 import { Stack } from '@/primitives'
+import { InteractivityButton } from '@/ui-kit/InteractivityButton'
+import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
 import { Screen } from '@/ui-kit/Screen'
 import { MenuComPerfilAnimado } from '../components/MenuComPerfilAnimado'
-import { TrilhaHome } from '../components/TrilhaHome'
 import { VideoAoVivo } from '../components/VideoAoVivo'
 import { programaAgora, STREAM_URL } from '../dados-menu-perfil'
 
-/**
- * Home de primeira visita (perfil com motion), foco em miscellaneous.
- */
+/** Home de primeira visita (perfil com motion), foco em miscellaneous. A trilha acima mostra o hint. */
 export default function HomeMisc() {
   const { noAr, seguinte } = programaAgora()
   return (
@@ -15,7 +14,9 @@ export default function HomeMisc() {
       {/* o menu não ancora sozinho na borda de baixo; o Stack empurra o menu para o fim do quadro */}
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <Stack direction="column" justify="end" align="stretch" gap="sm">
-          <TrilhaHome item="miscellaneous" />
+          <InteractivityMenu align="start">
+            <InteractivityButton interactionState="default" title="Previsão do tempo" />
+          </InteractivityMenu>
           <MenuComPerfilAnimado focusedItem="miscellaneous" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>
       </Stack>
