@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { ALWAYS, chapters, field, goldBlock, isStatic, judgeText, loadCraftDir, loadGold, loadTopicDir, named, pack, pickGold, selectCraft, selectTopics, split } from './explore-pack.mjs'
+import { ALWAYS, LOOP_CAP, chapters, leanNote, field, goldBlock, isStatic, judgeText, loadCraftDir, loadGold, loadTopicDir, named, pack, pickGold, selectCraft, selectTopics, split } from './explore-pack.mjs'
 
 const brief = `pedido do designer
 
@@ -30,7 +30,8 @@ for (const r of ['trilho-de-dias', 'orbita']) writeFileSync(join(refs, `${r}.md`
 for (const r of [...ALWAYS.map(([r]: [string]) => r), 'foco-e-selecao', 'esqueleto-fixo', 'rotulo-inequivoco', 'raios-concentricos']) writeFileSync(join(rules, `${r}.md`), note(r, 'Vale para: cards'))
 const interacoes = '# I\n\n## Teclas dentro do card\n\n| Tecla | O que faz |\n| --- | --- |\n| **←  →** | move |\n\n## Padrões\n\n| Padrão | ← → | Enter |\n| --- | --- | --- |\n| **Trilho de passos** | move | abre |\n| **Órbita** | gira | abre |\n'
 const direcao = '# D\n\n## 1. Stance\nstance\n\n## 3. Vocabulary\nvague to precise\n\n## 7. Critique\ncritique\n\n## 8. Learnings\nold\n'
-const src = { refs, rules, interacoes, direcao }
+// The shipped switches may be on; these fixtures pin the old behaviour, and the lean_pack / loop_cap tests turn each on.
+const src = { refs, rules, interacoes, direcao, lean: false, loopCap: false }
 
 describe('explore-pack', () => {
   it('splits the brief into the shared text and one block per option', () => {
@@ -215,5 +216,77 @@ describe('explore-pack', () => {
       expect(text).toContain('the best example the agent has generated')
       expect(text).toContain('even better than the option 1 we had saved')
     })
+  })
+
+  it('loop_cap pastes the look limit into the pack only when the switch is on', () => {
+    const { shared, options } = split(brief)
+    const on = pack('s', shared, 1, options[0][1], { ...src, loopCap: true }).text
+    const off = pack('s', shared, 1, options[0][1], { ...src, loopCap: false }).text
+    expect(on).toContain(LOOP_CAP)
+    expect(on).toContain('2 rodadas')
+    expect(off).not.toContain('loop_cap')
+    expect(off).not.toContain('2 rodadas')
+  })
+
+  it('lean_pack keeps the focus ring, icons and elevation out of a static brief unless it asks for them', () => {
+    const shared = 'estados: repouso e foco do kit. Um selo sobreposto; logo de 16px.'
+    const lean = selectTopics({ shared, block: '', interactive: false, rules: [], lean: true })
+    const old = selectTopics({ shared, block: '', interactive: false, rules: [] })
+    expect(lean).not.toContain('focus')
+    expect(lean).not.toContain('icons')
+    expect(lean).not.toContain('elevation')
+    expect(old).toEqual(expect.arrayContaining(['focus', 'icons', 'elevation']))
+    expect(selectTopics({ shared: 'um ícone e uma sombra', lean: true })).toEqual(expect.arrayContaining(['icons', 'elevation']))
+    expect(selectTopics({ rules: ['foco-e-selecao'], lean: true })).toContain('focus')
+    expect(selectTopics({ interactive: true, lean: true })).toContain('focus')
+  })
+
+  it('lean_pack drops row, control and interview lines for a static option, and keeps them for an interactive one', () => {
+    const md = '- Numa fileira de itens, o escolhido inverte.\n- O foco do controle não muda o grupo.\n- **O grupo vem do designer.** primeira pergunta da entrevista.\n- Um dado âncora a 2×.\n- **Respiro:** igual.\n3. A selector shows one section.\n4. Titles balance.\n'
+    const out = leanNote(md)
+    expect(out).toContain('Um dado âncora a 2×')
+    expect(out).toContain('Titles balance')
+    for (const gone of ['fileira', 'foco do controle', 'entrevista', 'Respiro', 'selector']) expect(out).not.toContain(gone)
+    const kept = leanNote(md, { row: true, interactive: true })
+    expect(kept).toContain('fileira')
+    expect(kept).toContain('foco do controle')
+    expect(kept).toContain('selector')
+    expect(kept).not.toContain('entrevista')
+  })
+
+  it('lean_pack drops a "uso" bullet whose tokens a topic already holds, and strips Why clauses', () => {
+    const md = '## Receita\n- Regra com `--color-x-y`.\n## Uso\n- Token: `--color-a-b`.\n- Token novo: `--color-c-d`.\nPor quê. *Why: porque sim.*'
+    const out = leanNote(md, { seen: '`--color-a-b` `--color-x-y`' })
+    expect(out).not.toContain('Token: `--color-a-b`')
+    expect(out).toContain('Regra com')
+    expect(out).toContain('--color-c-d')
+    expect(out).not.toContain('Why')
+  })
+
+  it('lean_pack off gives back the whole note, and a brief with Direção visual drops the vocabulary table', () => {
+    const topics = { 'focal-point': '# F\nx', type: '# T\nx', color: '# C\nx', surfaces: '# S\nx', elevation: '# E\nx', frame: '# Fr\nx', principles: '# P\nx', icons: '# I\nx', focus: '# Fo\nx', 'direction-vocabulary': '# V\nvocab', 'direction-boldness': '# B\nbold', 'direction-critique': '# Cr\ncrit' }
+    const { options } = split(brief)
+    const shared = 'pedido\n**Direção visual**\n- Tom: calmo\nestados: foco do kit'
+    const on = pack('s', shared, 2, options[1][1], { ...src, topics, lean: true }).text
+    const off = pack('s', shared, 2, options[1][1], { ...src, topics, lean: false }).text
+    expect(on).not.toContain('vocab')
+    expect(on).not.toContain('Fo\n')
+    expect(off).toContain('vocab')
+    expect(off).toContain('bold')
+    expect(off).toContain('crit')
+    expect(off).toContain('### Fo')
+    expect(on.length).toBeLessThan(off.length)
+    for (const [r] of ALWAYS) expect(on).toContain(`### ${r}`)
+  })
+
+  it('with the shipped switches on, the tabela-anuncio pack stays under 25 KB and keeps the always-on rules', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'explore-pack-size-'))
+    writeFileSync(join(dir, 'brief.md'), readFileSync(fileURLToPath(new URL('../docs/explorations/tabela-anuncio/brief.md', import.meta.url)), 'utf8'))
+    const r = spawnSync('node', [fileURLToPath(new URL('./explore-pack.mjs', import.meta.url)), dir], { encoding: 'utf8' })
+    expect(r.status).toBe(0)
+    const text = readFileSync(join(dir, 'pack', '1.md'), 'utf8')
+    expect(text.length).toBeLessThan(25_000)
+    for (const [r] of ALWAYS) expect(text).toContain(`### ${r}`)
+    expect(text).toContain('Teste de fidelidade')
   })
 })

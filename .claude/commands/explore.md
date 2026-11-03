@@ -1,8 +1,13 @@
 ---
 description: Explora opções para uma pergunta de design. O pacote traz só os tópicos da opção; a crítica aplica um ajuste, uma vez, nas 1 ou 2 melhores.
 argument-hint: "<a pergunta de design, ex.: 3 opções para o ícone de alerta> | <docs/explorations/nome, para reabrir>"
-allowed-tools: Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(node scripts/explore-ref.mjs:*), Bash(node scripts/explore-pack.mjs:*), Bash(node scripts/explore-stitch.mjs:*), Bash(node scripts/check-explore-layout.mjs:*), Bash(node scripts/check-explore-tokens.mjs:*), Bash(node scripts/explore-usage.mjs:*), EnterPlanMode, ExitPlanMode, Bash(npm run explore:serve:*), Bash(npm run explore:status:*), Monitor, TaskStop, Read, Write, Glob, Agent, SendMessage, AskUserQuestion, mcp__Claude_Browser__navigate
+allowed-tools: Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(node scripts/explore-ref.mjs:*), Bash(node scripts/explore-pack.mjs:*), Bash(node scripts/explore-stitch.mjs:*), Bash(node scripts/check-explore-layout.mjs:*), Bash(node scripts/check-explore-tokens.mjs:*), Bash(node scripts/explore-usage.mjs:*), Bash(node scripts/explore-economy.mjs:*), EnterPlanMode, ExitPlanMode, Bash(npm run explore:serve:*), Bash(npm run explore:status:*), Monitor, TaskStop, Read, Write, Glob, Agent, SendMessage, AskUserQuestion, mcp__Claude_Browser__navigate
 ---
+
+Chaves de economia (`scripts/explore-economy.json`; `false` volta o comportamento antigo; cada uma é independente):
+- `headless_exit`: execução não interativa (`claude -p` ou `EXPLORE_HEADLESS=1`) sobe o servidor, imprime a URL e termina, sem Monitor (passo 4).
+- `loop_cap`: o pacote de cada opção traz o limite do `proto-explorer` (uma chamada de checagem, no máximo 2 rodadas de olhar e corrigir).
+- `lean_pack`: `explore-pack.mjs` corta do pacote o que o brief não usa (modo interativo num brief estático, regras de fileira, direção da crítica).
 
 `/explore` compara opções. `/explore-playbook` é o mesmo comando. Fale em opções e telas, nunca em Git. Você só escreve o plano, que vira `docs/explorations/<slug>/brief.md`.
 
@@ -66,7 +71,7 @@ O portão de pronto não muda: `none: ready` sem Direção visual não fecha, e 
 
 ## Página ao vivo
 
-4. Servidor em segundo plano: `npm run explore:serve -- docs/explorations/<slug>`. Leia até `READY {json}` (sem `sleep`) e pegue `url` e `logFile`. Abra `url`. Não prepare cópias ajustáveis agora.
+4. Servidor em segundo plano (`headless_exit`: rode `node scripts/explore-economy.mjs headless`, e acrescente `--headless` se esta execução é `claude -p`; `sair` → suba o servidor, leia o `READY`, imprima a `url` e uma linha dizendo que o servidor segue no ar e que os comentários da página não serão lidos nesta execução, e termine, sem passos 5 a 9; `seguir` → siga o texto abaixo): `npm run explore:serve -- docs/explorations/<slug>`. Leia até `READY {json}` (sem `sleep`) e pegue `url` e `logFile`. Abra `url`. Não prepare cópias ajustáveis agora.
 5. Monitor (timeout 1800000): `tail -n 0 -F <logFile> | grep --line-buffered '^COMMENT '`. Diga, em duas frases: **Variar** pede 4 variações, **Ajustar** é quem pede os controles (`/tune`), **Mais opções** pede 4 ideias, **Adicionar comentário** manda um ajuste. Todo pedido se cancela onde aparece ou no Histórico.
 6. Cada `COMMENT {json}` é um pedido, um por vez. `npm run explore:status -- docs/explorations/<slug> <id> aplicando`, e termine com `aplicado "<uma linha>"` ou `falhou "<motivo>"`. `{"error":"cancelado"}`: largue e siga.
    - `kind: comment` sem `data-tuned` → `proto-explorer` em **modo edição**. Com `data-tuned` → `proto-tuner` ("Pedidos do palco" em `tune.md`).
