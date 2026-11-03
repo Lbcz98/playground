@@ -107,6 +107,31 @@ describe('the rail keeps its cards when entered', () => {
   })
 })
 
+describe('the rail is compared with the Home that opens it', () => {
+  const card = { type: 'InteractivityButton' }
+  const screen = (id: string, model: string, level: number, cards: number, entersFrom?: string) => ({
+    id,
+    screen: { model, level },
+    entersFrom,
+    root: { type: 'Stack', children: [{ type: 'InteractivityMenu', children: Array.from({ length: cards }, () => card) }] },
+  })
+
+  it('accepts rails of different sizes when each matches its own Home', () => {
+    const screens = [
+      screen('home-a', 'home', 1, 1),
+      screen('home-b', 'home', 1, 5),
+      screen('rail-a', 'interactivity-buttons-left', 2, 1, 'home-a'),
+      screen('rail-b', 'interactivity-buttons-left', 2, 5, 'home-b'),
+    ]
+    expect(flowProblems(screens, S)).toEqual([])
+  })
+
+  it('rejects a rail that differs from the Home that opens it', () => {
+    const screens = [screen('home-a', 'home', 1, 1), screen('home-b', 'home', 1, 5), screen('rail-b', 'interactivity-buttons-left', 2, 1, 'home-b')]
+    expect(flowProblems(screens, S)[0]).toMatch(/rail shows 1 .* \("home-b"\) shows 5/)
+  })
+})
+
 describe('real-app navigation helpers', () => {
   it('levelKeyProblem: up/down/enter/back between levels', () => {
     expect(levelKeyProblem(1, 2, 'up')).toBeNull()

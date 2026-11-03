@@ -107,6 +107,8 @@ export interface FlowScreen {
   /** The screen spec (`{ model, level }`) as written. */
   screen?: unknown
   root: unknown
+  /** For a second-level page: the id of the Home screen whose rail it opens. Without it, the first Home with cards stands for all. */
+  entersFrom?: string
 }
 
 /**
@@ -161,7 +163,8 @@ export function flowIssues(screens: FlowScreen[], manifest: DesignSystemManifest
 
 /**
  * Entering the rail doesn't change what's in it: every second-level page shows
- * as many interactivity buttons as the Home rail it is entered from.
+ * as many interactivity buttons as the Home rail it is entered from (`entersFrom`
+ * when the flow says which Home that is, else the first Home with cards).
  */
 function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): (RuleProblem & { screen: number })[] {
   const on = screenLayersOf(manifest).levels.find((l) => l.level === 2)?.initialFocus?.on ?? []
@@ -177,11 +180,17 @@ function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): (R
     walk(root)
     return n
   }
-  const home = screens.find((s) => levelOfScreen(manifest, s.screen) === 1 && count(s.root) > 0)
-  if (!home) return []
-  const expected = count(home.root)
-  return screens.flatMap((s, screen) =>
-    levelOfScreen(manifest, s.screen) === 2 && count(s.root) !== expected
+  const firstHome = screens.find((s) => levelOfScreen(manifest, s.screen) === 1 && count(s.root) > 0)
+  const homeOf = (s: FlowScreen): FlowScreen | undefined => {
+    if (s.entersFrom === undefined) return firstHome
+    const home = screens.find((h) => h.id === s.entersFrom)
+    return home !== undefined && count(home.root) > 0 ? home : undefined
+  }
+  return screens.flatMap((s, screen) => {
+    const home = homeOf(s)
+    if (home === undefined || levelOfScreen(manifest, s.screen) !== 2) return []
+    const expected = count(home.root)
+    return count(s.root) !== expected
       ? [
           {
             ruleId: 'flow.rail-consistency' as const,
@@ -190,6 +199,6 @@ function railProblems(screens: FlowScreen[], manifest: DesignSystemManifest): (R
             message: `Screen "${s.id}": the rail shows ${count(s.root)} interactivity button(s), but the Home rail it is entered from ("${home.id}") shows ${expected} — the second level is the same rail, entered; keep the same cards.`,
           },
         ]
-      : [],
-  )
+      : []
+  })
 }
