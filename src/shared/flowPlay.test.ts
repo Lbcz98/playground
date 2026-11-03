@@ -78,8 +78,13 @@ describe('the remote: which key of the keyboard is which key of the flow', () =>
 
   it('R restarts; any other key is not the remote', () => {
     expect(key('r')).toBe('restart')
+    expect(key('1')).toBe('restart')
+    expect(key('Unidentified', 49)).toBe('restart')
     expect(key('a')).toBeNull()
-    expect(key('Unidentified', 13)).toBeNull()
+    expect(key('Unidentified', 13)).toBe('enter')
+    expect(key('Unidentified', 38)).toBe('up')
+    expect(key('Unidentified', 403)).toBe('restart')
+    expect(key('Unidentified', 65)).toBeNull()
   })
 
   it('PRESS is the inverse: the key a test presses for each flow key reads back as that key', () => {

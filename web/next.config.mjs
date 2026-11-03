@@ -8,8 +8,12 @@ export default {
   // The kit, the tokens and `@/…` live in ../src: this app is a viewer for it, not a copy.
   experimental: { externalDir: true },
   outputFileTracingRoot: resolve(here, '..'),
+  // The TV (and any other device on the LAN) opens the dev server by IP, which Next blocks by default.
+  allowedDevOrigins: ['192.168.15.9', '192.168.*.*'], // <-- the only new line
   // No generated AGENTS.md from `next dev`: this repo's agent rules live in its own CLAUDE.md files.
   agentRules: false,
+  // The dev overlay's "N" badge sits over the prototypes.
+  devIndicators: false,
   webpack(config, { dev, webpack }) {
     // Vite hands an imported .svg back as a URL string (the kit's icons are <img src>); so do we, inlined.
     const imageRule = config.module.rules.find((rule) => rule?.test instanceof RegExp && rule.test.test('.svg'))
