@@ -21,6 +21,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `color.semantic.functional.status-live` | #FD4142 | `StatusColor` `live` or `TextColor` `status-live` |
 | `color.semantic.functional.status-success` | #11BB0E | `StatusColor` `success` or `TextColor` `status-success` |
 | `color.semantic.functional.status-warning` | #FFA90A | `StatusColor` `warning` or `TextColor` `status-warning` |
+| `color.semantic.functional.text-bright` | #FFFFFF | `TextRole` `bright` |
 | `color.semantic.functional.text-muted` | #FFFFFFB3 | `TextRole` `muted` |
 | `color.semantic.functional.text-primary` | #EEEEEE | `TextRole` `primary` |
 | `color.semantic.functional.text-secondary` | #888888 | `TextRole` `secondary` |

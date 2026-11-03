@@ -62,6 +62,7 @@ export type TextRole =
   | 'secondary'
   | 'subtle'
   | 'inverse'
+  | 'bright'
   | 'muted'
 
 /** A semantic opacity role. */
@@ -103,6 +104,7 @@ export type TextColor =
   | 'secondary'
   | 'subtle'
   | 'inverse'
+  | 'bright'
   | 'muted'
   | 'status-error'
   | 'status-success'

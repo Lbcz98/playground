@@ -6,6 +6,8 @@
 :root {
   /* ===== Color · Core · Neutral ===== */
   --color-core-neutral-white: #EEEEEE;
+  /* Technical-sheet copy measured from the live product */
+  --color-core-neutral-light-white: #E6EAEF;
   /* Fully transparent white — used for fade-out gradient endpoints */
   --color-core-neutral-white-alpha-0: color-mix(in srgb, var(--color-core-neutral-white) 0%, transparent);
   --color-core-neutral-light-grey: #888888;
@@ -42,6 +44,20 @@
   --color-core-complementary-replay-light: #FFB54E;
   /* Replay pill gradient end */
   --color-core-complementary-replay-dark: #DA7F00;
+  /* Brazilian content rating: Livre */
+  --color-core-complementary-rating-free: #00A651;
+  /* Brazilian content rating: 6 anos */
+  --color-core-complementary-rating-6: #E43493;
+  /* Brazilian content rating: 10 anos */
+  --color-core-complementary-rating-10: #0095DA;
+  /* Brazilian content rating: 12 anos */
+  --color-core-complementary-rating-12: #FBC115;
+  /* Brazilian content rating: 14 anos */
+  --color-core-complementary-rating-14: #F58220;
+  /* Brazilian content rating: 16 anos */
+  --color-core-complementary-rating-16: #EC1D25;
+  /* Brazilian content rating: 18 anos */
+  --color-core-complementary-rating-18: var(--color-core-neutral-black);
 
   /* ===== Color · Opacity ===== */
   /* Derived from {color.core.neutral.slate} at 30% alpha */
@@ -65,6 +81,8 @@
   --color-opacity-light-30: #FFFFFF4D;
   --color-opacity-light-50: #FFFFFF80;
   --color-opacity-light-70: #FFFFFFB3;
+  --color-opacity-light-80: #FFFFFFCC;
+  --color-opacity-light-100: #FFFFFF;
 
   /* ===== Color · Opacity ===== */
   /* #646464 at 30% — a distinct mid-gray, not the grey-mid (#999999) core swatch. Only diagonal-light's end stop uses it. */
@@ -99,6 +117,10 @@
   --color-semantic-functional-text-subtle: var(--color-core-neutral-grey-mid);
   /* Text on light/accent backgrounds */
   --color-semantic-functional-text-inverse: var(--color-core-neutral-black);
+  /* Bright body copy in the About card */
+  --color-semantic-functional-text-bright: var(--color-opacity-light-100);
+  /* Labels and values in the Technical Sheet card */
+  --color-semantic-functional-technical-sheet-text: var(--color-core-neutral-light-white);
   /* Low-contrast dividers on dark surfaces */
   --color-semantic-functional-border-subtle: var(--color-opacity-light-10);
   /* Standard border on dark surfaces */
@@ -107,6 +129,15 @@
   --color-semantic-functional-status-success: var(--color-core-complementary-confirmation);
   --color-semantic-functional-status-warning: var(--color-core-complementary-alert);
   --color-semantic-functional-status-live: var(--color-core-complementary-live);
+  --color-semantic-functional-rating-text: var(--color-core-neutral-dark-grey);
+  --color-semantic-functional-rating-18-text: var(--color-core-neutral-white);
+  --color-semantic-functional-rating-free: var(--color-core-complementary-rating-free);
+  --color-semantic-functional-rating-6: var(--color-core-complementary-rating-6);
+  --color-semantic-functional-rating-10: var(--color-core-complementary-rating-10);
+  --color-semantic-functional-rating-12: var(--color-core-complementary-rating-12);
+  --color-semantic-functional-rating-14: var(--color-core-complementary-rating-14);
+  --color-semantic-functional-rating-16: var(--color-core-complementary-rating-16);
+  --color-semantic-functional-rating-18: var(--color-core-complementary-rating-18);
   /* Resting card and control surface over video or imagery */
   --color-semantic-functional-background-translucent: var(--color-opacity-background);
   /* Faint light tint behind a resting status pill */
@@ -135,6 +166,10 @@
   /* ===== Gradient · Semantic · Border ===== */
   /* The one resting stroke on every interactive control: cards, pill buttons, round buttons */
   --gradient-semantic-border-default: var(--gradient-complementary-diagonal-light);
+  /* Border used by the About card and its program-logo frame */
+  --gradient-semantic-border-about-card: var(--gradient-complementary-about-card-border);
+  /* Border of the age-rating tag on the About card */
+  --gradient-semantic-border-rating: var(--gradient-complementary-linear-light);
 
   /* ===== Gradient · Semantic · Status ===== */
   /* Focused live-broadcast pill */
@@ -174,6 +209,8 @@
   --gradient-complementary-shiny: linear-gradient(180deg, var(--color-core-neutral-grey-mid) 0%, var(--color-core-neutral-white) 100%);
   /* 135deg (top-left to bottom-right), confirmed by pixel-sampling the real Figma render (node 6038:18472): brightness falls off along both the top and the left edge, which only a diagonal produces. End stop is greymid-30, not black. */
   --gradient-complementary-diagonal-light: linear-gradient(135deg, var(--color-opacity-light-70) 0%, var(--color-opacity-greymid-30) 60%);
+  /* Border measured from the real About card */
+  --gradient-complementary-about-card-border: linear-gradient(153.43deg, var(--color-opacity-light-80) 0%, var(--color-opacity-greymid-30) 50%);
   --gradient-complementary-linear-light: linear-gradient(180deg, var(--color-core-neutral-white) 0%, var(--color-core-neutral-white-alpha-0) 100%);
   /* Transparent-to-opaque dark overlay: fades from fully transparent dark-blue-grey to charcoal, as in the Figma style Gradients/Complementary/Dark (which also applies 50% style-level opacity) */
   --gradient-complementary-dark: linear-gradient(180deg, var(--color-core-neutral-dark-blue-grey-alpha-0) 0%, var(--color-core-neutral-charcoal) 100%);
@@ -235,6 +272,10 @@
   --dimension-spacing-semantic-card-inset: var(--dimension-spacing-core-lg);
   /* Content Card padding, 32px (DESIGN.md section 7.3): the same on all sides and in every state. The expanded (focused) Card keeps card-inset. */
   --dimension-spacing-semantic-card-inset-expanded: var(--dimension-spacing-core-xl);
+  /* About card padding, 20px: tighter than card-inset because the card carries a title, a synopsis and a metadata line in one block. */
+  --dimension-spacing-semantic-about-card-inset: var(--dimension-spacing-core-md);
+  /* Space between a small tag's border and its text, 2px: the age-rating tag. */
+  --dimension-spacing-semantic-badge-inset: var(--dimension-border-width-core-thin);
   /* Gap between a content-filled control's edge and its outside focus outline */
   --dimension-spacing-semantic-focus-offset: var(--dimension-border-width-core-thin);
   /* Space between team and athlete rows in a Content Card table; scout rows cancel it and sit flush under their dividers */
@@ -334,6 +375,8 @@
   --dimension-border-width-semantic-card: var(--dimension-border-width-core-hairline);
   /* The rule under a table row or an ad tag — the thinnest line the kit draws. */
   --dimension-border-width-semantic-divider: var(--dimension-border-width-core-hairline);
+  /* The edge of a small tag or logo frame: the age-rating tag and the About card's program-logo frame. */
+  --dimension-border-width-semantic-badge: var(--dimension-border-width-core-hairline);
   /* Snapped from 1.33–1.34px */
   --dimension-border-width-semantic-button: var(--dimension-border-width-core-hairline);
   /* The one ring width in the kit. Every focusable control draws this, through <FocusRing> or the outside focusOutline; there is deliberately no second, wider pill variant. */
@@ -362,12 +405,22 @@
   --typography-font-size-5xl: 72px;
 
   /* ===== Typography · Letter Spacing ===== */
+  --typography-letter-spacing-normal: 0em;
   --typography-letter-spacing-tight: -0.01em;
   --typography-letter-spacing-tighter: -0.02em;
+
+  /* ===== Typography · Letter Spacing · Semantic ===== */
+  /* Text inside the Details cards (About, Technical Sheet): untightened, as in the live product. */
+  --typography-letter-spacing-semantic-detail-card-text: var(--typography-letter-spacing-normal);
 
   /* ===== Typography · Line Height ===== */
   --typography-line-height-tight: 1.1;
   --typography-line-height-normal: 1.2;
+  --typography-line-height-relaxed: 1.25;
+
+  /* ===== Typography · Line Height · Semantic ===== */
+  /* Text inside the Details cards (About, Technical Sheet): 1.25, as in the live product. The line count of the Technical Sheet is measured from it. */
+  --typography-line-height-semantic-detail-card-text: var(--typography-line-height-relaxed);
 
   /* ===== Opacity · Core ===== */
   --opacity-core-0: 0;

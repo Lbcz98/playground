@@ -1240,3 +1240,213 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
   outline-offset: var(--dimension-spacing-semantic-focus-offset);
 }
+
+/* Details — informational program summary, never a focus target. */
+.sfs-about-detail-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: calc(87 * var(--dimension-spacing-core-2xs));
+  padding: var(--dimension-spacing-semantic-about-card-inset);
+  overflow: hidden;
+  border-radius: var(--dimension-radius-core-2xl);
+  background-color: var(--color-semantic-functional-background-translucent);
+  color: var(--color-semantic-functional-text-primary);
+}
+
+.sfs-about-detail-card > .sfs-resting-border {
+  border-radius: var(--dimension-radius-core-2xl);
+  background: var(--gradient-semantic-border-about-card);
+}
+
+.sfs-about-detail-card-header,
+.sfs-about-detail-card-details {
+  display: flex;
+  align-items: center;
+}
+
+.sfs-about-detail-card-header {
+  gap: var(--dimension-spacing-core-xs);
+  min-width: 0;
+  margin-bottom: var(--dimension-spacing-core-2xs);
+}
+
+.sfs-about-detail-card-logo-frame {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: calc(var(--dimension-size-semantic-icon-xl) + var(--dimension-border-width-semantic-badge));
+  height: calc(var(--dimension-size-semantic-icon-xl) + var(--dimension-border-width-semantic-badge));
+  place-items: center;
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-border-about-card);
+}
+
+.sfs-about-detail-card-logo {
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+  border-radius: var(--dimension-radius-semantic-pill);
+  object-fit: cover;
+}
+
+.sfs-about-detail-card-title,
+.sfs-about-detail-card-description {
+  margin: 0;
+}
+
+.sfs-about-detail-card-title {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  letter-spacing: var(--typography-letter-spacing-semantic-detail-card-text);
+  line-height: var(--typography-line-height-semantic-detail-card-text);
+  text-wrap: pretty;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sfs-about-detail-card-description {
+  display: -webkit-box;
+  margin-bottom: var(--dimension-spacing-core-xs);
+  overflow: hidden;
+  color: var(--color-semantic-functional-text-bright);
+  letter-spacing: var(--typography-letter-spacing-semantic-detail-card-text);
+  line-height: var(--typography-line-height-semantic-detail-card-text);
+  text-wrap: pretty;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.sfs-about-detail-card-details {
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+
+.sfs-about-detail-card-rating {
+  display: grid;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--dimension-size-semantic-icon-lg);
+  height: var(--dimension-size-semantic-icon-lg);
+  padding: var(--dimension-spacing-semantic-badge-inset);
+  place-items: center;
+  border: var(--dimension-border-width-semantic-badge) solid transparent;
+  border-radius: var(--dimension-radius-core-xs);
+  background:
+    linear-gradient(var(--_rating-background), var(--_rating-background)) padding-box,
+    var(--gradient-semantic-border-rating) border-box;
+  color: var(--color-semantic-functional-rating-text);
+}
+
+.sfs-about-detail-card-rating[data-rating='18'] {
+  color: var(--color-semantic-functional-rating-18-text);
+}
+
+.sfs-about-detail-card-metadata {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: var(--color-semantic-functional-text-muted);
+  letter-spacing: var(--typography-letter-spacing-semantic-detail-card-text);
+  line-height: var(--typography-line-height-semantic-detail-card-text);
+  list-style: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sfs-about-detail-card-metadata li {
+  display: inline;
+}
+
+.sfs-about-detail-card-metadata li + li::before {
+  margin-inline: var(--dimension-spacing-core-2xs);
+  color: var(--color-semantic-functional-text-muted);
+  content: '•';
+}
+
+/* Details — flexible technical metadata beside the fixed program summary. */
+.sfs-technical-sheet-card {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-self: stretch;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-xs);
+  min-width: 0;
+  padding: var(--dimension-spacing-semantic-card-inset);
+  overflow: visible;
+  border-radius: var(--dimension-radius-core-2xl);
+  background-color: var(--color-semantic-functional-background-translucent);
+  color: var(--color-semantic-functional-text-primary);
+}
+
+.sfs-technical-sheet-card > .sfs-resting-border {
+  inset: calc(-1 * var(--dimension-border-width-semantic-card));
+  border-radius: var(--dimension-radius-core-2xl);
+  background: var(--gradient-semantic-border-about-card);
+}
+
+.sfs-technical-sheet-card-title,
+.sfs-technical-sheet-card-list,
+.sfs-technical-sheet-card-row dt,
+.sfs-technical-sheet-card-row dd {
+  margin: 0;
+}
+
+.sfs-technical-sheet-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  letter-spacing: var(--typography-letter-spacing-semantic-detail-card-text);
+  line-height: var(--typography-line-height-semantic-detail-card-text);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sfs-technical-sheet-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+
+.sfs-technical-sheet-card-row {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-semantic-functional-technical-sheet-text);
+  letter-spacing: var(--typography-letter-spacing-semantic-detail-card-text);
+  line-height: var(--typography-line-height-semantic-detail-card-text);
+  overflow-wrap: anywhere;
+  text-wrap: wrap;
+  -webkit-box-orient: vertical;
+}
+
+/* Lines per field come from TechnicalSheetCard, which shares the paired card's height
+   between its fields: 0 hides a field, 1-2 is the cap, 3 is only for the cast. */
+.sfs-technical-sheet-card-row[data-lines='0'] {
+  display: none;
+}
+
+.sfs-technical-sheet-card-row[data-lines='1'] {
+  -webkit-line-clamp: 1;
+}
+
+.sfs-technical-sheet-card-row[data-lines='2'] {
+  -webkit-line-clamp: 2;
+}
+
+.sfs-technical-sheet-card-row[data-lines='3'] {
+  -webkit-line-clamp: 3;
+}
+
+.sfs-technical-sheet-card-row dt,
+.sfs-technical-sheet-card-row dd {
+  display: inline;
+}
+
+.sfs-technical-sheet-card-row dd {
+  margin-inline-start: var(--dimension-spacing-core-3xs);
+}
