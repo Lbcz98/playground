@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Selo de patrocínio na tabela</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* @explore 1 */
+[data-option="1"] .o1-card { position: relative; display: flex; flex-direction: column; overflow: hidden; width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background-color: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+/* the kit's focus ring: 4px, its gradient, drawn on the card edge */
+[data-option="1"] .o1-card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); -webkit-mask: linear-gradient(var(--color-semantic-functional-background-primary) 0 0) content-box exclude, linear-gradient(var(--color-semantic-functional-background-primary) 0 0); mask: linear-gradient(var(--color-semantic-functional-background-primary) 0 0) exclude, linear-gradient(var(--color-semantic-functional-background-primary) 0 0) content-box; mask-composite: exclude; pointer-events: none; }
+[data-option="1"] .o1-zones { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+[data-option="1"] .o1-header { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-title { margin: 0; }
+[data-option="1"] .o1-sub { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-muted { color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .o1-subtle { color: var(--color-semantic-functional-text-subtle); }
+[data-option="1"] .o1-stats { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-stat { display: block; width: var(--dimension-size-semantic-table-stat-column); text-align: center; }
+[data-option="1"] .o1-body { display: flex; flex-direction: column; gap: var(--dimension-spacing-semantic-table-row-gap); font-variant-numeric: tabular-nums; }
+[data-option="1"] .o1-row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); height: var(--dimension-size-semantic-table-cell-md); }
+[data-option="1"] .o1-team { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-pos { display: block; width: var(--dimension-spacing-core-sm); }
+[data-option="1"] .o1-shield { display: block; width: var(--dimension-size-semantic-icon-md); height: var(--dimension-size-semantic-icon-md); background-color: var(--color-semantic-functional-status-error); -webkit-mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAACU0lEQVR4nOyYv0/qUBTHTwuFvBAoP97k8rYX8+YXnRyMEQcH0aib8f/QzcH/wBgd/QO0DpooRjcHf8y6OOhgHAy0RGKwQP1e05gALdxygWLST9L0pvfec77cc2jvPTINOTINOWESxLIsqVQqjdVqtRzaOfZMkiQtFAppiUTiCm2LBJCoCyBEMQxjsl6vM1FzEDHiMu4ZfYeyLGuqql6gbZJHuAUWCgUVDrNwwlZpFpdK3jBwHcGGBhun6XTa4JnUVmC5XB6pVCpzLHQwOolHCvUGEzbZimrRaPQwFos9E69A5NNotVrN2aLGqMs08ABcWSxXtXA4zPL2ntoJRCiFkloUhL5B09C/ZgKBogQCRQkEihIIFCUQKMqPFFgh/2jZIzoJfCGfwLarxbfMM2hQYE/YWSC4I5/A4jw0P2sRiF9xQj4B3/nmZ04hPiZ//igftu8GWgRmMpkSbgc0ePZt3w04HoiKxeIfOx9CNBhYxP7iPPLU3OH4ok6lUo+4bdOAQO5tOYn76nObhBX8hRPeDSb/oz4CP7cQNwE/7079rp86NiESiSyiqVP/0OFnwU0co+23OB6P36Guskx9AraX3EL7PYY6kEwm8zA0jVC8UY+ArTJsTsH2WaexXLsZ29BMLz6Dto0sbJ7zjOfebuEddYlcGUVzh/kh77A5u8wGs8U7qavCEGqD4ygwbcBZlmc8Vi2PwtA6aoTX5BGhypWu6/9RWV2D0HlyFnaASusmwnlDXdKT0hpKdr9N01yB0FVb2J6iKHsopb2SIP2u/Qkz9GeSTwAAAP//z2xrmgAAAAZJREFUAwB+FtTBLB6RPgAAAABJRU5ErkJggg==) center / contain no-repeat; mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAACU0lEQVR4nOyYv0/qUBTHTwuFvBAoP97k8rYX8+YXnRyMEQcH0aib8f/QzcH/wBgd/QO0DpooRjcHf8y6OOhgHAy0RGKwQP1e05gALdxygWLST9L0pvfec77cc2jvPTINOTINOWESxLIsqVQqjdVqtRzaOfZMkiQtFAppiUTiCm2LBJCoCyBEMQxjsl6vM1FzEDHiMu4ZfYeyLGuqql6gbZJHuAUWCgUVDrNwwlZpFpdK3jBwHcGGBhun6XTa4JnUVmC5XB6pVCpzLHQwOolHCvUGEzbZimrRaPQwFos9E69A5NNotVrN2aLGqMs08ABcWSxXtXA4zPL2ntoJRCiFkloUhL5B09C/ZgKBogQCRQkEihIIFCUQKMqPFFgh/2jZIzoJfCGfwLarxbfMM2hQYE/YWSC4I5/A4jw0P2sRiF9xQj4B3/nmZ04hPiZ//igftu8GWgRmMpkSbgc0ePZt3w04HoiKxeIfOx9CNBhYxP7iPPLU3OH4ok6lUo+4bdOAQO5tOYn76nObhBX8hRPeDSb/oz4CP7cQNwE/7079rp86NiESiSyiqVP/0OFnwU0co+23OB6P36Guskx9AraX3EL7PYY6kEwm8zA0jVC8UY+ArTJsTsH2WaexXLsZ29BMLz6Dto0sbJ7zjOfebuEddYlcGUVzh/kh77A5u8wGs8U7qavCEGqD4ygwbcBZlmc8Vi2PwtA6aoTX5BGhypWu6/9RWV2D0HlyFnaASusmwnlDXdKT0hpKdr9N01yB0FVb2J6iKHsopb2SIP2u/Qkz9GeSTwAAAP//z2xrmgAAAAZJREFUAwB+FtTBLB6RPgAAAABJRU5ErkJggg==) center / contain no-repeat; }
+/* footer: caption at the left margin, the seal at the right, one line, one baseline */
+[data-option="1"] .o1-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-caption { opacity: var(--opacity-semantic-text-secondary); }
+[data-option="1"] .o1-seal { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); }
+/* the 16px logo is taller than the caption line: it overhangs the line, it never adds to it */
+[data-option="1"] .o1-logo { display: block; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); margin-block: calc(-1 * var(--dimension-spacing-semantic-focus-offset)); background-color: var(--color-semantic-functional-text-muted); -webkit-mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABrUlEQVR4nLyXsUrEQBCGZ0OC2ISQ2FpYaH3YCtfaKPgAWtj7Dp7vYCn6ECLY6YEPICIIFlZWciEhjU1I/FdMDJLLzk4SfzhmLpnM/yW7sLsu9VAcxzMdoyiakVAuCaXNlVKnP7kYQpFATfNKZVmeSSCsAdrM+0BYAXSZSyHYABxzCQQLwMbcFsIIIDG3gVBjmXMh1JjmHAglNUfTV9TMER38nSLfJAGEEpjP8TsJw/C5eTFJkglMzpHukAWEsjS/gfFex33d4xY9dokJ4ViYLxzHOSKDPM87REiX3dce1SJWAzDH/C4IgoQM8n1/gXDfVdOEcLmzHW//REyh3yOAD8gM8TsEnL7cwqIo2LWOnhB6YjCaTogpvN22qaaajDWpaSjwwCfCFh5672qcpukGYF+QrpjMdV4PgelLAG4V4YIMgvkl1/y7798CxqS8dl33GLM9bl7MsizK8/wK6T7XvBWAA4FGHwgPqHlD7iFfRz5FXLMxXwrAgbCR9WI0JIR4OR4CoveGpA/EYFsyCcTgm1IbiNG25RyI0Q8mXRD/djRrg5Ca9wKoIHTsczz/AgAA//8tI2niAAAABklEQVQDAH06O44weTJ2AAAAAElFTkSuQmCC) center / contain no-repeat; mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABrUlEQVR4nLyXsUrEQBCGZ0OC2ISQ2FpYaH3YCtfaKPgAWtj7Dp7vYCn6ECLY6YEPICIIFlZWciEhjU1I/FdMDJLLzk4SfzhmLpnM/yW7sLsu9VAcxzMdoyiakVAuCaXNlVKnP7kYQpFATfNKZVmeSSCsAdrM+0BYAXSZSyHYABxzCQQLwMbcFsIIIDG3gVBjmXMh1JjmHAglNUfTV9TMER38nSLfJAGEEpjP8TsJw/C5eTFJkglMzpHukAWEsjS/gfFex33d4xY9dokJ4ViYLxzHOSKDPM87REiX3dce1SJWAzDH/C4IgoQM8n1/gXDfVdOEcLmzHW//REyh3yOAD8gM8TsEnL7cwqIo2LWOnhB6YjCaTogpvN22qaaajDWpaSjwwCfCFh5672qcpukGYF+QrpjMdV4PgelLAG4V4YIMgvkl1/y7798CxqS8dl33GLM9bl7MsizK8/wK6T7XvBWAA4FGHwgPqHlD7iFfRz5FXLMxXwrAgbCR9WI0JIR4OR4CoveGpA/EYFsyCcTgm1IbiNG25RyI0Q8mXRD/djRrg5Ca9wKoIHTsczz/AgAA//8tI2niAAAABklEQVQDAH06O44weTJ2AAAAAElFTkSuQmCC) center / contain no-repeat; }
+/* /@explore 1 */
+/* @explore 2 */
+[data-option="2"] { --o2-crest: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1 18 3.5V10c0 4.4-3.3 7.6-8 9-4.7-1.4-8-4.6-8-9V3.5Z'/%3E%3C/svg%3E"); }
+[data-option="2"] { --o2-logo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M0 2.5 8 0l8 2.5V8c0 3.6-2.7 6.2-8 8C2.7 14.2 0 11.6 0 8Z M8 5.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z' fill-rule='evenodd'/%3E%3C/svg%3E"); }
+[data-option="2"] .card { position: relative; display: flex; flex-direction: column; overflow: hidden; width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background-color: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="2"] .rest-border { position: absolute; inset: 0; pointer-events: none; padding: var(--dimension-border-width-semantic-card); border-radius: var(--dimension-radius-semantic-content-card); background-image: var(--gradient-semantic-border-default); -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor; mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0); }
+[data-option="2"] .zones { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+[data-option="2"] .header { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .title-text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .sub { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .stats { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .stat { display: block; width: var(--dimension-size-semantic-table-stat-column); text-align: center; }
+[data-option="2"] .body { display: flex; flex-direction: column; gap: var(--dimension-spacing-semantic-table-row-gap); }
+[data-option="2"] .row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); height: var(--dimension-size-semantic-table-cell-md); }
+[data-option="2"] .team { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="2"] .shield { display: block; flex-shrink: 0; background-color: currentColor; -webkit-mask: var(--o2-crest) center / contain no-repeat; mask: var(--o2-crest) center / contain no-repeat; width: var(--dimension-size-semantic-icon-md); height: var(--dimension-size-semantic-icon-md); color: var(--color-semantic-functional-status-error); }
+[data-option="2"] .muted { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .subtle { color: var(--color-semantic-functional-text-subtle); }
+/* The footer: one line, two ends. The seal opens it on the axis of the team names; the caption closes it on the right. */
+[data-option="2"] .footer { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-secondary); }
+[data-option="2"] .seal { height: 1lh; display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs); white-space: nowrap; }
+[data-option="2"] .logo { display: block; flex-shrink: 0; height: var(--dimension-size-semantic-icon-sm); aspect-ratio: 1; background-color: currentColor; -webkit-mask: var(--o2-logo) center / contain no-repeat; mask: var(--o2-logo) center / contain no-repeat; }
+/* /@explore 2 */
+/* @explore 3 */
+[data-option="3"] .o3-card { position: relative; display: flex; flex-direction: column; width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background-color: var(--color-semantic-functional-background-elevated); overflow: hidden; color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .o3-border { position: absolute; inset: 0; pointer-events: none; padding: var(--dimension-border-width-semantic-card); border-radius: var(--dimension-radius-semantic-content-card); background-image: var(--gradient-semantic-border-default); -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor; mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); mask-composite: exclude; }
+[data-option="3"] .o3-zones { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); opacity: var(--opacity-semantic-content-muted); }
+[data-option="3"] .o3-header { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="3"] .o3-title, [data-option="3"] .o3-sub { margin: 0; }
+[data-option="3"] .o3-subline { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-muted { color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .o3-subtle { color: var(--color-semantic-functional-text-subtle); }
+[data-option="3"] .o3-body { display: flex; flex-direction: column; gap: var(--dimension-spacing-semantic-table-row-gap); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); height: var(--dimension-size-semantic-table-cell-md); }
+[data-option="3"] .o3-team { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="3"] .o3-shield { display: block; width: var(--dimension-size-semantic-icon-md); height: var(--dimension-size-semantic-icon-md); background-color: var(--color-semantic-functional-status-error); -webkit-mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAADh0lEQVR4nOycy6tNURzHv/dyC4NrInkM3KTciRn3UgZXyiMDMpFC/Ako/gQDBphJDBAGEgN1KZkozzKQVx5dxUUeeeUdft/WEal799r7t9be6+z9+9R3cGqfs9f+nHXWWmftvVYnDBWdMFSYQCUmUMlYpEeHpE+yqhVyqpWrkl9IiA6kQZdkEZywlZJpIxw3LDkNJ/OC5DsqpkqBEyVL4KStaL3OwzvJGTiZ51qvS6dsgaxZrGGUxhrXhTCwJrJGUiZr6DBKogyBvfjbnvWVcE62kWwr/7SbdxGRGBfzfyfQi2qhwGidUCiBvp1A1QTvhDQCtZ1A1QTphPIKjNUJVE3hTshHYNmdQNXk6oR8ZCQ18q+AUR3Zf2ElJlCJCVRiApWYQCUmUIkJVGIClZhAJSZQiQlUYgKVmEAlJlCJCVRiApWYQCUmUIkJVGIClZhAJSZQiQlUYgKVmEAlPgK/orlkXruPwC9oLm+zDjCBo5N57T4CX6K5fMg6wEfgLTSXzGv3WWgT9SHtxMm8dh+Bd9BcgtTAK2gu17IO8H1cd0gyA83isaQn6yDffyKX0Twu+hzkK/A4mscJn4N8f8JczvBEMhnNgGPf6fBYiONbA/lBB9Ec9sNzFVOeNR/8Ru5LxqPefJbMgudimzzTWU8lh1B/eI1BVyr9Sw/cwHoc6gmnr2bDDWG8yDuhOiTZg/qyGznkkSLr3rrhamGqS1qL8gxuXeD7PG8qMqXPE2xC/diAnPLIGBTjoWSqZC7qwT7JXhRAs3R1guS8ZD7aGy5t5drnTyiAdu3vJMkluHFTO8JfUr/kNQqiva35SrJc8gLtB8u8DAp5JMR94QeSAclztA8s6wBc2VWEurHOqW+2I6VteKOAZWRZg9yqCPlkAgs0T3ID6cKysYzB7vOEfrSD3+5CyVGkB8vEsgX9lRQdB44Gp4FOSt5IFkc6Rx6+SbZKtiHCbm+xtzDhNinHJDNRDY8ka+HGelGIXTs4BXYArqnoR3m18Ydkl2QN3ARINMrcRGeOZKdkKeJyVrJFchslUObzgTfhBq4LJIMIz2Drs3mOUuSRKrdx4kTEdslqFP8if8Jtz7RDch0VkMI+WJwB3gzX2Hd7vucj3NQ7Z1DuoUJS2kiMN6u4M9xGjNxOsn2jOA6TknhuMdWd2KZI1knWt14fkRxGgv+3676VXXTsKX0lJlCJCVTyGwAA//9SCk5tAAAABklEQVQDALDsnKuXGLNGAAAAAElFTkSuQmCC) center / contain no-repeat; mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAADh0lEQVR4nOycy6tNURzHv/dyC4NrInkM3KTciRn3UgZXyiMDMpFC/Ako/gQDBphJDBAGEgN1KZkozzKQVx5dxUUeeeUdft/WEal799r7t9be6+z9+9R3cGqfs9f+nHXWWmftvVYnDBWdMFSYQCUmUMlYpEeHpE+yqhVyqpWrkl9IiA6kQZdkEZywlZJpIxw3LDkNJ/OC5DsqpkqBEyVL4KStaL3OwzvJGTiZ51qvS6dsgaxZrGGUxhrXhTCwJrJGUiZr6DBKogyBvfjbnvWVcE62kWwr/7SbdxGRGBfzfyfQi2qhwGidUCiBvp1A1QTvhDQCtZ1A1QTphPIKjNUJVE3hTshHYNmdQNXk6oR8ZCQ18q+AUR3Zf2ElJlCJCVRiApWYQCUmUIkJVGIClZhAJSZQiQlUYgKVmEAlJlCJCVRiApWYQCUmUIkJVGIClZhAJSZQiQlUYgKVmEAlPgK/orlkXruPwC9oLm+zDjCBo5N57T4CX6K5fMg6wEfgLTSXzGv3WWgT9SHtxMm8dh+Bd9BcgtTAK2gu17IO8H1cd0gyA83isaQn6yDffyKX0Twu+hzkK/A4mscJn4N8f8JczvBEMhnNgGPf6fBYiONbA/lBB9Ec9sNzFVOeNR/8Ru5LxqPefJbMgudimzzTWU8lh1B/eI1BVyr9Sw/cwHoc6gmnr2bDDWG8yDuhOiTZg/qyGznkkSLr3rrhamGqS1qL8gxuXeD7PG8qMqXPE2xC/diAnPLIGBTjoWSqZC7qwT7JXhRAs3R1guS8ZD7aGy5t5drnTyiAdu3vJMkluHFTO8JfUr/kNQqiva35SrJc8gLtB8u8DAp5JMR94QeSAclztA8s6wBc2VWEurHOqW+2I6VteKOAZWRZg9yqCPlkAgs0T3ID6cKysYzB7vOEfrSD3+5CyVGkB8vEsgX9lRQdB44Gp4FOSt5IFkc6Rx6+SbZKtiHCbm+xtzDhNinHJDNRDY8ka+HGelGIXTs4BXYArqnoR3m18Ydkl2QN3ARINMrcRGeOZKdkKeJyVrJFchslUObzgTfhBq4LJIMIz2Drs3mOUuSRKrdx4kTEdslqFP8if8Jtz7RDch0VkMI+WJwB3gzX2Hd7vucj3NQ7Z1DuoUJS2kiMN6u4M9xGjNxOsn2jOA6TknhuMdWd2KZI1knWt14fkRxGgv+3676VXXTsKX0lJlCJCVTyGwAA//9SCk5tAAAABklEQVQDALDsnKuXGLNGAAAAAElFTkSuQmCC) center / contain no-repeat; }
+[data-option="3"] .o3-stats { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="3"] .o3-stat { display: block; width: var(--dimension-size-semantic-table-stat-column); text-align: center; }
+/* Footer: caption on the left margin, the sponsor logo closing the right margin, one baseline, same line height as the caption alone. */
+[data-option="3"] .o3-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+/* The caption and the sponsor logo share one tone and one opacity: the logo never weighs more than the caption. */
+[data-option="3"] .o3-caption, [data-option="3"] .o3-logo { color: var(--color-semantic-functional-text-primary); opacity: var(--opacity-semantic-text-secondary); }
+[data-option="3"] .o3-logo { display: block; height: var(--dimension-size-semantic-icon-sm); margin-block: calc((1lh - var(--dimension-size-semantic-icon-sm)) / 2); }
+[data-option="3"] .o3-logo svg { display: block; height: var(--dimension-size-semantic-icon-sm); width: auto; }
+/* /@explore 3 */
+/* @explore 4 */
+[data-option="4"] .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background-color: var(--color-semantic-functional-background-elevated);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="4"] .rim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: var(--dimension-border-width-semantic-card);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background-image: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
+  mask-composite: exclude;
+}
+[data-option="4"] .zones {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-sm);
+  opacity: var(--opacity-semantic-content-muted);
+}
+[data-option="4"] .head { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="4"] .title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+}
+[data-option="4"] .title-line .text-body-lg-bold { white-space: nowrap; }
+[data-option="4"] .sub-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+}
+[data-option="4"] .cols { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .col { display: block; width: var(--dimension-size-semantic-table-stat-column); text-align: center; }
+[data-option="4"] .seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-table-stat-column);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="4"] .mark { display: block; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); background-color: currentColor; -webkit-mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABI0lEQVR4nMSXzQ6CMAzHu8UngLfQ1/Ho1YN49Wx8CfHBDCRevUO4e8DWAFnka7B2+ydLGsa2X7o2azUElobA6gCqqtoXRZHTKMvyAMwy9ye7/a5aAycypdTWWJNEUfQAJpn713Wdx3G8I7vzwN/hpBQ9kQCTzP1Ney4G7pwQQ7IJQoI4gZBssyCVgliShiIQUwCJD4hRgCYFxSEmr8AHxGwMSENYBaEkhHUWSEEseg0lIBY/x9wQq+oBTojVBQkXhFNFxAHhXJK5QrDUhC4QG2ASQeBhv0OhDzG6jrUqnvIE+ACYgfADsBRCrDFpIM5z/4l2RghBd5/YAmQjtivEkCfePQCt9Q07lheaT2wcrsAo8gTufUTzQwPtSzunILCCd8dfAAAA//8ll/moAAAABklEQVQDAGpynS00vGgVAAAAAElFTkSuQmCC) center / contain no-repeat; mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABI0lEQVR4nMSXzQ6CMAzHu8UngLfQ1/Ho1YN49Wx8CfHBDCRevUO4e8DWAFnka7B2+ydLGsa2X7o2azUElobA6gCqqtoXRZHTKMvyAMwy9ye7/a5aAycypdTWWJNEUfQAJpn713Wdx3G8I7vzwN/hpBQ9kQCTzP1Ney4G7pwQQ7IJQoI4gZBssyCVgliShiIQUwCJD4hRgCYFxSEmr8AHxGwMSENYBaEkhHUWSEEseg0lIBY/x9wQq+oBTojVBQkXhFNFxAHhXJK5QrDUhC4QG2ASQeBhv0OhDzG6jrUqnvIE+ACYgfADsBRCrDFpIM5z/4l2RghBd5/YAmQjtivEkCfePQCt9Q07lheaT2wcrsAo8gTufUTzQwPtSzunILCCd8dfAAAA//8ll/moAAAABklEQVQDAGpynS00vGgVAAAAAElFTkSuQmCC) center / contain no-repeat; }
+[data-option="4"] .body { display: flex; flex-direction: column; gap: var(--dimension-spacing-semantic-table-row-gap); }
+[data-option="4"] .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dimension-spacing-core-2xs);
+  height: var(--dimension-size-semantic-table-cell-md);
+}
+[data-option="4"] .who { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="4"] .crest { display: block; width: var(--dimension-size-semantic-icon-md); height: var(--dimension-size-semantic-icon-md); background-color: var(--color-semantic-functional-status-error); -webkit-mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAACU0lEQVR4nOyYv0/qUBTHTwuFvBAoP97k8rYX8+YXnRyMEQcH0aib8f/QzcH/wBgd/QO0DpooRjcHf8y6OOhgHAy0RGKwQP1e05gALdxygWLST9L0pvfec77cc2jvPTINOTINOWESxLIsqVQqjdVqtRzaOfZMkiQtFAppiUTiCm2LBJCoCyBEMQxjsl6vM1FzEDHiMu4ZfYeyLGuqql6gbZJHuAUWCgUVDrNwwlZpFpdK3jBwHcGGBhun6XTa4JnUVmC5XB6pVCpzLHQwOolHCvUGEzbZimrRaPQwFos9E69A5NNotVrN2aLGqMs08ABcWSxXtXA4zPL2ntoJRCiFkloUhL5B09C/ZgKBogQCRQkEihIIFCUQKMqPFFgh/2jZIzoJfCGfwLarxbfMM2hQYE/YWSC4I5/A4jw0P2sRiF9xQj4B3/nmZ04hPiZ//igftu8GWgRmMpkSbgc0ePZt3w04HoiKxeIfOx9CNBhYxP7iPPLU3OH4ok6lUo+4bdOAQO5tOYn76nObhBX8hRPeDSb/oz4CP7cQNwE/7079rp86NiESiSyiqVP/0OFnwU0co+23OB6P36Guskx9AraX3EL7PYY6kEwm8zA0jVC8UY+ArTJsTsH2WaexXLsZ29BMLz6Dto0sbJ7zjOfebuEddYlcGUVzh/kh77A5u8wGs8U7qavCEGqD4ygwbcBZlmc8Vi2PwtA6aoTX5BGhypWu6/9RWV2D0HlyFnaASusmwnlDXdKT0hpKdr9N01yB0FVb2J6iKHsopb2SIP2u/Qkz9GeSTwAAAP//z2xrmgAAAAZJREFUAwB+FtTBLB6RPgAAAABJRU5ErkJggg==) center / contain no-repeat; mask: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAACU0lEQVR4nOyYv0/qUBTHTwuFvBAoP97k8rYX8+YXnRyMEQcH0aib8f/QzcH/wBgd/QO0DpooRjcHf8y6OOhgHAy0RGKwQP1e05gALdxygWLST9L0pvfec77cc2jvPTINOTINOWESxLIsqVQqjdVqtRzaOfZMkiQtFAppiUTiCm2LBJCoCyBEMQxjsl6vM1FzEDHiMu4ZfYeyLGuqql6gbZJHuAUWCgUVDrNwwlZpFpdK3jBwHcGGBhun6XTa4JnUVmC5XB6pVCpzLHQwOolHCvUGEzbZimrRaPQwFos9E69A5NNotVrN2aLGqMs08ABcWSxXtXA4zPL2ntoJRCiFkloUhL5B09C/ZgKBogQCRQkEihIIFCUQKMqPFFgh/2jZIzoJfCGfwLarxbfMM2hQYE/YWSC4I5/A4jw0P2sRiF9xQj4B3/nmZ04hPiZ//igftu8GWgRmMpkSbgc0ePZt3w04HoiKxeIfOx9CNBhYxP7iPPLU3OH4ok6lUo+4bdOAQO5tOYn76nObhBX8hRPeDSb/oz4CP7cQNwE/7079rp86NiESiSyiqVP/0OFnwU0co+23OB6P36Guskx9AraX3EL7PYY6kEwm8zA0jVC8UY+ArTJsTsH2WaexXLsZ29BMLz6Dto0sbJ7zjOfebuEddYlcGUVzh/kh77A5u8wGs8U7qavCEGqD4ygwbcBZlmc8Vi2PwtA6aoTX5BGhypWu6/9RWV2D0HlyFnaASusmwnlDXdKT0hpKdr9N01yB0FVb2J6iKHsopb2SIP2u/Qkz9GeSTwAAAP//z2xrmgAAAAZJREFUAwB+FtTBLB6RPgAAAABJRU5ErkJggg==) center / contain no-repeat; flex-shrink: 0; }
+[data-option="4"] .foot { display: flex; align-items: center; justify-content: center; }
+[data-option="4"] .foot span { color: var(--color-semantic-functional-text-secondary); }
+/* /@explore 4 */
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1">
+  <!-- tese: a legenda fica na margem esquerda e "Oferecimento + logo" na direita, na mesma linha de base: o patrocínio assina o canto sem ocupar altura. -->
+  <p class="opt-label" data-part="label">Opção 1 - Rodapé dividido, selo à direita</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-card" data-part="card">
+      <div class="o1-zones">
+        <div class="o1-header" data-part="header">
+          <span class="o1-title text-body-lg-bold">Campeonato Brasileiro</span>
+          <div class="o1-sub">
+            <span class="text-body-sm-medium o1-muted">Rodada 28</span>
+            <div class="o1-stats">
+              <span class="o1-stat text-body-sm-medium o1-subtle">Pts</span>
+              <span class="o1-stat text-body-sm-medium o1-subtle">J</span>
+              <span class="o1-stat text-body-sm-medium o1-subtle">V</span>
+            </div>
+          </div>
+        </div>
+        <div class="o1-body" data-part="table">
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">1</span><span class="o1-shield"></span><span class="text-body-sm-medium">FLA</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">60</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">18</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">2</span><span class="o1-shield"></span><span class="text-body-sm-medium">PAL</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">57</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">16</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">3</span><span class="o1-shield"></span><span class="text-body-sm-medium">CAP</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">49</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">14</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">4</span><span class="o1-shield"></span><span class="text-body-sm-medium">FLU</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">48</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">13</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">5</span><span class="o1-shield"></span><span class="text-body-sm-medium">BAH</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">46</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">12</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">6</span><span class="o1-shield"></span><span class="text-body-sm-medium">CRU</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">45</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">13</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">7</span><span class="o1-shield"></span><span class="text-body-sm-medium">CAM</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">40</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">11</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">8</span><span class="o1-shield"></span><span class="text-body-sm-medium">SAN</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">38</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">10</span></div></div>
+          <div class="o1-row"><div class="o1-team"><span class="o1-pos text-footnote-medium">9</span><span class="o1-shield"></span><span class="text-body-sm-medium">CFC</span></div><div class="o1-stats"><span class="o1-stat text-body-sm-medium">38</span><span class="o1-stat text-body-sm-medium">28</span><span class="o1-stat text-body-sm-medium">10</span></div></div>
+        </div>
+        <div class="o1-footer" data-part="footer">
+          <span class="o1-caption text-footnote-medium" data-part="caption">Clique para ver mais</span>
+          <span class="o1-seal" data-part="seal"><span class="text-footnote-medium">Oferecimento</span><span class="o1-logo" role="img" aria-label="Logo do patrocinador"></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2">
+  <!-- tese: o selo abre a linha do rodapé alinhado ao eixo dos nomes de time e a legenda de ação fecha à direita: a assinatura vem antes, a ação por último. -->
+  <p class="opt-label" data-part="label">Opção 2 - Selo à esquerda</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <span class="rest-border" aria-hidden="true"></span>
+      <div class="zones">
+        <div class="header" data-part="header">
+          <div class="title-text">
+            <span class="text-body-lg-bold">Campeonato Brasileiro</span>
+            <div class="sub">
+              <span class="text-body-sm-medium muted">Rodada 28</span>
+              <div class="stats">
+                <span class="stat text-body-sm-medium subtle">Pts</span>
+                <span class="stat text-body-sm-medium subtle">J</span>
+                <span class="stat text-body-sm-medium subtle">V</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="body" data-part="table">
+                    <div class="row"><div class="team"><span class="text-footnote-medium">1</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">FLA</span></div><div class="stats"><span class="stat text-body-sm-bold">60</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">18</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">2</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">PAL</span></div><div class="stats"><span class="stat text-body-sm-bold">57</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">16</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">3</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">CAP</span></div><div class="stats"><span class="stat text-body-sm-bold">49</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">14</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">4</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">FLU</span></div><div class="stats"><span class="stat text-body-sm-bold">48</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">5</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">BAH</span></div><div class="stats"><span class="stat text-body-sm-bold">46</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">6</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">CRU</span></div><div class="stats"><span class="stat text-body-sm-bold">45</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">7</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">CAM</span></div><div class="stats"><span class="stat text-body-sm-bold">40</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">8</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">SAN</span></div><div class="stats"><span class="stat text-body-sm-bold">38</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></div></div>
+          <div class="row"><div class="team"><span class="text-footnote-medium">9</span><span class="shield" aria-hidden="true"></span><span class="text-body-sm-medium">CFC</span></div><div class="stats"><span class="stat text-body-sm-bold">38</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></div></div>
+        </div>
+        <div class="footer text-footnote-medium" data-part="footer">
+          <div class="seal" data-part="seal">
+            <span>Oferecimento</span>
+            <span class="logo" role="img" aria-label="Ventra"></span>
+          </div>
+          <span data-part="caption" style="white-space: nowrap">Clique para ver mais</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3">
+  <!-- tese: sem a palavra, a logo de 16px sozinha fecha a margem direita do rodapé: o patrocínio é reconhecido sem texto extra. -->
+  <p class="opt-label" data-part="label">Opção 3 - Só a logo</p>
+  <div class="opt-content" data-part="content">
+    <div class="o3-card" data-part="card">
+      <span class="o3-border" aria-hidden="true"></span>
+      <div class="o3-zones">
+        <div class="o3-header" data-part="header">
+          <span class="o3-title text-body-lg-bold">Campeonato Brasileiro</span>
+          <div class="o3-subline">
+            <span class="text-body-sm-medium o3-muted">Rodada 28</span>
+            <div class="o3-stats"><span class="o3-stat text-body-sm-medium o3-subtle">Pts</span><span class="o3-stat text-body-sm-medium o3-subtle">J</span><span class="o3-stat text-body-sm-medium o3-subtle">V</span></div>
+          </div>
+        </div>
+        <div class="o3-body" data-part="table">
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">1</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">FLA</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">60</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">18</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">2</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">PAL</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">57</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">16</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">3</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">CAP</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">49</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">14</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">4</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">FLU</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">48</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">13</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">5</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">BAH</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">46</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">12</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">6</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">CRU</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">45</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">13</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">7</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">CAM</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">40</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">11</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">8</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">SAN</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">38</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">10</span></div>
+      </div>
+      <div class="o3-row" data-part="row">
+        <div class="o3-team"><span class="text-footnote-medium">9</span><span class="o3-shield" aria-hidden="true"></span><span class="text-body-sm-medium">CFC</span></div>
+        <div class="o3-stats"><span class="o3-stat text-body-sm-bold">38</span><span class="o3-stat text-body-sm-medium">28</span><span class="o3-stat text-body-sm-medium o3-subtle">10</span></div>
+      </div>
+        </div>
+        <div class="o3-footer" data-part="footer">
+          <span class="o3-caption text-footnote-medium" data-part="caption">Clique para ver mais</span>
+          <span class="o3-logo text-footnote-medium" data-part="sponsor" role="img" aria-label="Oferecimento: Vértice">
+            <svg viewBox="0 0 72 16" fill="none" aria-hidden="true"><path d="M0 2h5.2L8 9.6 10.8 2H16L10.4 14H5.6L0 2Z" fill="currentColor"/><circle cx="8" cy="3" r="1.6" fill="var(--color-semantic-functional-background-primary)"/><text x="22" y="12.4" fill="currentColor" font-family="inherit" font-size="13" font-weight="700" letter-spacing="-0.2">vértice</text></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4">
+  <!-- tese: o selo sai do rodapé e entra no canto direito da linha do título, acima de Pts/J/V; o rodapé fica como hoje e a leitura começa com a assinatura. -->
+  <p class="opt-label" data-part="label">Opção 4 - Selo no cabeçalho</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="rim"></div>
+      <div class="zones">
+        <div class="head" data-part="header">
+          <div class="text">
+            <div class="title-line" data-part="title-line">
+              <span class="text-body-lg-bold">Campeonato Brasileiro</span>
+              <span class="seal" data-part="seal" role="img" aria-label="Oferecimento Norte Seguros">
+                <span class="mark"></span>
+              </span>
+            </div>
+            <div class="sub-line">
+              <span class="text-body-sm-medium" style="color: var(--color-semantic-functional-text-muted)">Rodada 28</span>
+              <div class="cols" data-part="columns">
+                <span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">Pts</span>
+                <span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">J</span>
+                <span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">V</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="body" data-part="table">
+          <div class="row"><div class="who"><span class="text-footnote-medium">1</span><span class="crest"></span><span class="text-body-sm-medium">FLA</span></div><div class="cols"><span class="col text-body-sm-bold">60</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">18</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">2</span><span class="crest"></span><span class="text-body-sm-medium">PAL</span></div><div class="cols"><span class="col text-body-sm-bold">57</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">16</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">3</span><span class="crest"></span><span class="text-body-sm-medium">CAP</span></div><div class="cols"><span class="col text-body-sm-bold">49</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">14</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">4</span><span class="crest"></span><span class="text-body-sm-medium">FLU</span></div><div class="cols"><span class="col text-body-sm-bold">48</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">13</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">5</span><span class="crest"></span><span class="text-body-sm-medium">BAH</span></div><div class="cols"><span class="col text-body-sm-bold">46</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">12</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">6</span><span class="crest"></span><span class="text-body-sm-medium">CRU</span></div><div class="cols"><span class="col text-body-sm-bold">45</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">13</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">7</span><span class="crest"></span><span class="text-body-sm-medium">CAM</span></div><div class="cols"><span class="col text-body-sm-bold">40</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">11</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">8</span><span class="crest"></span><span class="text-body-sm-medium">SAN</span></div><div class="cols"><span class="col text-body-sm-bold">38</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">10</span></div></div>
+          <div class="row"><div class="who"><span class="text-footnote-medium">9</span><span class="crest"></span><span class="text-body-sm-medium">CFC</span></div><div class="cols"><span class="col text-body-sm-bold">38</span><span class="col text-body-sm-medium">28</span><span class="col text-body-sm-medium" style="color: var(--color-semantic-functional-text-subtle)">10</span></div></div>
+        </div>
+        <div class="foot" data-part="footer"><span class="text-footnote-medium">Clique para ver mais</span></div>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+
+</body>
+</html>
