@@ -181,6 +181,25 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
   }
 
   // The rail rule (same cards on Home and in the second-level page) and unique names, from the book.
-  for (const issue of flowIssues(states, manifest)) out.push({ ruleId: issue.ruleId, message: issue.message, path: issue.path })
+  // Each second-level page is compared with the Home that opens its rail: the Home that goes `up` into it, or into a rail neighbour.
+  const levelOf = (id: string): number | undefined => levelOfScreen(manifest, states.find((s) => s.id === id)?.screen)
+  const homeOfRail = new Map<string, string>()
+  for (const t of flow.transitions) {
+    if (t.key === 'up' && levelOf(t.from) === 1 && levelOf(t.to) === 2 && !homeOfRail.has(t.to)) homeOfRail.set(t.to, t.from)
+  }
+  for (let grew = true; grew; ) {
+    grew = false
+    for (const t of flow.transitions) {
+      const side = t.key === 'left' || t.key === 'right'
+      if (!side || levelOf(t.from) !== 2 || levelOf(t.to) !== 2 || homeOfRail.has(t.to)) continue
+      const home = homeOfRail.get(t.from)
+      if (home !== undefined) {
+        homeOfRail.set(t.to, home)
+        grew = true
+      }
+    }
+  }
+  const entered = states.map((s) => (homeOfRail.has(s.id) ? { ...s, entersFrom: homeOfRail.get(s.id) } : s))
+  for (const issue of flowIssues(entered, manifest)) out.push({ ruleId: issue.ruleId, message: issue.message, path: issue.path })
   return out
 }
