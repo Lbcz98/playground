@@ -759,6 +759,7 @@
             "secondary",
             "subtle",
             "inverse",
+            "bright",
             "muted",
             "status-error",
             "status-success",
@@ -865,6 +866,79 @@
         "templates-screens--interatividades-botoes",
         "templates-screens--interatividades-cards-direita",
         "templates-screens--interatividades-cards-esquerda"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-about-detail-card": {
+      "name": "AboutDetailCard",
+      "description": "",
+      "props": {
+        "category": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        },
+        "country": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        },
+        "description": {
+          "type": "string",
+          "kind": "string",
+          "required": true,
+          "description": ""
+        },
+        "genres": {
+          "type": "unknown",
+          "kind": "unresolved",
+          "required": false,
+          "defaultValue": "[]",
+          "description": ""
+        },
+        "logo": {
+          "type": "{ src: string; alt: string }",
+          "kind": "object",
+          "required": true,
+          "description": ""
+        },
+        "rating": {
+          "type": "'L' | '6' | '10' | '12' | '14' | '16' | '18'",
+          "kind": "enum",
+          "options": [
+            "L",
+            "6",
+            "10",
+            "12",
+            "14",
+            "16",
+            "18"
+          ],
+          "required": true,
+          "description": ""
+        },
+        "title": {
+          "type": "string",
+          "kind": "string",
+          "required": true,
+          "description": ""
+        },
+        "year": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": ""
+        }
+      },
+      "title": "UI Kit/About Detail Card",
+      "stories": [
+        "ui-kit-about-detail-card--default",
+        "ui-kit-about-detail-card--details-row",
+        "ui-kit-about-detail-card--details-row-live-product",
+        "ui-kit-about-detail-card--long-content",
+        "ui-kit-about-detail-card--ratings"
       ],
       "subcomponents": {}
     },
@@ -1789,6 +1863,74 @@
         "ui-kit-table-cell--team",
         "ui-kit-table-cell--team-collapsing",
         "ui-kit-table-cell--team-everything"
+      ],
+      "subcomponents": {}
+    },
+    "ui-kit-technical-sheet-card": {
+      "name": "TechnicalSheetCard",
+      "description": "",
+      "props": {
+        "artDirectorsNames": {
+          "type": "string | readonly string[] | null",
+          "kind": "unresolved",
+          "required": false,
+          "description": "",
+          "nullable": true
+        },
+        "authorsNames": {
+          "type": "string | readonly string[] | null",
+          "kind": "unresolved",
+          "required": false,
+          "description": "",
+          "nullable": true
+        },
+        "castNames": {
+          "type": "string | readonly string[] | null",
+          "kind": "unresolved",
+          "required": false,
+          "description": "",
+          "nullable": true
+        },
+        "category": {
+          "type": "'Série' | 'Filme' | 'Novela' | 'Variedades'",
+          "kind": "enum",
+          "options": [
+            "Série",
+            "Filme",
+            "Novela",
+            "Variedades"
+          ],
+          "required": true,
+          "description": ""
+        },
+        "directorsNames": {
+          "type": "string | readonly string[] | null",
+          "kind": "unresolved",
+          "required": false,
+          "description": "",
+          "nullable": true
+        },
+        "screenwritersNames": {
+          "type": "string | readonly string[] | null",
+          "kind": "unresolved",
+          "required": false,
+          "description": "",
+          "nullable": true
+        }
+      },
+      "title": "UI Kit/Technical Sheet Card",
+      "stories": [
+        "ui-kit-technical-sheet-card--beside-about-card-cast",
+        "ui-kit-technical-sheet-card--beside-about-card-four-fields",
+        "ui-kit-technical-sheet-card--beside-about-card-long-cast",
+        "ui-kit-technical-sheet-card--beside-about-card-long-name",
+        "ui-kit-technical-sheet-card--beside-about-card-short",
+        "ui-kit-technical-sheet-card--beside-about-card-tall",
+        "ui-kit-technical-sheet-card--empty",
+        "ui-kit-technical-sheet-card--long-values",
+        "ui-kit-technical-sheet-card--multiple-rows",
+        "ui-kit-technical-sheet-card--novela",
+        "ui-kit-technical-sheet-card--one-row"
       ],
       "subcomponents": {}
     },

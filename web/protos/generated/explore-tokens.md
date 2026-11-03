@@ -21,11 +21,13 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-opacity-dark-80` | #000000CC |
 | `--color-opacity-dark-90` | #000000E6 |
 | `--color-opacity-greymid-30` | #6464644D |
+| `--color-opacity-light-100` | #FFFFFF |
 | `--color-opacity-light-10` | #FFFFFF1A |
 | `--color-opacity-light-20` | #FFFFFF33 |
 | `--color-opacity-light-30` | #FFFFFF4D |
 | `--color-opacity-light-50` | #FFFFFF80 |
 | `--color-opacity-light-70` | #FFFFFFB3 |
+| `--color-opacity-light-80` | #FFFFFFCC |
 | `--color-semantic-focus-glow` | #35C7F3 |
 | `--color-semantic-focus-inset-fade` | #17161B |
 | `--color-semantic-focus-inset` | #000000B3 |
@@ -37,10 +39,21 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-semantic-functional-background-translucent` | #191F274D |
 | `--color-semantic-functional-border-default` | #FFFFFF33 |
 | `--color-semantic-functional-border-subtle` | #FFFFFF1A |
+| `--color-semantic-functional-rating-10` | #0095DA |
+| `--color-semantic-functional-rating-12` | #FBC115 |
+| `--color-semantic-functional-rating-14` | #F58220 |
+| `--color-semantic-functional-rating-16` | #EC1D25 |
+| `--color-semantic-functional-rating-18-text` | #EEEEEE |
+| `--color-semantic-functional-rating-18` | #000000 |
+| `--color-semantic-functional-rating-6` | #E43493 |
+| `--color-semantic-functional-rating-free` | #00A651 |
+| `--color-semantic-functional-rating-text` | #191919 |
 | `--color-semantic-functional-status-error` | #DE2C2C |
 | `--color-semantic-functional-status-live` | #FD4142 |
 | `--color-semantic-functional-status-success` | #11BB0E |
 | `--color-semantic-functional-status-warning` | #FFA90A |
+| `--color-semantic-functional-technical-sheet-text` | #E6EAEF |
+| `--color-semantic-functional-text-bright` | #FFFFFF |
 | `--color-semantic-functional-text-muted` | #FFFFFFB3 |
 | `--color-semantic-functional-text-primary` | #EEEEEE |
 | `--color-semantic-functional-text-secondary` | #888888 |
@@ -140,6 +153,8 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--dimension-size-semantic-table-stat-column` | 24px |
 | `--dimension-size-semantic-table-value-column` | 32px |
 | `--dimension-size-semantic-wide-button-width` | 240px |
+| `--dimension-spacing-semantic-about-card-inset` | 20px |
+| `--dimension-spacing-semantic-badge-inset` | 2px |
 | `--dimension-spacing-semantic-card-inset` | 24px |
 | `--dimension-spacing-semantic-card-inset-expanded` | 32px |
 | `--dimension-spacing-semantic-focus-offset` | 2px |
@@ -171,6 +186,7 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--dimension-border-width-core-thin` | 2px |
 | `--dimension-border-width-core-medium` | 4px |
 | `--dimension-border-width-core-thick` | 6px |
+| `--dimension-border-width-semantic-badge` | 1px |
 | `--dimension-border-width-semantic-button` | 1px |
 | `--dimension-border-width-semantic-card` | 1px |
 | `--dimension-border-width-semantic-divider` | 1px |
@@ -200,6 +216,7 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 
 | CSS variable | Stops |
 | --- | --- |
+| `--gradient-complementary-about-card-border` | #FFFFFFCC 0%, #6464644D 50% |
 | `--gradient-complementary-dark` | #34343C00 0%, #17161B 100% |
 | `--gradient-complementary-diagonal-light` | #FFFFFFB3 0%, #6464644D 60% |
 | `--gradient-complementary-linear-light` | #EEEEEE 0%, #EEEEEE00 100% |
@@ -218,7 +235,9 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--gradient-primary-dia` | #00E879 30%, #00E1C0 100% |
 | `--gradient-primary-noite` | #414FFD 30%, #35C7F3 100% |
 | `--gradient-primary-tarde` | #ED6001 30%, #E7C300 100% |
+| `--gradient-semantic-border-about-card` | #FFFFFFCC 0%, #6464644D 50% |
 | `--gradient-semantic-border-default` | #FFFFFFB3 0%, #6464644D 60% |
+| `--gradient-semantic-border-rating` | #EEEEEE 0%, #EEEEEE00 100% |
 | `--gradient-semantic-card-scrim` | #34343C00 0%, #17161B 100% |
 | `--gradient-semantic-focus-ring` | #414FFD 30%, #35C7F3 100% |
 | `--gradient-semantic-overlay-bottom-left` | #00000000 60%, #000000 96% |
@@ -260,8 +279,12 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--typography-font-weight-bold` | 700 |
 | `--typography-letter-spacing-tighter` | -0.02em |
 | `--typography-letter-spacing-tight` | -0.01em |
+| `--typography-letter-spacing-normal` | 0em |
+| `--typography-letter-spacing-semantic-detail-card-text` | 0em |
 | `--typography-line-height-tight` | 1.1 |
 | `--typography-line-height-normal` | 1.2 |
+| `--typography-line-height-relaxed` | 1.25 |
+| `--typography-line-height-semantic-detail-card-text` | 1.25 |
 
 ## Type classes (`.text-*`)
 
