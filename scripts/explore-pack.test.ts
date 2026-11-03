@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain .mjs, so `node` runs it without a build
-import { ALWAYS, chapters, field, goldBlock, isStatic, judgeText, loadCraftDir, loadGold, loadTopicDir, named, pack, pickGold, selectCraft, selectTopics, split } from './explore-pack.mjs'
+import { ALWAYS, LOOP_CAP, chapters, field, goldBlock, isStatic, judgeText, loadCraftDir, loadGold, loadTopicDir, named, pack, pickGold, selectCraft, selectTopics, split } from './explore-pack.mjs'
 
 const brief = `pedido do designer
 
@@ -215,5 +215,15 @@ describe('explore-pack', () => {
       expect(text).toContain('the best example the agent has generated')
       expect(text).toContain('even better than the option 1 we had saved')
     })
+  })
+
+  it('loop_cap pastes the look limit into the pack only when the switch is on', () => {
+    const { shared, options } = split(brief)
+    const on = pack('s', shared, 1, options[0][1], { ...src, loopCap: true }).text
+    const off = pack('s', shared, 1, options[0][1], { ...src, loopCap: false }).text
+    expect(on).toContain(LOOP_CAP)
+    expect(on).toContain('2 rodadas')
+    expect(off).not.toContain('loop_cap')
+    expect(off).not.toContain('2 rodadas')
   })
 })

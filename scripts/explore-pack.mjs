@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { catalog, note, padroes, teclas } from './explore-ref.mjs'
+import { flag } from './explore-economy.mjs'
 
 const brain = fileURLToPath(new URL('../design-brain/', import.meta.url))
 const plain = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -109,6 +110,13 @@ export function judgeText(topicNames, craft) {
   return `# Checagens do juiz\n\nLeia só este arquivo. Não abra DESIGN.md, playbook.md, judge.md nem os tópicos que não estão aqui.\n\n${body}\n`
 }
 
+/** `loop_cap`: the explorer's look-and-fix limit. Pasted into the pack, so the agent never reads the switch. */
+export const LOOP_CAP = `## Limite do olhar (loop_cap)
+
+- Uma só chamada Bash para checar e fotografar: \`node scripts/check-explore-tokens.mjs <alvo> && node scripts/check-explore-layout.mjs <alvo> --shots "$TMPDIR/explore-shots"\` (com \`--keys ArrowRight,Enter\` se a opção é interativa). Sem uma chamada por checagem.
+- No máximo **2 rodadas** de olhar e corrigir. Depois da segunda, pare: o que ainda falha vai no relatório como \`ainda aberto: <o quê>\`, sem uma terceira volta.
+- Leia só o \`opcao-<N>-folha.png\` da sua opção (ou o PNG de repouso). Nunca outra opção, e nunca releia um PNG \`inalterado:\`.`
+
 const demote = (md) => md.replace(/^# /m, '### ').replace(/^## /gm, '#### ')
 
 /**
@@ -161,6 +169,7 @@ const patternNames = (md) => (md.split(/^## Padrões/m)[1] ?? '').split('\n').fi
 
 /** One option's pack and what went into it. `src` holds the folders and files it reads, so a test can give its own. */
 export function pack(slug, shared, n, block, src) {
+  const loopCap = src.loopCap ?? flag('loop_cap')
   const refNames = catalog(src.refs).map(nameOf), ruleNames = catalog(src.rules).map(nameOf)
   const refs = named(field(block, 'Refer[eê]ncias?'), refNames).slice(0, 3)
   const interacao = field(block, 'Intera[cç][aã]o')
@@ -185,6 +194,7 @@ export function pack(slug, shared, n, block, src) {
   const out = [
     `# Pacote da Opção ${n} · ${slug}`,
     `Gerado por \`scripts/explore-pack.mjs\` a partir do brief; não edite, rode de novo. As regras desta opção estão nos tópicos abaixo. Não leia \`design-brain/DESIGN.md\`, \`playbook.md\`, \`judge.md\` nem \`DIRECAO.md\` inteiros: onde um tópico e uma nota de conceito divergirem, o tópico vence.`,
+    loopCap && LOOP_CAP,
     `## Brief (comum a todas as opções)\n\n${shared}`,
     `## Sua direção\n\n${block.replace(/^## /, '### ')}`,
     gold,
