@@ -53,17 +53,20 @@ const TOPIC_ORDER = ['focal-point', 'type', 'color', 'surfaces', 'elevation', 'f
 const CRAFT_ALWAYS = ['page', 'severity', 'report', 'compare']
 const REPEAT_RE = /\b(dias|horas|passos|chips|itens|fileira|trilho)\b/
 const DATA_RE = /\b(dado|dados|numero|temperatura|grafico|chart|clima|metrica|eixo|previsao|status|barra)\b/
+const ICON_RE = /\b(icone|icones|icon|glifo|simbolo|pictograma)\b/
+const ELEVATION_RE = /\b(sombra|elevacao|elevado|profundidade|vidro|blur|overlay)\b/
 const IMAGE_RE = /\b(imagem|imagens|foto|poster|arte|scrim|retrato|elenco|ilustra)\b/
 
 /**
  * Topic files an option's pack pastes. Static vs interactive, data vs not, and the concept names decide it.
  * The brief's **Foco:** label is the focal group, not the focus ring, so it does not pull `focus`.
  */
-export function selectTopics({ shared = '', block = '', interactive = false, rules = [] } = {}) {
+export function selectTopics({ shared = '', block = '', interactive = false, rules = [], lean = false } = {}) {
   // The brief's **Foco:** line names the focal group. It is not a request to draw the focus ring.
   const text = plain(`${shared}\n${block}`).replace(/^.*\bfoco:.*$/gm, '')
   const names = new Set(['focal-point', 'type', 'color', 'surfaces', 'elevation', 'frame', 'principles', 'icons'])
-  if (interactive || rules.includes('foco-e-selecao') || /\bfoco\b|\bselecion/.test(text)) names.add('focus')
+  // lean_pack: a static brief draws no focus ring, so the word "foco" alone does not pull the topic; only the rule does.
+  if (interactive || rules.includes('foco-e-selecao') || (!lean && /\bfoco\b|\bselecion/.test(text))) names.add('focus')
   if (interactive) { names.add('remote-keys'); names.add('motion') }
   if (interactive || rules.includes('esqueleto-fixo') || rules.includes('rotulo-inequivoco') || REPEAT_RE.test(text)) {
     names.add('arrangement')
@@ -71,6 +74,9 @@ export function selectTopics({ shared = '', block = '', interactive = false, rul
   }
   if (rules.includes('tipografia-de-detalhe') || DATA_RE.test(text)) names.add('data-card')
   if (IMAGE_RE.test(text)) names.add('imagery')
+  // lean_pack: icons and elevation are core topics only when the brief or the direction speaks of them.
+  if (lean && !ICON_RE.test(text)) names.delete('icons')
+  if (lean && !ELEVATION_RE.test(text)) names.delete('elevation')
   return TOPIC_ORDER.filter((n) => names.has(n))
 }
 
@@ -116,6 +122,42 @@ export const LOOP_CAP = `## Limite do olhar (loop_cap)
 - Uma só chamada Bash para checar e fotografar: \`node scripts/check-explore-tokens.mjs <alvo> && node scripts/check-explore-layout.mjs <alvo> --shots "$TMPDIR/explore-shots"\` (com \`--keys ArrowRight,Enter\` se a opção é interativa). Sem uma chamada por checagem.
 - No máximo **2 rodadas** de olhar e corrigir. Depois da segunda, pare: o que ainda falha vai no relatório como \`ainda aberto: <o quê>\`, sem uma terceira volta.
 - Leia só o \`opcao-<N>-folha.png\` da sua opção (ou o PNG de repouso). Nunca outra opção, e nunca releia um PNG \`inalterado:\`.`
+
+/** lean_pack: the lines of a pasted note that only matter to modes this option does not use. */
+const ROW_BULLET = /fileira|escolhid[oa]s? (inverte|invert)|op[cç][oõ]es n[aã]o escolhidas|tr[eê]s perfis|sete dias|nome de uma op[cç][aã]o/i
+const CONTROL_BULLET = /foco do controle|a intera[cç][aã]o troca|visualiza[cç][aã]o muda/i
+// Numbered rules about a selector, a chart or a video card: dead weight in a static option.
+const CONTROL_ITEM = /\bselector\b|video card|\b(a|in a) chart\b/i
+// Bullets of `principles` that only point at, or repeat, topics every pack already holds (focal-point, surfaces).
+const DUP_BULLET = /^- \*\*Respiro:\*\*|^- \*\*Proximity:\*\*|^- \*\*Hierarchy:\*\*|^- Judge intent, not personal taste/
+// Day and axis labels belong to repeated items.
+const AXIS_ITEM = /\b(axis and day|day|axis) labels\b/i
+// The explorer never interviews: that bullet is for the entrevista step.
+const INTERVIEW_BULLET = /primeira pergunta da entrevista/i
+const TOKEN = /--[a-z0-9]+(?:-[a-z0-9]+)+/g
+/** A "uso" bullet that is only a token list already pasted in a topic of the same pack says nothing new. */
+const repeatsTopic = (l, seen) => {
+  if (!seen) return false
+  const tokens = l.match(TOKEN) ?? []
+  return tokens.length > 0 && l.length < 260 && tokens.every((t) => seen.includes(t))
+}
+export function leanNote(md, { row = false, interactive = false, seen = '' } = {}) {
+  let inUse = false
+  return md
+    .split('\n')
+    .filter((l) => {
+      if (/^#{2,4} /.test(l)) inUse = /uso/i.test(l)
+      if (/^\d+\. /.test(l)) return (interactive || !CONTROL_ITEM.test(l)) && (row || !AXIS_ITEM.test(l))
+      if (!/^\s*- /.test(l)) return true
+      if (INTERVIEW_BULLET.test(l) || DUP_BULLET.test(l)) return false
+      if (!row && ROW_BULLET.test(l)) return false
+      if (!interactive && CONTROL_BULLET.test(l)) return false
+      return !(inUse && repeatsTopic(l, seen))
+    })
+    .join('\n')
+    .replace(/^Applies when:.*\n+/m, '')
+    .replace(/ ?\*Why:[^*\n]*\*/g, '')
+}
 
 const demote = (md) => md.replace(/^# /m, '### ').replace(/^## /gm, '#### ')
 
@@ -180,15 +222,22 @@ export function pack(slug, shared, n, block, src) {
   const asked = named(regras, ruleNames)
   // Only a token shaped like a rule name (a-b-c) can be a typo of one; prose such as "nenhuma" or "e" is not a rule.
   const unknown = regras.split(/[,;\s/()]+/).map((w) => w.replace(/[`.*]/g, '')).filter((w) => /^[a-z0-9]+(-[a-z0-9]+)+$/.test(plain(w)) && !asked.some((r) => plain(w).includes(plain(r))))
+  const lean = src.lean ?? flag('lean_pack')
   const rules = [...ALWAYS, ...(interactive ? [['foco-e-selecao', MORE]] : []), ...asked.map((r) => [r, MORE])]
     .filter(([r], i, all) => ruleNames.includes(r) && all.findIndex(([x]) => x === r) === i)
   const rest = catalog(src.rules).filter((l) => !rules.some(([r]) => r === nameOf(l)))
 
   const gold = goldBlock(`${shared}\n${block}`, src.gold)
-  const topicNames = src.topics ? selectTopics({ shared, block, interactive, rules: rules.map(([r]) => r) }) : []
-  const topicBodies = topicNames.filter((name) => src.topics[name]).map((name) => demote(src.topics[name]))
-  const directionBodies = (src.topics ? DIRECTION_IN_PACK.filter((name) => src.topics[name]).map((name) => demote(src.topics[name])) : [])
-  const direction = directionBodies.length
+  const topicNames = src.topics ? selectTopics({ shared, block, interactive, rules: rules.map(([r]) => r), lean }) : []
+  const row = topicNames.includes('repeated-items')
+  const topicText = topicNames.filter((name) => src.topics[name]).map((name) => leanNote(src.topics[name], { row, interactive })).join('\n')
+  const trim = (md) => (lean ? leanNote(md, { row, interactive, seen: topicText }) : md)
+  const topicBodies = topicNames.filter((name) => src.topics[name]).map((name) => demote(lean ? leanNote(src.topics[name], { row, interactive }) : src.topics[name]))
+  // lean_pack: boldness and critique are the art director's reading; the explorer works from the brief's Direção visual.
+  // A brief that already holds the Direção visual block has its vague words turned into mechanisms; the vocabulary table adds nothing.
+  const directed = lean && /Dire[cç][aã]o visual/.test(shared)
+  const directionBodies = (src.topics && !directed ? (lean ? DIRECTION_IN_PACK.slice(0, 1) : DIRECTION_IN_PACK).filter((name) => src.topics[name]).map((name) => demote(src.topics[name])) : [])
+  const direction = directed ? '' : directionBodies.length
     ? `## Direção\n\n${directionBodies.join('\n\n')}`
     : src.direcao && `## Direção: vocabulário e crítica (DIRECAO.md §3 e §7)\n\n${chapters(src.direcao, ['3', '7']).replace(/^## /gm, '### ')}`
   const out = [
@@ -199,8 +248,10 @@ export function pack(slug, shared, n, block, src) {
     `## Sua direção\n\n${block.replace(/^## /, '### ')}`,
     gold,
     topicBodies.length && `## Tópicos desta opção\n\n${topicBodies.join('\n\n')}`,
-    `## Regras lidas\n\n${rules.map(([r, s]) => note(src.rules, r, s).replace(/^# /, '### ').replace(/^## /gm, '#### ')).join('\n\n')}`,
-    rest.length && `## Outras regras do catálogo\n\nSó se a opção precisar: \`node scripts/explore-ref.mjs --conceito <nome> uso\`.\n\n${rest.join('\n')}`,
+    `## Regras lidas\n\n${rules.map(([r, s]) => trim(note(src.rules, r, lean && r === 'ponto-focal' ? MORE : s)).replace(/^# /, '### ').replace(/^## /gm, '#### ')).join('\n\n')}`,
+    rest.length && (lean
+      ? `## Outras regras do catálogo\n\nLista: \`node scripts/explore-ref.mjs --conceitos\`. Só se a opção precisar: \`--conceito <nome> uso\`.`
+      : `## Outras regras do catálogo\n\nSó se a opção precisar: \`node scripts/explore-ref.mjs --conceito <nome> uso\`.\n\n${rest.join('\n')}`),
     `## Referências\n\n${refs.length ? refs.map((r) => note(src.refs, r).replace(/^# /, '### ').replace(/^## /gm, '#### ')).join('\n\n') : 'A direção não cita uma referência do catálogo: as do designer estão na Direção visual do brief. Mais seções ou outra nota: `node scripts/explore-ref.mjs <nome> <seções>`.'}`,
     pattern && `## Padrão de interação\n\n${padroes(src.interacoes, pattern)}`,
     interactive && teclas(src.interacoes),
