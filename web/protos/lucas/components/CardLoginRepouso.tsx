@@ -11,7 +11,7 @@ import { CODIGO_ATIVACAO, QR_IMAGEM, QR_LOGO } from '../dados-login'
  */
 export function CardLoginRepouso({ codigo = CODIGO_ATIVACAO }: { codigo?: string }): ReactNode {
   return (
-    <ContentCard interactionState="default" qr={QR_IMAGEM} qrLogo={QR_LOGO}>
+    <ContentCard interactionState="default" qr={QR_IMAGEM} qrLogo={QR_LOGO} qrIntro="Entre ou cadastre-se para acessar essa interatividade" qrBadge="APROVEITE GRÁTIS">
       <ContentCardHeader title={codigo} subtitle="Leia o QR Code ou acesse:" address="ativar.globo.com" />
     </ContentCard>
   )

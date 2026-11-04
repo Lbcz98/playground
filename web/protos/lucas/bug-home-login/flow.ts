@@ -1,5 +1,7 @@
 export default {
   start: 'bug',
+  // O aviso de login: 20 s (invisíveis) depois da primeira Home, a notificação aparece por 10 s e não volta; o selo no botão de perfil fica até o login.
+  notice: { state: 'aviso-login', startOn: 'home-bug', after: 20, during: 10, cancelOn: 'bug-logado' },
   transitions: [
     { from: 'bug', key: 'enter', to: 'home-bug' },
     { from: 'home-bug', key: 'left', to: 'home-program' },

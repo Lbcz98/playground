@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useFlowNotice } from '@/ui-kit/flowNotice'
 import { MainMenu } from '@/ui-kit/MainMenu'
 import { BUG_GLOBO_SRC } from '../dados-bug-globo'
-import { ICONE_PERFIL } from '../dados-menu-perfil'
+import { AVATAR_ANONIMO } from '../dados-avatar-anonimo'
 
 /** Opção 11 de docs/explorations/motion-botao-de-perfil/index.html (Reflexo e duas ondas juntos), sobre o botão Login do MainMenu. Só CSS no motion; o React só põe os três elementos dentro do botão. */
 // Sem aspas, ">", "&" nem "<" no texto do CSS: o React os escapa no servidor e o cliente discorda (erro de hidratação).
@@ -48,8 +49,8 @@ const CSS = `
   -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
   transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
   will-change: transform, opacity;
-  -webkit-animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) 600ms infinite both;
-  animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) 600ms infinite both;
+  -webkit-animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) var(--o11-delay, 600ms) infinite both;
+  animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) var(--o11-delay, 600ms) infinite both;
 }
 .mpa .o11-wave {
   position: absolute; display: block; z-index: 0;
@@ -65,12 +66,12 @@ const CSS = `
   -webkit-transform: scale(1); transform: scale(1);
   pointer-events: none;
   will-change: transform, opacity;
-  -webkit-animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
-  animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) 600ms infinite both;
+  -webkit-animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) var(--o11-delay, 600ms) infinite both;
+  animation: o11-wave var(--o11-cycle-dur) cubic-bezier(0.2, 0, 0, 1) var(--o11-delay, 600ms) infinite both;
 }
 .mpa .o11-wave-2 {
   --o11-wave-peak: var(--o11-wave2-peak);
-  -webkit-animation-delay: calc(600ms + var(--o11-wave-lag)); animation-delay: calc(600ms + var(--o11-wave-lag));
+  -webkit-animation-delay: calc(var(--o11-delay, 600ms) + var(--o11-wave-lag)); animation-delay: calc(var(--o11-delay, 600ms) + var(--o11-wave-lag));
 }
 @-webkit-keyframes o11-sweep {
   0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
@@ -112,6 +113,23 @@ const CSS = `
 }
 `
 
+/**
+ * A fase do motion é uma só para o fluxo todo. Uma animação CSS recomeça do zero quando seu elemento é recriado, e cada
+ * troca de foco recria o menu (outra tela, outro lugar na árvore). Então o início do primeiro motion fica guardado e cada
+ * elemento novo entra no ponto do ciclo em que o relógio estaria, com um atraso negativo: o ritmo não reinicia ao mudar o foco.
+ */
+const ESPERA_INICIAL_MS = 600
+const CICLO_MS = 8500
+let inicioDoMotion: number | undefined
+
+function atrasoDaFase(): string {
+  const agora = performance.now()
+  if (inicioDoMotion === undefined) inicioDoMotion = agora
+  const passou = agora - inicioDoMotion
+  const atraso = passou < ESPERA_INICIAL_MS ? ESPERA_INICIAL_MS - passou : -((passou - ESPERA_INICIAL_MS) % CICLO_MS)
+  return `${Math.round(atraso)}ms`
+}
+
 export interface MenuComPerfilAnimadoProps {
   focusedItem?: 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug' | null
   programTitle: string
@@ -130,6 +148,7 @@ export interface MenuComPerfilAnimadoProps {
  */
 export function MenuComPerfilAnimado({ focusedItem = 'channel-bug', programTitle, programSubtitle }: MenuComPerfilAnimadoProps): ReactNode {
   const raiz = useRef<HTMLDivElement>(null)
+  const { badge } = useFlowNotice()
 
   // O motion é só CSS. Os três elementos entram no botão Login do kit sem tocar nele: as ondas antes do círculo, a chapa com a faixa dentro do círculo.
   useLayoutEffect(() => {
@@ -137,12 +156,15 @@ export function MenuComPerfilAnimado({ focusedItem = 'channel-bug', programTitle
     const botao = raiz.current?.querySelector<HTMLElement>('[data-focus-item="login"]')
     const circulo = botao?.querySelector<HTMLElement>('.sfs-round-button-circle')
     if (!botao || !circulo) return
+    const atraso = atrasoDaFase()
     const ondas = document.createElement('span')
     ondas.className = 'o11-ext'
+    ondas.style.setProperty('--o11-delay', atraso)
     ondas.setAttribute('aria-hidden', 'true')
     ondas.innerHTML = '<span class="o11-wave"></span><span class="o11-wave o11-wave-2"></span>'
     const chapa = document.createElement('span')
     chapa.className = 'o11-ext'
+    chapa.style.setProperty('--o11-delay', atraso)
     chapa.setAttribute('aria-hidden', 'true')
     chapa.innerHTML = '<span class="o11-plate"><span class="o11-band"></span></span>'
     botao.insertBefore(ondas, botao.firstChild)
@@ -162,7 +184,8 @@ export function MenuComPerfilAnimado({ focusedItem = 'channel-bug', programTitle
         miscellaneousSubtitle="São Paulo, SP"
         programTitle={programTitle}
         programSubtitle={programSubtitle}
-        avatarSrc={ICONE_PERFIL}
+        avatarSrc={AVATAR_ANONIMO}
+        loginBadge={badge}
         bugSrc={BUG_GLOBO_SRC}
       />
     </div>
