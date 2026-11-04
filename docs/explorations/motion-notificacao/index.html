@@ -1,0 +1,3687 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Motion da notificação</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* @explore 1 */
+/* ═══════════════════════════════════════════════════════════════
+   4 variáveis de motion · Notification
+   Compatível: Chrome 68+, Safari 16+ — sem linear(), interpolate-size,
+   @starting-style, inset, clamp/min/max, gap em flex, aspect-ratio,
+   translate/scale/rotate separados, @property, :has/:is/:where
+═══════════════════════════════════════════════════════════════ */
+[data-option="1"] {
+  --motion-notif-enter-duration: 300ms;                       /* 1. fade de entrada/saída */
+  --motion-notif-expand-duration: 800ms;                      /* 2. abertura e recolhimento */
+  --motion-notif-easing: cubic-bezier(0.19, 0.06, 0.24, 1); /* 3. curva sem overshoot */
+  --motion-notif-text-delay: 640ms;                           /* 4. texto entra a 80% da abertura */
+}
+
+/* ── Wrapper único filho de .opt-content (que é flex row) ──── */
+[data-option="1"] .o1-wrap {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* ── Estágios empilhados: um por cenário ───────────────────── */
+[data-option="1"] .o1-stages {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+[data-option="1"] .o1-stage {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-align-items: flex-start;
+  align-items: flex-start;
+}
+[data-option="1"] .o1-stage + .o1-stage {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="1"] .o1-stage-lbl {
+  margin-top: var(--dimension-spacing-core-2xs);
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Tela simulada (data-surface="own": palco TV, não card) ── */
+/* width: 100% preenche o tile; height fixa; data-stack para absolutos */
+[data-option="1"] .o1-screen {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: var(--color-semantic-theme-noite-dark);
+  border-radius: var(--dimension-radius-core-md);
+}
+/* gradiente de vídeo */
+[data-option="1"] .o1-screen::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 28% 55%, var(--color-opacity-background) 0%, transparent 65%);
+  pointer-events: none;
+  border-radius: var(--dimension-radius-core-md);
+}
+/* legenda discreta */
+[data-option="1"] .o1-screen::after {
+  content: "BBB 25 · Ao vivo";
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  color: var(--color-opacity-light-20);
+  font-size: var(--typography-font-size-sm);
+  font-family: inherit;
+  pointer-events: none;
+}
+
+/* ── Wrapper da notificação ────────────────────────────────── */
+/* left = 100% − 16px(margin) − 252px(pill max) = calc(100% − 268px)
+   O logo permanece em 16px da borda esquerda da pílula em todos os estados */
+[data-option="1"] .o1-notif {
+  position: absolute;
+  top: var(--dimension-spacing-core-sm);
+  left: calc(100% - 268px);
+  opacity: 0;
+  -webkit-transition: opacity var(--motion-notif-enter-duration) ease;
+  transition: opacity var(--motion-notif-enter-duration) ease;
+}
+
+/* ── Pílula ────────────────────────────────────────────────── */
+[data-option="1"] .o1-pill {
+  position: relative;
+  width: var(--dimension-size-semantic-round-button-circle);   /* 72px */
+  height: var(--dimension-size-semantic-round-button-circle);  /* 72px */
+  background: var(--color-opacity-light-10);
+  border: 1px solid var(--color-opacity-light-10);
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  -webkit-transition: width var(--motion-notif-expand-duration) var(--motion-notif-easing);
+  transition: width var(--motion-notif-expand-duration) var(--motion-notif-easing);
+  box-sizing: border-box;
+}
+
+/* ── Logo placeholder ──────────────────────────────────────── */
+[data-option="1"] .o1-logo {
+  position: absolute;
+  left: var(--dimension-spacing-core-sm);
+  top: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-avatar);   /* 40px */
+  height: var(--dimension-size-semantic-avatar);  /* 40px */
+  border-radius: 50%;
+  background: var(--color-semantic-theme-noite-light);
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+[data-option="1"] .o1-logo-mark {
+  width: var(--dimension-size-semantic-icon-md);  /* 20px */
+  height: 14px;
+  border: 2px solid var(--color-opacity-light-100);
+  border-radius: var(--dimension-radius-core-xs);
+  box-sizing: border-box;
+}
+
+/* ── Texto (parado no lugar, revela por opacidade) ─────────── */
+[data-option="1"] .o1-text {
+  position: absolute;
+  left: 68px;  /* 16px padding + 40px logo + 12px gap */
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+  transform: translateY(-50%);
+  width: var(--dimension-size-semantic-notification-text-width);  /* 168px */
+  opacity: 0;
+}
+[data-option="1"] .o1-title {
+  margin: 0; padding: 0;
+  color: var(--color-semantic-functional-text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: balance;
+}
+[data-option="1"] .o1-sub {
+  margin: 0; padding: 0;
+  margin-top: var(--dimension-spacing-core-3xs);
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+/* ── Anel de foco ──────────────────────────────────────────── */
+[data-option="1"] .o1-focus-ring {
+  position: absolute;
+  top: -4px; left: -4px;
+  width: 260px;  /* 252 + 8 */
+  height: 80px;  /* 72 + 8 */
+  border-radius: var(--dimension-radius-core-6xl);  /* ≈ 40px = pill+offset */
+  border: 2px solid var(--color-semantic-focus-glow);
+  box-sizing: border-box;
+  pointer-events: none;
+  opacity: 0;
+  -webkit-transition: opacity 200ms ease;
+  transition: opacity 200ms ease;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ESTADOS — data-phase no article
+════════════════════════════════════════════════════════════ */
+[data-option="1"][data-phase="entering"] .o1-notif,
+[data-option="1"][data-phase="expanding"] .o1-notif,
+[data-option="1"][data-phase="full"] .o1-notif,
+[data-option="1"][data-phase="contracting"] .o1-notif { opacity: 1; }
+
+[data-option="1"][data-phase="expanding"] .o1-pill,
+[data-option="1"][data-phase="full"] .o1-pill { width: 252px; }
+
+[data-option="1"][data-phase="expanding"] .o1-text {
+  opacity: 1;
+  -webkit-transition: opacity 200ms ease var(--motion-notif-text-delay);
+  transition: opacity 200ms ease var(--motion-notif-text-delay);
+}
+[data-option="1"][data-phase="full"] .o1-text {
+  opacity: 1;
+  -webkit-transition: opacity 200ms ease;
+  transition: opacity 200ms ease;
+}
+
+[data-option="1"][data-phase="contracting"] .o1-text {
+  opacity: 0;
+  -webkit-transition: opacity 200ms ease;
+  transition: opacity 200ms ease;
+}
+[data-option="1"][data-phase="contracting"] .o1-pill {
+  width: var(--dimension-size-semantic-round-button-circle);
+  -webkit-transition: width var(--motion-notif-expand-duration) var(--motion-notif-easing) 200ms;
+  transition: width var(--motion-notif-expand-duration) var(--motion-notif-easing) 200ms;
+}
+
+/* Anel de foco: só na fase full — apaga ao entrar em contracting
+   (200ms antes de o delay de 200ms iniciar o recolhimento da pílula) */
+[data-option="1"][data-phase="full"] .o1-notif.o1-has-focus .o1-focus-ring { opacity: 1; }
+
+[data-option="1"][data-phase="hidden"] .o1-pill {
+  width: var(--dimension-size-semantic-round-button-circle);
+  -webkit-transition: none; transition: none;
+}
+[data-option="1"][data-phase="hidden"] .o1-text { opacity: 0; -webkit-transition: none; transition: none; }
+[data-option="1"][data-phase="hidden"] .o1-focus-ring { opacity: 0; -webkit-transition: none; transition: none; }
+
+/* ── Redução de movimento (data-reduced, Chrome 68 sem prefers-reduced-motion) ── */
+[data-option="1"][data-reduced] .o1-pill { -webkit-transition: none; transition: none; }
+[data-option="1"][data-reduced][data-phase="expanding"] .o1-pill,
+[data-option="1"][data-reduced][data-phase="full"] .o1-pill { width: 252px; }
+[data-option="1"][data-reduced] .o1-text { -webkit-transition: none; transition: none; }
+[data-option="1"][data-reduced][data-phase="expanding"] .o1-text,
+[data-option="1"][data-reduced][data-phase="full"] .o1-text { opacity: 1; }
+[data-option="1"][data-reduced] .o1-notif { -webkit-transition: none; transition: none; }
+
+/* ── Painel das 4 variáveis (data-surface="own": referência, não card) ── */
+/* Layout em coluna: nome → valor · descrição (cabe em 288px) */
+[data-option="1"] .o1-vars {
+  margin-top: var(--dimension-spacing-core-sm);
+  padding: var(--dimension-spacing-core-sm);
+  background: var(--color-opacity-light-10);
+  border-radius: var(--dimension-radius-core-sm);
+}
+[data-option="1"] .o1-vars-title {
+  margin: 0;
+  margin-bottom: var(--dimension-spacing-core-xs);
+  color: var(--color-semantic-functional-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+[data-option="1"] .o1-var-row {
+  padding: var(--dimension-spacing-core-2xs) 0;
+  border-top: 1px solid var(--color-semantic-functional-border-subtle);
+}
+[data-option="1"] .o1-var-row:last-child { padding-bottom: 0; }
+[data-option="1"] .o1-var-row:first-of-type { padding-top: 0; }
+[data-option="1"] .o1-var-name {
+  display: block;
+  color: var(--color-semantic-functional-text-muted);
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: var(--typography-font-size-sm);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+[data-option="1"] .o1-var-line2 {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: baseline;
+  align-items: baseline;
+  margin-top: var(--dimension-spacing-core-3xs);
+}
+[data-option="1"] .o1-var-val {
+  flex-shrink: 0;
+  color: var(--color-semantic-functional-text-primary);
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: var(--typography-font-size-sm);
+  -webkit-font-smoothing: antialiased;
+  margin-right: var(--dimension-spacing-core-xs);
+}
+[data-option="1"] .o1-var-desc {
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+/* /@explore 1 */
+/* @explore 2 */
+/* ── 4 variáveis de motion · Opção 2 ────────────────────────────────────
+   Chrome 68+ / Safari 16+ — só cubic-bezier, transition, @keyframes,
+   transform, opacity, width em px; sem linear(), @property, gap em flex.
+   ─────────────────────────────────────────────────────────────────────── */
+[data-option="2"] {
+  --notif-arrive-duration: 280ms;
+  --notif-expand-duration: var(--motion-semantic-duration); /* 800ms */
+  --notif-easing:          cubic-bezier(0.19, 0.06, 0.24, 1);
+  --notif-arrive-y:        -12px;
+}
+
+/* ── Filho único de .opt-content: une scenarios e vars em coluna ──────── */
+[data-option="2"] .o2-wrap {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+/* ── Cenários: empilhados, min-width:0 para não escapar do card ──────── */
+[data-option="2"] .o2-scenarios {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+[data-option="2"] .o2-scenario {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+[data-option="2"] .o2-scenario + .o2-scenario {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+/* ── Stage (data-surface="own": palco TV, não card; data-stack para pill absoluta)
+   O spacer em fluxo cria a altura (72px) sem height fixa no palco.
+   overflow:visible → box-shadow do anel de foco não é cortado.          */
+[data-option="2"] .o2-stage {
+  position:      relative;
+  width:         100%;
+  min-width:     0;
+  box-sizing:    border-box;
+  padding:       var(--dimension-spacing-semantic-card-inset-expanded); /* 32px */
+  border-radius: var(--dimension-radius-semantic-card);                 /* 40px */
+  background:    var(--color-semantic-theme-noite-light);
+  overflow:      visible;
+}
+
+/* Spacer invisível: reserva a altura da pílula em fluxo normal,
+   sem height fixa no stage.                                             */
+[data-option="2"] .o2-stage-spacer {
+  display:    block;
+  height:     var(--dimension-size-semantic-round-button-circle); /* 72px */
+  min-width:  0;
+}
+
+[data-option="2"] .o2-label-scene {
+  margin-top: var(--dimension-spacing-core-xs);
+  color:      var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Pílula: posição absoluta, ancorada pela borda ESQUERDA ──────────────
+   O logo fica parado em x; a pílula cresce para a direita.
+   left = 100%(stage) − right-padding(32px) − largura máxima(252px)
+   → em 72px: borda direita fica a 180px do canto.
+   → em 252px: borda direita encosta no canto do stage.
+   calc() é permitido (a restrição exclui calc-size(), não calc()).
+   252px é literal: 16(sm)+40(avatar)+12(xs)+168(notif-text-width)+16(sm). */
+[data-option="2"] .o2-pill {
+  position:      absolute;
+  left:          calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - 252px);
+  top:           var(--dimension-spacing-semantic-card-inset-expanded); /* 32px */
+  height:        var(--dimension-size-semantic-round-button-circle); /* 72px */
+  width:         var(--dimension-size-semantic-round-button-circle); /* 72px inicial */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background:    var(--color-semantic-functional-background-translucent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter:         blur(12px);
+  overflow:      hidden;
+  display:       flex;
+  flex-direction: row;
+  align-items:   center;
+  padding-left:  var(--dimension-spacing-core-sm);  /* 16px */
+  padding-right: var(--dimension-spacing-core-sm);  /* 16px */
+  box-sizing:    border-box;
+  opacity:       0;
+  transform:     translateY(var(--notif-arrive-y));
+
+  animation-name:            o2-pill-base;
+  animation-duration:        6000ms;
+  animation-timing-function: var(--notif-easing);
+  animation-delay:           0ms;
+  animation-iteration-count: infinite;
+  animation-fill-mode:       both;
+}
+
+[data-option="2"] .o2-pill--focus {
+  animation-name: o2-pill-focus;
+}
+
+/* ── Logo (placeholder de avatar) ─────────────────────────────────────── */
+[data-option="2"] .o2-logo {
+  flex-shrink:    0;
+  width:          var(--dimension-size-semantic-avatar); /* 40px */
+  height:         var(--dimension-size-semantic-avatar);
+  border-radius:  var(--dimension-radius-semantic-pill);
+  background:     var(--color-opacity-light-30);
+  margin-right:   var(--dimension-spacing-core-xs);  /* 12px — sem gap */
+}
+
+/* ── Coluna de texto ───────────────────────────────────────────────────── */
+[data-option="2"] .o2-text {
+  width:          var(--dimension-size-semantic-notification-text-width); /* 168px */
+  flex-shrink:    0;
+  opacity:        0;
+  -webkit-font-smoothing: antialiased;
+
+  animation-name:            o2-text;
+  animation-duration:        6000ms;
+  animation-timing-function: var(--notif-easing);
+  animation-delay:           0ms;
+  animation-iteration-count: infinite;
+  animation-fill-mode:       both;
+}
+
+[data-option="2"] .o2-text-title {
+  display:   block;
+  text-wrap: pretty;
+  color:     var(--color-semantic-functional-text-primary);
+}
+
+[data-option="2"] .o2-text-body {
+  display:   block;
+  text-wrap: pretty;
+  color:     var(--color-semantic-functional-text-muted);
+}
+
+/* ── Tabela de variáveis ─────────────────────────────────────────────── */
+[data-option="2"] .o2-vars {
+  margin-top:    var(--dimension-spacing-core-sm);
+  display:       flex;
+  flex-direction: column;
+  width:         100%;
+}
+
+[data-option="2"] .o2-var-row {
+  display:        flex;
+  flex-direction: column;
+  padding-top:    var(--dimension-spacing-core-3xs);
+  padding-bottom: var(--dimension-spacing-core-3xs);
+  border-top:     var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="2"] .o2-var-name {
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="2"] .o2-var-value {
+  color:     var(--color-semantic-functional-text-muted);
+  text-wrap: balance;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   @keyframes · Ciclo: entra (desce) · pausa · expande · mostra ·
+                texto some · recolhe · pausa · sai (sobe)
+   Total: 6000ms
+
+   Marcos (ms → %):
+     0     →  0.00%  início: invisível, translateY(-12px), 72px
+     280   →  4.67%  pousou: opacity 1, translateY(0), 72px
+     480   →  8.00%  pausa na pílula redonda
+     1280  → 21.33%  largura 252px (800ms de expansão)
+     1120  → 18.67%  texto aparece (80% da expansão = 640ms após 480ms)
+     3280  → 54.67%  início do fade do texto
+     3480  → 58.00%  texto sumiu
+     4280  → 71.33%  largura 72px (800ms de colapso)
+     4480  → 74.67%  pausa na pílula redonda
+     4760  → 79.33%  saiu: opacity 0, translateY(-12px)
+     6000  →100.00%  repouso invisível
+
+   72px e 252px são literais nos keyframes: var() não interpola
+   de forma confiável sem @property (vetado pelas restrições do brief).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes o2-pill-base {
+  0%     { opacity: 0; transform: translateY(-12px); width: 72px; }
+  4.67%  { opacity: 1; transform: translateY(0);     width: 72px; }
+  8%     { opacity: 1; transform: translateY(0);     width: 72px; }
+  21.33% { opacity: 1; transform: translateY(0);     width: 252px; }
+  54.67% { opacity: 1; transform: translateY(0);     width: 252px; }
+  58%    { opacity: 1; transform: translateY(0);     width: 252px; }
+  71.33% { opacity: 1; transform: translateY(0);     width: 72px; }
+  74.67% { opacity: 1; transform: translateY(0);     width: 72px; }
+  79.33% { opacity: 0; transform: translateY(-12px); width: 72px; }
+  100%   { opacity: 0; transform: translateY(-12px); width: 72px; }
+}
+
+@keyframes o2-pill-focus {
+  0%     { opacity: 0; transform: translateY(-12px); width: 72px;  box-shadow: none; }
+  4.67%  { opacity: 1; transform: translateY(0);     width: 72px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  8%     { opacity: 1; transform: translateY(0);     width: 72px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  21.33% { opacity: 1; transform: translateY(0);     width: 252px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  54.67% { opacity: 1; transform: translateY(0);     width: 252px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  58%    { opacity: 1; transform: translateY(0);     width: 252px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  71.33% { opacity: 1; transform: translateY(0);     width: 72px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  74.67% { opacity: 1; transform: translateY(0);     width: 72px;
+           box-shadow: 0 0 0 2px var(--color-semantic-focus-inset),
+                       0 0 0 4px var(--color-semantic-focus-outline); }
+  79.33% { opacity: 0; transform: translateY(-12px); width: 72px;  box-shadow: none; }
+  100%   { opacity: 0; transform: translateY(-12px); width: 72px;  box-shadow: none; }
+}
+
+@keyframes o2-text {
+  0%     { opacity: 0; }
+  18.67% { opacity: 0; }
+  21.33% { opacity: 1; }
+  54.67% { opacity: 1; }
+  58%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+
+/* ── Movimento reduzido ─────────────────────────────────────────────────── */
+[data-reduced] [data-option="2"] .o2-pill {
+  animation-name:            o2-pill-reduced;
+  animation-timing-function: step-end;
+}
+[data-reduced] [data-option="2"] .o2-text {
+  animation-name:            o2-text-reduced;
+  animation-timing-function: step-end;
+}
+
+@keyframes o2-pill-reduced {
+  0%     { opacity: 0; transform: none; width: 72px; }
+  4.67%  { opacity: 1; transform: none; width: 72px; }
+  21.33% { opacity: 1; transform: none; width: 252px; }
+  71.33% { opacity: 1; transform: none; width: 72px; }
+  79.33% { opacity: 0; transform: none; width: 72px; }
+  100%   { opacity: 0; transform: none; width: 72px; }
+}
+
+@keyframes o2-text-reduced {
+  0%     { opacity: 0; }
+  21.33% { opacity: 1; }
+  58%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+/* /@explore 2 */
+/* @explore 3 */
+/* ─────────────────────────────────────────────────────────────────────
+ * ANIMATION STORYBOARD · Opção 3 · Máscara que corre
+ *
+ * Read top-to-bottom. Each ms value is time after the loop starts, at the
+ * default values of the 4 variables. The stage times are re-derived from the
+ * variables at every loop (see the script below), so editing a variable moves
+ * the whole storyboard. Chrome 68 + Safari 16: transition, transform, opacity,
+ * clip-path only.
+ *
+ *     0ms   IDLE      nothing on screen
+ *   300ms   ARRIVE    circle (72px, logo only) fades in, scale 0.9 → 1.0
+ *                     about the logo centre                 [arrive-dur 600ms]
+ *  1100ms   OPEN      mask runs right, 72 → 252px, logo fixed in x
+ *                                                           [open-dur   800ms]
+ *  1740ms   TEXT      text fades in after 80% of the opening [text-delay 640ms]
+ *  1900ms   RING      focus ring fades in once the pill has settled
+ *                     (focus scenario only)
+ *  4340ms   QUIET     text and ring fade out, before the edge moves   (200ms)
+ *  4540ms   COLLAPSE  mask returns, 252 → 72px                [open-dur   800ms]
+ *  5340ms   LEAVE     circle fades out, scale 1.0 → 0.9      [arrive-dur 600ms]
+ *  6740ms   loop restarts
+ *
+ *  Whole-pill scale is uniform and centred on the logo, so the logo never
+ *  moves in x and the round ends never flatten (no scaleX).
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* ── The 4 motion variables (+ the quiet beat the storyboard needs) ─────── */
+[data-option="3"] {
+  --explore-o3-arrive-dur: 600ms;                                    /* [1] circle arrives / leaves */
+  --explore-o3-open-dur:   var(--motion-semantic-duration, 800ms);   /* [2] mask opens / closes */
+  --explore-o3-text-delay: 640ms;                                    /* [3] text, after 80% of [2] */
+  --explore-o3-ease:       cubic-bezier(0.19, 0.06, 0.24, 1);        /* [4] one curve, no overshoot */
+  --explore-o3-quiet-dur:  200ms;                                    /* text and ring out, before the collapse */
+
+  /* Widths come off the kit's tokens: 16 + 40 + 12 + 168 + 16 = 252px; the circle is 72px. */
+  --o3-open-w:   calc(var(--dimension-spacing-core-sm) * 2 + var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-xs) + var(--dimension-size-semantic-notification-text-width));
+  --o3-closed-w: var(--dimension-size-semantic-round-button-circle);
+  --o3-mask-out: calc(var(--o3-open-w) - var(--o3-closed-w));        /* what the mask hides when closed: 180px */
+}
+
+/* ── Layout: one child of .opt-content, stages stacked ──────────────────── */
+[data-option="3"] .o3-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="3"] .o3-scenario {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="3"] .o3-scenario + .o3-scenario {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+/* TV stage, not a card (data-surface="own"); the notification is absolute inside it (data-stack).
+   The spacer gives it the pill's height without a fixed height. */
+[data-option="3"] .o3-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-card);
+  background: var(--color-semantic-theme-noite-light);
+}
+
+[data-option="3"] .o3-spacer {
+  display: block;
+  height: var(--o3-closed-w);
+}
+
+[data-option="3"] .o3-label {
+  margin-top: var(--dimension-spacing-core-xs);
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── ARRIVE / LEAVE · the whole notification ────────────────────────────────
+   Anchored by its LEFT edge: the logo is the fixed point and the pill grows right,
+   until its right edge meets the corner only when fully open.
+   Scale pivots on the logo centre (half the 72px circle), so the logo does not shift.  */
+[data-option="3"] .o3-notif {
+  position: absolute;
+  top: var(--dimension-spacing-semantic-card-inset-expanded);
+  left: calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - var(--o3-open-w));
+  width: var(--o3-open-w);
+  height: var(--o3-closed-w);
+  opacity: 0;
+  -webkit-transform: scale(0.9);
+          transform: scale(0.9);
+  -webkit-transform-origin: calc(var(--o3-closed-w) / 2) 50%;
+          transform-origin: calc(var(--o3-closed-w) / 2) 50%;
+  -webkit-transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease), -webkit-transform var(--explore-o3-arrive-dur) var(--explore-o3-ease);
+          transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease), transform var(--explore-o3-arrive-dur) var(--explore-o3-ease);
+}
+
+[data-option="3"].o3-arrived .o3-notif {
+  opacity: 1;
+  -webkit-transform: scale(1);
+          transform: scale(1);
+}
+
+/* ── OPEN / COLLAPSE · the mask ─────────────────────────────────────────────
+   The pill is always 252px wide; clip-path hides all but the circle. Only paint changes,
+   so no frame recalculates layout, and the round ends keep their radius. */
+[data-option="3"] .o3-pill {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--o3-open-w);
+  height: var(--o3-closed-w);
+  padding-left: var(--dimension-spacing-core-sm);
+  padding-right: var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  -webkit-clip-path: inset(0px var(--o3-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px var(--o3-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+  -webkit-transition: -webkit-clip-path var(--explore-o3-open-dur) var(--explore-o3-ease);
+          transition: -webkit-clip-path var(--explore-o3-open-dur) var(--explore-o3-ease), clip-path var(--explore-o3-open-dur) var(--explore-o3-ease);
+}
+
+[data-option="3"].o3-open .o3-pill {
+  -webkit-clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+}
+
+[data-option="3"] .o3-logo {
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-30);
+  margin-right: var(--dimension-spacing-core-xs); /* margin, not flex gap (Chrome 84+) */
+}
+
+/* ── TEXT · opacity only, parked at its final place ─────────────────────────
+   Out: no delay, and it is gone (quiet-dur) before the edge starts back.
+   In:  waits text-delay (80% of the opening) so the moving edge never "curtains" it. */
+[data-option="3"] .o3-text {
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-notification-text-width);
+  opacity: 0;
+  color: var(--color-semantic-functional-text-primary);
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+  -webkit-transition: opacity var(--explore-o3-quiet-dur) var(--explore-o3-ease);
+          transition: opacity var(--explore-o3-quiet-dur) var(--explore-o3-ease);
+}
+
+[data-option="3"].o3-open:not(.o3-quiet) .o3-text {
+  opacity: 1;
+  -webkit-transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease) var(--explore-o3-text-delay);
+          transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease) var(--explore-o3-text-delay);
+}
+
+/* ── RING · the kit's focus ring, shown only once the pill has settled ──────
+   Same rule as the text: it never sits around a pill that is still moving, so it
+   waits for the opening to end and leaves before the collapse. Opacity only. */
+[data-option="3"] .o3-ring {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  /* The kit's ring band (primitives.css .sfs-ring-band): padding is the ring width, the mask keeps
+     only the padding, so the gradient never sits under the pill. The token is a whole linear-gradient().
+     -webkit-mask-composite: xor covers Chrome 68 and Safari; the unprefixed pair comes after on purpose. */
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-image: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-transition: opacity var(--explore-o3-quiet-dur) var(--explore-o3-ease);
+          transition: opacity var(--explore-o3-quiet-dur) var(--explore-o3-ease);
+}
+
+[data-option="3"] .o3-notif[data-focus="yes"] .o3-ring {
+  display: block;
+}
+
+[data-option="3"].o3-open:not(.o3-quiet) .o3-ring {
+  opacity: 1;
+  -webkit-transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease) var(--explore-o3-open-dur);
+          transition: opacity var(--explore-o3-arrive-dur) var(--explore-o3-ease) var(--explore-o3-open-dur);
+}
+
+/* ── Reduced motion: no prefers-reduced-motion in Chrome 68, so data-reduced is the switch.
+   States change by opacity only: no scale, and the mask jumps instead of running. */
+[data-reduced] [data-option="3"] .o3-notif {
+  -webkit-transform: none;
+          transform: none;
+}
+[data-reduced] [data-option="3"] .o3-pill {
+  -webkit-transition: none;
+          transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-notif { -webkit-transform: none; transform: none; }
+  [data-option="3"] .o3-pill  { -webkit-transition: none; transition: none; }
+}
+
+/* ── The 4 variables, listed ────────────────────────────────────────────── */
+[data-option="3"] .o3-vars {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: var(--dimension-spacing-core-sm);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="3"] .o3-var {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--dimension-spacing-core-xs);
+}
+
+[data-option="3"] .o3-var-name {
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="3"] .o3-var-value {
+  color: var(--color-semantic-functional-text-muted);
+  text-wrap: pretty;
+}
+/* /@explore 3 */
+/* @explore 4 */
+/*
+   * ── As 4 variáveis de motion que esta opção propõe para Notification no Storybook ──
+   *
+   *   --explore-duration    800ms   duração do gesto único (entrada + abertura simultâneos)
+   *   --explore-easing      cubic-bezier(0.19, 0.06, 0.24, 1)   curva do kit (AlertBug)
+   *   --explore-text-delay  640ms   o texto surge a 80 % de --explore-duration
+   *   --explore-hold        2000ms  tempo no estado aberto antes de recolher
+   *
+   * Ciclo total do loop: 800 + 2000 + 800 + 400 = 4000 ms
+   * Contraponto das opções 1-3: não há "fase 1 = chega" e "fase 2 = abre".
+   * A chegada É a abertura — um só gesto de 800 ms onde largura e opacidade andam juntas.
+   */
+
+  [data-option="4"] {
+    --explore-duration:   var(--motion-semantic-duration); /* 800ms */
+    --explore-easing:     cubic-bezier(0.19, 0.06, 0.24, 1);
+    --explore-text-delay: 640ms;  /* 80 % de --explore-duration */
+    --explore-hold:       2000ms;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+
+  [data-option="4"] .o4-scenarios {
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-option="4"] .o4-scenario + .o4-scenario {
+    margin-top: var(--dimension-spacing-core-xs); /* 12px */
+  }
+
+  [data-option="4"] .o4-scenario {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  [data-option="4"] .o4-scenario-label {
+    margin-bottom: var(--dimension-spacing-core-2xs); /* 8px */
+    color: var(--color-semantic-functional-text-muted);
+  }
+
+  /* ── Contêiner de largura explícita (evita estouro nos 288px do opt-content) ── */
+
+  [data-option="4"] .o4-layout {
+    width: var(--dimension-size-semantic-content-card-width); /* 288px */
+  }
+
+  /* ── Palco (simula o canto superior direito do vídeo) ─────── */
+
+  [data-option="4"] .o4-stage {
+    position: relative;
+    width: var(--dimension-size-semantic-content-card-width); /* 288px */
+    height: 140px;
+    background: var(--color-semantic-functional-background-primary);
+    border-radius: var(--dimension-radius-core-2xl); /* 24px */
+    overflow: hidden;
+  }
+
+  /* ── Pílula ─────────────────────────────────────────────────── */
+  /*
+   * Ancorada pela borda ESQUERDA para que a pílula cresça para a DIREITA.
+   * Assim o logo permanece no mesmo x em qualquer estado da animação.
+   *
+   * left = stage(288) − margem_dir(16) − pílula_máx(252) = 20px
+   * Logo em x = 20 + 16 (padding) = 36px — fixo em todos os quadros.
+   *
+   * overflow:hidden clipa o inner de 252 px enquanto a pílula ainda não abriu.
+   * O texto dentro tem opacity:0 enquanto a borda direita passa sobre ele.
+   */
+  [data-option="4"] .o4-pill-wrap {
+    position: absolute;
+    left: 20px;
+    top: var(--dimension-spacing-core-sm); /* 16px */
+    height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+    border-radius: var(--dimension-radius-semantic-pill);
+    background: var(--color-semantic-functional-background-translucent);
+    border: 1px solid var(--color-opacity-light-10);
+    box-sizing: border-box;
+    overflow: hidden;
+
+    /* Gesto único: largura 72 → 252 e opacidade 0 → 1 na mesma curva de 800ms */
+    animation: o4-pill 4000ms linear infinite;
+  }
+
+  /* Anel de foco via box-shadow — acompanha a pílula à medida que ela abre */
+  [data-option="4"] .o4-pill-wrap--focus {
+    box-shadow:
+      0 0 0 4px var(--color-semantic-focus-outline),
+      0 0 14px 5px var(--color-semantic-focus-glow);
+  }
+
+  /* ── Inner: largura fixa 252 px, clipada pelo wrap ──────────── */
+
+  [data-option="4"] .o4-pill-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 252px;
+    height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+    padding-left: var(--dimension-spacing-core-sm);  /* 16px */
+    padding-right: var(--dimension-spacing-core-sm); /* 16px */
+    box-sizing: border-box;
+  }
+
+  /* Logo placeholder do kit */
+  [data-option="4"] .o4-logo {
+    display: block;
+    flex-shrink: 0;
+    width: var(--dimension-size-semantic-avatar);  /* 40px */
+    height: var(--dimension-size-semantic-avatar); /* 40px */
+    border-radius: var(--dimension-radius-semantic-pill);
+    background: var(--color-semantic-theme-noite-light);
+    margin-right: var(--dimension-spacing-core-xs); /* 12px — gap não existe no Chrome 68 */
+  }
+
+  /* Texto da notificação */
+  [data-option="4"] .o4-text {
+    display: block;
+    flex-shrink: 0;
+    width: var(--dimension-size-semantic-notification-text-width); /* 168px */
+    color: var(--color-semantic-functional-text-primary);
+    text-wrap: pretty;
+
+    /* Surge a 80 % do gesto de entrada; some ANTES de a pílula começar a recolher */
+    animation: o4-text 4000ms linear infinite;
+  }
+
+  /* ── Keyframes ───────────────────────────────────────────────── */
+  /*
+   * Ciclo de 4000ms dividido em quatro fases:
+   *   0 % – 20 % (  0– 800ms)  entra + abre — gesto único de 800ms
+   *  20 % – 70 % (800–2800ms)  estado aberto (hold)
+   *  70 % – 90 % (2800–3600ms) recolhe + sai — mesmo gesto invertido
+   *  90 % –100 % (3600–4000ms) pausa invisível antes do próximo ciclo
+   *
+   * animation-timing-function em cada keyframe: aplica-se ATÉ o keyframe seguinte.
+   */
+  @keyframes o4-pill {
+    0% {
+      width: 72px;
+      opacity: 0;
+      animation-timing-function: cubic-bezier(0.19, 0.06, 0.24, 1);
+    }
+    20% {
+      width: 252px;
+      opacity: 1;
+      animation-timing-function: linear;
+    }
+    70% {
+      width: 252px;
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.19, 0.06, 0.24, 1);
+    }
+    90% {
+      width: 72px;
+      opacity: 0;
+      animation-timing-function: linear;
+    }
+    100% {
+      width: 72px;
+      opacity: 0;
+    }
+  }
+
+  /*
+   * Texto: invisível até a pílula estar ~80 % aberta (16 % do ciclo = 640ms).
+   *
+   * AJUSTE (saída sem cortina): o texto some em 65 %–70 % do ciclo (200ms),
+   * terminando de sumir ANTES de a largura começar a recolher em 70 %.
+   * Assim a borda direita da pílula nunca passa sobre texto visível.
+   */
+  @keyframes o4-text {
+    0%   { opacity: 0; animation-timing-function: linear; }
+    16%  { opacity: 0; animation-timing-function: cubic-bezier(0.19, 0.06, 0.24, 1); }
+    20%  { opacity: 1; animation-timing-function: linear; }
+    65%  { opacity: 1; animation-timing-function: cubic-bezier(0.19, 0.06, 0.24, 1); }
+    70%  { opacity: 0; animation-timing-function: linear; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Legenda das 4 variáveis ─────────────────────────────────── */
+
+  [data-option="4"] .o4-legend {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--dimension-spacing-core-sm); /* 16px */
+  }
+
+  [data-option="4"] .o4-legend-item {
+    display: flex;
+    flex-direction: column;
+    margin-right: var(--dimension-spacing-core-sm);  /* 16px */
+    margin-bottom: var(--dimension-spacing-core-2xs); /* 8px */
+  }
+
+  [data-option="4"] .o4-var-name {
+    color: var(--color-semantic-theme-noite-light);
+  }
+
+  [data-option="4"] .o4-var-value {
+    color: var(--color-semantic-functional-text-muted);
+  }
+/* /@explore 4 */
+/* @explore 5 */
+/* ── Opção 5 · Desce e abre juntos ─────────────────────────────────────────
+   STORYBOARD (ciclo 5500ms, loop automático)
+   ─────────────────────────────────────────────────────────────────────────
+      0ms  stage="alive"   → opacity 0→1 (360ms) + transform –12→0 (200ms)
+                             + width 72→252px (800ms)   ← chegada e abertura juntos
+    200ms  transform assenta; largura e opacidade ainda animando
+    360ms  pílula totalmente visível; largura ainda abrindo
+    640ms  texto.is-visible (80% × 800ms da abertura)
+    800ms  pílula totalmente aberta; texto visível
+    200ms  anel de foco ativo (após transform assentar)
+   3800ms  remove texto.is-visible + remove is-ring-on
+   4000ms  stage="collapsed"   → width 252→72px (800ms)
+   4800ms  remove stage         → opacity 1→0 (360ms) + transform 0→–12px (200ms)
+   5160ms  pílula saiu; buffer ~340ms
+   5500ms  reinicia
+   ─────────────────────────────────────────────────────────────────────────
+   4 variáveis de motion (controlam TODA a animação):
+     --explore-o5-arrive-duration   200ms                                    snap do transform
+     --explore-o5-expand-duration   800ms  (= --motion-semantic-duration)    abertura e recolhimento
+     --explore-o5-easing            cubic-bezier(0.25, 1, 0.5, 1)            quart-out
+     --explore-o5-arrive-y         -12px                                     deslocamento vertical
+   (opacity usa 360ms explícito — mais suave que o transform, evita corte/piscada)
+   ─────────────────────────────────────────────────────────────────────────
+   Chrome 68+ / Safari 16+: só cubic-bezier, transition, width px,
+   transform, opacity; sem linear(), @property, gap, inset, :is/:has.
+   ────────────────────────────────────────────────────────────────────── */
+
+[data-option="5"] {
+  --explore-o5-arrive-duration: 200ms;
+  --explore-o5-expand-duration: 800ms;    /* = --motion-semantic-duration */
+  --explore-o5-easing:          cubic-bezier(0.25, 1, 0.5, 1);
+  --explore-o5-arrive-y:        -12px;
+}
+
+[data-option="5"] .o5-wrap {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+[data-option="5"] .o5-scenarios {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+[data-option="5"] .o5-scenario {
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+  min-width:      0;
+}
+
+[data-option="5"] .o5-scenario + .o5-scenario {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+/* Palco TV: data-surface="own" (não é um Card), overflow visible para o ring não ser cortado */
+[data-option="5"] .o5-stage {
+  position:        relative;
+  width:           100%;
+  min-width:       0;
+  box-sizing:      border-box;
+  padding-top:     var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-right:   var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-bottom:  var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-left:    var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius:   var(--dimension-radius-semantic-card);
+  background:      var(--color-semantic-theme-noite-light);
+  overflow:        visible;
+}
+
+/* Spacer em fluxo: reserva a altura da pílula (72px) sem height fixa no palco */
+[data-option="5"] .o5-stage-spacer {
+  display:   block;
+  height:    var(--dimension-size-semantic-round-button-circle);
+  min-width: 0;
+}
+
+[data-option="5"] .o5-label-scene {
+  margin-top:             var(--dimension-spacing-core-xs);
+  color:                  var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Pílula ────────────────────────────────────────────────────────────────
+   left = 100%(palco) − padding-right(32px) − 252px
+   • Em 72px: borda direita fica a 180px do canto do palco.
+   • Em 252px: borda direita encosta no canto.
+   Logo parado em x em todos os quadros: left é fixo, logo a 16px da borda esq.
+   overflow:hidden: esconde o texto antes que a largura o revele.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-option="5"] .o5-pill {
+  position:              absolute;
+  left:                  calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - 252px);
+  top:                   var(--dimension-spacing-semantic-card-inset-expanded);
+  height:                var(--dimension-size-semantic-round-button-circle);
+  width:                 var(--dimension-size-semantic-round-button-circle);
+  border-radius:         var(--dimension-radius-semantic-pill);
+  background:            var(--color-semantic-functional-background-translucent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter:         blur(12px);
+  overflow:              hidden;
+  display:               flex;
+  flex-direction:        row;
+  align-items:           center;
+  padding-left:          var(--dimension-spacing-core-sm);
+  padding-right:         var(--dimension-spacing-core-sm);
+  box-sizing:            border-box;
+
+  /* Estado base (idle e exit): invisível, deslocado para cima */
+  opacity:               0;
+  -webkit-transform:     translateY(var(--explore-o5-arrive-y));
+  transform:             translateY(var(--explore-o5-arrive-y));
+
+  /* Ring oculto no estado base (evita flash) */
+  box-shadow:            0 0 0 2px transparent, 0 0 0 4px transparent;
+
+  /* ── Transitions ──────────────────────────────────────────────────────
+     opacity           →  360ms quart-out  (mais lenta que o transform:
+                          a chegada dissolve, não corta; a saída some sem piscar)
+     transform         →  arrive-duration (200ms) quart-out  ← snap rápido
+     width             →  expand-duration (800ms) quart-out
+     Mesma curva nos três; durações diferentes criam o gesto único. */
+  -webkit-transition:
+    opacity           360ms var(--explore-o5-easing),
+    -webkit-transform var(--explore-o5-arrive-duration) var(--explore-o5-easing),
+    width             var(--explore-o5-expand-duration) var(--explore-o5-easing),
+    box-shadow        160ms ease-out;
+  transition:
+    opacity           360ms var(--explore-o5-easing),
+    transform         var(--explore-o5-arrive-duration) var(--explore-o5-easing),
+    width             var(--explore-o5-expand-duration) var(--explore-o5-easing),
+    box-shadow        160ms ease-out;
+}
+
+/* Viva: chegando e abrindo — tudo parte ao mesmo instante */
+[data-option="5"] .o5-pill[data-stage="alive"] {
+  opacity:           1;
+  -webkit-transform: translateY(0);
+  transform:         translateY(0);
+  width:             252px;
+}
+
+/* Recolhida: texto sumiu, voltando ao círculo */
+[data-option="5"] .o5-pill[data-stage="collapsed"] {
+  opacity:           1;
+  -webkit-transform: translateY(0);
+  transform:         translateY(0);
+  width:             var(--dimension-size-semantic-round-button-circle);
+}
+
+/* Anel de foco: só variante com foco, só quando is-ring-on está ativo */
+[data-option="5"] .o5-pill--focus.is-ring-on {
+  box-shadow:
+    0 0 0 2px var(--color-semantic-focus-inset),
+    0 0 0 4px var(--color-semantic-focus-outline);
+}
+
+/* ── Logo ─────────────────────────────────────────────────────────────── */
+[data-option="5"] .o5-logo {
+  flex-shrink:   0;
+  width:         var(--dimension-size-semantic-avatar);
+  height:        var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background:    var(--color-opacity-light-30);
+  margin-right:  var(--dimension-spacing-core-xs);
+}
+
+/* ── Coluna de texto ───────────────────────────────────────────────────── */
+[data-option="5"] .o5-text {
+  width:                  var(--dimension-size-semantic-notification-text-width);
+  flex-shrink:            0;
+  opacity:                0;
+  -webkit-font-smoothing: antialiased;
+  -webkit-transition:     opacity 200ms ease-out;
+  transition:             opacity 200ms ease-out;
+}
+
+[data-option="5"] .o5-text.is-visible {
+  opacity: 1;
+}
+
+[data-option="5"] .o5-text-title {
+  display:   block;
+  text-wrap: pretty;
+  color:     var(--color-semantic-functional-text-primary);
+}
+
+[data-option="5"] .o5-text-body {
+  display:   block;
+  text-wrap: pretty;
+  color:     var(--color-semantic-functional-text-muted);
+}
+
+/* ── Tabela de variáveis ──────────────────────────────────────────────── */
+[data-option="5"] .o5-vars {
+  margin-top:     var(--dimension-spacing-core-sm);
+  display:        flex;
+  flex-direction: column;
+  width:          100%;
+}
+
+[data-option="5"] .o5-var-row {
+  display:        flex;
+  flex-direction: column;
+  padding-top:    var(--dimension-spacing-core-3xs);
+  padding-bottom: var(--dimension-spacing-core-3xs);
+  border-top:     var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="5"] .o5-var-name {
+  color:                var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="5"] .o5-var-value {
+  color:     var(--color-semantic-functional-text-muted);
+  text-wrap: balance;
+}
+
+/* ── Movimento reduzido (data-reduced) ──────────────────────────────────
+   Sem transform (translateY(0) fixo), largura pula (sem transição de width),
+   só opacity transita — mantém os 360ms para não piscar. */
+[data-reduced] [data-option="5"] .o5-pill {
+  -webkit-transform: translateY(0) !important;
+  transform:         translateY(0) !important;
+  -webkit-transition:
+    opacity    360ms ease-out,
+    box-shadow 160ms ease-out !important;
+  transition:
+    opacity    360ms ease-out,
+    box-shadow 160ms ease-out !important;
+}
+
+[data-reduced] [data-option="5"] .o5-text {
+  -webkit-transition: opacity 160ms ease-out;
+  transition:         opacity 160ms ease-out;
+}
+/* /@explore 5 */
+/* @explore 6 */
+/* STORYBOARD · Opção 6 · Largura que alcança a descida
+ * Chrome 68+ / Safari 16+ — somente transition, clip-path, transform, opacity.
+ *
+ * Tese: a máscara abre 120ms depois de ARRIVE começar, enquanto a pílula
+ * ainda desce. O olho vê um único gesto que muda de natureza no meio;
+ * o transform é expo-out (rápido), a abertura nasce de dentro da descida.
+ *
+ *      0ms  IDLE      nada na tela
+ *    300ms  ARRIVE    translateY(-12→0) + opacity 0→1   [arrive-dur  400ms, expo-out]
+ *    420ms  OPEN      clip-path 72→252px                [open-dur    720ms, expo-out;
+ *                                                        overlap 120ms com ARRIVE]
+ *    996ms  TEXT      texto entra por opacidade          [= OPEN + 80 % de open-dur]
+ *   1140ms  RING      anel de foco aparece               [= OPEN + open-dur; só com foco]
+ *   3140ms  QUIET     texto e anel somem (200ms)         [= OPEN + open-dur + 2000ms hold]
+ *   3340ms  COLLAPSE  clip-path 252→72px                [open-dur 720ms]
+ *   4060ms  LEAVE     translateY(0→-12) + opacity 1→0  [arrive-dur 400ms]
+ *   5260ms  RESTART   800ms de repouso após LEAVE
+ *
+ * 4 variáveis que movem o movimento:
+ *   --explore-o6-arrive-dur   400ms                          descida/subida
+ *   --explore-o6-open-dur     720ms                          máscara abre e fecha
+ *   --explore-o6-overlap      120ms                          abertura começa dentro da descida
+ *   --explore-o6-ease         cubic-bezier(0.16, 1, 0.3, 1)  expo-out
+ */
+
+/* ── 4 variáveis de motion + auxiliares internos ────────────────────────── */
+[data-option="6"] {
+  --explore-o6-arrive-dur: 400ms;
+  --explore-o6-open-dur:   720ms;
+  --explore-o6-overlap:    120ms;
+  --explore-o6-ease:       cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* widths derivadas dos tokens do kit (16 + 40 + 12 + 168 + 16 = 252; 72 = círculo) */
+  --o6-open-w:   calc(
+    var(--dimension-spacing-core-sm) * 2 +
+    var(--dimension-size-semantic-avatar) +
+    var(--dimension-spacing-core-xs) +
+    var(--dimension-size-semantic-notification-text-width)
+  );
+  --o6-closed-w: var(--dimension-size-semantic-round-button-circle);
+  --o6-mask-out: calc(var(--o6-open-w) - var(--o6-closed-w)); /* 180px ocultos quando fechado */
+  --o6-quiet-dur: 200ms;
+}
+
+/* ── Layout: único filho de .opt-content ────────────────────────────────── */
+[data-option="6"] .o6-wrap {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="6"] .o6-scenario {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="6"] .o6-scenario + .o6-scenario {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+/* ── Palco TV (data-surface="own", data-stack) ──────────────────────────── */
+[data-option="6"] .o6-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-top:    var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-right:  var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-bottom: var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-left:   var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-card);
+  background:    var(--color-semantic-theme-noite-light);
+  overflow: visible;
+}
+
+/* Spacer em fluxo: reserva a altura da pílula sem height fixa no palco */
+[data-option="6"] .o6-spacer {
+  display: block;
+  height: var(--o6-closed-w);
+}
+
+/* Label do cenário */
+[data-option="6"] .o6-scenario-label {
+  margin-top: var(--dimension-spacing-core-xs);
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOTIF: envelope da pílula, ancorado pela borda ESQUERDA ────────────────
+   A borda esquerda fica fixa; a pílula cresce para a direita via clip-path.
+   O logo está sempre a 16px dessa borda esquerda: não se move em x.         */
+[data-option="6"] .o6-notif {
+  position: absolute;
+  top:  var(--dimension-spacing-semantic-card-inset-expanded);
+  left: calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - var(--o6-open-w));
+  width:  var(--o6-open-w);
+  height: var(--o6-closed-w);
+  opacity: 0;
+  -webkit-transform: translateY(-12px);
+          transform: translateY(-12px);
+  -webkit-transition:
+    opacity  var(--explore-o6-arrive-dur) var(--explore-o6-ease),
+    -webkit-transform var(--explore-o6-arrive-dur) var(--explore-o6-ease);
+          transition:
+    opacity  var(--explore-o6-arrive-dur) var(--explore-o6-ease),
+    transform var(--explore-o6-arrive-dur) var(--explore-o6-ease);
+}
+
+[data-option="6"].o6-arrived .o6-notif {
+  opacity: 1;
+  -webkit-transform: translateY(0);
+          transform: translateY(0);
+}
+
+/* ── PILL: sempre 252px, clip-path esconde os 180px direitos quando fechada ─
+   Só a máscara muda — nenhum recálculo de layout, pontas intactas.          */
+[data-option="6"] .o6-pill {
+  position: relative;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+          flex-direction: row;
+  -webkit-align-items: center;
+          align-items: center;
+  box-sizing: border-box;
+  width:  var(--o6-open-w);
+  height: var(--o6-closed-w);
+  padding-left:  var(--dimension-spacing-core-sm);
+  padding-right: var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  -webkit-clip-path: inset(0px var(--o6-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px var(--o6-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+  -webkit-transition: -webkit-clip-path var(--explore-o6-open-dur) var(--explore-o6-ease);
+          transition:
+    -webkit-clip-path var(--explore-o6-open-dur) var(--explore-o6-ease),
+            clip-path var(--explore-o6-open-dur) var(--explore-o6-ease);
+}
+
+[data-option="6"].o6-open .o6-pill {
+  -webkit-clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+}
+
+/* ── Logo: avatar placeholder, sem movimento em x ───────────────────────── */
+[data-option="6"] .o6-logo {
+  display: block;
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width:  var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-30);
+  margin-right: var(--dimension-spacing-core-xs);
+}
+
+/* ── Coluna de texto: parada na posição final, opacidade somente ─────────── */
+[data-option="6"] .o6-text {
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width: var(--dimension-size-semantic-notification-text-width);
+  opacity: 0;
+  -webkit-font-smoothing: antialiased;
+  /* fade-out rápido (quiet ou collapse): sem delay */
+  -webkit-transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+          transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+}
+
+/* Texto visível: o JS adiciona o6-textin no momento certo (80 % de open) */
+[data-option="6"].o6-textin:not(.o6-quiet) .o6-text {
+  opacity: 1;
+  -webkit-transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+          transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+}
+
+[data-option="6"] .o6-text-title {
+  display: block;
+  text-wrap: pretty;
+  color: var(--color-semantic-functional-text-primary);
+}
+
+[data-option="6"] .o6-text-body {
+  display: block;
+  text-wrap: pretty;
+  color: var(--color-semantic-functional-text-muted);
+}
+
+/* ── Anel de foco (kit's ring band) ─────────────────────────────────────────
+   Aparece só depois que a máscara parou (transition-delay = open-dur).
+   Some antes de COLLAPSE (durante QUIET, sem delay).
+   Só renderizado quando o6-notif tem data-focus="yes".                      */
+[data-option="6"] .o6-ring {
+  display: none;
+  position: absolute;
+  top:    0;
+  right:  0;
+  bottom: 0;
+  left:   0;
+  box-sizing: border-box;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-image: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  /* fade-out sem delay (quiet) */
+  -webkit-transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+          transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease);
+}
+
+[data-option="6"] .o6-notif[data-focus="yes"] .o6-ring {
+  display: block;
+}
+
+/* Anel aparece quando a pílula está completamente aberta e parada */
+[data-option="6"].o6-open:not(.o6-quiet) .o6-ring {
+  opacity: 1;
+  -webkit-transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease) var(--explore-o6-open-dur);
+          transition: opacity var(--o6-quiet-dur) var(--explore-o6-ease) var(--explore-o6-open-dur);
+}
+
+/* ── Tabela de variáveis ─────────────────────────────────────────────────── */
+[data-option="6"] .o6-vars {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width: 100%;
+  margin-top: var(--dimension-spacing-core-sm);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="6"] .o6-var {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  margin-top: var(--dimension-spacing-core-xs);
+}
+
+[data-option="6"] .o6-var-name {
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="6"] .o6-var-value {
+  color: var(--color-semantic-functional-text-muted);
+  text-wrap: pretty;
+}
+
+/* ── Movimento reduzido (Chrome 68 não tem prefers-reduced-motion; usa [data-reduced]) */
+[data-reduced] [data-option="6"] .o6-notif {
+  -webkit-transform: none;
+          transform: none;
+}
+[data-reduced] [data-option="6"] .o6-pill {
+  -webkit-transition: none;
+          transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .o6-notif { -webkit-transform: none; transform: none; }
+  [data-option="6"] .o6-pill  { -webkit-transition: none; transition: none; }
+}
+/* /@explore 6 */
+/* @explore 7 */
+/*
+ * STORYBOARD · Opção 7 · Uma curva, uma duração (texto com blur)
+ *
+ * Descida, largura, opacidade e texto são o mesmo gesto: começam no mesmo
+ * instante e acabam juntos (700ms). O movimento (descida + largura) dispara
+ * rápido numa ease-out longa; a opacidade da pílula e do texto resolve numa
+ * curva mais macia, para a notificação não aparecer de repente. O blur é só
+ * do texto (8px → 0) e o texto não tem atraso: sobe com a pílula.
+ *
+ *   0ms       IDLE      invisível, translateY(-8px), width 72px, texto a 8px de blur
+ *   0→700ms   ARRIVE    translateY(-8→0) + width 72→252px   [ease-out, rápido]
+ *                       pílula: opacity 0→1                 [curva macia]
+ *                       texto: opacity 0→1 + blur 8→0px     [curva macia, sem atraso]
+ *   700ms     SETTLED   nítida e aberta; anel de foco entra (delay = 700ms)
+ *   3200ms    QUIET     texto (opacity 1→0, blur 0→8px) + anel saem em 200ms
+ *   3400ms    COLLAPSE  o mesmo gesto ao contrário: a largura volta ao círculo
+ *                       enquanto a opacidade da pílula se desfaz, mais devagar
+ *   4100ms    PAUSE     invisível 400ms; reinicia
+ *
+ *   hold=2500ms · ciclo ≈ 4500ms
+ *
+ *   Só CSS suportado no Chrome 68 e no Safari 16: transition, transform,
+ *   opacity, width, filter: blur(). Sem backdrop-filter (Chrome 76+).
+ */
+
+/* ── As 4 variáveis de motion ─────────────────────────────────────────── */
+[data-option="7"] {
+  --explore-o7-duration:  700ms;                           /* [1] o gesto inteiro */
+  --explore-o7-ease:      cubic-bezier(0.22, 1, 0.36, 1);  /* [2] descida e largura: dispara e assenta */
+  --explore-o7-blur:      8px;                             /* [3] desfoque do texto; resolve a 0 com a opacidade */
+  --explore-o7-text-lag:  0ms;                             /* [4] atraso do texto sobre a pílula (0 = juntos) */
+
+  --explore-o7-fade-ease: cubic-bezier(0.4, 0, 0.2, 1);    /* apoio: curva macia de opacidade e blur */
+  --explore-o7-hold:      2500ms;                          /* apoio: tempo aberta antes de recolher */
+
+  /* Larguras dos tokens: 16 + 40 + 12 + 168 + 16 = 252px; o círculo é 72px */
+  --o7-open-w:   calc(var(--dimension-spacing-core-sm) * 2 + var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-xs) + var(--dimension-size-semantic-notification-text-width));
+  --o7-closed-w: var(--dimension-size-semantic-round-button-circle);
+}
+
+/* ── Layout: filho único de .opt-content ─────────────────────────────── */
+[data-option="7"] .o7-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="7"] .o7-scenario {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="7"] .o7-scenario + .o7-scenario {
+  margin-top: var(--dimension-spacing-core-sm); /* 16px — sem gap (Chrome 84+) */
+}
+
+/* ── Palco: simula canto TV, data-surface="own" (não é Card/Content Card) ─ */
+[data-option="7"] .o7-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-top:    var(--dimension-spacing-semantic-card-inset-expanded); /* 32px */
+  padding-right:  var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-bottom: var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-left:   var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-card); /* 40px */
+  background: var(--color-semantic-theme-noite-light);
+  overflow: visible; /* anel de foco não recebe clipping */
+}
+
+/* Spacer em fluxo: reserva a altura da pílula sem height fixa no palco */
+[data-option="7"] .o7-spacer {
+  display: block;
+  height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+}
+
+[data-option="7"] .o7-scene-label {
+  margin-top: var(--dimension-spacing-core-xs); /* 12px */
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Container da notificação: sempre 252px, ancorado à esquerda ──────
+ *
+ *  left = 100%(stage) − padding-right(32px) − 252px
+ *  → com pill em 72px: borda direita da pill fica a 180px do canto do palco.
+ *  → com pill em 252px: borda direita encosta no padding do palco.
+ *  O logo (left + 16px) não se move em x em nenhum quadro.
+ */
+[data-option="7"] .o7-notif {
+  position: absolute;
+  top:  var(--dimension-spacing-semantic-card-inset-expanded);
+  left: calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - var(--o7-open-w));
+  width: var(--o7-open-w);
+  height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+  pointer-events: none;
+}
+
+/* ── Pílula: largura 72 → 252px, descida e opacidade ────────────────────
+ *  Descida e largura: mesma duração e mesma ease-out (rápida, assenta suave).
+ *  Opacidade: mesma duração, curva macia, para a pílula não "pipocar".
+ *  A pílula NÃO tem blur: o desfoque é só do texto.
+ *  Sem backdrop-filter: o kit não usa na notificação e o Chrome 68 não tem.
+ */
+[data-option="7"] .o7-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--o7-closed-w); /* estado fechado */
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-translucent);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-sizing: border-box;
+  padding-left:  var(--dimension-spacing-core-sm); /* 16px */
+  padding-right: var(--dimension-spacing-core-sm);
+  overflow: hidden;
+
+  opacity: 0;
+  -webkit-transform: translateY(-8px);
+          transform: translateY(-8px);
+
+  /* Quatro propriedades, uma duração: o gesto começa e termina junto */
+  -webkit-transition:
+    opacity           var(--explore-o7-duration) var(--explore-o7-fade-ease),
+    width             var(--explore-o7-duration) var(--explore-o7-ease),
+    -webkit-transform var(--explore-o7-duration) var(--explore-o7-ease);
+          transition:
+    opacity   var(--explore-o7-duration) var(--explore-o7-fade-ease),
+    width     var(--explore-o7-duration) var(--explore-o7-ease),
+    transform var(--explore-o7-duration) var(--explore-o7-ease);
+}
+
+/* Estado ativo: chega, abre e assenta num único gesto */
+[data-option="7"].o7-active .o7-pill {
+  opacity: 1;
+  width: var(--o7-open-w);
+  -webkit-transform: translateY(0);
+          transform: translateY(0);
+}
+
+/* ── Logo: parado em x o tempo todo ──────────────────────────────────── */
+[data-option="7"] .o7-logo {
+  flex-shrink: 0;
+  width:  var(--dimension-size-semantic-avatar); /* 40px */
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-30);
+  margin-right: var(--dimension-spacing-core-xs); /* 12px — sem gap */
+}
+
+/* ── Coluna de texto: sobe com a pílula, na mesma duração e sem atraso ──
+ *  O blur é só do texto (8px → 0), no cruzamento de opacidade: o texto sai
+ *  do desfoque enquanto aparece, e entra no desfoque ao sair.
+ *  Entrada: mesma duração e mesma curva macia da pílula, começando no mesmo
+ *  instante (--explore-o7-text-lag = 0), e a descida já vem da pílula.
+ */
+[data-option="7"] .o7-text {
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-notification-text-width); /* 168px */
+  opacity: 0;
+  -webkit-filter: blur(var(--explore-o7-blur));
+          filter: blur(var(--explore-o7-blur));
+  -webkit-font-smoothing: antialiased;
+  -webkit-transition: opacity 200ms var(--explore-o7-fade-ease), -webkit-filter 200ms var(--explore-o7-fade-ease);
+          transition: opacity 200ms var(--explore-o7-fade-ease), filter 200ms var(--explore-o7-fade-ease);
+}
+
+[data-option="7"].o7-active .o7-text {
+  opacity: 1;
+  -webkit-filter: none; /* nenhum filtro em repouso: texto nítido */
+          filter: none;
+  -webkit-transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease) var(--explore-o7-text-lag), -webkit-filter var(--explore-o7-duration) var(--explore-o7-fade-ease) var(--explore-o7-text-lag);
+          transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease) var(--explore-o7-text-lag), filter var(--explore-o7-duration) var(--explore-o7-fade-ease) var(--explore-o7-text-lag);
+}
+
+/* Saída: .o7-quiet tem especificidade maior → sobrescreve sem atraso; volta ao desfoque */
+[data-option="7"].o7-active.o7-quiet .o7-text {
+  opacity: 0;
+  -webkit-filter: blur(var(--explore-o7-blur));
+          filter: blur(var(--explore-o7-blur));
+  -webkit-transition: opacity 200ms var(--explore-o7-fade-ease) 0ms, -webkit-filter 200ms var(--explore-o7-fade-ease) 0ms;
+          transition: opacity 200ms var(--explore-o7-fade-ease) 0ms, filter 200ms var(--explore-o7-fade-ease) 0ms;
+}
+
+[data-option="7"] .o7-text-title {
+  display: block;
+  text-wrap: balance;
+  color: var(--color-semantic-functional-text-primary);
+}
+
+[data-option="7"] .o7-text-body {
+  display: block;
+  text-wrap: pretty;
+  color: var(--color-semantic-functional-text-muted);
+}
+
+/* ── Anel de foco: kit mask-band, surge só depois que a pílula assentou ─
+ *  O anel ocupa o .o7-notif (sempre 252px) e só fica visível
+ *  quando a pílula também é 252px: sem discrepância visual.
+ *  A técnica da faixa: padding = largura do anel; máscara expõe só o padding.
+ */
+[data-option="7"] .o7-ring {
+  display: none; /* hidden por padrão; ligado só no cenário de foco */
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background-image: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-transition: opacity 200ms var(--explore-o7-ease);
+          transition: opacity 200ms var(--explore-o7-ease);
+}
+
+/* Cenário com foco: ativa o display do anel */
+[data-option="7"] .o7-notif[data-focus="yes"] .o7-ring {
+  display: block;
+}
+
+/* Surge após a pílula estar completamente assentada (delay = duração do gesto) */
+[data-option="7"].o7-active .o7-ring {
+  opacity: 1;
+  -webkit-transition: opacity 200ms var(--explore-o7-ease) var(--explore-o7-duration);
+          transition: opacity 200ms var(--explore-o7-ease) var(--explore-o7-duration);
+}
+
+/* Sai antes do colapso, junto com o texto */
+[data-option="7"].o7-active.o7-quiet .o7-ring {
+  opacity: 0;
+  -webkit-transition: opacity 200ms var(--explore-o7-ease) 0ms;
+          transition: opacity 200ms var(--explore-o7-ease) 0ms;
+}
+
+/* ── Tabela das 4 variáveis ───────────────────────────────────────────── */
+[data-option="7"] .o7-vars {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: var(--dimension-spacing-core-sm);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="7"] .o7-var-row {
+  display: flex;
+  flex-direction: column;
+  padding-top:    var(--dimension-spacing-core-3xs);
+  padding-bottom: var(--dimension-spacing-core-3xs);
+  border-top: var(--dimension-border-width-semantic-divider) solid var(--color-semantic-functional-border-subtle);
+}
+
+[data-option="7"] .o7-var-name {
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-option="7"] .o7-var-value {
+  color: var(--color-semantic-functional-text-muted);
+  text-wrap: balance;
+}
+
+/* ── Movimento reduzido: sem transform, largura pula, só opacidade anima ─
+ *  Chrome 68 não tem prefers-reduced-motion: o interruptor é [data-reduced].
+ */
+[data-reduced] [data-option="7"] .o7-pill {
+  -webkit-transform: none;
+          transform: none;
+  -webkit-transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease);
+          transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease);
+  /* width não tem transition → pula instantaneamente */
+}
+[data-reduced] [data-option="7"] .o7-text,
+[data-reduced] [data-option="7"].o7-active.o7-quiet .o7-text {
+  -webkit-filter: none; /* sem blur: só opacidade */
+          filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="7"] .o7-pill {
+    -webkit-transform: none;
+            transform: none;
+    -webkit-transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease);
+            transition: opacity var(--explore-o7-duration) var(--explore-o7-fade-ease);
+  }
+  [data-option="7"] .o7-text,
+  [data-option="7"].o7-active.o7-quiet .o7-text {
+    -webkit-filter: none;
+            filter: none;
+  }
+}
+/* /@explore 7 */
+/* @explore 8 */
+/* ── Storyboard · Opção 8 · Pouso curto, saída inteira ────────────────────
+ *
+ *   --explore-o8-arrive-dur  320ms                     circle lands (translateY + opacity)
+ *   --explore-o8-open-dur    640ms                     pill expands / collapses (clip-path)
+ *   --explore-o8-ease        cubic-bezier(0.19,1,0.22,1)  expo-out, premium, no overshoot
+ *   --explore-o8-overlap     80ms                      expand head-start while arrive is landing
+ *
+ *     0ms      ARRIVE    opacity 0→1 · translateY(−8px)→0   [arrive-dur  320ms]
+ *    80ms      OPEN      clip-path 180→0px                  [open-dur    640ms]
+ *   592ms      TEXT      opacity 0→1                        after 80% of open-dur
+ *   720ms      RING      opacity 0→1 (focus scenario)       after open-dur
+ *  3520ms      QUIET     text + ring → 0                    [200ms]
+ *  3720ms      COLLAPSE  clip-path 0→180px (pill→circle)    [open-dur    640ms]
+ *  4360ms      LEAVE     circle: opacity + translateY up     [arrive-dur  320ms]
+ *  4680ms      idle
+ *  5480ms      loop
+ *
+ *  The pill rests at 72 px before departing: COLLAPSE finishes, message is
+ *  already dissolved, and only then the circle rises and fades.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+[data-option="8"] {
+  --explore-o8-arrive-dur:  320ms;
+  --explore-o8-open-dur:    640ms;
+  --explore-o8-ease:        cubic-bezier(0.19, 1, 0.22, 1);
+  --explore-o8-overlap:     80ms;
+
+  --o8-quiet-dur:   200ms;
+  --o8-text-delay:  512ms;
+
+  --o8-open-w:   calc(var(--dimension-spacing-core-sm) * 2 + var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-xs) + var(--dimension-size-semantic-notification-text-width));
+  --o8-closed-w: var(--dimension-size-semantic-round-button-circle);
+  --o8-mask-out: calc(var(--o8-open-w) - var(--o8-closed-w));
+}
+
+[data-option="8"] .o8-wrap {
+  display:                -webkit-flex;
+  display:                flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width:     100%;
+  min-width: 0;
+}
+
+[data-option="8"] .o8-scenario {
+  display:                -webkit-flex;
+  display:                flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width:     100%;
+  min-width: 0;
+}
+
+[data-option="8"] .o8-scenario + .o8-scenario {
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+[data-option="8"] .o8-stage {
+  position:       relative;
+  width:          100%;
+  min-width:      0;
+  box-sizing:     border-box;
+  padding-top:    var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-right:  var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-bottom: var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-left:   var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius:  var(--dimension-radius-semantic-card);
+  background:     var(--color-semantic-theme-noite-light);
+}
+
+[data-option="8"] .o8-spacer {
+  display: block;
+  height:  var(--o8-closed-w);
+}
+
+[data-option="8"] .o8-scene-label {
+  margin-top:             var(--dimension-spacing-core-xs);
+  color:                  var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOTIF: arrive / leave ─────────────────────────────────────────────────
+   Full 252px wide always; anchored by left edge so the logo never moves in x.
+   translateY and opacity are the arrive/leave mechanism. */
+[data-option="8"] .o8-notif {
+  position:          absolute;
+  top:               var(--dimension-spacing-semantic-card-inset-expanded);
+  left:              calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - var(--o8-open-w));
+  width:             var(--o8-open-w);
+  height:            var(--o8-closed-w);
+  opacity:           0;
+  -webkit-transform: translateY(-8px);
+          transform: translateY(-8px);
+  -webkit-transition:
+    opacity           var(--explore-o8-arrive-dur) var(--explore-o8-ease),
+    -webkit-transform var(--explore-o8-arrive-dur) var(--explore-o8-ease);
+          transition:
+    opacity           var(--explore-o8-arrive-dur) var(--explore-o8-ease),
+    transform         var(--explore-o8-arrive-dur) var(--explore-o8-ease);
+}
+
+[data-option="8"].o8-arrived .o8-notif {
+  opacity:           1;
+  -webkit-transform: translateY(0);
+          transform: translateY(0);
+}
+
+/* Exit: pill already at 72px; circle rises and fades at arrive-dur speed */
+[data-option="8"].o8-leaving .o8-notif {
+  opacity:           0;
+  -webkit-transform: translateY(-8px);
+          transform: translateY(-8px);
+  -webkit-transition:
+    opacity           var(--explore-o8-arrive-dur) var(--explore-o8-ease),
+    -webkit-transform var(--explore-o8-arrive-dur) var(--explore-o8-ease);
+          transition:
+    opacity           var(--explore-o8-arrive-dur) var(--explore-o8-ease),
+    transform         var(--explore-o8-arrive-dur) var(--explore-o8-ease);
+}
+
+/* ── PILL: clip-path expansion (logo fixed, no scaleX, round ends preserved) */
+[data-option="8"] .o8-pill {
+  position:         relative;
+  display:          -webkit-flex;
+  display:          flex;
+  -webkit-flex-direction: row;
+          flex-direction: row;
+  -webkit-align-items: center;
+          align-items:  center;
+  box-sizing:       border-box;
+  width:            var(--o8-open-w);
+  height:           var(--o8-closed-w);
+  padding-left:     var(--dimension-spacing-core-sm);
+  padding-right:    var(--dimension-spacing-core-sm);
+  border-radius:    var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-translucent);
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  -webkit-clip-path: inset(0px var(--o8-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px var(--o8-mask-out) 0px 0px round var(--dimension-radius-semantic-pill));
+  -webkit-transition: -webkit-clip-path var(--explore-o8-open-dur) var(--explore-o8-ease);
+          transition:
+    -webkit-clip-path var(--explore-o8-open-dur) var(--explore-o8-ease),
+            clip-path var(--explore-o8-open-dur) var(--explore-o8-ease);
+}
+
+[data-option="8"].o8-open .o8-pill {
+  -webkit-clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+          clip-path: inset(0px 0px 0px 0px round var(--dimension-radius-semantic-pill));
+}
+
+/* ── LOGO ───────────────────────────────────────────────────────────────── */
+[data-option="8"] .o8-logo {
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width:          var(--dimension-size-semantic-avatar);
+  height:         var(--dimension-size-semantic-avatar);
+  border-radius:  var(--dimension-radius-semantic-pill);
+  background:     var(--color-opacity-light-30);
+  margin-right:   var(--dimension-spacing-core-xs);
+}
+
+/* ── TEXT ───────────────────────────────────────────────────────────────── */
+[data-option="8"] .o8-text {
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width:                  var(--dimension-size-semantic-notification-text-width);
+  opacity:                0;
+  -webkit-font-smoothing: antialiased;
+  -webkit-transition: opacity var(--o8-quiet-dur) var(--explore-o8-ease);
+          transition: opacity var(--o8-quiet-dur) var(--explore-o8-ease);
+}
+
+[data-option="8"].o8-open:not(.o8-quiet) .o8-text {
+  opacity: 1;
+  -webkit-transition: opacity var(--explore-o8-arrive-dur) var(--explore-o8-ease) var(--o8-text-delay);
+          transition: opacity var(--explore-o8-arrive-dur) var(--explore-o8-ease) var(--o8-text-delay);
+}
+
+[data-option="8"] .o8-title {
+  display:   block;
+  color:     var(--color-semantic-functional-text-primary);
+  text-wrap: pretty;
+}
+
+[data-option="8"] .o8-body {
+  display:   block;
+  color:     var(--color-semantic-functional-text-muted);
+  text-wrap: pretty;
+}
+
+/* ── FOCUS RING (kit mask technique) ────────────────────────────────────── */
+[data-option="8"] .o8-ring {
+  display:          none;
+  position:         absolute;
+  top:              0;
+  right:            0;
+  bottom:           0;
+  left:             0;
+  box-sizing:       border-box;
+  padding:          var(--dimension-border-width-semantic-focus-ring);
+  border-radius:    var(--dimension-radius-semantic-pill);
+  background-image: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  mask-composite:   exclude;
+  opacity:          0;
+  pointer-events:   none;
+  -webkit-transition: opacity var(--o8-quiet-dur) var(--explore-o8-ease);
+          transition: opacity var(--o8-quiet-dur) var(--explore-o8-ease);
+}
+
+[data-option="8"] .o8-notif[data-focus="yes"] .o8-ring {
+  display: block;
+}
+
+[data-option="8"].o8-open:not(.o8-quiet) .o8-ring {
+  opacity: 1;
+  -webkit-transition: opacity var(--explore-o8-arrive-dur) var(--explore-o8-ease) var(--explore-o8-open-dur);
+          transition: opacity var(--explore-o8-arrive-dur) var(--explore-o8-ease) var(--explore-o8-open-dur);
+}
+
+/* ── REDUCED MOTION (data-reduced; Chrome 68 has no prefers-reduced-motion) */
+[data-reduced] [data-option="8"] .o8-notif {
+  -webkit-transform: none;
+          transform: none;
+  -webkit-transition: opacity var(--explore-o8-arrive-dur) step-end;
+          transition: opacity var(--explore-o8-arrive-dur) step-end;
+}
+
+[data-reduced] [data-option="8"].o8-leaving .o8-notif {
+  -webkit-transform: none;
+          transform: none;
+  -webkit-transition: opacity var(--explore-o8-arrive-dur) step-end;
+          transition: opacity var(--explore-o8-arrive-dur) step-end;
+}
+
+[data-reduced] [data-option="8"] .o8-pill {
+  -webkit-transition: none;
+          transition: none;
+}
+
+/* ── VARIABLES TABLE ────────────────────────────────────────────────────── */
+[data-option="8"] .o8-vars {
+  display:                -webkit-flex;
+  display:                flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width:      100%;
+  margin-top: var(--dimension-spacing-core-sm);
+}
+
+[data-option="8"] .o8-var {
+  display:                -webkit-flex;
+  display:                flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  margin-top: var(--dimension-spacing-core-xs);
+}
+
+[data-option="8"] .o8-var-name {
+  color:                  var(--color-semantic-functional-text-primary);
+  font-variant-numeric:   tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-option="8"] .o8-var-value {
+  color:                  var(--color-semantic-functional-text-muted);
+  text-wrap:              pretty;
+  -webkit-font-smoothing: antialiased;
+}
+/* /@explore 8 */
+/* @explore 9 */
+/* tune:vars */
+[data-option="9"] {
+  --arrive-y: 6px;
+  --close-delay: 60ms;
+  --lift-delay: 60ms;
+  --lift-dur: 300ms;
+  --lift-ease: cubic-bezier(0.4, 0, 1, 1);
+  --logo-size: 44px;
+  --logo-exit-dur: 150ms;
+  --logo-exit-delay: 0ms;
+  --message: "Paredão formado! Vote agora para eliminar";
+  --text-size: var(--typography-font-size-base);
+  --text-width: 200px; /* tune */
+  --text-weight: 700;
+  --text-style: normal;
+  --text-align: left;
+  --text-color: #eeeeee; /* tune */
+  --blur: 2px;
+  --text-lag: 0ms;
+  --text-shift: 12px;
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-delay: 200ms;
+  --glow-opacity: var(--opacity-semantic-focus-glow);
+  --dur: 700ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --exit-dur: 200ms;
+  --fade-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --hold: 2500ms;
+  --pause: 400ms;
+}
+/* /tune:vars */
+
+/* ── Dimensões derivadas dos tokens do kit (sem dial) ──────────────── */
+[data-option="9"] {
+  /* A pílula abraça as peças: o inset centra o logo no círculo fechado, e a largura aberta é a soma de inset, logo, gap e coluna de texto */
+  --o9-inset:    calc((var(--dimension-size-semantic-round-button-circle) - var(--logo-size)) / 2);
+  --o9-open-w:   calc(var(--o9-inset) * 2 + var(--logo-size) + var(--dimension-spacing-core-xs) + var(--text-width));
+  --o9-closed-w: var(--dimension-size-semantic-round-button-circle);
+}
+
+/* ── Wrap e cenários ──────────────────────────────────────────────── */
+[data-option="9"] .o9-wrap {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  /* O palco cresce com a pílula aberta, para a largura do texto nunca jogá-la para fora pela esquerda */
+  width: calc(var(--o9-open-w) + var(--dimension-spacing-semantic-card-inset-expanded) * 2);
+  min-width: 0;
+}
+
+[data-option="9"] .o9-scenario {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+          flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+[data-option="9"] .o9-scenario + .o9-scenario {
+  margin-top: var(--dimension-spacing-core-sm); /* 16px — sem gap (Chrome 84+) */
+}
+
+/* ── Palco: simula canto TV, data-surface="own" ─────────────────────── */
+[data-option="9"] .o9-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-top:    var(--dimension-spacing-semantic-card-inset-expanded); /* 32px */
+  padding-right:  var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-bottom: var(--dimension-spacing-semantic-card-inset-expanded);
+  padding-left:   var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-card); /* 40px */
+  background: var(--color-semantic-theme-noite-light);
+  overflow: visible; /* anel de foco não é clippado */
+}
+
+/* Spacer: reserva a altura da pílula sem forçar height fixa no palco */
+[data-option="9"] .o9-spacer {
+  display: block;
+  height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+}
+
+[data-option="9"] .o9-scene-label {
+  margin-top: var(--dimension-spacing-core-xs); /* 12px */
+  color: var(--color-semantic-functional-text-muted);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Container da notificação: sempre 252px, ancorado à esquerda ──────
+ *  left = 100%(stage) − padding-right(32px) − 252px
+ *  → com pill em 72px: borda direita fica a 180px do canto do palco.
+ *  → com pill em 252px: borda direita encosta no padding do palco.
+ *  O logo (left + 16px) não se move em x em nenhum quadro.
+ */
+[data-option="9"] .o9-notif {
+  position: absolute;
+  top:  var(--dimension-spacing-semantic-card-inset-expanded);
+  left: calc(100% - var(--dimension-spacing-semantic-card-inset-expanded) - var(--o9-open-w));
+  width: var(--o9-open-w);
+  height: var(--dimension-size-semantic-round-button-circle); /* 72px */
+  pointer-events: none;
+}
+
+/* ── Pílula: idle = 72px, opacidade 0, translateY negativo ─────────── */
+[data-option="9"] .o9-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--o9-closed-w);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-translucent);
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+          flex-direction: row;
+  -webkit-align-items: center;
+          align-items: center;
+  box-sizing: border-box;
+  padding-left:  var(--o9-inset);
+  padding-right: var(--o9-inset);
+  overflow: hidden;
+
+  opacity: 0;
+  -webkit-transform: translateY(calc(-1 * var(--arrive-y)));
+          transform: translateY(calc(-1 * var(--arrive-y)));
+
+  /* Chegada: descida + largura compartilham --dur/--ease; opacidade usa --fade-ease */
+  -webkit-transition:
+    opacity           var(--dur) var(--fade-ease),
+    width             var(--dur) var(--ease),
+    -webkit-transform var(--dur) var(--ease);
+          transition:
+    opacity   var(--dur) var(--fade-ease),
+    width     var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+/* Pílula aberta só em "ativo"; em "saindo" ela fecha (volta aos valores base) */
+[data-option="9"][data-state="ativo"] .o9-pill {
+  opacity: 1;
+  width: var(--o9-open-w);
+  -webkit-transform: translateY(0);
+          transform: translateY(0);
+}
+
+/* O fechamento espera --close-delay: texto, anel e brilho somem antes de a borda da pílula passar por eles.
+ * Primeiro a largura volta ao círculo; perto do fim (--lift-delay) a pílula sobe e some, com --lift-dur/--lift-ease. */
+[data-option="9"][data-state="saindo"] .o9-pill {
+  -webkit-transition:
+    width             var(--dur)      var(--ease)      var(--close-delay),
+    opacity           var(--lift-dur) var(--lift-ease) calc(var(--close-delay) + var(--lift-delay)),
+    -webkit-transform var(--lift-dur) var(--lift-ease) calc(var(--close-delay) + var(--lift-delay));
+          transition:
+    width     var(--dur)      var(--ease)      var(--close-delay),
+    opacity   var(--lift-dur) var(--lift-ease) calc(var(--close-delay) + var(--lift-delay)),
+    transform var(--lift-dur) var(--lift-ease) calc(var(--close-delay) + var(--lift-delay));
+}
+
+/* ── Logo: parado em x o tempo todo ─────────────────────────────────── */
+[data-option="9"] .o9-logo {
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width:  var(--logo-size);
+  height: var(--logo-size);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-opacity-light-30);
+  margin-right: var(--dimension-spacing-core-xs); /* 12px — sem gap */
+  /* Fora da saída o logo volta ao normal na hora: a pílula já fechou (o ciclo só entra em repouso depois da saída) */
+  -webkit-transition: none;
+          transition: none;
+}
+
+/* Saída do logo: o mesmo efeito do texto (opacidade + blur, --exit-dur, --fade-ease) */
+[data-option="9"][data-state="saindo"] .o9-logo {
+  opacity: 0;
+  -webkit-filter: blur(var(--blur));
+          filter: blur(var(--blur));
+  -webkit-transition:
+    opacity        var(--logo-exit-dur) var(--fade-ease) var(--logo-exit-delay),
+    -webkit-filter var(--logo-exit-dur) var(--fade-ease) var(--logo-exit-delay);
+          transition:
+    opacity var(--logo-exit-dur) var(--fade-ease) var(--logo-exit-delay),
+    filter  var(--logo-exit-dur) var(--fade-ease) var(--logo-exit-delay);
+}
+
+/* ── Texto: entrada com --dur + text-lag; saída com --exit-dur ──────── */
+[data-option="9"] .o9-text {
+  -webkit-flex-shrink: 0;
+          flex-shrink: 0;
+  width: var(--text-width);
+  opacity: 0;
+  -webkit-filter: blur(var(--blur));
+          filter: blur(var(--blur));
+  -webkit-font-smoothing: antialiased;
+  /* Fechado, o texto espera um pouco à esquerda (--text-shift); desliza com a borda da pílula, no mesmo --dur/--ease da largura */
+  -webkit-transform: translateX(calc(-1 * var(--text-shift)));
+          transform: translateX(calc(-1 * var(--text-shift)));
+  /* Transição padrão: usada na saída quando saindo→repouso (já está em 0, sem efeito) */
+  -webkit-transition:
+    opacity           var(--exit-dur) var(--fade-ease),
+    -webkit-filter    var(--exit-dur) var(--fade-ease),
+    -webkit-transform var(--dur) var(--ease);
+          transition:
+    opacity   var(--exit-dur) var(--fade-ease),
+    filter    var(--exit-dur) var(--fade-ease),
+    transform var(--dur) var(--ease);
+}
+
+/* Entrada do texto: mesma duração do gesto, com atraso configurável */
+[data-option="9"][data-state="ativo"] .o9-text {
+  opacity: 1;
+  -webkit-filter: none;
+          filter: none;
+  -webkit-transform: translateX(0);
+          transform: translateX(0);
+  -webkit-transition:
+    opacity           var(--dur) var(--fade-ease) var(--text-lag),
+    -webkit-filter    var(--dur) var(--fade-ease) var(--text-lag),
+    -webkit-transform var(--dur) var(--ease) var(--text-lag);
+          transition:
+    opacity   var(--dur) var(--fade-ease) var(--text-lag),
+    filter    var(--dur) var(--fade-ease) var(--text-lag),
+    transform var(--dur) var(--ease) var(--text-lag);
+}
+
+/* Saída do texto: exit-dur sem atraso; sobrescreve a regra de entrada */
+[data-option="9"][data-state="saindo"] .o9-text {
+  opacity: 0;
+  -webkit-filter: blur(var(--blur));
+          filter: blur(var(--blur));
+  -webkit-transform: translateX(calc(-1 * var(--text-shift)));
+          transform: translateX(calc(-1 * var(--text-shift)));
+  -webkit-transition:
+    opacity           var(--exit-dur) var(--fade-ease) 0ms,
+    -webkit-filter    var(--exit-dur) var(--fade-ease) 0ms,
+    -webkit-transform var(--dur) var(--ease) 0ms;
+          transition:
+    opacity   var(--exit-dur) var(--fade-ease) 0ms,
+    filter    var(--exit-dur) var(--fade-ease) 0ms,
+    transform var(--dur) var(--ease) 0ms;
+}
+
+/* Uma só frase em corpo médio (text-body-sm-medium); o texto e a tipografia vêm das variáveis da pasta "Texto" */
+[data-option="9"] .o9-text {
+  color: var(--text-color);
+  font-size: var(--text-size);
+  font-weight: var(--text-weight);
+  font-style: var(--text-style);
+  text-align: var(--text-align);
+  text-wrap: pretty;
+}
+[data-option="9"] .o9-text::before {
+  content: var(--message);
+}
+
+/* ── Anel de foco: kit mask-band; surge após a pílula assentar ──────── */
+[data-option="9"] .o9-ring {
+  display: none; /* ligado só no cenário com foco */
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--ring-width);
+  background-image: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(black, black) content-box,
+    linear-gradient(black, black);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  /* Transição padrão (repouso→ativo delay; saindo→repouso sem atraso) */
+  -webkit-transition: opacity var(--exit-dur) var(--ease);
+          transition: opacity var(--exit-dur) var(--ease);
+}
+
+/* Cenário com foco: ativa o anel */
+[data-option="9"] .o9-notif[data-focus="yes"] .o9-ring {
+  display: block;
+}
+
+/* Anel surge apenas após a pílula assentar (delay = ring-delay) */
+[data-option="9"][data-state="ativo"] .o9-ring {
+  opacity: 1;
+  -webkit-transition: opacity var(--exit-dur) var(--ease) var(--ring-delay);
+          transition: opacity var(--exit-dur) var(--ease) var(--ring-delay);
+}
+
+/* Anel sai antes do colapso, junto com o texto */
+[data-option="9"][data-state="saindo"] .o9-ring {
+  opacity: 0;
+  -webkit-transition: opacity var(--exit-dur) var(--ease) 0ms;
+          transition: opacity var(--exit-dur) var(--ease) 0ms;
+}
+
+/* ── Luz do foco (FocusRing do kit): preenchimento que sobe da base + brilho radial na borda de baixo.
+ *  Mora dentro da pílula, então acompanha a largura e o recorte dela; logo e texto ficam por cima. */
+[data-option="9"] .o9-glow {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-transition: opacity var(--exit-dur) var(--ease);
+          transition: opacity var(--exit-dur) var(--ease);
+}
+/* O token focus-inset é color-mix() (Chrome 111+, Safari 16.2+): o mesmo preto a 70% vem de preto puro + opacity-core-70 */
+[data-option="9"] .o9-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: var(--color-core-neutral-black);
+  opacity: var(--opacity-core-70);
+}
+[data-option="9"] .o9-glow-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: linear-gradient(0deg, var(--color-semantic-focus-inset-fade) 0%, transparent 100%);
+}
+[data-option="9"] .o9-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  opacity: var(--glow-opacity);
+  background-image: radial-gradient(ellipse at 50% 100%, var(--color-semantic-focus-glow) 0%, transparent var(--dimension-size-semantic-focus-glow));
+}
+[data-option="9"] .o9-notif[data-focus="yes"] .o9-glow {
+  display: block;
+}
+[data-option="9"][data-state="ativo"] .o9-glow {
+  opacity: 1;
+  -webkit-transition: opacity var(--exit-dur) var(--ease) var(--ring-delay);
+          transition: opacity var(--exit-dur) var(--ease) var(--ring-delay);
+}
+[data-option="9"][data-state="saindo"] .o9-glow {
+  opacity: 0;
+  -webkit-transition: opacity var(--exit-dur) var(--ease) 0ms;
+          transition: opacity var(--exit-dur) var(--ease) 0ms;
+}
+[data-option="9"] .o9-logo,
+[data-option="9"] .o9-text {
+  position: relative;
+}
+
+/* ── Movimento reduzido: [data-reduced] (Chrome 68 não tem media query) ─
+ *  Transform desaparece (pílula não desce), largura pula, blur some.
+ *  Só opacidade anima — a presença/ausência é preservada pelo ritmo.
+ */
+[data-reduced] [data-option="9"] .o9-pill {
+  -webkit-transform: none;
+          transform: none;
+  -webkit-transition: opacity var(--dur) var(--fade-ease);
+          transition: opacity var(--dur) var(--fade-ease);
+  /* width sem transition → pula instantaneamente */
+}
+[data-reduced] [data-option="9"] .o9-text,
+[data-reduced] [data-option="9"][data-state="saindo"] .o9-text,
+[data-reduced] [data-option="9"][data-state="saindo"] .o9-logo {
+  -webkit-filter: none;
+          filter: none;
+  -webkit-transform: none;
+          transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="9"] .o9-pill {
+    -webkit-transform: none;
+            transform: none;
+    -webkit-transition: opacity var(--dur) var(--fade-ease);
+            transition: opacity var(--dur) var(--fade-ease);
+  }
+  [data-option="9"] .o9-text,
+  [data-option="9"][data-state="saindo"] .o9-text,
+  [data-option="9"][data-state="saindo"] .o9-logo {
+    -webkit-filter: none;
+            filter: none;
+    -webkit-transform: none;
+            transform: none;
+  }
+}
+/* /@explore 9 */
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0" data-phase="hidden">
+  <!-- tese: o círculo aparece parado no lugar e só depois se abre em mensagem — chega e então começa a falar -->
+  <p class="opt-label" data-part="label">Opção 1 - Fiel: Chega, Abre, Fala</p>
+  <div class="opt-content" data-part="content">
+
+    <!-- Wrapper único: opt-content é flex row, aqui uma coluna -->
+    <div class="o1-wrap" data-part="wrap">
+
+      <!-- Dois cenários empilhados -->
+      <div class="o1-stages" data-part="stages">
+
+        <!-- Cenário A: chegada com foco -->
+        <div class="o1-stage" data-part="stage-focus">
+          <div class="o1-screen" data-part="screen-focus"
+               data-surface="own" data-stack
+               title="Palco TV: superfície própria, não card do kit">
+            <div class="o1-notif o1-has-focus" data-part="notif-focus">
+              <div class="o1-pill" data-part="pill-focus">
+                <div class="o1-logo" data-part="logo-a"><div class="o1-logo-mark"></div></div>
+                <div class="o1-text" data-part="text-a">
+                  <p class="text-body-sm-bold o1-title">Paredão formado!</p>
+                  <p class="text-footnote-regular o1-sub">Vote agora para eliminar</p>
+                </div>
+              </div>
+              <div class="o1-focus-ring" data-part="focus-ring"></div>
+            </div>
+          </div>
+          <p class="o1-stage-lbl text-footnote-medium" data-part="lbl-focus">Com foco</p>
+        </div>
+
+        <!-- Cenário B: chegada sem foco -->
+        <div class="o1-stage" data-part="stage-nofocus">
+          <div class="o1-screen" data-part="screen-nofocus"
+               data-surface="own" data-stack
+               title="Palco TV: superfície própria, não card do kit">
+            <div class="o1-notif" data-part="notif-nofocus">
+              <div class="o1-pill" data-part="pill-nofocus">
+                <div class="o1-logo" data-part="logo-b"><div class="o1-logo-mark"></div></div>
+                <div class="o1-text" data-part="text-b">
+                  <p class="text-body-sm-bold o1-title">Paredão formado!</p>
+                  <p class="text-footnote-regular o1-sub">Vote agora para eliminar</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="o1-stage-lbl text-footnote-medium" data-part="lbl-nofocus">Sem foco</p>
+        </div>
+
+      </div><!-- /o1-stages -->
+
+      <!-- 4 variáveis de motion (referência, não card do kit) -->
+      <div class="o1-vars" data-part="vars" data-surface="own"
+           title="Painel de referência das variáveis: superfície própria, não card do kit">
+        <p class="o1-vars-title text-body-sm-bold">4 variáveis de motion</p>
+        <div class="o1-var-row" data-part="var-1">
+          <span class="o1-var-name">--motion-notif-enter-duration</span>
+          <div class="o1-var-line2">
+            <span class="o1-var-val text-footnote-medium">300ms</span>
+            <span class="o1-var-desc text-footnote-regular">Fade de entrada e saída</span>
+          </div>
+        </div>
+        <div class="o1-var-row" data-part="var-2">
+          <span class="o1-var-name">--motion-notif-expand-duration</span>
+          <div class="o1-var-line2">
+            <span class="o1-var-val text-footnote-medium">800ms</span>
+            <span class="o1-var-desc text-footnote-regular">Abertura e recolhimento</span>
+          </div>
+        </div>
+        <div class="o1-var-row" data-part="var-3">
+          <span class="o1-var-name">--motion-notif-easing</span>
+          <div class="o1-var-line2">
+            <span class="o1-var-val text-footnote-medium">cubic-bezier(0.19, 0.06, 0.24, 1)</span>
+          </div>
+          <div class="o1-var-line2">
+            <span class="o1-var-desc text-footnote-regular">Saída suave sem bounce, igual ao AlertBug</span>
+          </div>
+        </div>
+        <div class="o1-var-row" data-part="var-4">
+          <span class="o1-var-name">--motion-notif-text-delay</span>
+          <div class="o1-var-line2">
+            <span class="o1-var-val text-footnote-medium">640ms</span>
+            <span class="o1-var-desc text-footnote-regular">Atraso do texto — 80% de expand-duration</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /o1-wrap -->
+  </div><!-- /opt-content -->
+
+</article>
+<article class="opt" data-option="2">
+  <!-- tese: o círculo desce poucos pixels do topo enquanto aparece, como algo que pousa, e então abre -->
+  <p class="opt-label" data-part="label">Opção 2 - Chegada que desce</p>
+
+  <div class="opt-content" data-part="content">
+
+    <div class="o2-wrap" data-part="wrap">
+
+    <div class="o2-scenarios" data-part="scenarios">
+
+      <!-- Cenário A: com foco -->
+      <div class="o2-scenario" data-part="scenario-focus">
+        <div class="o2-stage" data-part="stage-focus" data-surface="own" data-stack>
+          <!-- spacer: reserva a altura 72px em fluxo; pill é absoluta -->
+          <div class="o2-stage-spacer" aria-hidden="true"></div>
+          <div class="o2-pill o2-pill--focus"
+               data-part="pill-focus"
+               role="status"
+               aria-label="Notificação: Paredão formado! Vote agora para eliminar">
+            <div class="o2-logo" data-part="logo-focus"></div>
+            <div class="o2-text" data-part="text-focus">
+              <span class="text-body-sm-bold o2-text-title">Paredão formado!</span>
+              <span class="text-footnote-medium o2-text-body">Vote agora para eliminar</span>
+            </div>
+          </div>
+        </div>
+        <p class="o2-label-scene text-footnote-medium" data-part="label-focus">Com foco</p>
+      </div>
+
+      <!-- Cenário B: sem foco -->
+      <div class="o2-scenario" data-part="scenario-nofocus">
+        <div class="o2-stage" data-part="stage-nofocus" data-surface="own" data-stack>
+          <div class="o2-stage-spacer" aria-hidden="true"></div>
+          <div class="o2-pill"
+               data-part="pill-nofocus"
+               role="status"
+               aria-label="Notificação: Paredão formado! Vote agora para eliminar">
+            <div class="o2-logo" data-part="logo-nofocus"></div>
+            <div class="o2-text" data-part="text-nofocus">
+              <span class="text-body-sm-bold o2-text-title">Paredão formado!</span>
+              <span class="text-footnote-medium o2-text-body">Vote agora para eliminar</span>
+            </div>
+          </div>
+        </div>
+        <p class="o2-label-scene text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+      </div>
+
+    </div><!-- /scenarios -->
+
+    <!-- 4 variáveis de motion -->
+    <div class="o2-vars" data-part="motion-vars">
+
+      <div class="o2-var-row" data-part="var-arrive-duration">
+        <span class="text-footnote-medium o2-var-name">--notif-arrive-duration</span>
+        <span class="text-footnote-medium o2-var-value">280ms</span>
+      </div>
+
+      <div class="o2-var-row" data-part="var-expand-duration">
+        <span class="text-footnote-medium o2-var-name">--notif-expand-duration</span>
+        <span class="text-footnote-medium o2-var-value">800ms (--motion-semantic-duration)</span>
+      </div>
+
+      <div class="o2-var-row" data-part="var-easing">
+        <span class="text-footnote-medium o2-var-name">--notif-easing</span>
+        <span class="text-footnote-medium o2-var-value">cubic-bezier(0.19, 0.06, 0.24, 1)</span>
+      </div>
+
+      <div class="o2-var-row" data-part="var-arrive-y">
+        <span class="text-footnote-medium o2-var-name">--notif-arrive-y</span>
+        <span class="text-footnote-medium o2-var-value">-12px</span>
+      </div>
+
+    </div><!-- /motion-vars -->
+
+    </div><!-- /o2-wrap -->
+
+  </div><!-- /opt-content -->
+</article>
+<article class="opt" data-option="3">
+  <!-- tese: a pílula já tem 252px e uma máscara corre para a direita, do círculo até a mensagem.
+       Logo fixo em x (a escala pivota no centro dele); o texto só entra depois da largura; o anel só com a pílula parada. -->
+  <p class="opt-label" data-part="label">Opção 3 – Máscara que corre</p>
+
+  <div class="opt-content" data-part="content">
+    <div class="o3-wrap" data-part="wrap">
+
+      <div class="o3-scenario" data-part="scenario-focus">
+        <div class="o3-stage" data-part="stage-focus" data-surface="own" data-stack>
+          <div class="o3-spacer" aria-hidden="true"></div>
+          <div class="o3-notif" data-focus="yes" data-part="notif-focus">
+            <div class="o3-pill" data-part="pill-focus">
+              <span class="o3-logo" aria-hidden="true"></span>
+              <span class="o3-text text-body-sm-bold" data-part="text-focus">Paredão formado!<br>Vote agora para eliminar</span>
+            </div>
+            <span class="o3-ring" aria-hidden="true"></span>
+          </div>
+        </div>
+        <p class="o3-label text-footnote-medium" data-part="label-focus">Com foco</p>
+      </div>
+
+      <div class="o3-scenario" data-part="scenario-nofocus">
+        <div class="o3-stage" data-part="stage-nofocus" data-surface="own" data-stack>
+          <div class="o3-spacer" aria-hidden="true"></div>
+          <div class="o3-notif" data-focus="no" data-part="notif-nofocus">
+            <div class="o3-pill" data-part="pill-nofocus">
+              <span class="o3-logo" aria-hidden="true"></span>
+              <span class="o3-text text-body-sm-bold" data-part="text-nofocus">Paredão formado!<br>Vote agora para eliminar</span>
+            </div>
+          </div>
+        </div>
+        <p class="o3-label text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+      </div>
+
+      <div class="o3-vars" data-part="vars" aria-label="Variáveis de motion">
+        <div class="o3-var">
+          <span class="o3-var-name text-footnote-medium">--explore-o3-arrive-dur</span>
+          <span class="o3-var-value text-footnote-medium">600ms · o círculo chega e sai (opacidade e escala)</span>
+        </div>
+        <div class="o3-var">
+          <span class="o3-var-name text-footnote-medium">--explore-o3-open-dur</span>
+          <span class="o3-var-value text-footnote-medium">800ms · a máscara abre e fecha (72 ↔ 252px)</span>
+        </div>
+        <div class="o3-var">
+          <span class="o3-var-name text-footnote-medium">--explore-o3-text-delay</span>
+          <span class="o3-var-value text-footnote-medium">640ms · o texto entra depois de 80% da abertura</span>
+        </div>
+        <div class="o3-var">
+          <span class="o3-var-name text-footnote-medium">--explore-o3-ease</span>
+          <span class="o3-var-value text-footnote-medium">cubic-bezier(0.19, 0.06, 0.24, 1) · a mesma curva em tudo</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4">
+  <!-- tese: chegada e abertura são um gesto único de 800ms; texto entra no mesmo fôlego, logo imóvel -->
+
+  <p class="opt-label" data-part="label">Opção 4 - Contraponto: um tempo só</p>
+  <div class="opt-content" data-part="content">
+    <div class="o4-layout" data-part="layout">
+
+    <div class="o4-scenarios" data-part="scenarios">
+
+      <!-- ── Cenário A: com foco ─────────────────────────────── -->
+      <div class="o4-scenario" data-part="scenario-focus">
+        <p class="o4-scenario-label text-footnote-medium" data-part="label-focus">Com foco</p>
+        <div class="o4-stage" data-stack data-part="stage-focus">
+          <div class="o4-pill-wrap o4-pill-wrap--focus" data-part="pill-focus">
+            <div class="o4-pill-inner" data-part="inner-focus">
+              <span class="o4-logo" aria-hidden="true"></span>
+              <span class="o4-text text-body-sm-medium" data-part="text-focus">Paredão formado!<br>Vote agora para eliminar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Cenário B: sem foco ─────────────────────────────── -->
+      <div class="o4-scenario" data-part="scenario-nofocus">
+        <p class="o4-scenario-label text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+        <div class="o4-stage" data-stack data-part="stage-nofocus">
+          <div class="o4-pill-wrap" data-part="pill-nofocus">
+            <div class="o4-pill-inner" data-part="inner-nofocus">
+              <span class="o4-logo" aria-hidden="true"></span>
+              <span class="o4-text text-body-sm-medium" data-part="text-nofocus">Paredão formado!<br>Vote agora para eliminar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .o4-scenarios -->
+
+    <!-- ── As 4 variáveis de motion desta opção ──────────────── -->
+    <div class="o4-legend" data-part="legend">
+      <div class="o4-legend-item" data-part="var-1">
+        <span class="o4-var-name text-footnote-medium">--explore-duration</span>
+        <span class="o4-var-value text-footnote-medium">800ms · gesto único de entrada e saída</span>
+      </div>
+      <div class="o4-legend-item" data-part="var-2">
+        <span class="o4-var-name text-footnote-medium">--explore-easing</span>
+        <span class="o4-var-value text-footnote-medium">cubic-bezier(0.19, 0.06, 0.24, 1)</span>
+      </div>
+      <div class="o4-legend-item" data-part="var-3">
+        <span class="o4-var-name text-footnote-medium">--explore-text-delay</span>
+        <span class="o4-var-value text-footnote-medium">640ms · texto surge a 80 % do gesto</span>
+      </div>
+      <div class="o4-legend-item" data-part="var-4">
+        <span class="o4-var-name text-footnote-medium">--explore-hold</span>
+        <span class="o4-var-value text-footnote-medium">2000ms · estado aberto antes de recolher</span>
+      </div>
+    </div>
+
+    </div><!-- .o4-layout -->
+  </div><!-- .opt-content -->
+</article>
+    <h2 class="opt-group">Variações da Opção 2 · livre</h2>
+<article class="opt" data-option="5" tabindex="0">
+  <!-- tese: chegada e abertura partem juntas; transform termina cedo (200ms, quart-out), opacity dissolve em 360ms, largura continua (800ms) — um único gesto que começa rápido e abranda graciosamente -->
+  <p class="opt-label" data-part="label">Opção 5 - Desce e abre juntos</p>
+  <div class="opt-content" data-part="content">
+    <div class="o5-wrap">
+
+      <div class="o5-scenarios">
+
+        <div class="o5-scenario" data-part="scenario-focus">
+          <div class="o5-stage" data-surface="own" data-stack data-part="stage-focus">
+            <div class="o5-stage-spacer"></div>
+            <div class="o5-pill o5-pill--focus" data-part="pill-focus">
+              <div class="o5-logo" data-part="logo-focus"></div>
+              <div class="o5-text" data-part="text-focus">
+                <span class="o5-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o5-text-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+            </div>
+          </div>
+          <p class="o5-label-scene text-footnote-regular" data-part="label-focus">Com foco</p>
+        </div>
+
+        <div class="o5-scenario" data-part="scenario-nofocus">
+          <div class="o5-stage" data-surface="own" data-stack data-part="stage-nofocus">
+            <div class="o5-stage-spacer"></div>
+            <div class="o5-pill" data-part="pill-nofocus">
+              <div class="o5-logo" data-part="logo-nofocus"></div>
+              <div class="o5-text" data-part="text-nofocus">
+                <span class="o5-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o5-text-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+            </div>
+          </div>
+          <p class="o5-label-scene text-footnote-regular" data-part="label-nofocus">Sem foco</p>
+        </div>
+
+      </div>
+
+      <div class="o5-vars" data-part="vars">
+        <div class="o5-var-row">
+          <span class="o5-var-name text-body-sm-medium">--explore-o5-arrive-duration</span>
+          <span class="o5-var-value text-footnote-regular">200ms · snap do transform (opacity usa 360ms explícito)</span>
+        </div>
+        <div class="o5-var-row">
+          <span class="o5-var-name text-body-sm-medium">--explore-o5-expand-duration</span>
+          <span class="o5-var-value text-footnote-regular">800ms · abertura e recolhimento (= --motion-semantic-duration)</span>
+        </div>
+        <div class="o5-var-row">
+          <span class="o5-var-name text-body-sm-medium">--explore-o5-easing</span>
+          <span class="o5-var-value text-footnote-regular">cubic-bezier(0.25, 1, 0.5, 1) · quart-out: aceleração inicial elegante e premium</span>
+        </div>
+        <div class="o5-var-row">
+          <span class="o5-var-name text-body-sm-medium">--explore-o5-arrive-y</span>
+          <span class="o5-var-value text-footnote-regular">-12px · deslocamento vertical de entrada e saída</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="6" tabindex="0">
+  <!-- tese: a máscara abre 120ms dentro da descida; o olho vê um único gesto
+       que muda de natureza — transform expo-out rápido, abertura nasce de dentro. -->
+  <p class="opt-label" data-part="label">Opção 6 - Largura que alcança a descida</p>
+
+  <div class="opt-content" data-part="content">
+    <div class="o6-wrap" data-part="wrap">
+
+      <!-- ── Cenário: com foco ─────────────────────────────────────────── -->
+      <div class="o6-scenario" data-part="scenario-focus">
+        <div class="o6-stage" data-surface="own" data-stack data-part="stage-focus">
+          <div class="o6-spacer" aria-hidden="true"></div>
+          <div class="o6-notif" data-focus="yes" data-part="notif-focus">
+            <div class="o6-pill" data-part="pill-focus">
+              <span class="o6-logo" aria-hidden="true"></span>
+              <span class="o6-text" data-part="text-focus">
+                <span class="o6-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o6-text-body text-body-sm-medium">Vote agora para eliminar</span>
+              </span>
+            </div>
+            <span class="o6-ring" aria-hidden="true"></span>
+          </div>
+        </div>
+        <p class="o6-scenario-label text-footnote-medium" data-part="label-focus">Com foco</p>
+      </div>
+
+      <!-- ── Cenário: sem foco ─────────────────────────────────────────── -->
+      <div class="o6-scenario" data-part="scenario-nofocus">
+        <div class="o6-stage" data-surface="own" data-stack data-part="stage-nofocus">
+          <div class="o6-spacer" aria-hidden="true"></div>
+          <div class="o6-notif" data-focus="no" data-part="notif-nofocus">
+            <div class="o6-pill" data-part="pill-nofocus">
+              <span class="o6-logo" aria-hidden="true"></span>
+              <span class="o6-text" data-part="text-nofocus">
+                <span class="o6-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o6-text-body text-body-sm-medium">Vote agora para eliminar</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <p class="o6-scenario-label text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+      </div>
+
+      <!-- ── 4 variáveis de motion ──────────────────────────────────────── -->
+      <div class="o6-vars" data-part="vars" aria-label="Variáveis de motion">
+        <div class="o6-var" data-part="var-1">
+          <span class="o6-var-name text-footnote-medium">--explore-o6-arrive-dur</span>
+          <span class="o6-var-value text-footnote-medium">400ms · tempo da descida e subida da pílula</span>
+        </div>
+        <div class="o6-var" data-part="var-2">
+          <span class="o6-var-name text-footnote-medium">--explore-o6-open-dur</span>
+          <span class="o6-var-value text-footnote-medium">720ms · máscara abre e fecha (72 ↔ 252px)</span>
+        </div>
+        <div class="o6-var" data-part="var-3">
+          <span class="o6-var-name text-footnote-medium">--explore-o6-overlap</span>
+          <span class="o6-var-value text-footnote-medium">120ms · a abertura começa dentro da descida, fundindo os dois gestos</span>
+        </div>
+        <div class="o6-var" data-part="var-4">
+          <span class="o6-var-name text-footnote-medium">--explore-o6-ease</span>
+          <span class="o6-var-value text-footnote-medium">cubic-bezier(0.16, 1, 0.3, 1) · expo-out: rápido e elegante</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="7" tabindex="0">
+  <!-- tese: descida, opacidade e largura são o mesmo gesto — mesma curva, mesma duração, nenhuma defasagem. O transform é rápido: a pílula dispara e desacelera, como um objeto que chega com intenção e assenta com calma. -->
+  <p class="opt-label" data-part="label">Opção 7 - Uma curva, uma duração</p>
+  <div class="opt-content" data-part="content">
+    <div class="o7-wrap">
+
+      <div class="o7-scenario" data-part="scenario-nofocus">
+        <div class="o7-stage" data-surface="own" data-stack>
+          <div class="o7-spacer"></div>
+          <div class="o7-notif" data-focus="no">
+            <div class="o7-pill">
+              <div class="o7-logo"></div>
+              <div class="o7-text">
+                <span class="o7-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o7-text-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="o7-scene-label text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+      </div>
+
+      <div class="o7-scenario" data-part="scenario-focus">
+        <div class="o7-stage" data-surface="own" data-stack>
+          <div class="o7-spacer"></div>
+          <div class="o7-notif" data-focus="yes">
+            <div class="o7-pill">
+              <div class="o7-logo"></div>
+              <div class="o7-text">
+                <span class="o7-text-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o7-text-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+            </div>
+            <div class="o7-ring"></div>
+          </div>
+        </div>
+        <p class="o7-scene-label text-footnote-medium" data-part="label-focus">Com foco</p>
+      </div>
+
+      <div class="o7-vars" data-part="vars">
+        <div class="o7-var-row">
+          <span class="o7-var-name text-body-sm-medium">--explore-o7-duration</span>
+          <span class="o7-var-value text-footnote-regular">700ms — o gesto inteiro: descida, largura, opacidade e texto começam e acabam juntos</span>
+        </div>
+        <div class="o7-var-row">
+          <span class="o7-var-name text-body-sm-medium">--explore-o7-ease</span>
+          <span class="o7-var-value text-footnote-regular">cubic-bezier(0.22, 1, 0.36, 1) — descida e largura: disparam rápido e assentam suave</span>
+        </div>
+        <div class="o7-var-row">
+          <span class="o7-var-name text-body-sm-medium">--explore-o7-blur</span>
+          <span class="o7-var-value text-footnote-regular">8px — desfoque só do texto; resolve a 0 junto com a opacidade</span>
+        </div>
+        <div class="o7-var-row">
+          <span class="o7-var-name text-body-sm-medium">--explore-o7-text-lag</span>
+          <span class="o7-var-value text-footnote-regular">0ms — atraso do texto sobre a pílula (0 = chegam juntos)</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="8" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 8 - Pouso curto, saída inteira</p>
+  <div class="opt-content" data-part="content">
+    <div class="o8-wrap" data-part="wrap">
+
+      <div class="o8-scenario" data-part="scenario-free">
+        <div class="o8-stage" data-surface="own" data-stack data-part="stage-free">
+          <span class="o8-spacer"></span>
+          <div class="o8-notif" data-part="notif-free">
+            <div class="o8-pill" data-part="pill-free">
+              <div class="o8-logo" data-part="logo-free"></div>
+              <div class="o8-text" data-part="text-free">
+                <span class="o8-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o8-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="o8-scene-label text-footnote-medium" data-part="label-free">Chegada sem foco</p>
+      </div>
+
+      <div class="o8-scenario" data-part="scenario-focus">
+        <div class="o8-stage" data-surface="own" data-stack data-part="stage-focus">
+          <span class="o8-spacer"></span>
+          <div class="o8-notif" data-focus="yes" data-part="notif-focus">
+            <div class="o8-pill" data-part="pill-focus">
+              <div class="o8-logo" data-part="logo-focus"></div>
+              <div class="o8-text" data-part="text-focus">
+                <span class="o8-title text-body-sm-bold">Paredão formado!</span>
+                <span class="o8-body text-body-sm-regular">Vote agora para eliminar</span>
+              </div>
+              <div class="o8-ring" data-part="ring"></div>
+            </div>
+          </div>
+        </div>
+        <p class="o8-scene-label text-footnote-medium" data-part="label-focus">Chegada com foco</p>
+      </div>
+
+      <div class="o8-vars" data-part="vars">
+        <div class="o8-var" data-part="var-1">
+          <span class="o8-var-name text-body-sm-bold">--explore-o8-arrive-dur</span>
+          <span class="o8-var-value text-body-sm-regular">320ms — quão rápido o círculo pousa (translateY + opacidade)</span>
+        </div>
+        <div class="o8-var" data-part="var-2">
+          <span class="o8-var-name text-body-sm-bold">--explore-o8-open-dur</span>
+          <span class="o8-var-value text-body-sm-regular">640ms — velocidade de abertura e fechamento da pílula (clip-path)</span>
+        </div>
+        <div class="o8-var" data-part="var-3">
+          <span class="o8-var-name text-body-sm-bold">--explore-o8-ease</span>
+          <span class="o8-var-value text-body-sm-regular">cubic-bezier(0.19, 1, 0.22, 1) — expo-out: rápida e elegante, sem overshoot</span>
+        </div>
+        <div class="o8-var" data-part="var-4">
+          <span class="o8-var-name text-body-sm-bold">--explore-o8-overlap</span>
+          <span class="o8-var-value text-body-sm-regular">80ms — vantagem do expand sobre o arrive: os dois se fundem num gesto único</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 7</h2>
+<article data-parent="7" class="opt" data-option="9" data-tuned data-state="repouso" tabindex="0">
+  <!-- tune-part: Opção 9, Ajuste da 7 · Uma curva, uma duração — descida, opacidade e largura são o mesmo gesto, mesma curva, mesma duração, nenhuma defasagem. -->
+  <p class="opt-label" data-part="label">Opção 9 - Ajuste da 7</p>
+  <div class="opt-content" data-part="content">
+    <div class="o9-wrap">
+
+      <div class="o9-scenario" data-part="scenario-nofocus">
+        <div class="o9-stage" data-surface="own" data-stack data-part="stage">
+          <div class="o9-spacer"></div>
+          <div class="o9-notif" data-focus="no">
+            <div class="o9-pill" data-part="pill">
+              <div class="o9-glow" data-part="glow"><span class="o9-glow-fade"></span></div>
+              <div class="o9-logo" data-part="logo"></div>
+              <div class="o9-text text-body-sm-medium" data-part="text"></div>
+            </div>
+          </div>
+        </div>
+        <p class="o9-scene-label text-footnote-medium" data-part="label-nofocus">Sem foco</p>
+      </div>
+
+      <div class="o9-scenario" data-part="scenario-focus">
+        <div class="o9-stage" data-surface="own" data-stack data-part="stage">
+          <div class="o9-spacer"></div>
+          <div class="o9-notif" data-focus="yes">
+            <div class="o9-pill" data-part="pill">
+              <div class="o9-glow" data-part="glow"><span class="o9-glow-fade"></span></div>
+              <div class="o9-logo" data-part="logo"></div>
+              <div class="o9-text text-body-sm-medium" data-part="text"></div>
+              <div class="o9-ring" data-part="ring"></div>
+            </div>
+          </div>
+        </div>
+        <p class="o9-scene-label text-footnote-medium" data-part="label-focus">Com foco</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="application/json" data-tune="9">{"states":["repouso","ativo","saindo"],"folders":[
+{"name":"Pílula","part":"pill","controls":[
+{"id":"arrive-y","label":"Descida","type":"slider","var":"--arrive-y","value":6,"base":8,"min":0,"max":30,"step":1,"unit":"px"},
+{"id":"close-delay","label":"Atraso do fechamento","type":"slider","var":"--close-delay","value":60,"base":0,"min":0,"max":800,"step":10,"unit":"ms"},
+{"id":"lift-delay","label":"Subida: atraso","type":"slider","var":"--lift-delay","value":60,"base":0,"min":0,"max":1000,"step":10,"unit":"ms"},
+{"id":"lift","label":"Subida","type":"easing","durVar":"--lift-dur","easeVar":"--lift-ease","value":{"duration":0.3,"ease":[0.4,0,1,1]}}
+]},
+{"name":"Logo","part":"logo","controls":[
+{"id":"logo-size","label":"Tamanho","type":"slider","var":"--logo-size","value":44,"base":44,"min":32,"max":56,"step":1,"unit":"px"},
+{"id":"logo-exit-dur","label":"Duração da saída","type":"slider","var":"--logo-exit-dur","value":150,"base":200,"min":0,"max":1500,"step":50,"unit":"ms"},
+{"id":"logo-exit-delay","label":"Atraso da saída","type":"slider","var":"--logo-exit-delay","value":0,"base":0,"min":0,"max":1000,"step":50,"unit":"ms"}
+]},
+{"name":"Texto","part":"text","controls":[
+{"id":"message","label":"Mensagem","type":"text","var":"--message","value":"Paredão formado! Vote agora para eliminar"},
+{"id":"text-size","label":"Tamanho","type":"slider","var":"--text-size","value":16,"base":16,"min":10,"max":28,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"text-width","label":"Largura","type":"slider","var":"--text-width","value":200,"base":168,"min":120,"max":400,"step":4,"unit":"px","token":"--dimension-size-semantic-notification-text-width"},
+{"id":"text-weight","label":"Peso","type":"select","var":"--text-weight","value":"700","options":["400","500","700","800"]},
+{"id":"text-style","label":"Estilo","type":"select","var":"--text-style","value":"normal","options":["normal","italic"]},
+{"id":"text-align","label":"Alinhamento","type":"select","var":"--text-align","value":"left","options":["left","center","right"]},
+{"id":"text-color","label":"Cor","type":"color","var":"--text-color","value":"#eeeeee","base":"#ffffff","token":"--color-semantic-functional-text-primary"},
+{"id":"blur","label":"Desfoque","type":"slider","var":"--blur","value":2,"base":8,"min":0,"max":20,"step":1,"unit":"px"},
+{"id":"text-lag","label":"Atraso","type":"slider","var":"--text-lag","value":0,"base":0,"min":0,"max":700,"step":50,"unit":"ms"},
+{"id":"text-shift","label":"Deslize em x","type":"slider","var":"--text-shift","value":12,"base":12,"min":0,"max":48,"step":1,"unit":"px"}
+]},
+{"name":"Foco","part":"ring","controls":[
+{"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"ring-delay","label":"Atraso do anel","type":"slider","var":"--ring-delay","value":200,"base":700,"min":0,"max":2000,"step":50,"unit":"ms"},
+{"id":"glow-opacity","label":"Brilho","type":"slider","var":"--glow-opacity","value":0.6,"base":0.6,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-focus-glow"}
+]},
+{"name":"Movimento","controls":[
+{"id":"motion","label":"Descida e largura","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.7,"ease":[0.22,1,0.36,1]}},
+{"id":"fade","label":"Opacidade e blur","type":"easing","durVar":"--exit-dur","easeVar":"--fade-ease","value":{"duration":0.2,"ease":[0.4,0,0.2,1]}}
+]},
+{"name":"Ciclo","controls":[
+{"id":"hold","label":"Tempo aberta","type":"slider","var":"--hold","value":2500,"base":2500,"min":500,"max":5000,"step":100,"unit":"ms"},
+{"id":"pause","label":"Pausa entre ciclos","type":"slider","var":"--pause","value":400,"base":400,"min":200,"max":1000,"step":50,"unit":"ms"}
+]}
+]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<!-- @explore 1 -->
+<script>
+  (() => {
+    /* JS apenas para ciclar fases; zero JS no motion */
+    var root = document.querySelector('.opt[data-option="1"]');
+    var phases = [
+      ['hidden',      100],
+      ['entering',    500],   /* fade-in 300ms + hold 200ms */
+      ['expanding',   1000],  /* largura 72→252 (800ms); texto after 640ms ✓ */
+      ['full',        1600],  /* pílula aberta, anel de foco */
+      ['contracting', 1150],  /* texto 200ms + delay 200ms + largura 800ms */
+      ['exiting',     450],   /* fade-out 300ms + buffer */
+      ['gap',         400]    /* restart */
+    ];
+    var idx = 0, timer;
+    function tick() {
+      var phase = phases[idx][0];
+      var ms    = phases[idx][1];
+      root.setAttribute('data-phase', phase === 'gap' ? 'hidden' : phase);
+      idx = (idx + 1) % phases.length;
+      timer = setTimeout(tick, ms);
+    }
+    tick();
+  })();
+  </script>
+<!-- /@explore 1 -->
+<!-- @explore 3 -->
+<script>
+/* ─────────────────────────────────────────────────────────────────────
+ * The storyboard above (top of <style>) is what this script plays. It only
+ * flips state flags on the option; every movement is a CSS transition that
+ * reads the 4 variables. In the real component these flags are the
+ * notification's own state (arrived / open / quiet).
+ * ───────────────────────────────────────────────────────────────────── */
+(() => {
+  var root = document.querySelector('.opt[data-option="3"]')
+  if (!root) return
+
+  /* Beats the storyboard adds on top of the CSS variables (ms) */
+  var BEAT = {
+    start:       300,   // idle before the circle arrives
+    afterArrive: 200,   // the circle rests before it opens (the "two beats")
+    hold:        2000,  // the message stays readable, after text and ring are in
+    rest:        800    // empty screen before the loop restarts
+  }
+
+  /* Stages: the state flags are >= checks, so stages are additive */
+  var STAGE = { idle: 0, arrive: 1, open: 2, quiet: 3, collapse: 4, leave: 5 }
+
+  /* The variables are read from the CSS at every loop: edit them and the next loop follows */
+  function read(name) {
+    var v = getComputedStyle(root).getPropertyValue(name).trim()
+    return parseFloat(v) * (/ms$/.test(v) ? 1 : 1000)
+  }
+
+  /* Every key is ms after the loop starts (not a delta) */
+  function timing() {
+    var arriveDur = read('--explore-o3-arrive-dur')
+    var openDur   = read('--explore-o3-open-dur')
+    var textDelay = read('--explore-o3-text-delay')
+    var quietDur  = read('--explore-o3-quiet-dur')
+    var t = {}
+    t.arrive   = BEAT.start                                       // circle fades in
+    t.open     = t.arrive + arriveDur + BEAT.afterArrive          // mask starts to run
+    t.quiet    = t.open + textDelay + arriveDur + BEAT.hold       // text and ring start to leave
+    t.collapse = t.quiet + quietDur                               // mask starts back
+    t.leave    = t.collapse + openDur                             // circle fades out
+    t.restart  = t.leave + arriveDur + BEAT.rest                  // loop again
+    return t
+  }
+
+  function render(stage) {
+    root.classList.toggle('o3-arrived',  stage >= STAGE.arrive && stage < STAGE.leave)
+    root.classList.toggle('o3-open',     stage >= STAGE.open   && stage < STAGE.collapse)
+    root.classList.toggle('o3-quiet',    stage >= STAGE.quiet)
+  }
+
+  var timers = []
+  function play() {
+    var t = timing()
+    render(STAGE.idle)
+    timers = [
+      setTimeout(function () { render(STAGE.arrive) },   t.arrive),
+      setTimeout(function () { render(STAGE.open) },     t.open),
+      setTimeout(function () { render(STAGE.quiet) },    t.quiet),
+      setTimeout(function () { render(STAGE.collapse) }, t.collapse),
+      setTimeout(function () { render(STAGE.leave) },    t.leave),
+      setTimeout(play,                                   t.restart)
+    ]
+  }
+  play()
+})()
+</script>
+<!-- /@explore 3 -->
+<!-- @explore 5 -->
+<script>
+(function () {
+  var root = document.querySelector('[data-option="5"]')
+  if (!root) return
+
+  var s    = getComputedStyle(root)
+  var aMs  = parseInt(s.getPropertyValue('--explore-o5-arrive-duration'))  /* 200 */
+  var eMs  = parseInt(s.getPropertyValue('--explore-o5-expand-duration'))  /* 800 */
+  var tMs  = Math.round(eMs * 0.8)                                         /* 640: texto a 80% da abertura */
+  var hMs  = 3000                                                           /* pausa com texto visível */
+  var tfMs = 200                                                            /* fadeOut do texto */
+  var bMs  = 500                                                            /* buffer antes de reiniciar */
+
+  var pills   = Array.prototype.slice.call(root.querySelectorAll('.o5-pill'))
+  var texts   = Array.prototype.slice.call(root.querySelectorAll('.o5-text'))
+  var focPill = root.querySelector('.o5-pill--focus')
+
+  var ids = []
+  function clear() { for (var i = 0; i < ids.length; i++) clearTimeout(ids[i]); ids = [] }
+
+  function run() {
+    clear()
+
+    /* 0 ms: chegada + abertura simultânea */
+    pills.forEach(function (p) {
+      p.removeAttribute('data-stage')
+      void p.offsetWidth                          /* força reflow → transition parte do estado base */
+      p.setAttribute('data-stage', 'alive')
+    })
+
+    /* tMs (640 ms): texto aparece (80% da expansão com quart-out = pílula visualmente aberta) */
+    ids.push(setTimeout(function () {
+      texts.forEach(function (t) { t.classList.add('is-visible') })
+    }, tMs))
+
+    /* aMs (200 ms): transform assentou → anel de foco (só variante com foco) */
+    ids.push(setTimeout(function () {
+      if (focPill) focPill.classList.add('is-ring-on')
+    }, aMs))
+
+    /* eMs + hMs (3800 ms): texto e anel somem */
+    ids.push(setTimeout(function () {
+      texts.forEach(function (t) { t.classList.remove('is-visible') })
+      if (focPill) focPill.classList.remove('is-ring-on')
+    }, eMs + hMs))
+
+    /* eMs + hMs + tfMs (4000 ms): texto sumiu → pílula recolhe */
+    ids.push(setTimeout(function () {
+      pills.forEach(function (p) { p.setAttribute('data-stage', 'collapsed') })
+    }, eMs + hMs + tfMs))
+
+    /* eMs + hMs + tfMs + eMs (4800 ms): recolhida → pílula sai (opacity 360ms, termina em 5160ms) */
+    ids.push(setTimeout(function () {
+      pills.forEach(function (p) { p.removeAttribute('data-stage') })
+    }, eMs + hMs + tfMs + eMs))
+
+    /* total + buffer (5500 ms): reinicia — 5500 > 5160ms (opacity done), margem segura */
+    ids.push(setTimeout(run, eMs + hMs + tfMs + eMs + aMs + bMs))
+  }
+
+  requestAnimationFrame(function () { requestAnimationFrame(run) })
+}())
+</script>
+<!-- /@explore 5 -->
+<!-- @explore 6 -->
+<script>
+/* ─────────────────────────────────────────────────────────────────────────
+ * Storyboard player · Opção 6
+ * Lê as 4 variáveis CSS a cada loop; só vira classes de estágio em timers.
+ * Todo o movimento é feito por CSS transition.
+ * ───────────────────────────────────────────────────────────────────────── */
+(function () {
+  var root = document.querySelector('.opt[data-option="6"]')
+  if (!root) return
+
+  /* Batidas fixas (ms) que o storyboard acrescenta às variáveis */
+  var BEAT = {
+    start:    300,   /* silêncio antes de ARRIVE */
+    hold:     2000,  /* mensagem visível após texto entrar */
+    quietDur: 200,   /* texto e anel somem antes de COLLAPSE */
+    rest:     800    /* tela vazia antes de reiniciar */
+  }
+
+  /* Lê uma variável CSS e retorna em ms */
+  function read(name) {
+    var v = getComputedStyle(root).getPropertyValue(name).trim()
+    return parseFloat(v) * (/ms$/.test(v) ? 1 : 1000)
+  }
+
+  /* Calcula os instantes de cada etapa a partir das variáveis atuais */
+  function timing() {
+    var arriveDur = read('--explore-o6-arrive-dur') /* 400 */
+    var openDur   = read('--explore-o6-open-dur')   /* 720 */
+    var overlap   = read('--explore-o6-overlap')     /* 120 */
+    var t = {}
+    t.arrive   = BEAT.start                          /* 300 */
+    t.open     = t.arrive + overlap                  /* 420: máscara começa dentro da descida */
+    t.textin   = t.open + 0.8 * openDur             /* 996: texto após 80% da abertura */
+    t.quiet    = t.open + openDur + BEAT.hold        /* 3140: texto e anel somem */
+    t.collapse = t.quiet + BEAT.quietDur             /* 3340: máscara fecha */
+    t.leave    = t.collapse + openDur               /* 4060: pílula sai */
+    t.restart  = t.leave + arriveDur + BEAT.rest     /* 5260: loop recomeça */
+    return t
+  }
+
+  var timers = []
+
+  function clearTimers() {
+    var i
+    for (i = 0; i < timers.length; i++) clearTimeout(timers[i])
+    timers = []
+  }
+
+  function play() {
+    clearTimers()
+    var t = timing()
+
+    /* Limpa todos os estágios do ciclo anterior */
+    root.classList.remove('o6-arrived', 'o6-open', 'o6-textin', 'o6-quiet')
+
+    timers = [
+      /* ARRIVE: pílula desce e aparece */
+      setTimeout(function () { root.classList.add('o6-arrived') }, t.arrive),
+      /* OPEN: máscara começa a correr (overlap com ARRIVE ainda em curso) */
+      setTimeout(function () { root.classList.add('o6-open') },    t.open),
+      /* TEXT: 80% da abertura concluída */
+      setTimeout(function () { root.classList.add('o6-textin') },  t.textin),
+      /* QUIET: texto e anel somem antes de recolher */
+      setTimeout(function () { root.classList.add('o6-quiet') },   t.quiet),
+      /* COLLAPSE: remove o6-open → clip-path volta (transition dispara) */
+      setTimeout(function () { root.classList.remove('o6-open') }, t.collapse),
+      /* LEAVE: remove o6-arrived → pílula sobe e some */
+      setTimeout(function () { root.classList.remove('o6-arrived') }, t.leave),
+      /* RESTART */
+      setTimeout(play, t.restart)
+    ]
+  }
+
+  play()
+}())
+</script>
+<!-- /@explore 6 -->
+<!-- @explore 7 -->
+<script>
+(function () {
+  var root = document.querySelector('.opt[data-option="7"]');
+  if (!root) return;
+
+  /* Lê uma variável CSS e converte para ms */
+  function toMs(val) {
+    val = (val || '').trim();
+    /* "800ms" → 800, "0.8s" → 800 */
+    if (val.indexOf('ms') !== -1) return parseFloat(val) || 0;
+    if (val.indexOf('s') !== -1)  return (parseFloat(val) || 0) * 1000;
+    return parseFloat(val) || 0;
+  }
+
+  var cs    = getComputedStyle(root);
+  var dur   = toMs(cs.getPropertyValue('--explore-o7-duration'));   /* 700 */
+  var hold  = toMs(cs.getPropertyValue('--explore-o7-hold'));       /* 2500 */
+  var quiet = 200;   /* texto + anel saem antes de a borda recuar */
+  var pause = 400;   /* silêncio entre ciclos */
+
+  function loop() {
+    /* Fase 1 — gesto único: chegada + abertura simultâneos */
+    root.classList.add('o7-active');
+
+    /* Fase 2 — repouso: pílula aberta, texto e anel visíveis */
+    setTimeout(function () {
+
+      /* Fase 3 — saída antecipada: texto e anel somem antes de a borda recuar */
+      root.classList.add('o7-quiet');
+
+      setTimeout(function () {
+
+        /* Fase 4 — colapso: mesmo gesto ao contrário */
+        root.classList.remove('o7-active');
+        root.classList.remove('o7-quiet');
+
+        /* Fase 5 — pausa e reinício */
+        setTimeout(loop, dur + pause);
+
+      }, quiet);
+
+    }, dur + hold);
+  }
+
+  /* Pequena pausa inicial antes do primeiro ciclo */
+  setTimeout(loop, pause);
+}());
+</script>
+<!-- /@explore 7 -->
+<!-- @explore 8 -->
+<script>
+(() => {
+  var root = document.querySelector('.opt[data-option="8"]')
+  if (!root) return
+
+  function ms(v) {
+    return parseFloat(getComputedStyle(root).getPropertyValue(v)) || 0
+  }
+
+  var ids = []
+  function later(fn, t) { ids.push(setTimeout(fn, t)) }
+
+  function clearAll() {
+    for (var i = 0; i < ids.length; i++) clearTimeout(ids[i])
+    ids = []
+    root.classList.remove('o8-arrived', 'o8-open', 'o8-quiet', 'o8-leaving')
+  }
+
+  function loop() {
+    clearAll()
+
+    var arriveDur = ms('--explore-o8-arrive-dur')  /* 320 */
+    var openDur   = ms('--explore-o8-open-dur')    /* 640 */
+    var overlap   = ms('--explore-o8-overlap')     /* 80  */
+    var quietDur  = 200
+    var display   = 2800
+
+    /* t=0: circle starts landing */
+    later(function() { root.classList.add('o8-arrived') }, 0)
+
+    /* t=overlap: expansion starts while arrive is still in motion — one gesture */
+    later(function() { root.classList.add('o8-open') }, overlap)
+
+    /* quiet: text + ring fade out before the collapse */
+    var tQuiet = overlap + openDur + display
+    later(function() { root.classList.add('o8-quiet') }, tQuiet)
+
+    /* collapse: remove o8-open — clip retracts from 252 to 72px (open-dur).
+       Message is already dissolved; pill rests at the circle before departing. */
+    var tCollapse = tQuiet + quietDur
+    later(function() {
+      root.classList.remove('o8-open', 'o8-quiet')
+    }, tCollapse)
+
+    /* leave: clip is done, circle rises and fades (arrive-dur — symmetric with landing) */
+    var tLeave = tCollapse + openDur
+    later(function() {
+      root.classList.remove('o8-arrived')
+      root.classList.add('o8-leaving')
+    }, tLeave)
+
+    /* reset */
+    var tReset = tLeave + arriveDur
+    later(function() { root.classList.remove('o8-leaving') }, tReset)
+
+    /* restart loop */
+    later(loop, tReset + 800)
+  }
+
+  loop()
+
+  root.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { clearAll(); loop() }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<!-- /@explore 8 -->
+<!-- @explore 9 -->
+<script>
+(function () {
+  var root = document.querySelector('.opt[data-option="9"]');
+  if (!root) return;
+
+  /* Lê uma variável CSS e converte para ms */
+  function toMs(val) {
+    val = (val || '').trim();
+    if (val.indexOf('ms') !== -1) return parseFloat(val) || 0;
+    if (val.indexOf('s') !== -1)  return (parseFloat(val) || 0) * 1000;
+    return parseFloat(val) || 0;
+  }
+
+  /* Lê as variáveis a cada ciclo para que mudanças no DialKit entrem imediatamente */
+  function readVars() {
+    var cs = getComputedStyle(root);
+    return {
+      dur:     toMs(cs.getPropertyValue('--dur')),
+      closeDelay: toMs(cs.getPropertyValue('--close-delay')),
+      liftEnd: toMs(cs.getPropertyValue('--lift-delay')) + toMs(cs.getPropertyValue('--lift-dur')),
+      hold:    toMs(cs.getPropertyValue('--hold')),
+      /* a saída dura até o último a terminar: texto/anel ou logo (atraso + duração) */
+      exitDur: Math.max(
+        toMs(cs.getPropertyValue('--exit-dur')),
+        toMs(cs.getPropertyValue('--logo-exit-delay')) + toMs(cs.getPropertyValue('--logo-exit-dur'))
+      ),
+      pause:   toMs(cs.getPropertyValue('--pause'))
+    };
+  }
+
+  var timers = [];
+  function clearTimers() {
+    for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+    timers = [];
+  }
+  function after(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+  var STATES = ['repouso', 'ativo', 'saindo'];
+
+  function setState(s) { root.dataset.state = s; }
+
+  function loop() {
+    clearTimers();
+    var v = readVars();
+    /* Fase 1 — chegada: pílula desce, abre e aparece */
+    setState('ativo');
+    /* Fase 2 — repouso: pílula aberta, texto e anel visíveis */
+    after(v.dur + v.hold, function () {
+      /* Fase 3 — saída: a pílula fecha e, junto com ela, texto, logo e anel somem */
+      setState('saindo');
+      after(Math.max(v.closeDelay + Math.max(v.dur, v.liftEnd), v.exitDur), function () {
+        /* Fase 4 — repouso: tudo já saiu; o logo volta ao normal sem ser visto */
+        setState('repouso');
+        /* Fase 5 — pausa e reinício */
+        after(v.pause, loop);
+      });
+    });
+  }
+
+  /* Teclado: Space/ArrowRight avança estado; ArrowLeft recua.
+   * Avançar para 'ativo' relança o loop automático a partir dali. */
+  root.addEventListener('keydown', function (e) {
+    if (e.key === ' ' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      clearTimers();
+      var cur  = STATES.indexOf(root.dataset.state);
+      var next = (cur + 1) % STATES.length;
+      setState(STATES[next]);
+      if (STATES[next] === 'ativo') {
+        var v = readVars();
+        after(v.dur + v.hold, function () {
+          setState('saindo');
+          after(Math.max(v.closeDelay + Math.max(v.dur, v.liftEnd), v.exitDur), function () {
+            setState('repouso');
+            after(v.pause, loop);
+          });
+        });
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      clearTimers();
+      var cur2 = STATES.indexOf(root.dataset.state);
+      setState(STATES[(cur2 - 1 + STATES.length) % STATES.length]);
+    }
+  });
+
+  /* Pausa inicial antes do primeiro ciclo */
+  var v0 = readVars();
+  after(v0.pause, loop);
+}());
+</script>
+<!-- /@explore 9 -->
+</body>
+</html>

@@ -143,7 +143,11 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--dimension-size-semantic-icon-xl` | 32px |
 | `--dimension-size-semantic-icon-2xl` | 40px |
 | `--dimension-size-semantic-icon-round-rest` | 28px |
-| `--dimension-size-semantic-notification-text-width` | 168px |
+| `--dimension-size-semantic-notification-travel` | 6px |
+| `--dimension-size-semantic-notification-logo` | 44px |
+| `--dimension-size-semantic-notification-text-blur` | 2px |
+| `--dimension-size-semantic-notification-text-shift` | 12px |
+| `--dimension-size-semantic-notification-text-width` | 200px |
 | `--dimension-size-semantic-program-logo` | 48px |
 | `--dimension-size-semantic-round-button` | 88px |
 | `--dimension-size-semantic-round-button-circle` | 72px |
@@ -259,6 +263,16 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--motion-semantic-focus-cycle-duration` | 12000ms |
 | `--motion-semantic-focus-cycle-easing` | {"damping":15,"duration":"800ms","mass":1,"stiffness":56} |
 | `--motion-semantic-focus-cycle-step` | 3000ms |
+| `--motion-semantic-notification-close-delay` | 60ms |
+| `--motion-semantic-notification-duration` | 700ms |
+| `--motion-semantic-notification-easing` | [0.22,1,0.36,1] |
+| `--motion-semantic-notification-exit-duration` | 200ms |
+| `--motion-semantic-notification-fade-easing` | [0.4,0,0.2,1] |
+| `--motion-semantic-notification-lift-delay` | 60ms |
+| `--motion-semantic-notification-lift-duration` | 300ms |
+| `--motion-semantic-notification-lift-easing` | [0.4,0,1,1] |
+| `--motion-semantic-notification-logo-exit-duration` | 150ms |
+| `--motion-semantic-notification-ring-delay` | 200ms |
 
 ## Type parts
 

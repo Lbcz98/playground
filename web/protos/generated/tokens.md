@@ -71,7 +71,11 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `dimension.size.semantic.icon-round-rest` | 28px | `SizeRole` `icon-round-rest` |
 | `dimension.size.semantic.icon-sm` | 16px | `SizeRole` `icon-sm` |
 | `dimension.size.semantic.icon-xl` | 32px | `SizeRole` `icon-xl` |
-| `dimension.size.semantic.notification-text-width` | 168px | `SizeRole` `notification-text-width` |
+| `dimension.size.semantic.notification-logo` | 44px | `SizeRole` `notification-logo` |
+| `dimension.size.semantic.notification-text-blur` | 2px | `SizeRole` `notification-text-blur` |
+| `dimension.size.semantic.notification-text-shift` | 12px | `SizeRole` `notification-text-shift` |
+| `dimension.size.semantic.notification-text-width` | 200px | `SizeRole` `notification-text-width` |
+| `dimension.size.semantic.notification-travel` | 6px | `SizeRole` `notification-travel` |
 | `dimension.size.semantic.program-logo` | 48px | `SizeRole` `program-logo` |
 | `dimension.size.semantic.round-button` | 88px | `SizeRole` `round-button` |
 | `dimension.size.semantic.round-button-circle` | 72px | `SizeRole` `round-button-circle` |

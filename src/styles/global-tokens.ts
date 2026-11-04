@@ -187,6 +187,10 @@ export const CSS_VARS = [
   '--dimension-size-semantic-program-logo',
   '--dimension-size-semantic-channel-bug',
   '--dimension-size-semantic-notification-text-width',
+  '--dimension-size-semantic-notification-logo',
+  '--dimension-size-semantic-notification-travel',
+  '--dimension-size-semantic-notification-text-shift',
+  '--dimension-size-semantic-notification-text-blur',
   '--dimension-size-semantic-header-sm',
   '--dimension-size-semantic-header-md',
   '--dimension-size-semantic-header-lg',
@@ -267,6 +271,16 @@ export const CSS_VARS = [
   '--motion-semantic-easing',
   '--motion-semantic-carousel-step',
   '--motion-semantic-duration',
+  '--motion-semantic-notification-duration',
+  '--motion-semantic-notification-easing',
+  '--motion-semantic-notification-fade-easing',
+  '--motion-semantic-notification-exit-duration',
+  '--motion-semantic-notification-logo-exit-duration',
+  '--motion-semantic-notification-close-delay',
+  '--motion-semantic-notification-lift-delay',
+  '--motion-semantic-notification-lift-duration',
+  '--motion-semantic-notification-lift-easing',
+  '--motion-semantic-notification-ring-delay',
 ] as const
 
 export type CssVar = (typeof CSS_VARS)[number]
