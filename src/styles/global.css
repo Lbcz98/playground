@@ -403,7 +403,7 @@
   /* ===== Typography · Font Family ===== */
   /* Names the typeface only. The CSS build appends the resolution chain (bundled variable copy, local install, system sans-serif). */
   --typography-font-family-primary: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  /* Arial, for the rating badge text of the About card. Names the typeface only; the CSS build appends the fallback chain. */
+  /* Names the typeface only, like primary. */
   --typography-font-family-arial: 'Arial Variable', 'Arial', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   /* ===== Typography · Font Family · Semantic ===== */
