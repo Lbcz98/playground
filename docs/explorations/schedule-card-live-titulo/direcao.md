@@ -1,0 +1,13 @@
+# Crítica da direção visual — schedule-card-live-titulo
+
+Julgado nas folhas (repouso, ArrowRight, Enter). O poster carrega em todas; no Enter das opções 3 e 4 a arte some de propósito, e o enquadramento foi julgado no repouso e no ArrowRight.
+
+Opção 1: Quase. Levar: o poster cobre o cartão; a estátua fica na metade direita, cabeça no alto, e o nome fica livre no terço de baixo, em 2 linhas, branco e mais pesado que o horário cinza; horário e pílula dividem uma faixa, com um vão até o nome maior que o vão dentro da faixa. Evitar: em repouso o nome perde o "do" ("A Grande Conquista / Sertão Nordestino…"); no card seguinte "Completa das Eleições" some e "Especial: Cobertura" fica sem reticências. Teste de fidelidade: não. Genérico a olho: nenhum. Um ajuste: manter a ordem das palavras e marcar o corte no fim da 2ª linha.
+
+Opção 2: Quase. Levar: o nome fica em 2 linhas, branco e mais pesado que o horário cinza, e a pílula senta na mesma faixa. Evitar: uma chapa opaca cobre cerca de metade de baixo, o poster vira faixa e a estátua fica no centro dessa faixa; no ArrowRight a reticência entra no meio da palavra ("Cobertur…"). Teste de fidelidade: não. Genérico a olho: faixa de imagem em cima e bloco de texto embaixo, assunto centrado na faixa. Um ajuste: tirar a chapa para o poster voltar a 100%, com o assunto no canto superior direito e o scrim do kit sob o texto.
+
+Opção 3: Quase. Levar: o poster cobre o cartão, a estátua fica na metade direita e o nome é a âncora, em 2 linhas, branco, com horário e pílula numa faixa no pé, mais leves. Evitar: o mesmo corte da opção 1 — some o "do" em repouso e, no card seguinte, o resto do nome some sem reticências. Teste de fidelidade: não. Genérico a olho: nenhum. Um ajuste: manter a ordem das palavras e marcar o corte no fim da 2ª linha.
+
+Opção 4: Tem a cara. Levar: o nome fica em 2 linhas e mais pesado que o horário; em repouso o corte guarda a ordem ("A Grande Conquista / do Sertão…"); a estátua volta ao centro e encontra o bloco, que é o contraponto pedido, com o scrim a segurar o texto. Evitar: ok — a reticência do segundo nome cai depois de "Especial:", em fronteira de palavra, não no meio de "Cobertura". Teste de fidelidade: não no canto (contraponto); sim nas 2 linhas e no peso. Genérico a olho: nenhum. Um ajuste: none: ready.
+
+O conjunto é uma direção. A 1, a 3 e a 4 partilham o nome em 2 linhas, mais pesado que o horário, a pílula na faixa e o poster por baixo; a 3 só troca o lado da faixa, a 4 só traz o assunto ao centro. A 2 sai dessa direção: a chapa come o poster e o assunto deixa o canto. O corte não está na mesma mão — a 4 corta em fronteira de palavra; a 1 e a 3 apagam uma palavra ou o resto sem marca; a 2 corta no meio de "Cobertura".
