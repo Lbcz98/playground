@@ -1,12 +1,18 @@
 'use client'
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import type { FlowFile } from '@/shared/export/flowFile'
-import { BACK_CONTROL, HIDDEN_STATE, playStep, remoteKey, type PlayKey } from '@/shared/flowPlay'
+import { BACK_CONTROL, HIDDEN_STATE, NOTICE_IDLE, noticeOnState, noticeOnTimer, playStep, remoteKey, type NoticeState, type PlayKey } from '@/shared/flowPlay'
+import { FlowNoticeContext } from '@/ui-kit/flowNotice'
 import { Screen } from '@/ui-kit/Screen'
 import { Stage } from '../../Stage'
 
 /** `hidden` needs no file (standards/flow.md): level 0, the video alone. A `hidden.tsx` in the folder replaces this. */
 const Hidden = (): ReactNode => <Screen model="alert" level={0} />
+
+/** How long the notice's layer stays on after its message is told to leave: the kit's leaving motion (`motion.semantic.notification-*`) has to finish. */
+const NOTICE_LEAVE_MS = 1500
+/** The layer mounts closed and opens a moment later, so the message plays its arrival instead of just appearing. */
+const NOTICE_ARRIVE_MS = 60
 
 /** The back control of a level-3 screen: a click on it, or Enter while it is the focused element, is Back. */
 const backControlFocused = (): boolean => !!document.querySelector(`${BACK_CONTROL}[data-state="focus"]`)
@@ -50,6 +56,8 @@ export function Flow({ flow, state }: FlowSource) {
   type Result = { ok: true; value: unknown } | { ok: false; error: unknown }
   const [view, setView] = useState<View>({ phase: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [notice, setNotice] = useState<NoticeState>(NOTICE_IDLE)
+  const [noticeLayer, setNoticeLayer] = useState<{ screen?: unknown; mounted: boolean }>({ mounted: false })
   const pressRef = useRef<(key: PlayKey) => void>(() => {})
   const retryRef = useRef<() => void>(() => {})
 
@@ -63,6 +71,50 @@ export function Flow({ flow, state }: FlowSource) {
     let requestId = 0
     const files = new Map<string, Promise<Result>>()
     setView({ phase: 'loading' })
+    setNotice(NOTICE_IDLE)
+    setNoticeLayer({ mounted: false })
+
+    // The flow's notice (flow.ts `notice`): a hidden count, then a message laid over whatever state is on screen.
+    let noticeNow: NoticeState = NOTICE_IDLE
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    const later = (ms: number, run: () => void) => {
+      const id = setTimeout(() => {
+        timers.delete(id)
+        if (live) run()
+      }, ms)
+      timers.add(id)
+    }
+    const stopTimers = () => {
+      timers.forEach(clearTimeout)
+      timers.clear()
+    }
+    const setNoticeNow = (next: NoticeState) => {
+      noticeNow = next
+      setNotice(next)
+    }
+    const landed = (name: string) => {
+      const rule = data?.notice
+      if (!rule) return
+      const before = noticeNow
+      const next = noticeOnState(rule, before, name)
+      if (next === before) return
+      setNoticeNow(next)
+      if (next.phase === 'counting') {
+        later(rule.after * 1000, () => {
+          setNoticeLayer((old) => ({ ...old, mounted: true }))
+          later(NOTICE_ARRIVE_MS, () => {
+            setNoticeNow(noticeOnTimer(noticeNow, 'arrive'))
+            later(rule.during * 1000, () => {
+              setNoticeNow(noticeOnTimer(noticeNow, 'leave'))
+              later(NOTICE_LEAVE_MS, () => setNoticeLayer((old) => ({ ...old, mounted: false })))
+            })
+          })
+        })
+      } else if (next.phase === 'cancelled') {
+        stopTimers()
+        later(NOTICE_LEAVE_MS, () => setNoticeLayer((old) => ({ ...old, mounted: false })))
+      }
+    }
 
     const load = (name: string, refresh = false): Promise<Result> => {
       if (refresh) files.delete(name)
@@ -95,11 +147,18 @@ export function Flow({ flow, state }: FlowSource) {
         }
         trail = next
         setView({ shown: result.value, name, phase: 'ready' })
+        landed(name)
       })
     }
 
     pressRef.current = (key) => {
       if (!data || pending || failed) return
+      if (key === 'restart') {
+        // R starts the show over, notice included.
+        stopTimers()
+        setNoticeNow(NOTICE_IDLE)
+        setNoticeLayer((old) => ({ ...old, mounted: false }))
+      }
       const next = playStep(data, trail, key)
       if (next === trail || (next.length === trail.length && next.every((name, i) => name === trail[i]))) return
       request(next)
@@ -115,6 +174,11 @@ export function Flow({ flow, state }: FlowSource) {
         if (!live) return
         data = module.default as FlowFile
         for (const name of new Set([data.start, ...data.transitions.flatMap((t) => [t.from, t.to])])) void load(name)
+        if (data.notice) {
+          void load(data.notice.state).then((result) => {
+            if (live && result.ok) setNoticeLayer((old) => ({ ...old, screen: result.value }))
+          })
+        }
         request([data.start])
       },
       (error: unknown) => {
@@ -125,6 +189,7 @@ export function Flow({ flow, state }: FlowSource) {
     )
     return () => {
       live = false
+      stopTimers()
       requestId++
       pressRef.current = () => {}
       retryRef.current = () => {}
@@ -151,7 +216,17 @@ export function Flow({ flow, state }: FlowSource) {
     <>
       {/* `contents`: no box of its own, only the place to hear a click on the back control. */}
       <div style={{ display: 'contents' }} onClick={(e) => (e.target as Element).closest(BACK_CONTROL) && press('back')}>
-        <Stage>{view.name ? <StateView state={view.shown} /> : null}</Stage>
+        <FlowNoticeContext.Provider value={{ open: notice.phase === 'open', badge: notice.badge }}>
+          <Stage>
+            {view.name ? <StateView state={view.shown} /> : null}
+            {/* The notice's own screen (level 0), laid over the frame and out of reach of the keys. */}
+            {noticeLayer.mounted && noticeLayer.screen ? (
+              <div data-flow-notice data-open={notice.phase === 'open'} style={{ position: 'absolute', left: 0, top: 0, width: 1280, height: 720, pointerEvents: 'none' }}>
+                <StateView state={noticeLayer.screen} />
+              </div>
+            ) : null}
+          </Stage>
+        </FlowNoticeContext.Provider>
       </div>
       {view.phase !== 'ready' && (
         <div role={view.phase === 'error' ? 'alert' : 'status'} aria-live="polite" style={{ position: 'fixed', left: 12, bottom: 12, padding: '8px 12px', background: '#fff', color: '#222', font: '14px system-ui, sans-serif' }}>

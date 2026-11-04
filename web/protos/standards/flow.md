@@ -31,3 +31,12 @@ export default {
 - Um estado Home por item focado da barra (o foco revela a trilha acima dele). Essa trilha é só a dica do nível 2: menor e esmaecida, com o menu ainda na tela e o foco no botão; ela só recebe o foco quando o espectador sobe (`up`). O foco inicial da Home é o bug (`start`).
 - Lado da trilha: persistentes à esquerda, programa/contextual à direita; o botão Voltar do nível 3 fica do mesmo lado.
 - Um destino por tecla e estado; todo estado é alcançável a partir de `start`.
+
+## `notice`: uma mensagem que chega sozinha
+Pede-se no `flow.ts`, com dados literais: `notice: { state: 'aviso', startOn: 'home-bug', after: 20, during: 5, cancelOn: 'logado' }`.
+
+- `state` é um arquivo da pasta que não é parada do passeio: uma tela de **nível 0** com o modelo `notification` (a sombra do canto superior direito), sem foco. Não precisa de tecla que leve a ela.
+- A contagem (`after`, em segundos, invisível) começa na primeira vez que o passeio chega em `startOn`. Passado o tempo, o player põe `state` **por cima** da tela em que o usuário estiver, em qualquer nível, por `during` segundos. Depois sai e **não volta**.
+- Chegar em `cancelOn` cancela tudo: a mensagem sai e o selo some. R reinicia o passeio, aviso incluído.
+- O que acompanha a mensagem (um selo no botão Login, por exemplo) lê `useFlowNotice()` (`@/ui-kit/flowNotice`): `open` enquanto a mensagem está na tela, `badge` da chegada dela até `cancelOn`. Fora do player a mensagem fica aberta e sem selo.
+

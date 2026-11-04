@@ -1,4 +1,4 @@
-import type { FlowFile, FlowKey } from './export/flowFile'
+import type { FlowFile, FlowKey, FlowNotice } from './export/flowFile'
 
 export type PlayKey = FlowKey | 'restart'
 
@@ -46,4 +46,31 @@ export function playStep(flow: FlowFile, trail: string[], key: PlayKey): string[
   if (!hop) return trail
   const behind = trail.lastIndexOf(hop.to)
   return behind >= 0 ? trail.slice(0, behind + 1) : [...trail, hop.to]
+}
+
+/**
+ * Where a flow's notice is: `idle` until the walk reaches `startOn`, `counting` (unseen) for `after`
+ * seconds, `open` while the message shows, `closed` once it left (it never comes back), `cancelled`
+ * once the walk reached `cancelOn`. `badge` is what goes with the notice on a screen: on from the
+ * moment the message arrives until the walk reaches `cancelOn`, so it outlasts the message.
+ */
+export interface NoticeState {
+  phase: 'idle' | 'counting' | 'open' | 'closed' | 'cancelled'
+  badge: boolean
+}
+
+export const NOTICE_IDLE: NoticeState = { phase: 'idle', badge: false }
+
+/** The notice after the walk lands on a state: it starts the count, or is cancelled for good. */
+export function noticeOnState(notice: FlowNotice | undefined, now: NoticeState, landedOn: string): NoticeState {
+  if (!notice || now.phase === 'cancelled') return now
+  if (landedOn === notice.cancelOn) return { phase: 'cancelled', badge: false }
+  if (landedOn === notice.startOn && now.phase === 'idle') return { phase: 'counting', badge: false }
+  return now
+}
+
+/** The notice after its count ends (`counting` → `open`) or its message leaves (`open` → `closed`). */
+export function noticeOnTimer(now: NoticeState, event: 'arrive' | 'leave'): NoticeState {
+  if (event === 'arrive') return now.phase === 'counting' ? { phase: 'open', badge: true } : now
+  return now.phase === 'open' ? { phase: 'closed', badge: true } : now
 }
