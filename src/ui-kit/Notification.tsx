@@ -14,13 +14,18 @@
  * `round-button` (the hit target) around `round-button-circle` (the visible
  * pill), exactly as `RoundButtonShell` builds it.
  *
- * Every step across the pill comes off the layout grid and the token list — `sm`
- * inset, `xs` gap, an `avatar`-sized logo — and the pill hugs them, so its width
- * is the sum of its parts rather than a number of its own. The one measure it
- * fixes is the text column, `notification-text-width`, which is what keeps a
- * one-line message and a two-line one the same shape. Figma draws this pill from
- * hand-set values off the grid (18 inset, a 44 logo, 269 wide); the grid is the
- * source of truth, and the Figma component is kept to it rather than the reverse.
+ * The pill is the sum of its parts: Figma's 44 logo (`notification-logo`)
+ * centred in the closed circle — the inset is what the circle leaves around it —
+ * an `xs` gap and the text column, `notification-text-width`, which keeps a
+ * one-line message and a two-line one the same shape. The logo, column and
+ * motion were tuned in the notification motion exploration (option 9).
+ *
+ * `open` makes it arrive and leave. Opening, the pill drops in and widens from
+ * the circle while the message fades in from a blur and slides in x with the
+ * pill's edge, and the focus ring follows a moment later; closing, message, logo
+ * and ring go first, then the pill shrinks back to the circle and, near the end,
+ * lifts and fades. It is the one component off the system spring: its own
+ * curves and timings are the `motion.semantic.notification-*` tokens.
  *
  * Figma's `Iluminação`, the light pooling in the focused pill, is the glow
  * `<FocusRing>` already carries, so it is not drawn a second time here; what
@@ -46,6 +51,11 @@ interface NotificationProps {
   title?: string
   /** The programme's logo. A neutral circle stands in when there is none. */
   logoSrc?: string
+  /**
+   * Whether it is on screen. Changing it plays the arrival or the leaving; while
+   * closed it is invisible and out of reach. Default `true`, shown at rest.
+   */
+  open?: boolean
   onClick?: () => void
 }
 
@@ -64,6 +74,7 @@ export function Notification({
   interactionState,
   title,
   logoSrc,
+  open = true,
   onClick,
 }: NotificationProps): ReactNode {
   const state = interactionState ?? 'default'
@@ -75,16 +86,18 @@ export function Notification({
       className={`sfs-notification sfs-motion sfs-focusable${as === 'span' ? ' sfs-link-surface' : ''}`}
       data-kind={kind}
       data-state={state}
-      {...(as === 'button' ? { type: 'button' as const } : {})}
+      data-open={open}
+      {...(as === 'button' ? { type: 'button' as const, tabIndex: open ? undefined : -1 } : {})}
       onClick={as === 'button' ? onClick : undefined}
       aria-label={rounded ? 'Notificação' : undefined}
+      aria-hidden={open ? undefined : true}
     >
       <span className="sfs-notification-pill">
         {state === 'focus' ? <FocusRing shape="pill" /> : <RestingBorder shape="pill" />}
         <Logo src={logoSrc} />
         {rounded ? null : (
           <span className="sfs-notification-title">
-            <Text as="span" variant="body-sm-bold">
+            <Text as="span" variant="body-md-bold">
               {title}
             </Text>
           </span>

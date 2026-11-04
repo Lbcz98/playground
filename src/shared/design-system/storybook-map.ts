@@ -75,7 +75,11 @@ export const STORYBOOK_MAP: Record<string, StorybookBinding> = {
     codeOnly: { as: 'link-surface' },
     defaultOverrides: { interactionState: RESTS },
   },
-  Notification: { component: 'ui-kit-notification', codeOnly: { logoSrc: 'asset-slot', as: 'link-surface' } },
+  Notification: {
+    component: 'ui-kit-notification',
+    // `open` plays the arrival and leaving; a screen shows it at rest.
+    codeOnly: { logoSrc: 'asset-slot', as: 'link-surface', open: 'composition' },
+  },
   AlertBug: {
     component: 'ui-kit-alert-bug',
     // `motion` and `reducedMotion` are the phase the canvas plays, not a screen's content.

@@ -1629,6 +1629,13 @@
           "required": false,
           "description": ""
         },
+        "open": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "true",
+          "description": "Whether it is on screen. Changing it plays the arrival or the leaving; while\nclosed it is invisible and out of reach. Default `true`, shown at rest."
+        },
         "title": {
           "type": "string",
           "kind": "string",
@@ -1641,6 +1648,7 @@
         "ui-kit-notification--all-variants",
         "ui-kit-notification--message",
         "ui-kit-notification--message-focus",
+        "ui-kit-notification--motion",
         "ui-kit-notification--rounded",
         "ui-kit-notification--rounded-focus"
       ],

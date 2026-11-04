@@ -7,11 +7,11 @@ import { expect, it } from 'vitest'
 
 it('advises on literal sizes equal or near a kit size, and still passes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'explore-'))
-  writeFileSync(join(dir, 'index.html'), '<style>.a { width: 288px; max-height: 200px; height: 500px; } .b { width: var(--dimension-size-semantic-icon-lg); }</style>')
+  writeFileSync(join(dir, 'index.html'), '<style>.a { width: 288px; max-height: 210px; height: 500px; } .b { width: var(--dimension-size-semantic-icon-lg); }</style>')
   const run = spawnSync('node', [fileURLToPath(new URL('check-explore-tokens.mjs', import.meta.url)), dir], { encoding: 'utf8' })
   expect(run.status).toBe(0)
   expect(run.stdout).toContain('width: 288px is kit size content-card-width')
-  expect(run.stdout).toContain('max-height: 200px is near kit size card-expanded-width (208px)')
+  expect(run.stdout).toContain('max-height: 210px is near kit size card-expanded-width (208px)')
   expect(run.stdout).not.toContain('500px')
   expect(run.stdout.trim().endsWith('ok')).toBe(true)
 })

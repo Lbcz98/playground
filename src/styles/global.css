@@ -334,8 +334,16 @@
   --dimension-size-semantic-program-logo: var(--dimension-spacing-core-3xl);
   /* Channel bug in the main menu */
   --dimension-size-semantic-channel-bug: var(--dimension-spacing-core-4xl);
-  /* Text column inside a message notification. The pill hugs it, so this is the one width the message is laid out to — 21 columns of the 8pt grid. */
-  --dimension-size-semantic-notification-text-width: 168px;
+  /* Text column inside a message notification. The pill hugs it, so this is the one width the message is laid out to — 25 columns of the 8pt grid. Tuned in the notification motion exploration (option 9). */
+  --dimension-size-semantic-notification-text-width: 200px;
+  /* The programme logo inside a notification, as Figma draws it. The pill's inset is what is left of the closed circle around it, so the logo sits centred when the pill is closed. */
+  --dimension-size-semantic-notification-logo: 44px;
+  /* How far the notification drops as it arrives, and lifts again as it leaves. */
+  --dimension-size-semantic-notification-travel: 6px;
+  /* How far the message slides in x with the pill's edge: it waits this far left while the pill is closed and slides into place as the pill opens. */
+  --dimension-size-semantic-notification-text-shift: var(--dimension-spacing-core-xs);
+  /* The blur the message fades in from and out to, so it never appears or vanishes in one frame. */
+  --dimension-size-semantic-notification-text-blur: 2px;
   /* Content Card header, one line: a title on its own, or an ad tag over its rule. */
   --dimension-size-semantic-header-sm: var(--dimension-spacing-core-lg);
   /* Content Card header holding a badge beside its text — a match line-up, or a partner logo and name. */
@@ -469,6 +477,26 @@
   --motion-semantic-carousel-step: 3000ms;
   /* How long every transition takes — the system spring's settle time. A test holds it equal to motion.semantic.easing's duration. */
   --motion-semantic-duration: 800ms;
+  /* The notification's one gesture: the pill opens (width and drop) and the message fades and slides in over this. The notification is the one exception to the system spring — its arrive/leave was tuned on its own curves (motion exploration, option 9). */
+  --motion-semantic-notification-duration: 700ms;
+  /* The curve of the pill's width, drop and the message's slide: an ease-out, so the edge travels fast and settles. */
+  --motion-semantic-notification-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  /* The curve of every fade in the notification (pill, message, blur). */
+  --motion-semantic-notification-fade-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* How long the message and the focus ring take to fade out when the notification leaves, and the ring to fade in. */
+  --motion-semantic-notification-exit-duration: 200ms;
+  /* How long the logo takes to fade and blur out when the notification leaves. */
+  --motion-semantic-notification-logo-exit-duration: 150ms;
+  /* How long the pill waits before closing, so the message has started to go before the edge sweeps over it. */
+  --motion-semantic-notification-close-delay: 60ms;
+  /* When the pill starts to lift and fade, counted from the start of its closing. */
+  --motion-semantic-notification-lift-delay: 60ms;
+  /* How long the pill takes to lift and fade away as it leaves. */
+  --motion-semantic-notification-lift-duration: 300ms;
+  /* The curve of the leaving lift: an ease-in, so it speeds up as it goes. */
+  --motion-semantic-notification-lift-easing: cubic-bezier(0.4, 0, 1, 1);
+  /* How long after the pill starts to open the focus ring begins to fade in. */
+  --motion-semantic-notification-ring-delay: 200ms;
 }
 
 /* ===== Typography · Utility Classes ===== */

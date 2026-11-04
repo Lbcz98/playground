@@ -625,6 +625,15 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   cursor: pointer;
 }
 
+/* A message keeps its open width while the pill grows and shrinks inside it, from the logo's side: the logo never moves in x. */
+.sfs-notification[data-kind='message'] {
+  width: calc(
+    var(--dimension-size-semantic-round-button-circle) + var(--dimension-spacing-core-xs) +
+      var(--dimension-size-semantic-notification-text-width)
+  );
+  justify-items: start;
+}
+
 .sfs-notification[data-kind='rounded'] {
   width: var(--dimension-size-semantic-round-button);
 }
@@ -635,8 +644,17 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   align-items: center;
   gap: var(--dimension-spacing-core-xs);
   height: var(--dimension-size-semantic-round-button-circle);
-  padding-inline: var(--dimension-spacing-core-sm);
+  /* What the closed circle leaves around the logo, so the logo sits centred when the pill is closed. */
+  padding-inline: calc((var(--dimension-size-semantic-round-button-circle) - var(--dimension-size-semantic-notification-logo)) / 2);
   border-radius: var(--dimension-radius-semantic-pill);
+  overflow: hidden;
+}
+
+.sfs-notification[data-kind='message'] > .sfs-notification-pill {
+  width: calc(
+    var(--dimension-size-semantic-round-button-circle) + var(--dimension-spacing-core-xs) +
+      var(--dimension-size-semantic-notification-text-width)
+  );
 }
 
 /* At rest the pill paints itself; focused, the ring paints its own fill. */
@@ -655,8 +673,8 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   position: relative;
   display: block;
   flex-shrink: 0;
-  width: var(--dimension-size-semantic-avatar);
-  height: var(--dimension-size-semantic-avatar);
+  width: var(--dimension-size-semantic-notification-logo);
+  height: var(--dimension-size-semantic-notification-logo);
   border-radius: var(--dimension-radius-semantic-pill);
 }
 
@@ -680,7 +698,104 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   flex-direction: column;
   flex-shrink: 0;
   width: var(--dimension-size-semantic-notification-text-width);
+  text-align: start;
   white-space: pre-line;
+}
+
+/*
+ * Arriving and leaving (`data-open`), the notification's own motion — the one
+ * exception to the system spring, tuned in the motion exploration (option 9).
+ * Each state carries the transitions that lead into it:
+ *   open    — the pill drops, fades in and widens on one gesture; the message
+ *             fades in from a blur and slides in x with the pill's edge; the
+ *             focus ring follows a moment later.
+ *   closed  — message, logo and ring leave first; after `close-delay` the pill
+ *             shrinks back to the circle, and near the end lifts and fades.
+ */
+.sfs-notification[data-open='true'] > .sfs-notification-pill {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    width var(--motion-semantic-notification-duration) var(--motion-semantic-notification-easing),
+    transform var(--motion-semantic-notification-duration) var(--motion-semantic-notification-easing),
+    opacity var(--motion-semantic-notification-duration) var(--motion-semantic-notification-fade-easing),
+    background-color var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+.sfs-notification[data-open='false'] {
+  pointer-events: none;
+}
+
+.sfs-notification[data-open='false'] > .sfs-notification-pill {
+  width: var(--dimension-size-semantic-round-button-circle);
+  opacity: 0;
+  transform: translateY(calc(-1 * var(--dimension-size-semantic-notification-travel)));
+  transition:
+    width var(--motion-semantic-notification-duration) var(--motion-semantic-notification-easing)
+      var(--motion-semantic-notification-close-delay),
+    transform var(--motion-semantic-notification-lift-duration) var(--motion-semantic-notification-lift-easing)
+      calc(var(--motion-semantic-notification-close-delay) + var(--motion-semantic-notification-lift-delay)),
+    opacity var(--motion-semantic-notification-lift-duration) var(--motion-semantic-notification-lift-easing)
+      calc(var(--motion-semantic-notification-close-delay) + var(--motion-semantic-notification-lift-delay)),
+    background-color var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+/* The logo is there the moment the pill starts to appear, and leaves with the message's blur. */
+.sfs-notification[data-open='true'] .sfs-notification-logo {
+  opacity: 1;
+  filter: none;
+  transition: none;
+}
+
+.sfs-notification[data-open='false'] .sfs-notification-logo {
+  opacity: 0;
+  filter: blur(var(--dimension-size-semantic-notification-text-blur));
+  transition:
+    opacity var(--motion-semantic-notification-logo-exit-duration) var(--motion-semantic-notification-fade-easing),
+    filter var(--motion-semantic-notification-logo-exit-duration) var(--motion-semantic-notification-fade-easing);
+}
+
+.sfs-notification[data-open='true'] .sfs-notification-title {
+  opacity: 1;
+  filter: none;
+  transform: translateX(0);
+  transition:
+    opacity var(--motion-semantic-notification-duration) var(--motion-semantic-notification-fade-easing),
+    filter var(--motion-semantic-notification-duration) var(--motion-semantic-notification-fade-easing),
+    transform var(--motion-semantic-notification-duration) var(--motion-semantic-notification-easing);
+}
+
+.sfs-notification[data-open='false'] .sfs-notification-title {
+  opacity: 0;
+  filter: blur(var(--dimension-size-semantic-notification-text-blur));
+  transform: translateX(calc(-1 * var(--dimension-size-semantic-notification-text-shift)));
+  transition:
+    opacity var(--motion-semantic-notification-exit-duration) var(--motion-semantic-notification-fade-easing),
+    filter var(--motion-semantic-notification-exit-duration) var(--motion-semantic-notification-fade-easing),
+    transform var(--motion-semantic-notification-duration) var(--motion-semantic-notification-easing);
+}
+
+/* The FocusRing lives inside the pill, so it moves and clips with it; it only waits and fades on its own. */
+.sfs-notification[data-open='true'] [data-focus-ring] {
+  opacity: 1;
+  transition: opacity var(--motion-semantic-notification-exit-duration) var(--motion-semantic-notification-easing)
+    var(--motion-semantic-notification-ring-delay);
+}
+
+.sfs-notification[data-open='false'] [data-focus-ring] {
+  opacity: 0;
+  transition: opacity var(--motion-semantic-notification-exit-duration) var(--motion-semantic-notification-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfs-notification .sfs-notification-pill,
+  .sfs-notification .sfs-notification-logo,
+  .sfs-notification .sfs-notification-title,
+  .sfs-notification [data-focus-ring] {
+    transform: none;
+    filter: none;
+    transition: none;
+  }
 }
 
 /*
