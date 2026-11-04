@@ -266,8 +266,9 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 
 | CSS variable | Value |
 | --- | --- |
+| `--typography-font-family-arial` | Arial |
 | `--typography-font-family-primary` | Inter |
-| `--typography-font-family-rating` | Arial |
+| `--typography-font-family-semantic-rating` | Arial |
 | `--typography-font-size-sm` | 12px |
 | `--typography-font-size-md` | 14px |
 | `--typography-font-size-base` | 16px |

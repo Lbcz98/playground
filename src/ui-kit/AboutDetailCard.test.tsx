@@ -61,7 +61,7 @@ describe('<AboutDetailCard>', () => {
     expect(rule).toMatch(/border-radius: var\(--dimension-radius-core-xs\)/)
     expect(rule).toMatch(/background: var\(--_rating-background\)/)
     expect(rule).toMatch(/color: var\(--color-semantic-functional-rating-text\)/)
-    expect(rule).toMatch(/font-family: var\(--typography-font-family-rating\)/)
+    expect(rule).toMatch(/font-family: var\(--typography-font-family-semantic-rating\)/)
     expect(rule).toMatch(/font-size: var\(--typography-font-size-semantic-rating\)/)
     expect(rule).toMatch(/letter-spacing: var\(--typography-letter-spacing-semantic-rating\)/)
     expect(css).toMatch(/data-rating='18'\]\s*\{[^}]*color: var\(--color-semantic-functional-rating-18-text\)/s)

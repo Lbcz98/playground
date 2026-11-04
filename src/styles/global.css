@@ -389,8 +389,12 @@
   /* ===== Typography · Font Family ===== */
   /* Names the typeface only. The CSS build appends the resolution chain (bundled variable copy, local install, system sans-serif). */
   --typography-font-family-primary: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Names the typeface only, like primary. */
+  --typography-font-family-arial: 'Arial Variable', 'Arial', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* ===== Typography · Font Family · Semantic ===== */
   /* Rating badge text of the About card: Arial, as in the live product. */
-  --typography-font-family-rating: 'Arial Variable', 'Arial', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --typography-font-family-semantic-rating: var(--typography-font-family-arial);
 
   /* ===== Typography · Font Weight ===== */
   --typography-font-weight-regular: 400;

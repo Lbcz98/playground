@@ -1341,7 +1341,7 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   border-radius: var(--dimension-radius-core-xs);
   background: var(--_rating-background);
   color: var(--color-semantic-functional-rating-text);
-  font-family: var(--typography-font-family-rating);
+  font-family: var(--typography-font-family-semantic-rating);
   font-size: var(--typography-font-size-semantic-rating);
   letter-spacing: var(--typography-letter-spacing-semantic-rating);
   line-height: 1;
