@@ -394,6 +394,19 @@ export const QrCode: Story = {
   ),
 }
 
+/** With the invitation at the top (Figma "Topo"): the line and its tag, 24 above the logo. */
+export const QrCodeComConvite: Story = {
+  name: 'QR Code com convite',
+  args: {
+    interactionState: 'focus',
+    qr: qrLogin,
+    qrLogo: contaGlobo,
+    qrIntro: 'Entre ou cadastre-se para acessar essa interatividade',
+    qrBadge: 'APROVEITE GRÁTIS',
+  },
+  render: QrCode.render,
+}
+
 /** At rest the logo and the text are muted like any resting card's; the code keeps full strength, so a phone can still read it. */
 export const QrCodeEmRepouso: Story = {
   name: 'QR Code em repouso',

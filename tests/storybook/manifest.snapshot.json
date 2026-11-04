@@ -1142,6 +1142,18 @@
           "required": false,
           "description": "The QR code of the QR variant: its URL. Omitted or empty: the plain card. With a code the card centres its\ncolumn and the header's title is the activation code. Ignored with `image`."
         },
+        "qrBadge": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The tag under the invitation (a promise, e.g. \"APROVEITE GRÁTIS\"). Omitted or empty: not drawn. Only with `qr`."
+        },
+        "qrIntro": {
+          "type": "string",
+          "kind": "string",
+          "required": false,
+          "description": "The invitation at the top of the QR variant, 24 above the logo: what the viewer is asked to do. Omitted or empty: not drawn. Only with `qr`."
+        },
         "qrLogo": {
           "type": "string",
           "kind": "string",
@@ -1171,6 +1183,7 @@
         "ui-kit-content-card--imagem-p",
         "ui-kit-content-card--opt-outs",
         "ui-kit-content-card--qr-code",
+        "ui-kit-content-card--qr-code-com-convite",
         "ui-kit-content-card--qr-code-em-repouso",
         "ui-kit-content-card--sports-table",
         "ui-kit-content-card--tabela-de-campeonato",
@@ -1339,6 +1352,17 @@
           "required": false,
           "description": "Small line above the title (schedule section only)."
         },
+        "overlineSize": {
+          "type": "'supporting' | 'title'",
+          "kind": "enum",
+          "options": [
+            "supporting",
+            "title"
+          ],
+          "required": false,
+          "defaultValue": "supporting",
+          "description": "The overline's size: the small supporting size (default), or the title's own."
+        },
         "posterSrc": {
           "type": "string",
           "kind": "string",
@@ -1369,6 +1393,7 @@
         "ui-kit-interactivity-button--all-states",
         "ui-kit-interactivity-button--default",
         "ui-kit-interactivity-button--focus",
+        "ui-kit-interactivity-button--overline-as-title",
         "ui-kit-interactivity-button--poster",
         "ui-kit-interactivity-button--poster-all-states",
         "ui-kit-interactivity-button--selected",
@@ -1502,6 +1527,13 @@
           "description": "The one focused button. Default `program` — when Home opens, the focus is on\nthe program button (Figma: Main Menu › Focus). On Home it is the button whose\nrail is on screen: `program` for the rail on the right; `miscellaneous`,\n`schedule` or `login` for a rail on the left. `channel-bug` is the channel\nlogo; `null` when the focus is elsewhere on the screen.",
           "nullable": true
         },
+        "loginBadge": {
+          "type": "boolean",
+          "kind": "boolean",
+          "required": false,
+          "defaultValue": "false",
+          "description": "A small white badge on the Login button: something there is waiting for the viewer (to sign in, say)."
+        },
         "logoSrc": {
           "type": "string",
           "kind": "string",
@@ -1574,6 +1606,7 @@
         "ui-kit-main-menu--bug-focused",
         "ui-kit-main-menu--custom-content",
         "ui-kit-main-menu--default",
+        "ui-kit-main-menu--login-badge",
         "ui-kit-main-menu--login-focused",
         "ui-kit-main-menu--miscellaneous-cycle",
         "ui-kit-main-menu--miscellaneous-focused",

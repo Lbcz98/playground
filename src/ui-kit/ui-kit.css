@@ -37,6 +37,17 @@
   background-color: var(--color-semantic-functional-background-translucent);
 }
 
+/* On the avatar, at the very corner of its box: that puts the dot on the avatar's own edge, at the top right. */
+.sfs-main-menu-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--dimension-size-semantic-round-button-badge);
+  height: var(--dimension-size-semantic-round-button-badge);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-round-button-badge);
+}
+
 .sfs-round-button-content {
   position: relative;
   display: grid;
@@ -629,7 +640,8 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 .sfs-notification[data-kind='message'] {
   width: calc(
     var(--dimension-size-semantic-round-button-circle) + var(--dimension-spacing-core-xs) +
-      var(--dimension-size-semantic-notification-text-width)
+      var(--dimension-size-semantic-notification-text-width) +
+      (var(--dimension-size-semantic-round-button-circle) - var(--dimension-size-semantic-notification-logo)) / 2
   );
   justify-items: start;
 }
@@ -650,10 +662,17 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   overflow: hidden;
 }
 
+/*
+ * The text side (the end) takes twice the inset the logo side has: the inset is what the circle leaves
+ * around the logo, so the end padding is the circle less the logo. The width carries that extra inset,
+ * so the text column keeps its width.
+ */
 .sfs-notification[data-kind='message'] > .sfs-notification-pill {
+  padding-inline-end: calc(var(--dimension-size-semantic-round-button-circle) - var(--dimension-size-semantic-notification-logo));
   width: calc(
     var(--dimension-size-semantic-round-button-circle) + var(--dimension-spacing-core-xs) +
-      var(--dimension-size-semantic-notification-text-width)
+      var(--dimension-size-semantic-notification-text-width) +
+      (var(--dimension-size-semantic-round-button-circle) - var(--dimension-size-semantic-notification-logo)) / 2
   );
 }
 
@@ -738,6 +757,28 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
     opacity var(--motion-semantic-notification-lift-duration) var(--motion-semantic-notification-lift-easing)
       calc(var(--motion-semantic-notification-close-delay) + var(--motion-semantic-notification-lift-delay)),
     background-color var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+/*
+ * The shade a flow lays over the screen with its notice (`data-flow-notice`, the player's layer): it does not
+ * snap on and off with the layer but fades with the message, in on the pill's own duration, out over the whole
+ * leaving (the shrink and the lift), on the notification's fade easing.
+ */
+[data-flow-notice] .sfs-screen-overlay {
+  opacity: 0;
+  transition: opacity calc(var(--motion-semantic-notification-duration) + var(--motion-semantic-notification-lift-duration))
+    var(--motion-semantic-notification-fade-easing);
+}
+
+[data-flow-notice][data-open='true'] .sfs-screen-overlay {
+  opacity: 1;
+  transition: opacity var(--motion-semantic-notification-duration) var(--motion-semantic-notification-fade-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-flow-notice] .sfs-screen-overlay {
+    transition: none;
+  }
 }
 
 /* The logo is there the moment the pill starts to appear, and leaves with the message's blur. */
@@ -1122,6 +1163,30 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   opacity: var(--opacity-semantic-content-muted);
 }
 
+/*
+ * The invitation (Figma "Topo"): the line and its tag, 8 apart, the column's width but never wider than what is
+ * under it (`width: 0` with `min-width: 100%` keeps the text out of the card's own width, so it wraps to the code's
+ * column). It sits 24 above the logo: the zones' gap is taken off, since the gap is already between them.
+ */
+.sfs-content-card-qr-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--dimension-spacing-core-2xs);
+  width: 0;
+  min-width: 100%;
+  margin-bottom: calc(var(--dimension-spacing-core-lg) - var(--_gap));
+}
+
+.sfs-content-card-qr-badge {
+  padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-sm);
+  background-color: var(--color-semantic-functional-content-card-qr-badge);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
 .sfs-content-card-qr-logo {
   display: block;
   flex-shrink: 0;
@@ -1438,23 +1503,31 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   min-width: 0;
 }
 
-.sfs-about-detail-card-rating {
+.sfs-about-detail-card .sfs-about-detail-card-rating {
   display: grid;
   flex: none;
   box-sizing: border-box;
-  width: var(--dimension-size-semantic-icon-lg);
-  height: var(--dimension-size-semantic-icon-lg);
+  width: var(--dimension-size-semantic-rating-badge);
+  min-width: var(--dimension-size-semantic-rating-badge);
+  max-width: var(--dimension-size-semantic-rating-badge);
+  height: var(--dimension-size-semantic-rating-badge);
+  min-height: var(--dimension-size-semantic-rating-badge);
+  max-height: var(--dimension-size-semantic-rating-badge);
+  /* The negative letter spacing also trails the last glyph, which pushes the text right of centre: the end padding gives it back (1.5 × the spacing). */
   padding: var(--dimension-spacing-semantic-badge-inset);
+  padding-inline-end: calc(var(--dimension-spacing-semantic-badge-inset) - var(--typography-letter-spacing-semantic-rating) * 1.5);
   place-items: center;
-  border: var(--dimension-border-width-semantic-badge) solid transparent;
+  border: var(--dimension-border-width-semantic-badge) solid var(--color-semantic-functional-rating-stroke);
   border-radius: var(--dimension-radius-core-xs);
-  background:
-    linear-gradient(var(--_rating-background), var(--_rating-background)) padding-box,
-    var(--gradient-semantic-border-rating) border-box;
+  background: var(--_rating-background);
   color: var(--color-semantic-functional-rating-text);
+  font-family: var(--typography-font-family-semantic-rating);
+  font-size: var(--typography-font-size-semantic-rating);
+  letter-spacing: var(--typography-letter-spacing-semantic-rating);
+  line-height: 1;
 }
 
-.sfs-about-detail-card-rating[data-rating='18'] {
+.sfs-about-detail-card .sfs-about-detail-card-rating[data-rating='18'] {
   color: var(--color-semantic-functional-rating-18-text);
 }
 
@@ -1474,6 +1547,13 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 
 .sfs-about-detail-card-metadata li {
   display: inline;
+}
+
+/* A dot between the rating and the first detail, like the dots between the details. */
+.sfs-about-detail-card-metadata::before {
+  margin-inline-end: var(--dimension-spacing-core-2xs);
+  color: var(--color-semantic-functional-text-muted);
+  content: '•';
 }
 
 .sfs-about-detail-card-metadata li + li::before {

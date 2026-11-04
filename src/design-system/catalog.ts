@@ -120,6 +120,7 @@ export type ButtonProps = z.infer<typeof buttonSchema>
  * the Electron main process.
  */
 const CARD_STATES = ['default', 'focus', 'selected'] as const satisfies readonly InteractivityButtonState[]
+const OVERLINE_SIZES = ['supporting', 'title'] as const
 const CONTROL_STATES = ['default', 'focus'] as const satisfies readonly RoundButtonState[]
 const WIDE_BUTTON_STATES = [
   'default',
@@ -143,6 +144,8 @@ export const mainMenuSchema = z
     focusedItem: z.enum(MAIN_MENU_ITEMS).default('program'),
     programTitle: z.string().default(''),
     programSubtitle: z.string().default(''),
+    /** A small white badge on the Login button: something is waiting for the viewer there. */
+    loginBadge: z.boolean().default(false),
     miscellaneousTitle: z.string().default(''),
     miscellaneousSubtitle: z.string().default(''),
     miscellaneousItems: z
@@ -169,6 +172,8 @@ export const interactivityCardSchema = z
   .object({
     title: z.string().default(''),
     overline: z.string().default(''),
+    /** The overline's size: the small supporting size, or the title's own. */
+    overlineSize: z.enum(OVERLINE_SIZES).default('supporting'),
     subtitle: z.string().default(''),
     live: z.boolean().default(false),
     check: z.boolean().default(false),
@@ -249,6 +254,10 @@ export const contentCardSchema = z
     qr: z.string().default(''),
     /** The logo above the QR code (its URL). Only with `qr`. */
     qrLogo: z.string().default(''),
+    /** The invitation at the top of the QR variant, 24 above the logo. Only with `qr`. */
+    qrIntro: z.string().default(''),
+    /** The tag under the invitation. Only with `qr`. */
+    qrBadge: z.string().default(''),
   })
   .strict()
 
@@ -417,6 +426,7 @@ export const Catalog = {
       focusedItem: { kind: 'select', label: 'Focused item', options: MAIN_MENU_ITEMS },
       programTitle: { kind: 'text', label: 'Program title' },
       programSubtitle: { kind: 'text', label: 'Program subtitle' },
+      loginBadge: { kind: 'boolean', label: 'Login badge' },
       miscellaneousTitle: { kind: 'text', label: 'Miscellaneous title' },
       miscellaneousSubtitle: { kind: 'text', label: 'Miscellaneous subtitle' },
       miscellaneousItems: { kind: 'list', label: 'Miscellaneous items' },
@@ -448,6 +458,7 @@ export const Catalog = {
     controls: {
       title: { kind: 'text', label: 'Title' },
       overline: { kind: 'text', label: 'Overline' },
+      overlineSize: { kind: 'select', label: 'Overline size', options: OVERLINE_SIZES },
       subtitle: { kind: 'text', label: 'Subtitle' },
       live: { kind: 'boolean', label: 'Live badge' },
       check: { kind: 'boolean', label: 'Check mark' },
@@ -545,7 +556,7 @@ export const Catalog = {
     label: 'Content Card',
     category: 'content',
     summary:
-      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. With an image it is the image variant: 380 tall, the picture across the top in step G, M or P (320, 264, 176) under the card scrim, and the zones anchored to the bottom; the Header's title and subtitle are the title and the description, and a Body holds bullets. Pick the step by the text: G for a one-line title and one line of description, M for a two-line title with up to two lines or five bullets, P for a long list. With a qr it is the QR variant: a centred column that hugs an optional logo (qrLogo), the 132 code at full strength in every state, and the zones; the Header's title is the activation code at 28 bold, its subtitle the instruction and its address the site to type.`,
+      `The tall 288-wide card for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order; leave out any you do not need. At its tallest (${contentCardSpec.maxHeight}) its body holds ${contentCardSpec.rowsAtMax.team} team rows, ${contentCardSpec.rowsAtMax.athlete} athlete rows or ${contentCardSpec.rowsAtMax.scout} scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. With an image it is the image variant: 380 tall, the picture across the top in step G, M or P (320, 264, 176) under the card scrim, and the zones anchored to the bottom; the Header's title and subtitle are the title and the description, and a Body holds bullets. Pick the step by the text: G for a one-line title and one line of description, M for a two-line title with up to two lines or five bullets, P for a long list. With a qr it is the QR variant: a centred column that hugs an optional invitation and its tag (qrIntro, qrBadge) 24 above an optional logo (qrLogo), the 132 code at full strength in every state, and the zones; the Header's title is the activation code at 28 bold, its subtitle the instruction and its address the site to type.`,
     acceptsChildren: true,
     slots: CONTENT_CARD_ZONES,
     schema: contentCardSchema,
@@ -565,6 +576,8 @@ export const Catalog = {
       imageSize: { kind: 'select', label: 'Image size', options: ['G', 'M', 'P'] },
       qr: { kind: 'text', label: 'QR code URL' },
       qrLogo: { kind: 'text', label: 'QR logo URL' },
+      qrIntro: { kind: 'text', label: 'QR invitation' },
+      qrBadge: { kind: 'text', label: 'QR invitation tag' },
     },
   },
   ContentCardHeader: {

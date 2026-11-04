@@ -53,6 +53,8 @@ interface MainMenuProps {
 
   /** The viewer's avatar, on the Login button. */
   avatarSrc?: string
+  /** A small white badge on the Login button: something there is waiting for the viewer (to sign in, say). */
+  loginBadge?: boolean
   /** Login — opens its rail on the left: account settings. */
   onLoginClick?: () => void
 
@@ -148,6 +150,7 @@ function CycleLayers({
 export function MainMenu({
   focusedItem,
   avatarSrc,
+  loginBadge = false,
   onLoginClick,
   onScheduleClick,
   miscellaneousTitle,
@@ -176,6 +179,7 @@ export function MainMenu({
       <Stack direction="row" align="center" gap="3xs">
         <RoundButtonShell interactionState={stateOf('login')} focusItem="login" label="Login" onClick={onLoginClick}>
           <ContentCircle src={avatarSrc} role="avatar" alt="" />
+          {loginBadge ? <span aria-hidden className="sfs-main-menu-badge" /> : null}
         </RoundButtonShell>
 
         <RoundButtonShell interactionState={stateOf('schedule')} focusItem="schedule" label="Schedule" onClick={onScheduleClick}>

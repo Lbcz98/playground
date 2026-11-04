@@ -39,7 +39,8 @@
  * Focused, the ring and its light sit over the picture without darkening it.
  *
  * QR variant (the login page on staging, /ems/login/qr): give it a `qr` and the
- * card hugs a centred column, an optional logo (`qrLogo`, 96 wide) over the code
+ * card hugs a centred column, an optional invitation (`qrIntro`, and `qrBadge` under it, Figma
+ * "Topo") 24 above the logo, an optional logo (`qrLogo`, 96 wide) over the code
  * (132, corners of 16), then the zones. The header's title is the activation code
  * at 28 bold, its subtitle the instruction and its `address` the site to type. The
  * code keeps full strength at rest, so a phone can still read it.
@@ -117,6 +118,10 @@ interface ContentCardProps {
   qr?: string
   /** The logo above the QR code: its URL, drawn 96 wide. Omitted or empty: not drawn. Only with `qr`. */
   qrLogo?: string
+  /** The invitation at the top of the QR variant, 24 above the logo: what the viewer is asked to do. Omitted or empty: not drawn. Only with `qr`. */
+  qrIntro?: string
+  /** The tag under the invitation (a promise, e.g. "APROVEITE GRÁTIS"). Omitted or empty: not drawn. Only with `qr`. */
+  qrBadge?: string
   /** Any of `ContentCardHeader`, `ContentCardBody`, `ContentCardFooter`, in that order. */
   children?: ReactNode
 }
@@ -176,7 +181,7 @@ const BODY_GAP_TOKEN = '--dimension-spacing-semantic-table-row-gap'
 const CardPage = createContext<{ page: number; rowsPerPage?: number; image?: boolean; qr?: boolean }>({ page: 0 })
 
 /** The tall card, 288 wide, for a vertical highlight (statistics, a line-up). Holds up to three zones — Header, Body, Footer — in that order. At its tallest its body holds 9 team rows, 9 athlete rows or 7 scout rows under a header and footer: for a longer table set rowsPerPage, and the viewer clicks the card for the next rows. */
-export function ContentCard({ asLink = false, interactionState, height, gap, onClick, rowsPerPage, image, imageSize, qr, qrLogo, children }: ContentCardProps): ReactNode {
+export function ContentCard({ asLink = false, interactionState, height, gap, onClick, rowsPerPage, image, imageSize, qr, qrLogo, qrIntro, qrBadge, children }: ContentCardProps): ReactNode {
   const state = (interactionState ?? 'default')
   const focus = state === 'focus'
   const qrCode = image ? undefined : qr || undefined
@@ -223,6 +228,22 @@ export function ContentCard({ asLink = false, interactionState, height, gap, onC
       {focus ? <FocusRing shape="content-card" fill={!image} /> : <RestingBorder shape="content-card" width="card" />}
       <CardPage.Provider value={{ page, rowsPerPage: asLink ? undefined : rowsPerPage, image: Boolean(image), qr: Boolean(qrCode) }}>
         <div className="sfs-content-card-zones" style={vars({ '--_gap': gap === undefined ? spacing('sm') : `${gap}px` })}>
+          {qrCode && (qrIntro || qrBadge) ? (
+            <div className="sfs-content-card-qr-intro">
+              {qrIntro ? (
+                <Text as="p" variant="body-sm-medium" color="muted">
+                  {qrIntro}
+                </Text>
+              ) : null}
+              {qrBadge ? (
+                <span className="sfs-content-card-qr-badge">
+                  <Text as="span" variant="body-sm-bold">
+                    {qrBadge}
+                  </Text>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           {qrCode && qrLogo ? <img className="sfs-content-card-qr-logo" src={qrLogo} alt="" draggable={false} /> : null}
           {qrCode ? <img className="sfs-content-card-qr" src={qrCode} alt="QR Code" draggable={false} /> : null}
           {children}

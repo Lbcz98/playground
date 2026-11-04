@@ -39,6 +39,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-semantic-functional-background-translucent` | #191F274D |
 | `--color-semantic-functional-border-default` | #FFFFFF33 |
 | `--color-semantic-functional-border-subtle` | #FFFFFF1A |
+| `--color-semantic-functional-content-card-qr-badge` | #FFFFFF4D |
 | `--color-semantic-functional-rating-10` | #0095DA |
 | `--color-semantic-functional-rating-12` | #FBC115 |
 | `--color-semantic-functional-rating-14` | #F58220 |
@@ -47,7 +48,9 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-semantic-functional-rating-18` | #000000 |
 | `--color-semantic-functional-rating-6` | #E43493 |
 | `--color-semantic-functional-rating-free` | #00A651 |
-| `--color-semantic-functional-rating-text` | #191919 |
+| `--color-semantic-functional-rating-stroke` | #EEEEEE |
+| `--color-semantic-functional-rating-text` | #EEEEEE |
+| `--color-semantic-functional-round-button-badge` | #EEEEEE |
 | `--color-semantic-functional-status-error` | #DE2C2C |
 | `--color-semantic-functional-status-live` | #FD4142 |
 | `--color-semantic-functional-status-success` | #11BB0E |
@@ -149,7 +152,9 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--dimension-size-semantic-notification-text-shift` | 12px |
 | `--dimension-size-semantic-notification-text-width` | 200px |
 | `--dimension-size-semantic-program-logo` | 48px |
+| `--dimension-size-semantic-rating-badge` | 32px |
 | `--dimension-size-semantic-round-button` | 88px |
+| `--dimension-size-semantic-round-button-badge` | 10px |
 | `--dimension-size-semantic-round-button-circle` | 72px |
 | `--dimension-size-semantic-table-cell-sm` | 16px |
 | `--dimension-size-semantic-table-cell-md` | 24px |
@@ -278,7 +283,9 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 
 | CSS variable | Value |
 | --- | --- |
+| `--typography-font-family-arial` | Arial |
 | `--typography-font-family-primary` | Inter |
+| `--typography-font-family-semantic-rating` | Arial |
 | `--typography-font-size-sm` | 12px |
 | `--typography-font-size-md` | 14px |
 | `--typography-font-size-base` | 16px |
@@ -288,12 +295,14 @@ A card, a panel or any box that holds an option is one of the kit's surfaces. Th
 | `--typography-font-size-3xl` | 28px |
 | `--typography-font-size-4xl` | 56px |
 | `--typography-font-size-5xl` | 72px |
+| `--typography-font-size-semantic-rating` | 18px |
 | `--typography-font-weight-regular` | 400 |
 | `--typography-font-weight-medium` | 500 |
 | `--typography-font-weight-bold` | 700 |
 | `--typography-letter-spacing-tighter` | -0.02em |
 | `--typography-letter-spacing-tight` | -0.01em |
 | `--typography-letter-spacing-normal` | 0em |
+| `--typography-letter-spacing-semantic-rating` | -0.1em |
 | `--typography-letter-spacing-semantic-detail-card-text` | 0em |
 | `--typography-line-height-tight` | 1.1 |
 | `--typography-line-height-normal` | 1.2 |
