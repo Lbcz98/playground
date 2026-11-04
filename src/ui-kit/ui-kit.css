@@ -1323,23 +1323,31 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
   min-width: 0;
 }
 
-.sfs-about-detail-card-rating {
+.sfs-about-detail-card .sfs-about-detail-card-rating {
   display: grid;
   flex: none;
   box-sizing: border-box;
-  width: var(--dimension-size-semantic-icon-lg);
-  height: var(--dimension-size-semantic-icon-lg);
+  width: var(--dimension-size-semantic-rating-badge);
+  min-width: var(--dimension-size-semantic-rating-badge);
+  max-width: var(--dimension-size-semantic-rating-badge);
+  height: var(--dimension-size-semantic-rating-badge);
+  min-height: var(--dimension-size-semantic-rating-badge);
+  max-height: var(--dimension-size-semantic-rating-badge);
+  /* The negative letter spacing also trails the last glyph, which pushes the text right of centre: the end padding gives it back (1.5 × the spacing). */
   padding: var(--dimension-spacing-semantic-badge-inset);
+  padding-inline-end: calc(var(--dimension-spacing-semantic-badge-inset) - var(--typography-letter-spacing-semantic-rating) * 1.5);
   place-items: center;
-  border: var(--dimension-border-width-semantic-badge) solid transparent;
+  border: var(--dimension-border-width-semantic-badge) solid var(--color-semantic-functional-rating-stroke);
   border-radius: var(--dimension-radius-core-xs);
-  background:
-    linear-gradient(var(--_rating-background), var(--_rating-background)) padding-box,
-    var(--gradient-semantic-border-rating) border-box;
+  background: var(--_rating-background);
   color: var(--color-semantic-functional-rating-text);
+  font-family: var(--typography-font-family-rating);
+  font-size: var(--typography-font-size-semantic-rating);
+  letter-spacing: var(--typography-letter-spacing-semantic-rating);
+  line-height: 1;
 }
 
-.sfs-about-detail-card-rating[data-rating='18'] {
+.sfs-about-detail-card .sfs-about-detail-card-rating[data-rating='18'] {
   color: var(--color-semantic-functional-rating-18-text);
 }
 
@@ -1359,6 +1367,13 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 
 .sfs-about-detail-card-metadata li {
   display: inline;
+}
+
+/* A dot between the rating and the first detail, like the dots between the details. */
+.sfs-about-detail-card-metadata::before {
+  margin-inline-end: var(--dimension-spacing-core-2xs);
+  color: var(--color-semantic-functional-text-muted);
+  content: '•';
 }
 
 .sfs-about-detail-card-metadata li + li::before {

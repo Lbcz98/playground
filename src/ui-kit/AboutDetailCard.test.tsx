@@ -49,16 +49,26 @@ describe('<AboutDetailCard>', () => {
     }
   })
 
-  it('uses the documented 24px standard rating tag geometry and role colors', () => {
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*box-sizing: border-box/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*width: var\(--dimension-size-semantic-icon-lg\)/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*height: var\(--dimension-size-semantic-icon-lg\)/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*padding: var\(--dimension-spacing-semantic-badge-inset\)/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*border: var\(--dimension-border-width-semantic-badge\) solid transparent/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*var\(--gradient-semantic-border-rating\) border-box/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*border-radius: var\(--dimension-radius-core-xs\)/s)
-    expect(css).toMatch(/\.sfs-about-detail-card-rating\s*\{[^}]*linear-gradient\(var\(--_rating-background\), var\(--_rating-background\)\) padding-box/s)
+  it('keeps the rating tag a fixed 32px square with its own Arial text tokens, a Neutral White stroke and role colors', () => {
+    const rule = /\.sfs-about-detail-card \.sfs-about-detail-card-rating\s*\{([^}]*)\}/s.exec(css)?.[1] ?? ''
+    expect(rule).toMatch(/box-sizing: border-box/)
+    for (const side of ['width', 'min-width', 'max-width', 'height', 'min-height', 'max-height']) {
+      expect(rule).toContain(`${side}: var(--dimension-size-semantic-rating-badge)`)
+    }
+    expect(rule).toMatch(/padding: var\(--dimension-spacing-semantic-badge-inset\)/)
+    expect(rule).toMatch(/padding-inline-end: calc\(var\(--dimension-spacing-semantic-badge-inset\) - var\(--typography-letter-spacing-semantic-rating\) \* 1\.5\)/)
+    expect(rule).toMatch(/border: var\(--dimension-border-width-semantic-badge\) solid var\(--color-semantic-functional-rating-stroke\)/)
+    expect(rule).toMatch(/border-radius: var\(--dimension-radius-core-xs\)/)
+    expect(rule).toMatch(/background: var\(--_rating-background\)/)
+    expect(rule).toMatch(/color: var\(--color-semantic-functional-rating-text\)/)
+    expect(rule).toMatch(/font-family: var\(--typography-font-family-rating\)/)
+    expect(rule).toMatch(/font-size: var\(--typography-font-size-semantic-rating\)/)
+    expect(rule).toMatch(/letter-spacing: var\(--typography-letter-spacing-semantic-rating\)/)
     expect(css).toMatch(/data-rating='18'\]\s*\{[^}]*color: var\(--color-semantic-functional-rating-18-text\)/s)
+  })
+
+  it('puts a dot between the rating and the first detail', () => {
+    expect(css).toMatch(/\.sfs-about-detail-card-metadata::before\s*\{[^}]*content: '•'/s)
   })
 
   it('uses the card tokens and clamps stress content without reserving height', () => {
