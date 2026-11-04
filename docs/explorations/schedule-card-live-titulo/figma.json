@@ -1,0 +1,34 @@
+{
+ "url": "https://www.figma.com/design/8p0prhs0esnk4YwkD7jKnt?node-id=4-2",
+ "fileKey": "8p0prhs0esnk4YwkD7jKnt",
+ "snapshot": {
+  "0.radius": 40,
+  "0.inset": 24,
+  "0.bg": "#3f3f3f",
+  "0.rail": 8,
+  "1.px": 0,
+  "1.py": 0,
+  "1.artOn": 1,
+  "1.artOff": 0,
+  "2.ring": 4,
+  "3.band": 8,
+  "3.split": 8,
+  "4.size": 16,
+  "4.lh": 1.2,
+  "4.track": -0.01,
+  "4.color": "#eeeeee",
+  "5.pillX": 8,
+  "5.pillY": 4,
+  "5.pillR": 100,
+  "6.check": 24,
+  "7.fade": {
+   "duration": 0.15,
+   "ease": [
+    0.2,
+    0,
+    0,
+    1
+   ]
+  }
+ }
+}

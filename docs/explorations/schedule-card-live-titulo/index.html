@@ -1,0 +1,1472 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Schedule card live · título longo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --radius: var(--dimension-radius-semantic-card-expanded);
+  --inset: var(--dimension-spacing-semantic-card-inset);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --rail-gap: var(--dimension-spacing-core-2xs);
+  --poster-x: 0%;
+  --poster-y: 0%;
+  --art-on: var(--opacity-semantic-visible);
+  --art-off: var(--opacity-semantic-hidden);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --band-gap: 8px; /* tune */
+  --title-gap: 8px; /* tune */
+  --title-size: var(--typography-font-size-base);
+  --title-lh: var(--typography-line-height-normal);
+  --title-track: var(--typography-letter-spacing-tight);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --pill-x: var(--dimension-spacing-core-2xs);
+  --pill-y: var(--dimension-spacing-core-3xs);
+  --pill-radius: var(--dimension-radius-semantic-pill);
+  --check: var(--dimension-size-semantic-icon-lg);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="1"] .rail {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--rail-gap);
+}
+
+[data-option="1"] .slot {
+  position: relative;
+  display: block;
+  flex: none;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+[data-option="1"] .poster {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: var(--art-off);
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="1"] .poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--poster-x) var(--poster-y);
+}
+
+[data-option="1"] .scrim {
+  position: absolute;
+  inset: 0;
+  background-image: var(--gradient-semantic-card-scrim);
+  pointer-events: none;
+}
+
+[data-option="1"] .face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--inset);
+  border-radius: inherit;
+}
+
+[data-option="1"] .face::before,
+[data-option="1"] .face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+[data-option="1"] .face::before {
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+}
+
+[data-option="1"] .face::after {
+  content: none;
+  padding: var(--ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+}
+
+[data-option="1"] .copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--title-gap);
+  min-width: 0;
+}
+
+[data-option="1"] .band {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--band-gap);
+  min-width: 0;
+}
+
+[data-option="1"] .time {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-option="1"] .live {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding-inline: var(--pill-x);
+  padding-block: var(--pill-y);
+  border-radius: var(--pill-radius);
+  background-image: var(--gradient-semantic-status-live);
+  color: var(--title-color);
+  white-space: nowrap;
+}
+
+[data-option="1"] .title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--band-gap);
+  min-width: 0;
+}
+
+[data-option="1"] .check {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  top: var(--inset);
+  right: var(--inset);
+  width: var(--check);
+  height: var(--check);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="1"] .check img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+[data-option="1"] .title {
+  margin: 0;
+  min-width: 0;
+  color: var(--title-color);
+  font-size: var(--title-size);
+  line-height: var(--title-lh);
+  letter-spacing: var(--title-track);
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-option="1"][data-state="default"] .poster { opacity: var(--art-off); }
+
+[data-option="1"][data-state="foco"]:not([data-driven]) .poster { opacity: var(--art-on); }
+[data-option="1"][data-state="foco"]:not([data-driven]) .face::before { content: none; }
+[data-option="1"][data-state="foco"]:not([data-driven]) .face::after { content: ''; }
+
+[data-option="1"][data-state="selecionado"]:not([data-driven]) .check { display: block; }
+
+[data-option="1"][data-driven] .slot[data-card="focus"] .poster,
+[data-option="1"][data-driven] .slot[data-card="both"] .poster { opacity: var(--art-on); }
+[data-option="1"][data-driven] .slot[data-card="focus"] .face::before,
+[data-option="1"][data-driven] .slot[data-card="both"] .face::before { content: none; }
+[data-option="1"][data-driven] .slot[data-card="focus"] .face::after,
+[data-option="1"][data-driven] .slot[data-card="both"] .face::after { content: ''; }
+[data-option="1"][data-driven] .slot[data-card="selected"] .check,
+[data-option="1"][data-driven] .slot[data-card="both"] .check { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"] .poster {
+    transition-property: opacity;
+    transition-duration: var(--dur);
+    transition-timing-function: var(--ease);
+  }
+}
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-card-expanded);
+  --inset: var(--dimension-spacing-semantic-card-inset);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --rail-gap: var(--dimension-spacing-core-2xs);
+  --pos-x: 100%;
+  --pos-y: 0%;
+  --art-on: var(--opacity-semantic-visible);
+  --art-off: var(--opacity-semantic-hidden);
+  --scrim: var(--opacity-semantic-visible);
+  --plate: var(--color-core-neutral-charcoal);
+  --plate-extra: 0px;
+  --gap-groups: var(--dimension-spacing-core-sm);
+  --title: var(--color-semantic-functional-text-primary);
+  --lines: 2;
+  --text-off: var(--opacity-semantic-visible);
+  --meta: var(--color-semantic-functional-text-muted);
+  --gap-band: var(--dimension-spacing-core-3xs);
+  --pill-x: var(--dimension-spacing-core-2xs);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: var(--dimension-spacing-semantic-focus-offset);
+  --dur: var(--motion-semantic-duration);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="2"] .rail {
+  position: relative;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  overflow: hidden;
+}
+
+[data-option="2"] .track {
+  display: flex;
+  align-items: stretch;
+  gap: var(--rail-gap);
+}
+
+[data-option="2"][data-index="1"] .track {
+  transform: translateX(calc(-1 * (var(--dimension-size-semantic-card-expanded-width) + var(--rail-gap))));
+}
+
+[data-option="2"][data-index="2"] .track {
+  transform: translateX(calc(-2 * (var(--dimension-size-semantic-card-expanded-width) + var(--rail-gap))));
+}
+
+[data-option="2"] .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: none;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+[data-option="2"] .poster {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: var(--art-off);
+  pointer-events: none;
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="2"] .poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--pos-x) var(--pos-y);
+}
+
+[data-option="2"] .scrim {
+  position: absolute;
+  inset: 0;
+  background-image: var(--gradient-semantic-card-scrim);
+  opacity: var(--scrim);
+  pointer-events: none;
+}
+
+[data-option="2"] .copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-groups);
+  margin: 0 calc(var(--inset) * -1) calc(var(--inset) * -1);
+  padding: var(--dimension-spacing-core-2xs) var(--inset) var(--inset);
+  padding-top: calc(var(--dimension-spacing-core-2xs) + var(--plate-extra));
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--plate);
+  opacity: var(--text-off);
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="2"] .faixa {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-band);
+}
+
+[data-option="2"] .hora {
+  margin: 0;
+  color: var(--meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-option="2"] .live {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding: var(--dimension-spacing-core-3xs) var(--pill-x);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-background-tint);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+[data-option="2"] .titulo {
+  display: block;
+  min-width: 0;
+}
+
+[data-option="2"] .name {
+  margin: 0;
+  min-width: 0;
+  color: var(--title);
+  text-wrap: balance;
+  overflow-wrap: normal;
+  word-break: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--lines);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-option="2"] .check {
+  display: none;
+  flex: none;
+  width: var(--dimension-size-semantic-icon-sm);
+  height: var(--dimension-size-semantic-icon-sm);
+  margin-left: auto;
+  background: var(--title);
+  -webkit-mask: url("assets/check.png") center / contain no-repeat;
+  mask: url("assets/check.png") center / contain no-repeat;
+}
+
+[data-option="2"] .frame {
+  position: absolute;
+  z-index: 2;
+  inset: var(--ring-offset);
+  border-radius: calc(var(--radius) - var(--ring-offset));
+  pointer-events: none;
+}
+
+[data-option="2"] .frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+
+[data-option="2"] .frame::after {
+  content: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+
+[data-option="2"] .status {
+  position: absolute;
+  width: var(--dimension-spacing-core-3xs);
+  height: var(--dimension-spacing-core-3xs);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+[data-option="2"]:not([data-state="default"])[data-index="0"] .card[data-i="0"] .poster,
+[data-option="2"]:not([data-state="default"])[data-index="1"] .card[data-i="1"] .poster,
+[data-option="2"]:not([data-state="default"])[data-index="2"] .card[data-i="2"] .poster {
+  opacity: var(--art-on);
+}
+
+[data-option="2"]:not([data-state="default"])[data-index="0"] .card[data-i="0"] .copy,
+[data-option="2"]:not([data-state="default"])[data-index="1"] .card[data-i="1"] .copy,
+[data-option="2"]:not([data-state="default"])[data-index="2"] .card[data-i="2"] .copy {
+  opacity: var(--opacity-semantic-visible);
+}
+
+[data-option="2"]:not([data-state="default"])[data-index="0"] .card[data-i="0"] .live,
+[data-option="2"]:not([data-state="default"])[data-index="1"] .card[data-i="1"] .live,
+[data-option="2"]:not([data-state="default"])[data-index="2"] .card[data-i="2"] .live {
+  background-color: transparent;
+  background-image: var(--gradient-semantic-status-live);
+}
+
+[data-option="2"]:not([data-state="default"])[data-index="0"] .card[data-i="0"] .frame::before,
+[data-option="2"]:not([data-state="default"])[data-index="1"] .card[data-i="1"] .frame::before,
+[data-option="2"]:not([data-state="default"])[data-index="2"] .card[data-i="2"] .frame::before {
+  content: none;
+}
+
+[data-option="2"]:not([data-state="default"])[data-index="0"] .card[data-i="0"] .frame::after,
+[data-option="2"]:not([data-state="default"])[data-index="1"] .card[data-i="1"] .frame::after,
+[data-option="2"]:not([data-state="default"])[data-index="2"] .card[data-i="2"] .frame::after {
+  content: '';
+}
+
+[data-option="2"][data-state="selecionado"][data-chosen="0"] .card[data-i="0"] .check,
+[data-option="2"][data-state="selecionado"][data-chosen="1"] .card[data-i="1"] .check,
+[data-option="2"][data-state="selecionado"][data-chosen="2"] .card[data-i="2"] .check {
+  display: block;
+}
+
+[data-option="2"][data-state="foco"] .card,
+[data-option="2"][data-state="default"] .card {
+  background: var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="2"] .poster,
+  [data-option="2"] .copy {
+    transition-duration: 0s;
+  }
+}
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-card-expanded);
+  --inset: var(--dimension-spacing-semantic-card-inset);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --crop-x: 0%;
+  --crop-y: 0%;
+  --art-rest: 0;
+  --art-focus: 1;
+  --title-size: 16px;
+  --lines: 2;
+  --title-color: var(--color-semantic-functional-text-primary);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --title-lh: 1.2;
+  --title-track: -0.01em;
+  --apoio-gap: var(--dimension-spacing-core-3xs);
+  --rest-ink: 1;
+  --pill-pad: var(--dimension-spacing-core-2xs);
+  --check-size: var(--dimension-size-semantic-icon-sm);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --glow: var(--opacity-semantic-focus-glow);
+  --rest-w: var(--dimension-border-width-semantic-button);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="3"] .o3-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  flex-shrink: 0;
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background-color: var(--bg);
+  overflow: hidden;
+  color: var(--title-color);
+}
+
+[data-option="3"] .o3-poster {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: var(--art-rest);
+  pointer-events: none;
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="3"] .o3-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--crop-x) var(--crop-y);
+}
+
+[data-option="3"] .o3-scrim {
+  position: absolute;
+  inset: 0;
+  background-image: var(--gradient-semantic-card-scrim);
+  pointer-events: none;
+}
+
+[data-option="3"] .o3-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+[data-option="3"] .o3-ring::before,
+[data-option="3"] .o3-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="3"] .o3-ring::before {
+  padding: var(--rest-w);
+  background: var(--gradient-semantic-border-default);
+  opacity: 1;
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+}
+
+[data-option="3"] .o3-ring::after {
+  padding: var(--ring-w);
+  background: var(--gradient-semantic-focus-ring);
+  opacity: 0;
+  -webkit-mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+}
+
+[data-option="3"] .o3-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--group-gap);
+  opacity: var(--rest-ink);
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+[data-option="3"] .o3-title { margin: 0; }
+
+[data-option="3"] .o3-name,
+[data-option="3"] .o3-when { display: none; }
+
+[data-option="3"] .o3-name {
+  flex-direction: column;
+  max-height: calc(var(--lines) * var(--title-lh) * 1em + 0.15em);
+  margin: 0;
+  overflow: hidden;
+  text-wrap: balance;
+  font-size: var(--title-size);
+  line-height: var(--title-lh);
+  letter-spacing: var(--title-track);
+  color: var(--title-color);
+}
+
+[data-option="3"] .o3-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-option="3"] .o3-when {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-option="3"] .o3-apoio {
+  display: flex;
+  align-items: center;
+  gap: var(--apoio-gap);
+  min-width: 0;
+}
+
+[data-option="3"] .o3-live {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin: 0;
+  padding-inline: var(--pill-pad);
+  padding-block: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-image: var(--gradient-semantic-status-live);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+[data-option="3"] .o3-check {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: var(--inset);
+  right: var(--inset);
+  width: var(--check-size);
+  height: var(--check-size);
+  pointer-events: none;
+}
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="sel-0"], [data-state="repouso"]) .o3-name[data-prog="0"],
+[data-option="3"]:is([data-state="foco-1"], [data-state="sel-1"]) .o3-name[data-prog="1"],
+[data-option="3"]:is([data-state="foco-2"], [data-state="sel-2"]) .o3-name[data-prog="2"] {
+  display: flex;
+}
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="sel-0"], [data-state="repouso"]) .o3-when[data-prog="0"],
+[data-option="3"]:is([data-state="foco-1"], [data-state="sel-1"]) .o3-when[data-prog="1"],
+[data-option="3"]:is([data-state="foco-2"], [data-state="sel-2"]) .o3-when[data-prog="2"] {
+  display: block;
+}
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="foco-1"], [data-state="foco-2"]) .o3-poster {
+  opacity: var(--art-focus);
+}
+
+[data-option="3"] .o3-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background-image: radial-gradient(ellipse at 50% 100%, var(--color-semantic-focus-glow) 0%, transparent var(--dimension-size-semantic-focus-glow));
+}
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="foco-1"], [data-state="foco-2"]) .o3-glow {
+  opacity: var(--glow);
+}
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="foco-1"], [data-state="foco-2"]) .o3-ring::before { opacity: 0; }
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="foco-1"], [data-state="foco-2"]) .o3-ring::after { opacity: 1; }
+
+[data-option="3"]:is([data-state="foco-0"], [data-state="foco-1"], [data-state="foco-2"], [data-state="sel-0"], [data-state="sel-1"], [data-state="sel-2"]) .o3-body {
+  opacity: 1;
+}
+
+[data-option="3"]:is([data-state="sel-0"], [data-state="sel-1"], [data-state="sel-2"]) .o3-check {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-poster,
+  [data-option="3"] .o3-body,
+  [data-option="3"] .o3-ring::before,
+  [data-option="3"] .o3-ring::after {
+    transition-property: opacity;
+    transition-duration: var(--dur);
+    transition-timing-function: var(--ease);
+  }
+}
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-card-expanded);
+  --inset: var(--dimension-spacing-semantic-card-inset);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --gap-grupos: var(--dimension-spacing-core-sm);
+  --pos-x: 50%;
+  --pos-y: 50%;
+  --poster-on: var(--opacity-semantic-visible);
+  --poster-off: var(--opacity-semantic-hidden);
+  --scrim: var(--opacity-semantic-visible);
+  --gap-faixa: var(--dimension-spacing-core-3xs);
+  --pill-x: var(--dimension-spacing-core-2xs);
+  --pill-y: var(--dimension-spacing-core-3xs);
+  --check: var(--dimension-size-semantic-icon-sm);
+  --title-size: var(--typography-font-size-base);
+  --title-lh: var(--typography-line-height-normal);
+  --title-track: var(--typography-letter-spacing-tight);
+  --text-dim: var(--opacity-semantic-content-muted);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: 0px;
+  --rest: var(--dimension-border-width-semantic-button);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="4"] .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: var(--dimension-size-semantic-card-expanded-width);
+  height: var(--dimension-size-semantic-card-expanded-height);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+  color: var(--color-semantic-functional-text-primary);
+}
+
+[data-option="4"] .stage {
+  position: absolute;
+  inset: 0;
+}
+
+[data-option="4"] .poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--pos-x) var(--pos-y);
+  opacity: var(--poster-off);
+}
+
+[data-option="4"][data-state="foco"] .poster {
+  opacity: var(--poster-on);
+}
+
+[data-option="4"] .scrim {
+  position: absolute;
+  inset: 0;
+  background-image: var(--gradient-semantic-card-scrim);
+  opacity: var(--opacity-semantic-hidden);
+  pointer-events: none;
+}
+
+[data-option="4"][data-state="foco"] .scrim {
+  opacity: var(--scrim);
+}
+
+[data-option="4"] .plate {
+  position: absolute;
+  inset: var(--ring-offset);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+}
+
+[data-option="4"]:not([data-state="foco"]) .plate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--rest);
+  background: var(--gradient-semantic-border-default);
+  -webkit-mask:
+    linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+[data-option="4"][data-state="foco"] .plate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask:
+    linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box,
+    linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+[data-option="4"] .copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-grupos);
+  width: 100%;
+}
+
+[data-option="4"][data-state="selecionado"] .copy,
+[data-option="4"][data-state="repouso"] .copy {
+  opacity: var(--text-dim);
+}
+
+[data-option="4"] .meta {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-faixa);
+}
+
+[data-option="4"] .time {
+  margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-option="4"] .live {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  padding-inline: var(--pill-x);
+  padding-block: var(--pill-y);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-image: var(--gradient-semantic-status-live);
+  color: var(--color-semantic-functional-text-primary);
+  white-space: nowrap;
+}
+
+[data-option="4"] .title {
+  margin: 0;
+  color: var(--color-semantic-functional-text-primary);
+  font-size: var(--title-size);
+  line-height: var(--title-lh);
+  letter-spacing: var(--title-track);
+  text-wrap: balance;
+  display: block;
+  max-height: calc(var(--title-lh) * 2em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-option="4"] .check {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: var(--inset);
+  right: var(--inset);
+  width: var(--check);
+  height: var(--check);
+  background: var(--color-semantic-functional-text-primary);
+  -webkit-mask-image: url("assets/o4-check.png");
+  mask-image: url("assets/o4-check.png");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+[data-option="4"][data-state="selecionado"] .check {
+  display: block;
+}
+
+[data-option="4"] .poster,
+[data-option="4"] .scrim,
+[data-option="4"] .copy {
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="4"] .poster,
+  [data-option="4"] .scrim,
+  [data-option="4"] .copy {
+    transition-property: opacity;
+    transition-duration: var(--dur);
+  }
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: O nome ancora na faixa inferior sobre o scrim; a arte em 100% só aparece como âncora visual no canto superior direito. -->
+  <p class="opt-label" data-part="label">Opção 1 - Faixa baixa</p>
+  <div class="opt-content" data-part="content">
+    <div class="rail" data-part="fileira" role="listbox" aria-label="Grade ao vivo">
+      <div class="slot" data-part="card" role="option" aria-selected="false">
+        <div class="poster" data-part="poster" data-stack>
+          <img src="assets/poster.png" alt="">
+          <div class="scrim" data-part="scrim"></div>
+        </div>
+        <div class="face" data-part="face">
+          <span class="check" data-part="check" aria-hidden="true"><img src="assets/check.png" alt=""></span>
+          <div class="copy">
+            <div class="band" data-part="faixa">
+              <p class="live text-footnote-bold" data-part="aovivo">AO VIVO</p>
+              <p class="time text-footnote-medium" data-part="horario">20:30 – 21:45</p>
+            </div>
+            <p class="title text-body-md-bold" data-part="titulo" aria-live="polite" aria-label="A Grande Conquista do Sertão Nordestino em Tempo Real">A Grande Conquista<br>Sertão Nordestino…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">{"states":["foco","selecionado","default"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-card-expanded"},
+{"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+{"id":"rail","label":"Vão da fileira","type":"slider","var":"--rail-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Poster","part":"poster","controls":[
+{"id":"px","label":"Enquadramento horizontal","type":"slider","var":"--poster-x","value":0,"base":0,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"py","label":"Enquadramento vertical","type":"slider","var":"--poster-y","value":0,"base":0,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"artOn","label":"Arte no foco","type":"slider","var":"--art-on","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"},
+{"id":"artOff","label":"Arte fora do foco","type":"slider","var":"--art-off","value":0,"base":0,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-hidden"}
+]},
+{"name":"Foco","controls":[
+{"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}
+]},
+{"name":"Faixa","part":"faixa","controls":[
+{"id":"band","label":"Vão da faixa","type":"slider","var":"--band-gap","value":8,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"split","label":"Vão até o nome","type":"slider","var":"--title-gap","value":8,"base":16,"min":8,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}
+]},
+{"name":"Título","part":"titulo","controls":[
+{"id":"size","label":"Tamanho","type":"slider","var":"--title-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"lh","label":"Entrelinha","type":"slider","var":"--title-lh","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05,"token":"--typography-line-height-normal"},
+{"id":"track","label":"Espaçamento","type":"slider","var":"--title-track","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.01,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"color","label":"Cor","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"AO VIVO","part":"aovivo","controls":[
+{"id":"pillX","label":"Respiro lateral","type":"slider","var":"--pill-x","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"pillY","label":"Respiro vertical","type":"slider","var":"--pill-y","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"pillR","label":"Raio","type":"slider","var":"--pill-radius","value":100,"base":100,"min":8,"max":100,"step":1,"unit":"px","token":"--dimension-radius-semantic-pill"}
+]},
+{"name":"Check","part":"check","controls":[
+{"id":"check","label":"Tamanho","type":"slider","var":"--check","value":24,"base":24,"min":12,"max":32,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-lg"}
+]},
+{"name":"Movimento","controls":[
+{"id":"fade","label":"Transição da arte","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]},"base":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="foco" data-index="0" data-chosen="0" tabindex="0">
+  <!-- tese: Separar zonas: bloco tipográfico limpo para o nome; o resto do cartão é só massa de arte no canto superior direito, sem disputa. -->
+  <p class="opt-label" data-part="label">Opção 2 - Zona limpa</p>
+  <div class="opt-content" data-part="content">
+    <div class="rail" data-part="fileira" data-stack>
+      <p class="status text-footnote-medium" data-part="status" aria-live="polite">A Grande Conquista do Sertão Nordestino em Tempo Real, em foco</p>
+      <div class="track">
+        <div class="card" data-part="card" data-i="0">
+          <div class="poster" data-part="poster" data-stack>
+            <img src="assets/poster.png" alt="">
+            <div class="scrim" data-part="scrim"></div>
+          </div>
+          <div class="copy" data-part="zona">
+            <div class="faixa" data-part="faixa">
+              <p class="hora text-footnote-medium" data-part="hora">20:30 – 21:45</p>
+              <span class="live text-footnote-bold" data-part="ao-vivo">AO VIVO</span>
+              <span class="check" data-part="check" aria-hidden="true"></span>
+            </div>
+            <div class="titulo" data-part="titulo">
+              <p class="name text-body-md-bold">A Grande Conquista do Sertão Nordestino em Tempo Real</p>
+            </div>
+          </div>
+          <div class="frame" data-part="anel"></div>
+        </div>
+        <div class="card" data-part="card" data-i="1">
+          <div class="poster" data-part="poster" data-stack>
+            <img src="assets/poster.png" alt="">
+            <div class="scrim" data-part="scrim"></div>
+          </div>
+          <div class="copy" data-part="zona">
+            <div class="faixa" data-part="faixa">
+              <p class="hora text-footnote-medium" data-part="hora">21:45 – 23:10</p>
+              <span class="live text-footnote-bold" data-part="ao-vivo">AO VIVO</span>
+              <span class="check" data-part="check" aria-hidden="true"></span>
+            </div>
+            <div class="titulo" data-part="titulo">
+              <p class="name text-body-md-bold">Jornal Nacional<br>Especial: Cobertura<br>Completa das Eleições</p>
+            </div>
+          </div>
+          <div class="frame" data-part="anel"></div>
+        </div>
+        <div class="card" data-part="card" data-i="2">
+          <div class="poster" data-part="poster" data-stack>
+            <img src="assets/poster.png" alt="">
+            <div class="scrim" data-part="scrim"></div>
+          </div>
+          <div class="copy" data-part="zona">
+            <div class="faixa" data-part="faixa">
+              <p class="hora text-footnote-medium" data-part="hora">23:10 – 00:40</p>
+              <span class="live text-footnote-bold" data-part="ao-vivo">AO VIVO</span>
+              <span class="check" data-part="check" aria-hidden="true"></span>
+            </div>
+            <div class="titulo" data-part="titulo">
+              <p class="name text-body-md-bold">Big Brother Brasil —<br>A Eliminação Mais Esperada da Temporada</p>
+            </div>
+          </div>
+          <div class="frame" data-part="anel"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+{"states":["foco","selecionado","default"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-card-expanded"},
+{"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":24,"base":24,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3F3F3F","base":"#3F3F3F","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Fileira","part":"fileira","controls":[
+{"id":"rail","label":"Vão entre cartões","type":"slider","var":"--rail-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Poster","part":"poster","controls":[
+{"id":"posx","label":"Assunto na horizontal","type":"slider","var":"--pos-x","value":100,"base":100,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"posy","label":"Assunto na vertical","type":"slider","var":"--pos-y","value":0,"base":0,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"arton","label":"Arte no foco","type":"slider","var":"--art-on","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"},
+{"id":"artoff","label":"Arte fora do foco","type":"slider","var":"--art-off","value":0,"base":0,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-hidden"},
+{"id":"scrim","label":"Scrim","type":"slider","var":"--scrim","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"}
+]},
+{"name":"Zona","part":"zona","controls":[
+{"id":"plate","label":"Fundo da zona","type":"color","var":"--plate","value":"#17161B","base":"#17161B","token":"--color-core-neutral-charcoal"},
+{"id":"extra","label":"Altura extra da zona","type":"slider","var":"--plate-extra","value":0,"base":0,"min":0,"max":32,"step":1,"unit":"px"},
+{"id":"groups","label":"Vão até o nome","type":"slider","var":"--gap-groups","value":16,"base":16,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}
+]},
+{"name":"Título","part":"titulo","controls":[
+{"id":"title","label":"Cor do nome","type":"color","var":"--title","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"},
+{"id":"lines","label":"Linhas do nome","type":"slider","var":"--lines","value":2,"base":2,"min":1,"max":3,"step":1},
+{"id":"textoff","label":"Texto fora do foco","type":"slider","var":"--text-off","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"}
+]},
+{"name":"Faixa","part":"faixa","controls":[
+{"id":"meta","label":"Cor do horário","type":"color","var":"--meta","value":"#FFFFFFB3","base":"#FFFFFFB3","token":"--color-semantic-functional-text-muted"},
+{"id":"band","label":"Vão na faixa","type":"slider","var":"--gap-band","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"pillx","label":"Respiro da pílula","type":"slider","var":"--pill-x","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Foco","part":"anel","controls":[
+{"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":0,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"offset","label":"Folga do anel","type":"slider","var":"--ring-offset","value":2,"base":2,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-semantic-focus-offset"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Dissolução da arte","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.8,"ease":[0.2,0,0,1]},"base":{"duration":0.8,"ease":[0.2,0,0,1]},"token":"--motion-semantic-duration"}
+]}
+]}
+  </script>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="foco-0" tabindex="0">
+  <!-- tese: O título é o dado-âncora dominante na pilha; horário e AO VIVO formam um único grupo de apoio abaixo; a arte permanece full-bleed no canto sem roubar o olhar. -->
+  <p class="opt-label" data-part="label">Opção 3 - Âncora empilhada</p>
+  <div class="opt-content" data-part="content">
+    <div class="o3-card" data-part="card">
+      <div class="o3-poster" data-part="poster" data-stack>
+        <img src="assets/poster.png" alt="">
+        <div class="o3-scrim" data-part="scrim"></div>
+      </div>
+      <div class="o3-ring" data-part="ring"><div class="o3-glow" data-part="glow"></div></div>
+      <img class="o3-check" data-part="check" src="assets/check.png" alt="">
+      <div class="o3-body" data-part="body">
+        <div class="o3-title" data-part="title" aria-live="polite">
+          <div class="o3-name text-body-md-bold" data-prog="0"><span class="o3-line">A Grande Conquista</span><span class="o3-line">Sertão Nordestino…</span></div>
+          <div class="o3-name text-body-md-bold" data-prog="1"><span class="o3-line">Jornal Nacional</span><span class="o3-line">Especial: Cobertura</span></div>
+          <div class="o3-name text-body-md-bold" data-prog="2"><span class="o3-line">Big Brother Brasil —</span><span class="o3-line">A Eliminação Mais…</span></div>
+        </div>
+        <div class="o3-apoio" data-part="apoio">
+          <div class="o3-time" data-part="time">
+            <span class="o3-when text-footnote-medium" data-prog="0">20:30 – 21:45</span>
+            <span class="o3-when text-footnote-medium" data-prog="1">21:45 – 23:10</span>
+            <span class="o3-when text-footnote-medium" data-prog="2">23:10 – 00:45</span>
+          </div>
+          <p class="o3-live text-footnote-bold" data-part="live">AO VIVO</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">
+{"states":["foco-0","foco-1","foco-2","sel-0","sel-1","sel-2","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":24,"max":48,"step":1,"unit":"px","token":"--dimension-radius-semantic-card-expanded"},
+{"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Poster","part":"poster","controls":[
+{"id":"cropx","label":"Corte horizontal","type":"slider","var":"--crop-x","value":0,"base":0,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"cropy","label":"Corte vertical","type":"slider","var":"--crop-y","value":0,"base":0,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"artrest","label":"Arte fora do foco","type":"slider","var":"--art-rest","value":0,"base":0,"min":0,"max":1,"step":0.05},
+{"id":"artfocus","label":"Arte no foco","type":"slider","var":"--art-focus","value":1,"base":1,"min":0,"max":1,"step":0.05}
+]},
+{"name":"Título","part":"title","controls":[
+{"id":"titlesize","label":"Tamanho","type":"slider","var":"--title-size","value":16,"base":16,"min":14,"max":28,"step":1,"unit":"px"},
+{"id":"lines","label":"Linhas","type":"slider","var":"--lines","value":2,"base":2,"min":1,"max":2,"step":1},
+{"id":"titlecolor","label":"Cor","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"groupgap","label":"Vão até o apoio","type":"slider","var":"--group-gap","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"titlelh","label":"Entrelinha","type":"slider","var":"--title-lh","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05},
+{"id":"titletrack","label":"Espaço entre letras","type":"slider","var":"--title-track","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.01,"unit":"em"}
+]},
+{"name":"Apoio","part":"apoio","controls":[
+{"id":"apoiogap","label":"Vão interno","type":"slider","var":"--apoio-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"restink","label":"Opacidade fora do foco","type":"slider","var":"--rest-ink","value":1,"base":1,"min":0.5,"max":1,"step":0.05}
+]},
+{"name":"Ao vivo","part":"live","controls":[
+{"id":"pillpad","label":"Recuo da pílula","type":"slider","var":"--pill-pad","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Marca","part":"check","controls":[
+{"id":"checksize","label":"Tamanho da marca","type":"slider","var":"--check-size","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}
+]},
+{"name":"Foco","part":"ring","controls":[
+{"id":"ringw","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"glow","label":"Brilho","type":"slider","var":"--glow","value":0.6,"base":0.6,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-focus-glow"},
+{"id":"restw","label":"Traço em repouso","type":"slider","var":"--rest-w","value":1,"base":1,"min":1,"max":4,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Transição de estado","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]},"base":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}
+  </script>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: Inverte o canto: o assunto do poster volta ao centro óptico e encontra o bloco tipográfico; o nome segue em 2 linhas. -->
+  <p class="opt-label" data-part="label">Opção 4 - Assunto ao centro</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="stage" data-stack>
+        <img class="poster" data-part="poster" src="assets/o4-poster.png" alt="">
+        <div class="scrim" data-part="scrim"></div>
+      </div>
+      <div class="plate" data-part="plate"></div>
+      <div class="copy" data-part="copy">
+        <div class="meta" data-part="meta">
+          <p class="time text-footnote-medium" data-part="horario">20:30 – 21:45</p>
+          <p class="live text-footnote-bold" data-part="aovivo">AO VIVO</p>
+        </div>
+        <p class="title text-body-md-bold" data-part="titulo" aria-live="polite">A Grande Conquista do Sertão Nordestino em Tempo Real</p>
+      </div>
+      <span class="check" data-part="check"></span>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">
+{"states":["foco","selecionado","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-card-expanded"},
+{"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+{"id":"gap","label":"Vão entre grupos","type":"slider","var":"--gap-grupos","value":16,"base":16,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}
+]},
+{"name":"Poster","part":"poster","controls":[
+{"id":"posx","label":"Posição horizontal","type":"slider","var":"--pos-x","value":50,"base":50,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"posy","label":"Posição vertical","type":"slider","var":"--pos-y","value":50,"base":50,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"on","label":"Arte no foco","type":"slider","var":"--poster-on","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"},
+{"id":"off","label":"Arte fora do foco","type":"slider","var":"--poster-off","value":0,"base":0,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-hidden"}
+]},
+{"name":"Scrim","part":"scrim","controls":[
+{"id":"scrim","label":"Força do scrim","type":"slider","var":"--scrim","value":1,"base":1,"min":0,"max":1,"step":0.05,"token":"--opacity-semantic-visible"}
+]},
+{"name":"Faixa","part":"meta","controls":[
+{"id":"faixa","label":"Vão da faixa","type":"slider","var":"--gap-faixa","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"pillx","label":"Respiro lateral da pílula","type":"slider","var":"--pill-x","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"pilly","label":"Respiro vertical da pílula","type":"slider","var":"--pill-y","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"check","label":"Tamanho do check","type":"slider","var":"--check","value":16,"base":16,"min":12,"max":32,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}
+]},
+{"name":"Título","part":"titulo","controls":[
+{"id":"size","label":"Tamanho do título","type":"slider","var":"--title-size","value":16,"base":16,"min":12,"max":28,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"lh","label":"Entrelinha do título","type":"slider","var":"--title-lh","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05,"token":"--typography-line-height-normal"},
+{"id":"track","label":"Espaço entre letras","type":"slider","var":"--title-track","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.01,"unit":"em","token":"--typography-letter-spacing-tight"}
+]},
+{"name":"Foco","part":"plate","controls":[
+{"id":"dim","label":"Texto fora do foco","type":"slider","var":"--text-dim","value":0.5,"base":0.5,"min":0.3,"max":1,"step":0.05,"token":"--opacity-semantic-content-muted"},
+{"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"offset","label":"Folga do anel","type":"slider","var":"--ring-offset","value":0,"base":0,"min":0,"max":12,"step":1,"unit":"px"},
+{"id":"rest","label":"Contorno em repouso","type":"slider","var":"--rest","value":1,"base":1,"min":1,"max":4,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}
+]},
+{"name":"Movimento","controls":[
+{"id":"arte","label":"Transição da arte","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]},"base":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}
+  </script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const slot = root.querySelector('.slot')
+  const title = root.querySelector('.title')
+  const time = root.querySelector('.time')
+  const programs = [
+    { time: '20:30 – 21:45', html: 'A Grande Conquista<br>Sertão Nordestino…', full: 'A Grande Conquista do Sertão Nordestino em Tempo Real' },
+    { time: '21:45 – 23:10', html: 'Jornal Nacional<br>Especial: Cobertura', full: 'Jornal Nacional Especial: Cobertura Completa das Eleições' },
+    { time: '23:10 – 00:40', html: 'Big Brother Brasil —<br>A Eliminação Mais…', full: 'Big Brother Brasil — A Eliminação Mais Esperada da Temporada' },
+  ]
+  let index = 0
+  let selected = -1
+  const paint = () => {
+    const item = programs[index]
+    const on = index === selected
+    time.textContent = item.time
+    title.innerHTML = item.html
+    title.setAttribute('aria-label', item.full)
+    slot.dataset.card = on ? 'both' : 'focus'
+    slot.setAttribute('aria-selected', on ? 'true' : 'false')
+    root.dataset.state = selected >= 0 ? 'selecionado' : 'foco'
+    root.dataset.driven = '1'
+  }
+  root.addEventListener('keydown', (e) => {
+    const n = programs.length
+    if (e.key === 'ArrowLeft') { if (index > 0) { index -= 1; paint() } }
+    else if (e.key === 'ArrowRight') { if (index < n - 1) { index += 1; paint() } }
+    else if (e.key === 'Enter') { selected = index; paint() }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (selected >= 0) { selected = -1; paint() }
+      else if (index > 0) { index = 0; paint() }
+      else return
+    } else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  if (!root) return
+  const status = root.querySelector('[data-part="status"]')
+  const names = [...root.querySelectorAll('.name')].map((n) => n.textContent.replace(/\s+/g, ' ').trim())
+  const say = () => {
+    const i = Number(root.dataset.index)
+    const on = root.dataset.state === 'selecionado' && root.dataset.chosen === String(i)
+    if (status) status.textContent = `${names[i]}, ${on ? 'escolhido' : 'em foco'}`
+  }
+  root.addEventListener('keydown', (e) => {
+    const i = Number(root.dataset.index)
+    if (e.key === 'ArrowLeft') {
+      if (i > 0) root.dataset.index = String(i - 1)
+    } else if (e.key === 'ArrowRight') {
+      if (i < names.length - 1) root.dataset.index = String(i + 1)
+    } else if (e.key === 'Enter') {
+      root.dataset.state = 'selecionado'
+      root.dataset.chosen = String(i)
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state !== 'selecionado') return
+      root.dataset.state = 'foco'
+    } else return
+    e.preventDefault()
+    say()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const parse = (s) => {
+    let m = /^foco-(\d)$/.exec(s || '')
+    if (m) return { focus: Number(m[1]), sel: false }
+    m = /^sel-(\d)$/.exec(s || '')
+    if (m) return { focus: Number(m[1]), sel: true }
+    return { focus: 0, sel: false }
+  }
+  const encode = ({ focus, sel }) => (sel ? `sel-${focus}` : `foco-${focus}`)
+  root.addEventListener('keydown', (e) => {
+    const cur = parse(root.dataset.state)
+    if (e.key === 'ArrowRight') {
+      if (cur.focus < 2) root.dataset.state = encode({ focus: cur.focus + 1, sel: false })
+    } else if (e.key === 'ArrowLeft') {
+      if (cur.focus > 0) root.dataset.state = encode({ focus: cur.focus - 1, sel: false })
+    } else if (e.key === 'Enter') {
+      root.dataset.state = encode({ focus: cur.focus, sel: true })
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state === 'foco-0') return
+      if (cur.sel) root.dataset.state = encode({ focus: cur.focus, sel: false })
+      else root.dataset.state = 'foco-0'
+    } else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const title = root.querySelector('[data-part="titulo"]')
+  const time = root.querySelector('[data-part="horario"]')
+  const programs = [
+    ['20:30 – 21:45', 'A Grande Conquista do Sertão Nordestino em Tempo Real'],
+    ['21:00 – 22:40', 'Jornal Nacional Especial: Cobertura Completa das Eleições'],
+    ['22:15 – 00:10', 'Big Brother Brasil — A Eliminação Mais Esperada da Temporada'],
+  ]
+  let index = 0
+  // Corta na fronteira da palavra: a 2ª linha termina num vocábulo inteiro e o que passa vira reticências.
+  const fitTitle = (full) => {
+    const words = full.split(' ')
+    const limit = parseFloat(getComputedStyle(title).lineHeight) * 2 + 1
+    title.style.maxHeight = 'none'
+    let best = 1
+    let lo = 1
+    let hi = words.length
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      const cut = mid < words.length
+      title.textContent = cut ? words.slice(0, mid).join(' ') + '…' : words.slice(0, mid).join(' ')
+      if (title.getBoundingClientRect().height <= limit) {
+        best = mid
+        lo = mid + 1
+      } else hi = mid - 1
+    }
+    const cut = best < words.length
+    title.textContent = cut ? words.slice(0, best).join(' ') + '…' : full
+    title.style.maxHeight = ''
+  }
+  const render = () => {
+    time.textContent = programs[index][0]
+    fitTitle(programs[index][1])
+    root.setAttribute('aria-selected', root.dataset.state === 'selecionado' ? 'true' : 'false')
+  }
+  render()
+  document.fonts.ready.then(render)
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      if (index > 0) {
+        index -= 1
+        root.dataset.state = 'foco'
+        render()
+      }
+    } else if (e.key === 'ArrowRight') {
+      if (index < programs.length - 1) {
+        index += 1
+        root.dataset.state = 'foco'
+        render()
+      }
+    } else if (e.key === 'Enter') {
+      root.dataset.state = 'selecionado'
+      render()
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state === 'selecionado') root.dataset.state = 'foco'
+      else if (index > 0) {
+        index -= 1
+        root.dataset.state = 'foco'
+        render()
+      } else return
+    } else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+</body>
+</html>
