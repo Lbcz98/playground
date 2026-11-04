@@ -51,6 +51,20 @@ describe('vars block', () => {
   })
 })
 
+describe('text control', () => {
+  const withText = (value: string) => ({ folders: [{ name: 'Texto', controls: [{ id: 'msg', label: 'Mensagem', type: 'text', var: '--msg', value }] }] })
+  it('is written as a CSS string, with "<" escaped so it cannot close the style', () => {
+    expect(varsBlock(withText('Olá "você"'), 2)).toContain('--msg: "Olá \\"você\\"";')
+    expect(varsBlock(withText('</style>'), 2)).toContain('--msg: "\\3C /style>";')
+  })
+  it('applies a one-line string and ignores anything else', () => {
+    const html = `<style>\n${varsBlock(withText('a'), 2)}\n</style><article data-option="2" data-tuned><script type="application/json" data-tune="2">${JSON.stringify(withText('a'))}</script></article>`
+    expect(applyTuned(html, 2, { '0.msg': 'novo texto' }).changed).toBe(1)
+    expect(applyTuned(html, 2, { '0.msg': 'duas\nlinhas' }).changed).toBe(0)
+    expect(applyTuned(html, 2, { '0.msg': 5 }).changed).toBe(0)
+  })
+})
+
 describe('specJson', () => {
   it('is the same spec, one control per line', () => {
     const json = specJson(spec)
