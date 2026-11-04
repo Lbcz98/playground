@@ -8,7 +8,7 @@ import { banForCssVar, banSentence, closestName } from './agent-token-bans.mjs'
 // numbers: "Aplicar valores" rewrites the spec's values and regenerates that block here, with no agent in the loop.
 
 /** Control types the runtime (explore-tune.js) can draw. */
-export const TYPES = ['slider', 'color', 'select', 'easing']
+export const TYPES = ['slider', 'color', 'select', 'easing', 'text']
 const VARS = /\/\* tune:vars \*\/[\s\S]*?\/\* \/tune:vars \*\//g
 
 /** The tune:vars blocks that style option `n` (`[data-option="n"] {`), as { start, end, text }. The style may sit anywhere in the page, not inside the article. */
@@ -33,12 +33,16 @@ export function tuneTarget(html, n) {
   return kids.length ? { option: kids.at(-1), preparing: false } : { option: String(n), preparing: true }
 }
 
+/** A text control's value as a CSS string (for `content: var(--x)`); `<` is escaped so the text cannot close the page's <style>. */
+export const cssString = (v) => JSON.stringify(String(v)).replace(/</g, '\\3C ')
+
 const num = (v, c) => Math.min(c.max ?? Infinity, Math.max(c.min ?? -Infinity, Number(v)))
 /** One control's value, checked against its own definition; undefined when it does not fit (the old value stays). */
 function clean(c, v) {
   if (c.type === 'slider') return Number.isFinite(Number(v)) ? num(v, c) : undefined
   if (c.type === 'color') return /^#[0-9a-f]{3,8}$/i.test(v) ? String(v).toLowerCase() : undefined
   if (c.type === 'select') return c.options?.some((o) => (o.value ?? o) === v) ? v : undefined
+  if (c.type === 'text') return typeof v === 'string' && v.length <= 200 && !/[\r\n]/.test(v) ? v : undefined
   if (c.type === 'easing') {
     const { duration, ease } = v ?? {}
     return Number.isFinite(duration) && duration >= 0 && duration <= 10 && Array.isArray(ease) && ease.length === 4 && ease.every(Number.isFinite)
@@ -52,6 +56,7 @@ function declare(c) {
   if (c.type === 'slider') { const [css, o] = off(`${v}${c.unit ?? ''}`); return [[c.var, c.token && !o ? `var(${c.token})` : css, o]] }
   if (c.type === 'color') return [[c.var, c.token && v === c.base ? `var(${c.token})` : v, c.token && v !== c.base]]
   if (c.type === 'select') return [[c.var, v, false]]
+  if (c.type === 'text') return [[c.var, cssString(v), false]]
   if (c.type === 'easing') {
     const same = JSON.stringify(v) === JSON.stringify(c.base)
     return [[c.durVar, c.token && same ? `var(${c.token})` : `${Math.round(v.duration * 1000)}ms`, !!c.token && !same], [c.easeVar, `cubic-bezier(${v.ease.join(', ')})`, false]]
@@ -126,6 +131,7 @@ export function lintSpec(html, n, kit) {
       if (c.type === 'slider' && !(fin(c.value) && fin(c.min) && fin(c.max) && c.min <= c.value && c.value <= c.max)) bad.push(`${at}: value deve estar entre min e max`)
       if (c.type === 'color' && !/^#[0-9a-f]{3,8}$/i.test(c.value)) bad.push(`${at}: cor deve ser #hex`)
       if (c.type === 'select' && !(c.options?.length && c.options.includes(c.value))) bad.push(`${at}: value deve estar em options`)
+      if (c.type === 'text' && clean(c, c.value) === undefined) bad.push(`${at}: texto deve ser uma linha de até 200 caracteres`)
       if (c.type === 'easing' && clean(c, c.value) === undefined) bad.push(`${at}: easing precisa de duration (s) e ease [x1,y1,x2,y2]`)
       if (c.token) {
         if (c.base === undefined) bad.push(`${at}: com token, base é o valor original do token`)
@@ -181,7 +187,7 @@ export function specMarkdown(html, n, { values = {}, label = `Option ${n}`, brie
   out.push('## Keys', '', 'TV remote model inside the card (source: `node scripts/explore-ref.mjs --teclas`): ←/→ move the one focus without wrapping, Enter acts on the focused piece, Back (Esc / Backspace) undoes the last action and, at the initial state, leaves the card; ↑/↓ leave the card and are never handled inside it.', '', ...keys, ...(keys.length ? [''] : []))
   const motion = rows.filter((r) => r.c.type === 'easing')
   out.push('## Motion', '', ...(motion.length ? motion.map(({ c, f, v }) => `- ${f.name} › ${c.label}: ${show(c, v)}`) : ['- No timed transitions.']), '- With `prefers-reduced-motion: reduce`, slides and scales become an opacity crossfade and the focus ring stays.', '')
-  const cand = rows.filter((r) => r.c.type !== 'select' && (r.c.token ? JSON.stringify(r.v) !== JSON.stringify(r.c.base) : true))
+  const cand = rows.filter((r) => r.c.type !== 'select' && r.c.type !== 'text' && (r.c.token ? JSON.stringify(r.v) !== JSON.stringify(r.c.base) : true))
   out.push('## Token candidates', '', ...(cand.length ? ['Values that are not a kit token (moved off their token, or a free literal in the design):', '', ...cand.map(({ c, f, v }) => `- ${f.name} › ${c.label}: ${show(c, v)}${c.token ? ` (was \`${c.token}\`)` : ''}`)] : ['None: every value is a kit token.']), '')
   return out.join('\n')
 }

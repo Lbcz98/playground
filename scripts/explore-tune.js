@@ -180,6 +180,7 @@
   const pick = (c) => c.type === 'slider' ? [c.value, c.min, c.max, c.step ?? 1]
     : c.type === 'color' ? { type: 'color', default: c.value }
     : c.type === 'select' ? { type: 'select', options: c.options, default: c.value }
+    : c.type === 'text' ? { type: 'text', default: c.value }
     : { type: 'easing', duration: c.value.duration, ease: c.value.ease }
   const config = {}
   if (states.length > 1) config[SIM] = {
@@ -196,7 +197,7 @@
   const setState = (v) => { if (v && art.dataset.state !== v) art.dataset.state = v }
   const drive = (c, v) => {
     if (c.type === 'easing') { art.style.setProperty(c.durVar, `${Math.round(v.duration * 1000)}ms`); art.style.setProperty(c.easeVar, `cubic-bezier(${v.ease.join(', ')})`) }
-    else art.style.setProperty(c.var, c.type === 'slider' ? `${v}${c.unit ?? ''}` : v)
+    else art.style.setProperty(c.var, c.type === 'slider' ? `${v}${c.unit ?? ''}` : c.type === 'text' ? JSON.stringify(String(v)).replace(/</g, '\\3C ') : v)
   }
 
   // Slow motion: every transition and animation that starts inside the option runs at the chosen speed (delays included).
