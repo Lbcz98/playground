@@ -129,7 +129,7 @@
   --color-semantic-functional-status-success: var(--color-core-complementary-confirmation);
   --color-semantic-functional-status-warning: var(--color-core-complementary-alert);
   --color-semantic-functional-status-live: var(--color-core-complementary-live);
-  --color-semantic-functional-rating-text: var(--color-core-neutral-dark-grey);
+  --color-semantic-functional-rating-text: var(--color-core-neutral-white);
   --color-semantic-functional-rating-18-text: var(--color-core-neutral-white);
   --color-semantic-functional-rating-free: var(--color-core-complementary-rating-free);
   --color-semantic-functional-rating-6: var(--color-core-complementary-rating-6);
@@ -144,6 +144,8 @@
   --color-semantic-functional-background-tint: var(--color-opacity-light-10);
   /* Supporting text on translucent cards (overline, subtitle) */
   --color-semantic-functional-text-muted: var(--color-opacity-light-70);
+  /* Stroke of the rating badge in the About card: Neutral White. */
+  --color-semantic-functional-rating-stroke: var(--color-core-neutral-white);
 
   /* ===== Color · Semantic · Focus ===== */
   /* Fill inside the focus ring */
@@ -372,6 +374,8 @@
   --dimension-size-semantic-alert-bug-mark: 82px;
   /* The spinning halo around the alert bug's mark, in the 1280x720 frame. In 1920x1080 it is 152px. */
   --dimension-size-semantic-alert-bug-halo: 102px;
+  /* Rating badge of the About card: a fixed 32x32 square that never grows with its text. */
+  --dimension-size-semantic-rating-badge: var(--dimension-spacing-core-xl);
 
   /* ===== Dimension · Border Width · Core ===== */
   --dimension-border-width-core-hairline: 1px;
@@ -393,6 +397,12 @@
   /* ===== Typography · Font Family ===== */
   /* Names the typeface only. The CSS build appends the resolution chain (bundled variable copy, local install, system sans-serif). */
   --typography-font-family-primary: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Names the typeface only, like primary. */
+  --typography-font-family-arial: 'Arial Variable', 'Arial', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* ===== Typography · Font Family · Semantic ===== */
+  /* Rating badge text of the About card: Arial, as in the live product. */
+  --typography-font-family-semantic-rating: var(--typography-font-family-arial);
 
   /* ===== Typography · Font Weight ===== */
   --typography-font-weight-regular: 400;
@@ -412,6 +422,10 @@
   --typography-font-size-4xl: 56px;
   --typography-font-size-5xl: 72px;
 
+  /* ===== Typography · Font Size · Semantic ===== */
+  /* Rating badge text of the About card: 18px. */
+  --typography-font-size-semantic-rating: var(--typography-font-size-lg);
+
   /* ===== Typography · Letter Spacing ===== */
   --typography-letter-spacing-normal: 0em;
   --typography-letter-spacing-tight: -0.01em;
@@ -420,6 +434,8 @@
   /* ===== Typography · Letter Spacing · Semantic ===== */
   /* Text inside the Details cards (About, Technical Sheet): untightened, as in the live product. */
   --typography-letter-spacing-semantic-detail-card-text: var(--typography-letter-spacing-normal);
+  /* Rating badge text of the About card: tightened by 10%. */
+  --typography-letter-spacing-semantic-rating: -0.1em;
 
   /* ===== Typography · Line Height ===== */
   --typography-line-height-tight: 1.1;
