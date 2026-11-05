@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FlowFile } from './export/flowFile'
-import { PRESS, playStep, remoteKey } from './flowPlay'
+import { NOTICE_IDLE, PRESS, noticeOnState, noticeOnTimer, playStep, remoteKey } from './flowPlay'
 
 // The walk of web/protos/standards/flow.md, one key at a time. The rail is above Home and opens a page with Enter.
 const flow: FlowFile = {
@@ -90,5 +90,45 @@ describe('the remote: which key of the keyboard is which key of the flow', () =>
   it('PRESS is the inverse: the key a test presses for each flow key reads back as that key', () => {
     expect(PRESS).toMatchObject({ up: 'ArrowUp', back: 'Escape', restart: 'r' })
     for (const [play, name] of Object.entries(PRESS)) expect(key(name)).toBe(play)
+  })
+})
+
+describe('the notice: a message that arrives by itself', () => {
+  const notice = { state: 'aviso', startOn: 'home', after: 20, during: 5, cancelOn: 'logged' }
+
+  it('stays idle until the walk reaches the state that starts it', () => {
+    expect(noticeOnState(notice, NOTICE_IDLE, 'bug')).toEqual(NOTICE_IDLE)
+    expect(noticeOnState(notice, NOTICE_IDLE, 'home')).toEqual({ phase: 'counting', badge: false })
+  })
+
+  it('counts once: landing on the start state again does not restart it', () => {
+    const open = noticeOnTimer(noticeOnState(notice, NOTICE_IDLE, 'home'), 'arrive')
+    expect(noticeOnState(notice, open, 'home')).toEqual(open)
+    const closed = noticeOnTimer(open, 'leave')
+    expect(noticeOnState(notice, closed, 'home')).toEqual(closed)
+  })
+
+  it('arrives with its badge, leaves, and keeps the badge after leaving', () => {
+    const counting = noticeOnState(notice, NOTICE_IDLE, 'home')
+    const open = noticeOnTimer(counting, 'arrive')
+    expect(open).toEqual({ phase: 'open', badge: true })
+    expect(noticeOnTimer(open, 'leave')).toEqual({ phase: 'closed', badge: true })
+  })
+
+  it('a timer that fires out of turn does nothing', () => {
+    expect(noticeOnTimer(NOTICE_IDLE, 'arrive')).toEqual(NOTICE_IDLE)
+    expect(noticeOnTimer({ phase: 'counting', badge: false }, 'leave')).toEqual({ phase: 'counting', badge: false })
+  })
+
+  it('reaching the cancel state ends it, badge included, for good', () => {
+    const open = noticeOnTimer(noticeOnState(notice, NOTICE_IDLE, 'home'), 'arrive')
+    const done = noticeOnState(notice, open, 'logged')
+    expect(done).toEqual({ phase: 'cancelled', badge: false })
+    expect(noticeOnState(notice, done, 'home')).toEqual(done)
+    expect(noticeOnTimer(done, 'arrive')).toEqual(done)
+  })
+
+  it('a flow without a notice never changes', () => {
+    expect(noticeOnState(undefined, NOTICE_IDLE, 'home')).toEqual(NOTICE_IDLE)
   })
 })

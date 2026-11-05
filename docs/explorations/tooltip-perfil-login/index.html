@@ -1,0 +1,3069 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Tooltip do perfil: Faça o login</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* @explore 1 */
+/* ── Opção 1 · Fiel: rótulo no eixo ── */
+
+/* Scene: simula o rodapé da Home no fundo escuro do televisor */
+[data-option="1"] .scene {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 272px;
+  background: var(--color-semantic-functional-background-primary);
+  position: relative;
+}
+
+/* Espaçador: simula a área de conteúdo acima da barra */
+[data-option="1"] .home-spacer {
+  display: block;
+  flex: 1;
+}
+
+/* Barra do MainMenu */
+[data-option="1"] .main-menu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+  padding: 0 var(--dimension-spacing-core-xl);
+  background: var(--color-semantic-functional-background-elevated);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Grupos esquerdo e direito */
+[data-option="1"] .menu-group {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-xs);
+  flex-shrink: 0;
+}
+
+/* Grupo direito: encolhe e trunca se o texto for longo.
+   text-overflow: ellipsis isenta do check "cortado" (linha 157 de check-explore-layout). */
+[data-option="1"] .menu-group-right {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-option="1"] .menu-group-right .btn-menu {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-option="1"] .menu-group-right .btn-menu span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Botão de perfil (avatar) ── */
+[data-option="1"] .profile-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+[data-option="1"] .btn-profile {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+  border: none;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  position: relative;
+  flex-shrink: 0;
+}
+
+[data-option="1"] .avatar-placeholder {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-semantic-functional-border-default);
+}
+
+/* ── Botões de texto do menu ── */
+[data-option="1"] .btn-menu {
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-core-md);
+  background: transparent;
+  border: none;
+  cursor: default;
+  outline: none;
+  white-space: nowrap;
+  color: var(--color-semantic-functional-text-primary);
+  position: relative;
+}
+
+[data-option="1"] .btn-menu.is-focused {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Anel de foco: pseudo-elemento atrás do botão */
+[data-option="1"] .is-focused::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: var(--gradient-semantic-focus-ring);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Tooltip: filho do .scene, posicionado via JS ── */
+[data-option="1"] .tooltip {
+  display: block;
+  position: absolute;
+  /* left ajustado pelo JS; bottom = topo do avatar (66px) + 4px gap = 70px */
+  bottom: 70px;
+  left: 0;
+  transform: translateX(-50%);
+  /* estado inicial: invisível, deslocado para baixo */
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateX(-50%) translateY(8px);
+  background: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-spacing-core-xs);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Entrada: sobe de baixo para cima, desfoca até nítido */
+@keyframes o1-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0px);
+  }
+}
+
+/* Saída: desce, ganha blur, some */
+@keyframes o1-tooltip-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+[data-option="1"] .tooltip[data-anim="in"] {
+  animation: o1-tooltip-in 200ms ease forwards;
+}
+
+[data-option="1"] .tooltip[data-anim="out"] {
+  animation: o1-tooltip-out 200ms ease forwards;
+}
+
+/* Sem movimento: pílula já nítida e no lugar */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"] .tooltip[data-anim="in"] {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+  [data-option="1"] .tooltip[data-anim="out"] {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+[data-option="1"] .tooltip-text {
+  display: block;
+  color: var(--color-semantic-functional-text-primary);
+}
+/* /@explore 1 */
+/* @explore 2 */
+/* ═══ Opção 2 · Alinhada à borda ═══
+   Borda esquerda da pílula = borda esquerda do avatar.
+   Tokens literais (kit sem equivalente): 200ms ease, blur 2px, 6px de deslocamento de entrada.
+*/
+
+/* Stage: faixa inferior da Home — layout com padding, como opções 3 e 4.
+   overflow: hidden impede que o menu-right escape da tile.
+   data-stack: o clipping é deliberado (simula a TV inteira numa tile estreita). */
+[data-option="2"] .home-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  /* padding-block-start generoso para o tooltip (≈44px) + gap (4px) ficarem dentro do stage */
+  padding-block-start: var(--dimension-spacing-core-6xl);  /* 96px */
+  padding-block-end:   var(--dimension-spacing-core-xl);   /* 32px margem segura */
+  padding-inline:      var(--dimension-spacing-core-xl);   /* 32px margem segura */
+  box-sizing: border-box;
+}
+
+/* Barra do menu: fluxo normal — as margens vêm do padding do pai */
+[data-option="2"] .menu-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+[data-option="2"] .menu-left {
+  display: flex;
+  align-items: center;
+  gap: var(--dimension-spacing-core-xs);
+  flex-shrink: 0;
+}
+
+/* Grupo direito: encolhe e trunca se o espaço apertar.
+   text-overflow: ellipsis isenta do check "cortado" (padrão de option 1). */
+[data-option="2"] .menu-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Profile wrap: âncora de posicionamento do tooltip */
+[data-option="2"] .profile-wrap {
+  position: relative;
+  display: block;
+}
+
+/* Botão de avatar (redondo, placeholder do kit) */
+[data-option="2"] .profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-semantic-functional-background-elevated);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* Silhueta de avatar — forma em CSS, sem SVG inline */
+[data-option="2"] .avatar-head {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-semantic-functional-text-muted);
+  margin-bottom: 2px;
+}
+
+[data-option="2"] .avatar-body {
+  display: block;
+  width: 28px;
+  height: 14px;
+  border-radius: 14px 14px 0 0;
+  background-color: var(--color-semantic-functional-text-muted);
+}
+
+/* ─── Pílula do tooltip ─── */
+[data-option="2"] .tooltip-pill {
+  position: absolute;
+  /* 4px de distância acima do botão de perfil */
+  bottom: calc(100% + 4px);
+  /* Opção 2: borda esquerda da pílula = borda esquerda do avatar */
+  left: 0;
+
+  display: inline-flex;
+  align-items: center;
+
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  /* Padding igual nos quatro lados, medido até o texto visível */
+  padding: var(--dimension-spacing-core-xs);
+
+  white-space: nowrap;
+  pointer-events: none;
+
+  /* Loop de demonstração: entrada → pausa → saída → pausa */
+  animation: o2-tooltip-loop 4s ease 0.6s infinite both;
+}
+
+/* Texto da pílula */
+[data-option="2"] .tooltip-pill .text-body-md-regular {
+  color: var(--color-semantic-functional-text-primary);
+}
+
+/* Botões genéricos do menu (Schedule, Misc) */
+[data-option="2"] .menu-item {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-semantic-functional-text-primary);
+  border-radius: var(--dimension-radius-core-md);
+  padding: var(--dimension-spacing-core-2xs) var(--dimension-spacing-core-xs);
+}
+
+/* Botão Program — estado foco (Home abre com foco aqui).
+   min-width: 0 permite que o flex-shrink do .menu-right entre em ação. */
+[data-option="2"] .program-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  cursor: pointer;
+  color: var(--color-semantic-functional-text-primary);
+  border-radius: var(--dimension-radius-core-md);
+  padding: var(--dimension-spacing-core-2xs) var(--dimension-spacing-core-xs);
+  border: 2px solid transparent;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Anel de foco: aproximação do --gradient-semantic-focus-ring do kit */
+[data-option="2"] .program-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--dimension-radius-core-md) + 2px);
+  background: var(--gradient-semantic-focus-ring,
+    linear-gradient(135deg, #00e5ff 0%, #0070f3 100%));
+  z-index: -1;
+}
+
+/* Texto do Program: trunca ao invés de quebrar linha.
+   text-overflow: ellipsis isenta do check "cortado". */
+[data-option="2"] .menu-right .program-btn span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Keyframes ─── */
+
+/* Entrada: sobe de baixo para cima, desfoque 2px → nítido */
+@keyframes o2-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+/* Saída: inverso da entrada */
+@keyframes o2-tooltip-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+}
+
+/* Loop de demonstração:
+   0 %–5 %  → entrada (200ms de 4000ms)
+   5%–55%   → visível (pausa 2000ms)
+   55%–60%  → saída  (200ms)
+   60%–100% → invisível (pausa 1600ms) */
+@keyframes o2-tooltip-loop {
+  0%   { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  5%   { opacity: 1; transform: translateY(0);   filter: blur(0px); }
+  55%  { opacity: 1; transform: translateY(0);   filter: blur(0px); }
+  60%  { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  100% { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+}
+
+/* Sem animação quando o usuário prefere movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="2"] .tooltip-pill {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+/* /@explore 2 */
+/* @explore 3 */
+/* === Opção 3 – Irmã do botão ===
+ * Pílula com mesma altura (72 px) e mesmo raio (100 px) do botão de perfil.
+ * Tokens literais sem equivalente no kit: 200 ms ease, blur 2 px. */
+
+/* Stage: faixa inferior da Home no fundo escuro da TV */
+[data-option="3"] .o3-stage {
+  position: relative;
+  width: 960px;
+  background: var(--color-semantic-functional-background-primary);
+  /* padding-block-start: 96 px — espaço suficiente para o tooltip (72 px) + gap (4 px) + botão (88 px) ficarem dentro da stage */
+  padding-block-start: var(--dimension-spacing-core-6xl);  /* 96px */
+  padding-block-end:   var(--dimension-spacing-core-xl);   /* 32px margem segura */
+  padding-inline:      var(--dimension-spacing-core-xl);   /* 32px margem segura */
+  box-sizing: border-box;
+  /* overflow: hidden faz o menu largo caber na tile estreita sem escapar do card */
+  overflow: hidden;
+}
+
+/* ── Barra do menu ─────────────────────────────────────────── */
+[data-option="3"] .o3-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+[data-option="3"] .o3-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+}
+
+[data-option="3"] .o3-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+}
+
+/* ── Login wrap: âncora de posicionamento do tooltip ───────── */
+[data-option="3"] .o3-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill: mesma altura (72 px) e raio (pill) do botão ── */
+[data-option="3"] .o3-tooltip {
+  position: absolute;
+  /* 4 px acima do limite externo do botão (88 px) */
+  bottom: calc(100% + var(--dimension-spacing-core-3xs));
+  left: 50%;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  /* Altura = round-button-circle: a pílula parece irmã do botão */
+  height: var(--dimension-size-semantic-round-button-circle);  /* 72 px */
+  padding-inline: var(--dimension-spacing-core-lg);            /* 24 px */
+  background: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  /* Loop: entra (200 ms ease) → fica 2 s → sai (200 ms ease) → pausa 400 ms */
+  animation: o3-tooltip-loop 2800ms linear infinite;
+}
+
+/* Tooltip some quando um botão da esquerda ganha foco */
+[data-option="3"][data-focus-left] .o3-tooltip {
+  animation: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-tooltip {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+  [data-option="3"][data-focus-left] .o3-tooltip {
+    opacity: 0;
+  }
+}
+
+/* Loop: 200 ms/2800 ms = 7,14 % por rampa */
+@keyframes o3-tooltip-loop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: ease;
+  }
+  7.14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: linear;
+  }
+  78.57% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: ease;
+  }
+  85.71% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+/* ── Botão redondo (88 × 88 hit-area) ─────────────────────── */
+[data-option="3"] .o3-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);  /* 88 px */
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* Círculo (72 × 72) — sem overflow: hidden para o anel de foco não ser cortado */
+[data-option="3"] .o3-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);  /* 72 px */
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Círculo em foco: fundo elevado */
+[data-option="3"] .o3-btn[data-focused] .o3-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Anel de foco via CSS-mask */
+[data-option="3"] .o3-btn[data-focused] .o3-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring); /* 4 px */
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Avatar (40 px) */
+[data-option="3"] .o3-avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);  /* 40 px */
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Logo do programa (48 px) */
+[data-option="3"] .o3-logo {
+  display: block;
+  width: var(--dimension-size-semantic-program-logo);  /* 48 px */
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Ícone xl (schedule, 32 px) */
+[data-option="3"] .o3-icon-xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);  /* 32 px */
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+/* Ícone 2xl (weather/misc, 40 px) */
+[data-option="3"] .o3-icon-2xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);  /* 40 px */
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+/* Misc: botão + texto lado a lado */
+[data-option="3"] .o3-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="3"] .o3-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Program: texto + botão lado a lado */
+[data-option="3"] .o3-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="3"] .o3-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);  /* 12 px */
+  padding-block: var(--dimension-spacing-core-2xs);  /* 8 px */
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Channel-bug (64 × 64) */
+[data-option="3"] .o3-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-channel-bug);  /* 64 px */
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="3"] .o3-bug-circle {
+  display: block;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="3"] .o3-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 3 */
+/* @explore 4 */
+/* === Opção 4 – Contraponto: dois degraus ===
+ * Pílula com fundo dois degraus acima do background-primary:
+ * background-elevated + opacity-light-20 ≈ #656565.
+ * A forma ajuda a leitura a distância, ainda mais apagada que o botão em foco. */
+
+[data-option="4"] .o4-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* clips the 800px+ menu into the card; clipping is deliberate (data-stack) */
+  background: var(--color-semantic-functional-background-primary);
+  padding-block-start: var(--dimension-spacing-core-3xl); /* 48px: extra room for pill + dot above the button */
+  padding-block-end: var(--dimension-spacing-core-xl);   /* 32px safe-area */
+  padding-inline: var(--dimension-spacing-core-xl);      /* 32px safe-area */
+  box-sizing: border-box;
+}
+
+/* ── Main menu bar ─────────────────────────────────────────── */
+[data-option="4"] .o4-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px; /* guarantees clusters don't overlap in the scroll-clipped stage */
+}
+
+[data-option="4"] .o4-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+[data-option="4"] .o4-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+/* ── Login wrapper (tooltip anchor) ───────────────────────── */
+[data-option="4"] .o4-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill ──────────────────────────────────────────── */
+[data-option="4"] .o4-tooltip {
+  position: absolute;
+  /* avatar-top(80) + 8px gap + 8px dot + 4px gap = 100px from login-wrap bottom */
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + 2 * var(--dimension-spacing-core-2xs) + var(--dimension-spacing-core-3xs));
+  left: 50%;
+  white-space: nowrap;
+  /* dois degraus: background-elevated + 20% branco */
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-spacing-core-2xs); /* 8px */
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  animation: o4-tooltip-loop 2800ms linear infinite;
+}
+
+/* ── Dot: small circle between pill and avatar ──────────────── */
+[data-option="4"] .o4-dot {
+  position: absolute;
+  /* avatar-top(80) + 8px gap = 88px from login-wrap bottom */
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + var(--dimension-spacing-core-2xs));
+  left: 50%;
+  width: var(--dimension-spacing-core-2xs);   /* 8px */
+  height: var(--dimension-spacing-core-2xs);  /* 8px */
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  animation: o4-tooltip-loop 2800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="4"] .o4-tooltip,
+  [data-option="4"] .o4-dot {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+}
+
+/* Loop: 200ms ease enter → 2s hold → 200ms ease exit → 400ms pause */
+@keyframes o4-tooltip-loop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: ease;
+  }
+  7.14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: linear;
+  }
+  78.57% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: ease;
+  }
+  85.71% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+/* Tooltip + dot hide when a left button gets focus */
+[data-option="4"][data-focus-left] .o4-tooltip,
+[data-option="4"][data-focus-left] .o4-dot {
+  animation: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Round button (88 × 88 hit target) ─────────────────────── */
+[data-option="4"] .o4-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);  /* 88px */
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* Circle (72 × 72) — no overflow:hidden so the focus ring ::after is not clipped */
+[data-option="4"] .o4-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);  /* 72px */
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Focused circle: elevated background */
+[data-option="4"] .o4-btn[data-focused] .o4-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Gradient focus ring via CSS-mask trick */
+[data-option="4"] .o4-btn[data-focused] .o4-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Avatar placeholder (40px) */
+[data-option="4"] .o4-avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);  /* 40px */
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Program-logo placeholder (48px) */
+[data-option="4"] .o4-logo {
+  display: block;
+  width: var(--dimension-size-semantic-program-logo);  /* 48px */
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Schedule icon (xl = 32px) */
+[data-option="4"] .o4-icon-xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);   /* 32px */
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+/* Weather icon (2xl = 40px) */
+[data-option="4"] .o4-icon-2xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);  /* 40px */
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+/* Misc: button + text side by side */
+[data-option="4"] .o4-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="4"] .o4-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Program: text + button side by side */
+[data-option="4"] .o4-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="4"] .o4-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);  /* 12px */
+  padding-block: var(--dimension-spacing-core-2xs);  /* 8px */
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Channel-bug button (64px) */
+[data-option="4"] .o4-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-channel-bug);  /* 64px */
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="4"] .o4-bug-circle {
+  display: block;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Text truncation helpers (no .text-* override — just layout) */
+[data-option="4"] .o4-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 4 */
+/* @explore 5 */
+/* === Opção 5 – Ponto menor ===
+ * Variação sutil da opção 4: dot de 4 px (--dimension-spacing-core-3xs) em vez de 8 px.
+ * Vãos: pílula → 4 px → ponto → 8 px → avatar. Superfície igual à opção 4.
+ * Tokens literais sem equivalente no kit: 200 ms ease, blur 2 px. */
+
+[data-option="5"] .o5-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  /* 48 px: margem visual para a pílula + ponto ficarem dentro do stage */
+  padding-block-start: var(--dimension-spacing-core-3xl);
+  padding-block-end:   var(--dimension-spacing-core-xl);
+  padding-inline:      var(--dimension-spacing-core-xl);
+  box-sizing: border-box;
+}
+
+[data-option="5"] .o5-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px; /* evita sobreposição dos clusters na tile estreita */
+}
+
+[data-option="5"] .o5-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+}
+
+[data-option="5"] .o5-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4 px */
+}
+
+/* ── Login wrap: âncora de posicionamento ── */
+[data-option="5"] .o5-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill: dois degraus acima do fundo ── */
+[data-option="5"] .o5-tooltip {
+  position: absolute;
+  /*
+   * dot.bottom = (round-button + circle) / 2 + 2xs = (88+72)/2 + 8 = 88 px
+   * dot.height = 3xs = 4 px  →  dot.top = 92 px
+   * gap pílula→ponto = 3xs = 4 px  →  tooltip.bottom = 96 px
+   * = (88+72)/2 + 8 + 4 + 4
+   */
+  bottom: calc(
+    (var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2
+    + var(--dimension-spacing-core-2xs)
+    + 2 * var(--dimension-spacing-core-3xs)
+  );
+  left: 50%;
+  white-space: nowrap;
+  /* dois degraus: background-elevated + 20 % branco */
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-spacing-core-2xs); /* 8 px */
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  animation: o5-tooltip-loop 2800ms linear infinite;
+}
+
+/* ── Dot: 4 px — sinal de ligação apenas ── */
+[data-option="5"] .o5-dot {
+  position: absolute;
+  /*
+   * 8 px acima do topo do círculo visual do botão
+   * topo do círculo = (round-button + circle) / 2 = 80 px
+   * dot.bottom = 80 + 8 = 88 px = (88+72)/2 + 2xs
+   */
+  bottom: calc(
+    (var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2
+    + var(--dimension-spacing-core-2xs)
+  );
+  left: 50%;
+  width:  var(--dimension-spacing-core-3xs); /* 4 px */
+  height: var(--dimension-spacing-core-3xs); /* 4 px */
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  animation: o5-tooltip-loop 2800ms linear infinite;
+}
+
+/* Loop: 200 ms/2800 ms = 7,14 % por rampa */
+@keyframes o5-tooltip-loop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: ease;
+  }
+  7.14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: linear;
+  }
+  78.57% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: ease;
+  }
+  85.71% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+/* Sem movimento: pílula e ponto já no lugar */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"] .o5-tooltip,
+  [data-option="5"] .o5-dot {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+}
+
+/* Foco na esquerda: esconde tooltip e ponto */
+[data-option="5"][data-focus-left] .o5-tooltip,
+[data-option="5"][data-focus-left] .o5-dot {
+  animation: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Botão redondo (88 × 88 hit-area) ── */
+[data-option="5"] .o5-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width:  var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* Círculo visual (72 × 72) */
+[data-option="5"] .o5-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width:  var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="5"] .o5-btn[data-focused] .o5-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Anel de foco via CSS-mask */
+[data-option="5"] .o5-btn[data-focused] .o5-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Avatar placeholder (40 px) */
+[data-option="5"] .o5-avatar {
+  display: block;
+  width:  var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Logo do programa (48 px) */
+[data-option="5"] .o5-logo {
+  display: block;
+  width:  var(--dimension-size-semantic-program-logo);
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Ícone xl — schedule (32 px) */
+[data-option="5"] .o5-icon-xl {
+  display: block;
+  width:  var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+/* Ícone 2xl — misc/weather (40 px) */
+[data-option="5"] .o5-icon-2xl {
+  display: block;
+  width:  var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+/* Misc: botão + texto lado a lado */
+[data-option="5"] .o5-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="5"] .o5-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Program: texto + botão lado a lado */
+[data-option="5"] .o5-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="5"] .o5-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);
+  padding-block:  var(--dimension-spacing-core-2xs);
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Channel-bug (64 px) */
+[data-option="5"] .o5-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width:  var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="5"] .o5-bug-circle {
+  display: block;
+  width:  var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="5"] .o5-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 5 */
+/* @explore 6 */
+/* === Opção 6 – Texto um degrau maior ===
+ * Variação sutil da opção 4: única mudança é o texto da pílula,
+ * que sobe de .text-body-sm-medium para .text-body-md-medium.
+ * Superfície, ponto, vãos e animação ficam idênticos à opção 4.
+ * Tokens literais sem equivalente no kit: 200ms ease, blur 2px. */
+
+[data-option="6"] .o6-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  padding-block-start: var(--dimension-spacing-core-3xl); /* 48px: espaço para pílula + ponto acima do botão */
+  padding-block-end: var(--dimension-spacing-core-xl);    /* 32px margem segura */
+  padding-inline: var(--dimension-spacing-core-xl);       /* 32px margem segura */
+  box-sizing: border-box;
+}
+
+/* ── Main menu bar ─────────────────────────────────────────── */
+[data-option="6"] .o6-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px;
+}
+
+[data-option="6"] .o6-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+[data-option="6"] .o6-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+/* ── Login wrapper (tooltip anchor) ───────────────────────── */
+[data-option="6"] .o6-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill ──────────────────────────────────────────── */
+[data-option="6"] .o6-tooltip {
+  position: absolute;
+  /* avatar-top(80) + 8px gap + 8px dot + 4px gap = 100px from login-wrap bottom */
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + 2 * var(--dimension-spacing-core-2xs) + var(--dimension-spacing-core-3xs));
+  left: 50%;
+  white-space: nowrap;
+  /* dois degraus: background-elevated + 20% branco */
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-spacing-core-2xs); /* 8px */
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  animation: o6-tooltip-loop 2800ms linear infinite;
+}
+
+/* ── Dot: small circle between pill and avatar ──────────────── */
+[data-option="6"] .o6-dot {
+  position: absolute;
+  /* avatar-top(80) + 8px gap = 88px from login-wrap bottom */
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + var(--dimension-spacing-core-2xs));
+  left: 50%;
+  width: var(--dimension-spacing-core-2xs);   /* 8px */
+  height: var(--dimension-spacing-core-2xs);  /* 8px */
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  animation: o6-tooltip-loop 2800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .o6-tooltip,
+  [data-option="6"] .o6-dot {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+}
+
+/* Loop: 200ms ease enter → 2s hold → 200ms ease exit → 400ms pause */
+@keyframes o6-tooltip-loop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: ease;
+  }
+  7.14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: linear;
+  }
+  78.57% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: ease;
+  }
+  85.71% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+/* Tooltip + dot hide when a left button gets focus */
+[data-option="6"][data-focus-left] .o6-tooltip,
+[data-option="6"][data-focus-left] .o6-dot {
+  animation: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Round button (88 × 88 hit target) ─────────────────────── */
+[data-option="6"] .o6-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);  /* 88px */
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* Circle (72 × 72) */
+[data-option="6"] .o6-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);  /* 72px */
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Focused circle: elevated background */
+[data-option="6"] .o6-btn[data-focused] .o6-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Gradient focus ring via CSS-mask trick */
+[data-option="6"] .o6-btn[data-focused] .o6-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Avatar placeholder (40px) */
+[data-option="6"] .o6-avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);  /* 40px */
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Program-logo placeholder (48px) */
+[data-option="6"] .o6-logo {
+  display: block;
+  width: var(--dimension-size-semantic-program-logo);  /* 48px */
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Schedule icon (xl = 32px) */
+[data-option="6"] .o6-icon-xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);   /* 32px */
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+/* Weather icon (2xl = 40px) */
+[data-option="6"] .o6-icon-2xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);  /* 40px */
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+/* Misc: button + text side by side */
+[data-option="6"] .o6-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="6"] .o6-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Program: text + button side by side */
+[data-option="6"] .o6-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="6"] .o6-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);  /* 12px */
+  padding-block: var(--dimension-spacing-core-2xs);  /* 8px */
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Channel-bug button (64px) */
+[data-option="6"] .o6-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-channel-bug);  /* 64px */
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="6"] .o6-bug-circle {
+  display: block;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Text truncation helpers */
+[data-option="6"] .o6-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 6 */
+/* @explore 7 */
+/* === Opção 7 – Mais respiro na pílula ===
+ * Variação sutil da opção 4: só o padding-inline da pílula muda.
+ * padding-block: --dimension-spacing-core-2xs (8px) — igual à opção 4.
+ * padding-inline: --dimension-spacing-core-xs (12px) — um passo acima.
+ * Ponto (8px), vãos (4px e 8px), superfície e animação: idênticos à opção 4. */
+
+[data-option="7"] .o7-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  padding-block-start: var(--dimension-spacing-core-3xl); /* 48px */
+  padding-block-end: var(--dimension-spacing-core-xl);    /* 32px */
+  padding-inline: var(--dimension-spacing-core-xl);       /* 32px */
+  box-sizing: border-box;
+}
+
+/* ── Main menu bar ─────────────────────────────────────────── */
+[data-option="7"] .o7-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px;
+}
+
+[data-option="7"] .o7-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+[data-option="7"] .o7-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs);
+}
+
+/* ── Login wrapper (tooltip anchor) ───────────────────────── */
+[data-option="7"] .o7-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill: padding-inline um passo acima da opção 4 ── */
+[data-option="7"] .o7-tooltip {
+  position: absolute;
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + 2 * var(--dimension-spacing-core-2xs) + var(--dimension-spacing-core-3xs));
+  left: 50%;
+  white-space: nowrap;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  /* Mudança sutil: padding-block igual à o4 (2xs=8px), padding-inline um passo acima (xs=12px) */
+  padding-block: var(--dimension-spacing-core-2xs);
+  padding-inline: var(--dimension-spacing-core-xs);
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  animation: o7-tooltip-loop 2800ms linear infinite;
+}
+
+/* ── Dot: igual à opção 4 ────────────────────────────────── */
+[data-option="7"] .o7-dot {
+  position: absolute;
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + var(--dimension-spacing-core-2xs));
+  left: 50%;
+  width: var(--dimension-spacing-core-2xs);
+  height: var(--dimension-spacing-core-2xs);
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  animation: o7-tooltip-loop 2800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="7"] .o7-tooltip,
+  [data-option="7"] .o7-dot {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: none;
+  }
+}
+
+@keyframes o7-tooltip-loop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: ease;
+  }
+  7.14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: linear;
+  }
+  78.57% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+    animation-timing-function: ease;
+  }
+  85.71% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+}
+
+[data-option="7"][data-focus-left] .o7-tooltip,
+[data-option="7"][data-focus-left] .o7-dot {
+  animation: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Round button (88 × 88 hit target) ─────────────────────── */
+[data-option="7"] .o7-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+[data-option="7"] .o7-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="7"] .o7-btn[data-focused] .o7-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+[data-option="7"] .o7-btn[data-focused] .o7-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+[data-option="7"] .o7-avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+[data-option="7"] .o7-logo {
+  display: block;
+  width: var(--dimension-size-semantic-program-logo);
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+[data-option="7"] .o7-icon-xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+[data-option="7"] .o7-icon-2xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+[data-option="7"] .o7-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="7"] .o7-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+[data-option="7"] .o7-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="7"] .o7-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs);
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);
+  padding-block: var(--dimension-spacing-core-2xs);
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+[data-option="7"] .o7-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="7"] .o7-bug-circle {
+  display: block;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="7"] .o7-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 7 */
+/* @explore 8 */
+/* === Opção 8 – Ponto mais apagado (variação sutil da opção 4) ===
+ * Pílula: dois degraus (background-elevated + opacity-light-20) — igual à opção 4.
+ * Ponto:  um degrau (background-elevated apenas) — mais apagado, recua para apoio.
+ * Tokens literais sem equivalente no kit: 200 ms ease, blur 2 px.
+ * Ajuste: visibilidade gerenciada inteiramente por JS — travada visível enquanto
+ *         foco está à direita; some só quando Login, Schedule ou Misc ganham foco. */
+
+[data-option="8"] .o8-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  padding-block-start: var(--dimension-spacing-core-3xl); /* 48px */
+  padding-block-end: var(--dimension-spacing-core-xl);    /* 32px */
+  padding-inline: var(--dimension-spacing-core-xl);       /* 32px */
+  box-sizing: border-box;
+}
+
+/* ── Main menu bar ─────────────────────────────────────────── */
+[data-option="8"] .o8-menu {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px;
+}
+
+[data-option="8"] .o8-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+[data-option="8"] .o8-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+}
+
+/* ── Login wrapper (tooltip anchor) ───────────────────────── */
+[data-option="8"] .o8-login-wrap {
+  position: relative;
+  display: block;
+}
+
+/* ── Tooltip pill: dois degraus (igual à opção 4) ─────────── */
+[data-option="8"] .o8-tooltip {
+  position: absolute;
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + 2 * var(--dimension-spacing-core-2xs) + var(--dimension-spacing-core-3xs));
+  left: 50%;
+  white-space: nowrap;
+  background:
+    linear-gradient(var(--color-opacity-light-20), var(--color-opacity-light-20)),
+    var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  padding: var(--dimension-spacing-core-2xs); /* 8px */
+  color: var(--color-semantic-functional-text-primary);
+  pointer-events: none;
+  /* Estado inicial: escondido; JS controla tudo daí em diante */
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+  filter: blur(2px);
+}
+
+/* ── Dot: um degrau (só background-elevated, sem overlay) ─── */
+[data-option="8"] .o8-dot {
+  position: absolute;
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + var(--dimension-spacing-core-2xs));
+  left: 50%;
+  width: var(--dimension-spacing-core-2xs);  /* 8px */
+  height: var(--dimension-spacing-core-2xs); /* 8px */
+  border-radius: 50%;
+  /* Um degrau: sem overlay de luz — recua em relação à pílula */
+  background: var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  /* Estado inicial: escondido; JS controla */
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+  filter: blur(2px);
+}
+
+/* Entrada: sobe de baixo para cima, desfoque 2px → nítido */
+@keyframes o8-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ── Round button (88 × 88 hit target) ─────────────────────── */
+[data-option="8"] .o8-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);  /* 88px */
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+/* Circle (72 × 72) */
+[data-option="8"] .o8-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);  /* 72px */
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+[data-option="8"] .o8-btn[data-focused] .o8-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Gradient focus ring via CSS-mask trick */
+[data-option="8"] .o8-btn[data-focused] .o8-circle::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Avatar placeholder (40px) */
+[data-option="8"] .o8-avatar {
+  display: block;
+  width: var(--dimension-size-semantic-avatar);  /* 40px */
+  height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Program-logo placeholder (48px) */
+[data-option="8"] .o8-logo {
+  display: block;
+  width: var(--dimension-size-semantic-program-logo);  /* 48px */
+  height: var(--dimension-size-semantic-program-logo);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-elevated);
+}
+
+/* Schedule icon (xl = 32px) */
+[data-option="8"] .o8-icon-xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-xl);   /* 32px */
+  height: var(--dimension-size-semantic-icon-xl);
+  object-fit: contain;
+}
+
+/* Weather icon (2xl = 40px) */
+[data-option="8"] .o8-icon-2xl {
+  display: block;
+  width: var(--dimension-size-semantic-icon-2xl);  /* 40px */
+  height: var(--dimension-size-semantic-icon-2xl);
+  object-fit: contain;
+}
+
+/* Misc: button + text side by side */
+[data-option="8"] .o8-misc-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="8"] .o8-misc-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  padding-inline-start: var(--dimension-spacing-core-3xs);
+  max-width: 148px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Program: text + button side by side */
+[data-option="8"] .o8-program-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-option="8"] .o8-program-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dimension-spacing-core-3xs); /* 4px */
+  align-items: flex-end;
+  padding-inline: var(--dimension-spacing-core-xs);  /* 12px */
+  padding-block: var(--dimension-spacing-core-2xs);  /* 8px */
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Channel-bug button (64px) */
+[data-option="8"] .o8-bug {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-channel-bug);  /* 64px */
+  height: var(--dimension-size-semantic-channel-bug);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+  border-radius: 50%;
+}
+
+[data-option="8"] .o8-bug-circle {
+  display: block;
+  width: var(--dimension-size-semantic-channel-bug);
+  height: var(--dimension-size-semantic-channel-bug);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+
+/* Text truncation helpers */
+[data-option="8"] .o8-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+/* /@explore 8 */
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: o lembrete fica exatamente sobre o avatar, como a legenda de um botão -->
+  <p class="opt-label" data-part="label">Opção 1 - Fiel: rótulo no eixo</p>
+  <div class="opt-content" data-part="content">
+    <div class="scene" data-part="scene">
+      <div class="home-spacer" data-part="spacer" aria-hidden="true"></div>
+
+      <!-- Tooltip fora da barra: filho direto do .scene, posicionado via JS -->
+      <div
+        class="tooltip"
+        data-part="tooltip"
+        role="tooltip"
+        id="opt1-tooltip"
+      >
+        <span class="tooltip-text text-body-sm-regular" data-part="tooltip-text"
+          >Faça o login</span
+        >
+      </div>
+
+      <nav class="main-menu" data-part="main-menu" aria-label="Menu principal">
+        <!-- Grupo esquerdo: perfil, Schedule, Misc -->
+        <div class="menu-group" data-part="menu-left">
+          <div class="profile-wrap" data-part="profile-wrap">
+            <button
+              class="btn-profile"
+              data-part="btn-profile"
+              data-menu-idx="0"
+              aria-describedby="opt1-tooltip"
+              aria-label="Perfil"
+            >
+              <span class="avatar-placeholder" data-part="avatar" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <button class="btn-menu" data-part="btn-schedule" data-menu-idx="1">
+            <span class="text-body-sm-medium">Schedule</span>
+          </button>
+
+          <button class="btn-menu" data-part="btn-misc" data-menu-idx="2">
+            <span class="text-body-sm-medium">Misc</span>
+          </button>
+        </div>
+
+        <!-- Grupo direito: Program (foco inicial) -->
+        <div class="menu-group menu-group-right" data-part="menu-right">
+          <button
+            class="btn-menu is-focused"
+            data-part="btn-program"
+            data-menu-idx="3"
+          >
+            <span class="text-body-sm-medium">Copa do Mundo: Equador x Argentina</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: a pílula apoia sua borda esquerda na borda esquerda do avatar — lê como extensão do menu, não como balão flutuante -->
+  <p class="opt-label" data-part="label">Opção 2 – Alinhada à borda</p>
+  <div class="opt-content" data-part="content">
+
+    <!--
+      data-surface="own": a Home é a TV inteira, não um Card nem um Content Card.
+      data-stack: o overflow:hidden é deliberado — simula a barra de TV numa tile estreita.
+    -->
+    <div class="home-stage" data-part="stage" data-surface="own" data-stack>
+      <div class="menu-bar" data-part="main-menu" role="navigation" aria-label="Menu principal">
+
+        <!-- Grupo esquerdo: Login · Schedule · Misc -->
+        <div class="menu-left" data-part="menu-left">
+
+          <!-- Botão de perfil / Login com o tooltip ancorado -->
+          <div class="profile-wrap" data-part="profile-wrap">
+            <button class="profile-btn" data-part="profile-btn" aria-label="Login">
+              <span style="display:flex;flex-direction:column;align-items:center;gap:0" aria-hidden="true">
+                <span class="avatar-head"></span>
+                <span class="avatar-body"></span>
+              </span>
+            </button>
+
+            <!-- Tooltip: aparece sozinho, some quando o foco vai para a esquerda -->
+            <div class="tooltip-pill" data-part="tooltip" role="tooltip" id="o2-tooltip"
+                 aria-live="polite">
+              <span class="text-body-md-regular">Faça o login</span>
+            </div>
+          </div>
+
+          <!-- Schedule -->
+          <button class="menu-item" data-part="schedule-btn" aria-label="Agenda">
+            <span class="text-body-sm-medium">Schedule</span>
+          </button>
+
+          <!-- Misc -->
+          <button class="menu-item" data-part="misc-btn" aria-label="Outros">
+            <span class="text-body-sm-medium">Misc</span>
+          </button>
+
+        </div>
+
+        <!-- Grupo direito: Program (foco inicial da Home) -->
+        <div class="menu-right" data-part="menu-right">
+          <button class="program-btn" data-part="program-btn"
+                  aria-label="Programa atual" aria-current="true">
+            <span class="text-body-sm-bold">Copa do Mundo: Equador x Argentina</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <!-- tese: a pílula tem a mesma altura e o mesmo raio do botão de perfil — parece mais um botão no menu, só que quieto -->
+  <p class="opt-label" data-part="label">Opção 3 - Irmã do botão</p>
+  <div class="opt-content" data-part="content">
+    <div class="o3-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o3-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Cluster esquerdo: Login · Schedule · Misc ── -->
+        <div class="o3-left" data-part="left-cluster">
+
+          <!-- Botão de login + tooltip -->
+          <div class="o3-login-wrap" data-part="login-wrap">
+            <div class="o3-tooltip" data-part="tooltip" role="tooltip"><span class="text-body-lg-medium">Faça o login</span></div>
+            <button type="button" class="o3-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o3-circle" data-part="login-circle">
+                <span class="o3-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Botão Schedule -->
+          <button type="button" class="o3-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o3-circle" data-part="schedule-circle">
+              <img src="../assets/schedule.png" class="o3-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Botão Misc -->
+          <button type="button" class="o3-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+            <div class="o3-circle" data-part="misc-circle">
+              <img src="../assets/weather.png" class="o3-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+            </div>
+          </button>
+        </div>
+
+        <!-- ── Cluster direito: Program · Bug ── -->
+        <div class="o3-right" data-part="right-cluster">
+
+          <!-- Texto do programa + botão -->
+          <div class="o3-program-wrap" data-part="program-group">
+            <div class="o3-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o3-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o3-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o3-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o3-circle" data-part="program-circle">
+                <span class="o3-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o3-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o3-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4" tabindex="0">
+  <!-- tese: superfície dois degraus acima do fundo — a forma ajuda a leitura sem competir com o botão em foco -->
+  <p class="opt-label" data-part="label">Opção 4 - Contraponto: dois degraus</p>
+  <div class="opt-content" data-part="content">
+    <div class="o4-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o4-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Left cluster: Login · Schedule · Misc ── -->
+        <div class="o4-left" data-part="left-cluster">
+
+          <!-- Login button + tooltip -->
+          <div class="o4-login-wrap" data-part="login-wrap">
+            <div class="o4-tooltip text-body-sm-medium" data-part="tooltip" role="tooltip">Faça o login</div>
+            <div class="o4-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o4-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o4-circle" data-part="login-circle">
+                <span class="o4-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Schedule button -->
+          <button type="button" class="o4-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o4-circle" data-part="schedule-circle">
+              <img src="data:image/png;base64,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" class="o4-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Misc button + text -->
+          <div class="o4-misc-wrap" data-part="misc-group">
+            <button type="button" class="o4-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o4-circle" data-part="misc-circle">
+                <img src="data:image/png;base64,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" class="o4-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o4-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o4-truncate" style="opacity: var(--opacity-semantic-title);" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o4-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right cluster: Program · Bug ── -->
+        <div class="o4-right" data-part="right-cluster">
+
+          <!-- Program text + button -->
+          <div class="o4-program-wrap" data-part="program-group">
+            <div class="o4-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o4-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o4-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o4-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o4-circle" data-part="program-circle">
+                <span class="o4-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o4-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o4-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Variações da Opção 4 · sutil</h2>
+<article data-parent="4" class="opt" data-option="5" tabindex="0"><!-- tese: o ponto encolhe para 4 px e vira só um sinal de ligação; a pílula fica sozinha como massa -->
+  <p class="opt-label" data-part="label">Opção 5 - Ponto menor</p>
+  <div class="opt-content" data-part="content">
+
+    <div class="o5-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o5-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Cluster esquerdo: Login · Schedule · Misc ── -->
+        <div class="o5-left" data-part="left-cluster">
+
+          <!-- Botão de login + tooltip + ponto (4 px) -->
+          <div class="o5-login-wrap" data-part="login-wrap">
+            <div class="o5-tooltip text-body-sm-medium" data-part="tooltip" role="tooltip">Faça o login</div>
+            <div class="o5-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o5-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o5-circle" data-part="login-circle">
+                <span class="o5-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Schedule -->
+          <button type="button" class="o5-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o5-circle" data-part="schedule-circle">
+              <img src="../assets/schedule.png" class="o5-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Misc + texto -->
+          <div class="o5-misc-wrap" data-part="misc-group">
+            <button type="button" class="o5-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o5-circle" data-part="misc-circle">
+                <img src="../assets/weather.png" class="o5-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o5-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o5-truncate" style="opacity: var(--opacity-semantic-title);" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o5-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Cluster direito: Program · Bug ── -->
+        <div class="o5-right" data-part="right-cluster">
+
+          <!-- Texto do programa + botão -->
+          <div class="o5-program-wrap" data-part="program-group">
+            <div class="o5-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o5-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o5-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o5-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o5-circle" data-part="program-circle">
+                <span class="o5-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o5-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o5-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+
+  </div>
+</article>
+<article data-parent="4" class="opt" data-option="6" tabindex="0">
+  <!-- tese: texto um degrau maior — "Faça o login" em .text-body-md-medium carrega a leitura junto com a forma -->
+  <p class="opt-label" data-part="label">Opção 6 - Texto um degrau maior</p>
+  <div class="opt-content" data-part="content">
+    <div class="o6-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o6-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Left cluster: Login · Schedule · Misc ── -->
+        <div class="o6-left" data-part="left-cluster">
+
+          <!-- Login button + tooltip -->
+          <div class="o6-login-wrap" data-part="login-wrap">
+            <div class="o6-tooltip text-body-md-medium" data-part="tooltip" role="tooltip">Faça o login</div>
+            <div class="o6-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o6-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o6-circle" data-part="login-circle">
+                <span class="o6-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Schedule button -->
+          <button type="button" class="o6-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o6-circle" data-part="schedule-circle">
+              <img src="data:image/png;base64,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" class="o6-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Misc button + text -->
+          <div class="o6-misc-wrap" data-part="misc-group">
+            <button type="button" class="o6-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o6-circle" data-part="misc-circle">
+                <img src="data:image/png;base64,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" class="o6-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o6-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o6-truncate" style="opacity: var(--opacity-semantic-title);" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o6-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right cluster: Program · Bug ── -->
+        <div class="o6-right" data-part="right-cluster">
+
+          <!-- Program text + button -->
+          <div class="o6-program-wrap" data-part="program-group">
+            <div class="o6-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o6-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o6-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o6-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o6-circle" data-part="program-circle">
+                <span class="o6-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o6-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o6-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+</article>
+<article data-parent="4" class="opt" data-option="7" tabindex="0">
+  <!-- tese: mais respiro na pílula — padding lateral sobe um passo, a forma fica mais longa e calma sem mudar a superfície nem os vãos -->
+  <p class="opt-label" data-part="label">Opção 7 - Mais respiro na pílula</p>
+  <div class="opt-content" data-part="content">
+    <div class="o7-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o7-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Left cluster: Login · Schedule · Misc ── -->
+        <div class="o7-left" data-part="left-cluster">
+
+          <!-- Login button + tooltip -->
+          <div class="o7-login-wrap" data-part="login-wrap">
+            <div class="o7-tooltip text-body-sm-medium" data-part="tooltip" role="tooltip">Faça o login</div>
+            <div class="o7-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o7-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o7-circle" data-part="login-circle">
+                <span class="o7-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Schedule button -->
+          <button type="button" class="o7-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o7-circle" data-part="schedule-circle">
+              <img src="data:image/png;base64,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" class="o7-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Misc button + text -->
+          <div class="o7-misc-wrap" data-part="misc-group">
+            <button type="button" class="o7-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o7-circle" data-part="misc-circle">
+                <img src="data:image/png;base64,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" class="o7-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o7-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o7-truncate" style="opacity: var(--opacity-semantic-title);" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o7-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right cluster: Program · Bug ── -->
+        <div class="o7-right" data-part="right-cluster">
+
+          <!-- Program text + button -->
+          <div class="o7-program-wrap" data-part="program-group">
+            <div class="o7-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o7-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o7-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o7-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o7-circle" data-part="program-circle">
+                <span class="o7-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o7-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o7-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+</article>
+<article data-parent="4" class="opt" data-option="8" tabindex="0">
+  <!-- tese: ponto mais apagado — a pílula fica dois degraus acima do fundo; o ponto recua para um degrau, tornando-se apoio discreto e deixando a pílula como única peça de alto contraste -->
+  <p class="opt-label" data-part="label">Opção 8 - Ponto mais apagado</p>
+  <div class="opt-content" data-part="content">
+    <div class="o8-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o8-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <!-- ── Left cluster: Login · Schedule · Misc ── -->
+        <div class="o8-left" data-part="left-cluster">
+
+          <!-- Login button + tooltip + dot -->
+          <div class="o8-login-wrap" data-part="login-wrap">
+            <div class="o8-tooltip text-body-sm-medium" data-part="tooltip" role="tooltip">Faça o login</div>
+            <div class="o8-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o8-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o8-circle" data-part="login-circle">
+                <span class="o8-avatar" data-part="avatar"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Schedule button -->
+          <button type="button" class="o8-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o8-circle" data-part="schedule-circle">
+              <img src="../assets/schedule.png" class="o8-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <!-- Misc button + text -->
+          <div class="o8-misc-wrap" data-part="misc-group">
+            <button type="button" class="o8-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o8-circle" data-part="misc-circle">
+                <img src="../assets/weather.png" class="o8-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o8-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o8-truncate" style="opacity: var(--opacity-semantic-title);" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o8-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Right cluster: Program · Bug ── -->
+        <div class="o8-right" data-part="right-cluster">
+
+          <!-- Program text + button -->
+          <div class="o8-program-wrap" data-part="program-group">
+            <div class="o8-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o8-truncate" style="opacity: var(--opacity-semantic-title);" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o8-truncate" style="color: var(--color-semantic-functional-text-subtle);" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o8-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o8-circle" data-part="program-circle">
+                <span class="o8-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Channel bug -->
+          <button type="button" class="o8-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o8-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<!-- @explore 1 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]');
+  const tooltip = root.querySelector('[data-part="tooltip"]');
+  const scene = root.querySelector('[data-part="scene"]');
+  const profileBtn = root.querySelector('[data-part="btn-profile"]');
+  const btns = [...root.querySelectorAll('[data-menu-idx]')];
+
+  let idx = 3;       // Program em foco no início
+  let tipOn = false;
+  let loopTimer = null;
+
+  /* ── Posiciona tooltip no eixo do botão de perfil ── */
+  function positionTooltip() {
+    const pRect = profileBtn.getBoundingClientRect();
+    const sRect = scene.getBoundingClientRect();
+    const centerX = pRect.left - sRect.left + pRect.width / 2;
+    tooltip.style.left = centerX + 'px';
+  }
+
+  /* ── Animação ── */
+  function anim(name) {
+    tooltip.removeAttribute('data-anim');
+    tooltip.getBoundingClientRect(); // reflow
+    tooltip.dataset.anim = name;
+  }
+
+  function showTip() {
+    if (tipOn) return;
+    tipOn = true;
+    positionTooltip();
+    anim('in');
+  }
+
+  function hideTip(onDone) {
+    if (!tipOn) { onDone && setTimeout(onDone, 0); return; }
+    tipOn = false;
+    anim('out');
+    if (onDone) {
+      tooltip.addEventListener('animationend', onDone, { once: true });
+    }
+  }
+
+  /* ── Foco ── */
+  function setFocus(newIdx) {
+    btns.forEach((b, i) => b.classList.toggle('is-focused', i === newIdx));
+    idx = newIdx;
+    // Botões da esquerda (0, 1, 2) escondem o tooltip
+    if (newIdx < 3 && tipOn) {
+      clearTimeout(loopTimer);
+      hideTip(() => { loopTimer = setTimeout(startLoop, 1000); });
+    }
+  }
+
+  /* ── Loop: aparece → espera → some → pausa → repete ── */
+  function startLoop() {
+    setFocus(3);
+    showTip();
+    loopTimer = setTimeout(() => {
+      hideTip(() => { loopTimer = setTimeout(startLoop, 1000); });
+    }, 2600);
+  }
+
+  loopTimer = setTimeout(startLoop, 500);
+
+  /* ── Teclado ── */
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      clearTimeout(loopTimer);
+      setFocus(Math.max(0, idx - 1));
+    } else if (e.key === 'ArrowRight') {
+      clearTimeout(loopTimer);
+      setFocus(Math.min(btns.length - 1, idx + 1));
+    } else if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Backspace') {
+      /* sem comportamento extra na demo */
+    } else {
+      return;
+    }
+    e.preventDefault();
+  });
+})();
+</script>
+<!-- /@explore 1 -->
+<!-- @explore 2 -->
+<script>
+(() => {
+  const root    = document.querySelector('.opt[data-option="2"]')
+  const tooltip = root.querySelector('.tooltip-pill')
+
+  // O foco começa no grupo da direita (Program), como na Home real
+  let side = 'right'
+
+  function exitTooltip () {
+    // Substitui o loop pelo keyframe de saída (style inline tem prioridade)
+    tooltip.style.animation = 'o2-tooltip-out 200ms ease forwards'
+  }
+
+  function enterTooltip () {
+    // Remove o override e reinicia o loop via reflow forçado
+    tooltip.style.animation = 'none'
+    void tooltip.offsetWidth          // força reflow
+    tooltip.style.animation = 'o2-tooltip-loop 4s ease infinite both'
+  }
+
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      if (side !== 'left') { side = 'left'; exitTooltip() }
+    } else if (e.key === 'ArrowRight') {
+      if (side !== 'right') { side = 'right'; enterTooltip() }
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+})()
+</script>
+<!-- /@explore 2 -->
+<!-- @explore 3 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const ORDER = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT  = new Set(['login', 'schedule', 'misc'])
+  let idx = ORDER.indexOf('program') // Home abre com Program em foco
+
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    if (LEFT.has(active)) root.setAttribute('data-focus-left', '')
+    else root.removeAttribute('data-focus-left')
+  }
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      // Enter no Login/Program abre o trilho — sem comportamento novo no tooltip
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      // Voltar
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+
+  applyFocus()
+})()
+</script>
+<!-- /@explore 3 -->
+<!-- @explore 4 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const ORDER = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT  = new Set(['login', 'schedule', 'misc'])
+  let idx = ORDER.indexOf('program') // Home opens with Program focused
+
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    if (LEFT.has(active)) root.setAttribute('data-focus-left', '')
+    else root.removeAttribute('data-focus-left')
+  }
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      // Enter on Login/Program opens their rail (no new behaviour in the tooltip)
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      // Back
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+
+  applyFocus()
+})()
+</script>
+<!-- /@explore 4 -->
+<!-- @explore 5 -->
+<script>
+(() => {
+  const root  = document.querySelector('.opt[data-option="5"]')
+  const ORDER = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT  = new Set(['login', 'schedule', 'misc'])
+  let idx = ORDER.indexOf('program') // Home abre com Program em foco
+
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    if (LEFT.has(active)) root.setAttribute('data-focus-left', '')
+    else root.removeAttribute('data-focus-left')
+  }
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      // Enter no Login abre o trilho de conta — sem comportamento novo no tooltip
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      // Voltar
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+
+  applyFocus()
+})()
+</script>
+<!-- /@explore 5 -->
+<!-- @explore 6 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  const ORDER = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT  = new Set(['login', 'schedule', 'misc'])
+  let idx = ORDER.indexOf('program') // Home opens with Program focused
+
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    if (LEFT.has(active)) root.setAttribute('data-focus-left', '')
+    else root.removeAttribute('data-focus-left')
+  }
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      // Enter no Login/Program abre o trilho
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      // Voltar
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+
+  applyFocus()
+})()
+</script>
+<!-- /@explore 6 -->
+<!-- @explore 7 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="7"]')
+  const ORDER = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT  = new Set(['login', 'schedule', 'misc'])
+  let idx = ORDER.indexOf('program')
+
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    if (LEFT.has(active)) root.setAttribute('data-focus-left', '')
+    else root.removeAttribute('data-focus-left')
+  }
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      // Enter no Login/Program abre o trilho
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      // Voltar
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+
+  applyFocus()
+})()
+</script>
+<!-- /@explore 7 -->
+<!-- @explore 8 -->
+<script>
+(() => {
+  const root    = document.querySelector('.opt[data-option="8"]')
+  const tooltip = root.querySelector('[data-part="tooltip"]')
+  const dot     = root.querySelector('[data-part="dot"]')
+  const ORDER   = ['login', 'schedule', 'misc', 'program', 'bug']
+  const LEFT    = new Set(['login', 'schedule', 'misc'])
+  let idx       = ORDER.indexOf('program') // Home abre com foco em Program
+  let tipState  = 'hidden'                 // 'hidden' | 'visible'
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  /* Mostra o tooltip: animação de entrada (200ms ease, blur 2px→0) e trava visível */
+  function showTip() {
+    if (tipState === 'visible') return
+    tipState = 'visible'
+    if (reduced) {
+      /* Sem movimento: aparece já nítido e no lugar */
+      tooltip.style.cssText = 'opacity:1;transform:translateX(-50%) translateY(0);filter:none;animation:none'
+      dot.style.cssText     = 'opacity:1;transform:translateX(-50%) translateY(0);filter:none;animation:none'
+    } else {
+      /* Entrada com blur; forwards mantém o estado final (opacity:1) */
+      tooltip.style.animation = 'none'
+      dot.style.animation     = 'none'
+      void tooltip.offsetWidth                          // reflow para reiniciar keyframe
+      tooltip.style.animation = 'o8-in 200ms ease forwards'
+      dot.style.animation     = 'o8-in 200ms ease forwards'
+    }
+  }
+
+  /* Esconde o tooltip sem animação (saída imediata, estado estático) */
+  function hideTip() {
+    if (tipState === 'hidden') return
+    tipState = 'hidden'
+    tooltip.style.cssText = 'opacity:0;transform:translateX(-50%) translateY(0);filter:none;animation:none'
+    dot.style.cssText     = 'opacity:0;transform:translateX(-50%) translateY(0);filter:none;animation:none'
+  }
+
+  /* Atualiza foco e estado do tooltip */
+  function applyFocus() {
+    const active = ORDER[idx]
+    root.querySelectorAll('[data-button]').forEach(b => {
+      if (b.dataset.button === active) b.dataset.focused = ''
+      else delete b.dataset.focused
+    })
+    /* Tooltip some apenas quando Login, Schedule ou Misc ganham foco */
+    if (LEFT.has(active)) hideTip()
+    else                   showTip()
+  }
+
+  /* Estado inicial: foco em Program (direita) → tooltip aparece */
+  applyFocus()
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      idx = Math.max(0, idx - 1)
+      applyFocus()
+    } else if (e.key === 'ArrowRight') {
+      idx = Math.min(ORDER.length - 1, idx + 1)
+      applyFocus()
+    } else if (e.key === 'Enter') {
+      /* Enter no Login/Program abre o trilho de conta — sem comportamento novo no tooltip */
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      /* Voltar */
+    } else {
+      return
+    }
+    e.preventDefault()
+  })
+})()
+</script>
+<!-- /@explore 8 -->
+</body>
+</html>

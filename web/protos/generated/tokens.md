@@ -79,6 +79,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `dimension.size.semantic.program-logo` | 48px | `SizeRole` `program-logo` |
 | `dimension.size.semantic.rating-badge` | 32px | `SizeRole` `rating-badge` |
 | `dimension.size.semantic.round-button` | 88px | `SizeRole` `round-button` |
+| `dimension.size.semantic.round-button-badge` | 10px | `SizeRole` `round-button-badge` |
 | `dimension.size.semantic.round-button-circle` | 72px | `SizeRole` `round-button-circle` |
 | `dimension.size.semantic.table-cell-lg` | 40px | `SizeRole` `table-cell-lg` |
 | `dimension.size.semantic.table-cell-md` | 24px | `SizeRole` `table-cell-md` |

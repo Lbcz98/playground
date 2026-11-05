@@ -26,6 +26,17 @@ export const Default: Story = { args: { interactionState: 'default' } }
 export const WithCheck: Story = { args: { interactionState: 'focus', check: true } }
 /** A sponsored card: the sponsor row under its text. Without a logo it is the wording alone. */
 export const Sponsored: Story = { args: { interactionState: 'focus', advertising: { label: 'Publicidade' } } }
+/** The overline at the title's own size, in both of the card's sizes: at rest, then focused. */
+export const OverlineAsTitle: Story = {
+  args: { interactionState: 'focus', overline: 'Conta Globo', overlineSize: 'title', title: 'Entre ou cadastre-se' },
+  render: (args) => (
+    <Stack direction="row" align="end" gap="sm">
+      <InteractivityButton {...args} interactionState="default" />
+      <InteractivityButton {...args} interactionState="focus" />
+    </Stack>
+  ),
+}
+
 /** A programme in the schedule rail: time, live badge and name over its art. The art dissolves in under focus. */
 export const Poster: Story = {
   args: {

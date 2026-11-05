@@ -37,9 +37,29 @@ interface FlowTransition {
   to: string
 }
 
+/**
+ * A message that arrives by itself, over whatever state is on screen (the one overlay of level 0:
+ * the notification in the top-right corner). Its screen is a state file that is no stop of the
+ * walk: the player lays it over the current frame.
+ *
+ *   notice: { state: 'aviso', startOn: 'home', after: 20, during: 5, cancelOn: 'logged' }
+ *
+ * The count starts the first time the walk reaches `startOn`, runs `after` seconds unseen, then
+ * `state` shows for `during` seconds and leaves for good. Reaching `cancelOn` cancels it. Screens
+ * read the notice (`useFlowNotice`) to draw what goes with it, a badge for instance.
+ */
+export interface FlowNotice {
+  state: string
+  startOn: string
+  after: number
+  during: number
+  cancelOn: string
+}
+
 export interface FlowFile {
   start: string
   transitions: FlowTransition[]
+  notice?: FlowNotice
 }
 
 interface FlowParse {
@@ -69,10 +89,25 @@ export function parseFlowFile(source: string): FlowParse {
   }
   const raw = read.value as Record<string, unknown>
   for (const key of Object.keys(raw)) {
-    if (key !== 'start' && key !== 'transitions') problems.push(`flow.ts: unknown key "${key}" — a flow has \`start\` and \`transitions\` only.`)
+    if (key !== 'start' && key !== 'transitions' && key !== 'notice') problems.push(`flow.ts: unknown key "${key}" — a flow has \`start\`, \`transitions\` and, optionally, \`notice\`.`)
   }
   if (typeof raw.start !== 'string' || raw.start === '') problems.push('flow.ts: `start` must be the name of the first state (a file of this folder, without .tsx).')
   if (!Array.isArray(raw.transitions)) problems.push('flow.ts: `transitions` must be a list of { from, key, to }.')
+  let notice: FlowNotice | undefined
+  if (raw.notice !== undefined) {
+    const n = raw.notice as Record<string, unknown> | null
+    const text = ['state', 'startOn', 'cancelOn'] as const
+    if (typeof n !== 'object' || n === null || Array.isArray(n)) {
+      problems.push('flow.ts: `notice` must be { state, startOn, after, during, cancelOn }.')
+    } else {
+      for (const extra of Object.keys(n)) if (![...text, 'after', 'during'].includes(extra)) problems.push(`flow.ts notice: unknown key "${extra}".`)
+      for (const k of text) if (typeof n[k] !== 'string' || n[k] === '') problems.push(`flow.ts notice: \`${k}\` must be the name of a state (a string).`)
+      for (const k of ['after', 'during'] as const) {
+        if (typeof n[k] !== 'number' || !(n[k] > 0)) problems.push(`flow.ts notice: \`${k}\` must be a number of seconds above zero.`)
+      }
+      if (problems.length === 0) notice = n as unknown as FlowNotice
+    }
+  }
   if (problems.length > 0) return { problems }
 
   const transitions: FlowTransition[] = []
@@ -88,7 +123,7 @@ export function parseFlowFile(source: string): FlowParse {
     transitions.push({ from, key: key as FlowKey, to })
   })
   if (problems.length > 0) return { problems }
-  return { flow: { start: raw.start as string, transitions }, problems: [] }
+  return { flow: { start: raw.start as string, transitions, ...(notice ? { notice } : {}) }, problems: [] }
 }
 
 export interface FlowStateScreen extends FlowScreen {
@@ -108,6 +143,17 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
   const list = [...ids].map((id) => `"${id}"`).join(', ')
 
   if (!ids.has(flow.start)) add(`flow.ts: start "${flow.start}" is not a state of this folder. States: ${list}.`)
+
+  const notice = flow.notice
+  if (notice) {
+    const noticeState = states.find((x) => x.id === notice.state)
+    if (!noticeState) add(`flow.ts notice: "${notice.state}" is not a state of this folder. States: ${list}.`)
+    else if (levelOfScreen(manifest, noticeState.screen) !== 0) add(`flow.ts notice: "${notice.state}" must be a level-0 screen (the notification model), since it shows over any state.`)
+    for (const [key, id] of [['startOn', notice.startOn], ['cancelOn', notice.cancelOn]] as const) {
+      if (!ids.has(id)) add(`flow.ts notice: ${key} "${id}" is not a state of this folder. States: ${list}.`)
+    }
+    if (notice.state === notice.startOn || notice.state === notice.cancelOn) add('flow.ts notice: the notice state is no stop of the walk, so it can be neither `startOn` nor `cancelOn`.')
+  }
 
   const bound = new Set<string>()
   for (const t of flow.transitions) {
@@ -177,6 +223,7 @@ export function flowFileIssues(flow: FlowFile, states: FlowStateScreen[], manife
     for (const t of flow.transitions) if (t.from === id && ids.has(t.to)) queue.push(t.to)
   }
   for (const id of ids) {
+    if (id === notice?.state) continue
     if (!seen.has(id) && ids.has(flow.start)) add(`State "${id}" is never reached from "${flow.start}" — bind a key that leads to it, or delete the file.`)
   }
 

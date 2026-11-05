@@ -11,7 +11,7 @@ export default function LoginTrilha() {
     <Screen model="interactivity-buttons-left" level={2} focusSide="left" video={<VideoAoVivo src={STREAM_URL} />}>
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <InteractivityMenu align="start">
-          <InteractivityButton interactionState="focus" title="Entre ou cadastre-se" />
+          <InteractivityButton interactionState="focus" overline="Conta Globo" overlineSize="title" title="Entre ou cadastre-se" />
         </InteractivityMenu>
       </Stack>
     </Screen>

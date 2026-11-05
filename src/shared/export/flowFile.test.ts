@@ -19,6 +19,20 @@ describe('parseFlowFile', () => {
   it('accepts back as an explicit transition', () => {
     expect(parseFlowFile(ok(`{ from: 'a', key: 'back', to: 'b' }`)).flow?.transitions[0].key).toBe('back')
   })
+  it('reads a notice', () => {
+    const notice = "{ state: 'aviso', startOn: 'a', after: 20, during: 5, cancelOn: 'b' }"
+    const r = parseFlowFile(`export default { start: 'a', notice: ${notice}, transitions: [] }`)
+    expect(r.problems).toEqual([])
+    expect(r.flow?.notice).toEqual({ state: 'aviso', startOn: 'a', after: 20, during: 5, cancelOn: 'b' })
+  })
+  it('refuses a notice that is not whole', () => {
+    const bad = (n: string) => parseFlowFile(`export default { start: 'a', notice: ${n}, transitions: [] }`).problems.join('\n')
+    expect(bad("{ state: 'x', startOn: 'a', after: 0, during: 5, cancelOn: 'b' }")).toMatch(/`after` must be a number of seconds above zero/)
+    expect(bad("{ state: 'x', startOn: 'a', after: 5, cancelOn: 'b' }")).toMatch(/`during` must be a number of seconds/)
+    expect(bad("{ startOn: 'a', after: 5, during: 5, cancelOn: 'b' }")).toMatch(/`state` must be the name of a state/)
+    expect(bad("{ state: 'x', startOn: 'a', after: 5, during: 5, cancelOn: 'b', when: 1 }")).toMatch(/unknown key "when"/)
+    expect(bad("'soon'")).toMatch(/`notice` must be/)
+  })
   it('refuses a key it does not know, an extra key, and a non-literal flow', () => {
     expect(parseFlowFile(ok(`{ from: 'a', key: 'ok', to: 'b' }`)).problems[0]).toMatch(/not one of/)
     expect(parseFlowFile(`export default { start: 'a', transitions: [], x: 1 }`).problems[0]).toMatch(/unknown key "x"/)
@@ -95,6 +109,49 @@ describe('checkFlow', () => {
       'flow.ts': flow('home', T('home', 'up', 'rail'), T('rail', 'enter', 'detail'), T('rail', 'down', 'home')),
     })
     expect(messages(dir)).toEqual([])
+  })
+
+  const noticeScreen = `
+import { Stack } from '@/primitives'
+import { Screen } from '@/ui-kit/Screen'
+export default function N() {
+  return (
+    <Screen model="notification" level={0}>
+      <Stack direction="column" justify="start" align="stretch" gap="sm" padding="none" grow><Stack direction="row" gap="sm" /></Stack>
+    </Screen>
+  )
+}`
+  const withNotice = (notice: string) =>
+    `export default { start: 'home', notice: ${notice}, transitions: [${[T('home', 'up', 'rail'), T('rail', 'enter', 'detail'), T('rail', 'down', 'home')].join(',')}] }`
+
+  it('a notice state is no stop of the walk: it needs no key to reach it', () => {
+    const dir = flowOf('notice-good', {
+      'home.tsx': home(3),
+      'rail.tsx': rail(3),
+      'detail.tsx': detail,
+      'aviso.tsx': noticeScreen,
+      'flow.ts': withNotice("{ state: 'aviso', startOn: 'home', after: 20, during: 5, cancelOn: 'detail' }"),
+    })
+    expect(messages(dir)).toEqual([])
+  })
+
+  it('names a notice that points at nothing, or whose screen is not level 0', () => {
+    const dir = flowOf('notice-bad', {
+      'home.tsx': home(3),
+      'rail.tsx': rail(3),
+      'detail.tsx': detail,
+      'flow.ts': withNotice("{ state: 'aviso', startOn: 'nowhere', after: 20, during: 5, cancelOn: 'detail' }"),
+    })
+    const m = messages(dir).join('\n')
+    expect(m).toMatch(/notice: "aviso" is not a state/)
+    expect(m).toMatch(/notice: startOn "nowhere" is not a state/)
+    const dir2 = flowOf('notice-level', {
+      'home.tsx': home(3),
+      'rail.tsx': rail(3),
+      'detail.tsx': detail,
+      'flow.ts': withNotice("{ state: 'detail', startOn: 'home', after: 20, during: 5, cancelOn: 'rail' }"),
+    })
+    expect(messages(dir2).join('\n')).toMatch(/notice: "detail" must be a level-0 screen/)
   })
 
   it('names a state that has no file, and a key bound twice', () => {

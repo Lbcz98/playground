@@ -84,6 +84,9 @@ export const ScheduleFocused: Story = { args: { focusedItem: 'schedule' } }
 /** Login focused: its rail sits on the left and holds the account settings. */
 export const LoginFocused: Story = { args: { focusedItem: 'login' } }
 
+/** A small white badge on Login: something is waiting for the viewer there (to sign in, say). */
+export const LoginBadge: Story = { args: { focusedItem: 'program', loginBadge: true } }
+
 /** The channel logo focused — not a menu role; it leads back to the clean broadcast. */
 export const BugFocused: Story = { args: { focusedItem: 'channel-bug' } }
 

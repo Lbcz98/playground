@@ -146,6 +146,10 @@
   --color-semantic-functional-text-muted: var(--color-opacity-light-70);
   /* Stroke of the rating badge in the About card: Neutral White. */
   --color-semantic-functional-rating-stroke: var(--color-core-neutral-white);
+  /* Pending badge on a round button of the main menu: Neutral White. */
+  --color-semantic-functional-round-button-badge: var(--color-core-neutral-white);
+  /* Tag under the invitation of the QR card (Figma "Topo"): white at 30%. */
+  --color-semantic-functional-content-card-qr-badge: var(--color-opacity-light-30);
 
   /* ===== Color · Semantic · Focus ===== */
   /* Fill inside the focus ring */
@@ -376,6 +380,8 @@
   --dimension-size-semantic-alert-bug-halo: 102px;
   /* Rating badge of the About card: a fixed 32x32 square that never grows with its text. */
   --dimension-size-semantic-rating-badge: var(--dimension-spacing-core-xl);
+  /* Pending badge on a round button of the main menu: a small solid dot, 10px. */
+  --dimension-size-semantic-round-button-badge: 10px;
 
   /* ===== Dimension · Border Width · Core ===== */
   --dimension-border-width-core-hairline: 1px;

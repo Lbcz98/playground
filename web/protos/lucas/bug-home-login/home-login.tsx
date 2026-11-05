@@ -15,7 +15,7 @@ export default function HomeLogin() {
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <Stack direction="column" justify="end" align="stretch" gap="sm">
           <InteractivityMenu align="start">
-            <InteractivityButton interactionState="default" title="Entre ou cadastre-se" />
+            <InteractivityButton interactionState="default" overline="Conta Globo" overlineSize="title" title="Entre ou cadastre-se" />
           </InteractivityMenu>
           <MenuComPerfilAnimado focusedItem="login" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>

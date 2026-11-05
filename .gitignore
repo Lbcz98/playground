@@ -12,6 +12,8 @@ release
 *storybook.log
 storybook-static
 dist-dtv
+# a prototype flow as one shareable .html (npm run export:html)
+dist-share
 tests/visual/.output
 
 # real-model evaluation results (eval/run.ts)

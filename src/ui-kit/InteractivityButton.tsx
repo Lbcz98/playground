@@ -28,6 +28,8 @@ export interface InteractivityButtonProps {
   title?: string
   /** Small line above the title (schedule section only). */
   overline?: string
+  /** The overline's size: the small supporting size (default), or the title's own. */
+  overlineSize?: 'supporting' | 'title'
   /** Small line under the title (schedule section only). */
   subtitle?: string
   /** Renders the "AO VIVO" badge. */
@@ -51,6 +53,7 @@ export function InteractivityButton({
   interactionState,
   title,
   overline,
+  overlineSize = 'supporting',
   subtitle,
   live = false,
   check = false,
@@ -106,7 +109,7 @@ export function InteractivityButton({
       <span className="sfs-interactivity-button-body">
         {overline && (
           <span className="sfs-interactivity-button-supporting">
-            <Text variant={secondary} color="muted">
+            <Text variant={overlineSize === 'title' ? titleStyle : secondary} color="muted">
               {overline}
             </Text>
           </span>

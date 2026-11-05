@@ -39,6 +39,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-semantic-functional-background-translucent` | #191F274D |
 | `--color-semantic-functional-border-default` | #FFFFFF33 |
 | `--color-semantic-functional-border-subtle` | #FFFFFF1A |
+| `--color-semantic-functional-content-card-qr-badge` | #FFFFFF4D |
 | `--color-semantic-functional-rating-10` | #0095DA |
 | `--color-semantic-functional-rating-12` | #FBC115 |
 | `--color-semantic-functional-rating-14` | #F58220 |
@@ -49,6 +50,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--color-semantic-functional-rating-free` | #00A651 |
 | `--color-semantic-functional-rating-stroke` | #EEEEEE |
 | `--color-semantic-functional-rating-text` | #EEEEEE |
+| `--color-semantic-functional-round-button-badge` | #EEEEEE |
 | `--color-semantic-functional-status-error` | #DE2C2C |
 | `--color-semantic-functional-status-live` | #FD4142 |
 | `--color-semantic-functional-status-success` | #11BB0E |
@@ -152,6 +154,7 @@ Not listed, by DESIGN.md §3.2, §3.3 and §4.6: type below 12px, weight 800, an
 | `--dimension-size-semantic-program-logo` | 48px |
 | `--dimension-size-semantic-rating-badge` | 32px |
 | `--dimension-size-semantic-round-button` | 88px |
+| `--dimension-size-semantic-round-button-badge` | 10px |
 | `--dimension-size-semantic-round-button-circle` | 72px |
 | `--dimension-size-semantic-table-cell-sm` | 16px |
 | `--dimension-size-semantic-table-cell-md` | 24px |

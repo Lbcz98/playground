@@ -29,6 +29,7 @@
     "check:flow": "vite-node --config vitest.config.ts scripts/flow-probe.ts --",
     "pr:report": "vite-node --config vitest.config.ts scripts/pr-report.ts --",
     "pr:comment": "vite-node --config vitest.config.ts scripts/post-pr-comment.ts --",
+    "export:html": "node scripts/export-proto-html.mjs",
     "export:tsx": "vite-node --config vitest.config.ts scripts/export-tsx.ts --",
     "build-storybook": "storybook build",
     "browsers:install": "playwright install chromium",
