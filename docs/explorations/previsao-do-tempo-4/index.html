@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Previsão do tempo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --head-gap: var(--dimension-spacing-core-3xs);
+  --place-size: var(--typography-font-size-md);
+  --title-size: var(--typography-font-size-md);
+  --title-weight: var(--typography-font-weight-bold);
+  --title-lh: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --now-gap: var(--dimension-spacing-core-3xs);
+  --now-label-size: var(--typography-font-size-md);
+  --now-size: var(--typography-font-size-3xl);
+  --now-weight: var(--typography-font-weight-bold);
+  --now-ls: var(--typography-letter-spacing-tight);
+  --now-color: var(--color-semantic-functional-text-primary);
+  --rows-gap: var(--dimension-spacing-core-2xs);
+  --row-gap: var(--dimension-spacing-core-3xs);
+  --col-gap: var(--dimension-spacing-core-2xs);
+  --name-size: var(--typography-font-size-md);
+  --val-size: var(--typography-font-size-md);
+  --val-weight: var(--typography-font-weight-bold);
+  --val-color: var(--color-semantic-functional-text-primary);
+  --unit-size: var(--typography-font-size-sm);
+  --words-size: var(--typography-font-size-sm);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-inset: 0px;
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="1"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius); background: var(--bg); color: var(--title-color); }
+[data-option="1"] .card::after { content: ''; position: absolute; inset: var(--ring-inset); border-radius: inherit; padding: var(--ring-width); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="1"][data-state="foco"] .card::after { opacity: 1; }
+
+[data-option="1"] .head { display: flex; flex-direction: column; gap: var(--head-gap); }
+[data-option="1"] .place { display: block; margin: 0; font-size: var(--place-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .title { display: block; margin: 0; font-size: var(--title-size); font-weight: var(--title-weight); line-height: var(--title-lh); color: var(--title-color); text-wrap: balance; }
+
+[data-option="1"] .now { display: flex; flex-direction: column; gap: var(--now-gap); }
+[data-option="1"] .now-label { display: block; margin: 0; font-size: var(--now-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .now-value { display: block; margin: 0; font-size: var(--now-size); font-weight: var(--now-weight); letter-spacing: var(--now-ls); color: var(--now-color); font-variant-numeric: tabular-nums; }
+
+[data-option="1"] .proofs { display: flex; flex-direction: column; gap: var(--rows-gap); margin: 0; padding: 0; list-style: none; }
+[data-option="1"] .proof { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--col-gap); row-gap: var(--row-gap); align-items: baseline; }
+[data-option="1"] .proof-name { display: block; font-size: var(--name-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .proof-value { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-3xs); font-size: var(--val-size); font-weight: var(--val-weight); color: var(--val-color); font-variant-numeric: tabular-nums; }
+[data-option="1"] .proof-unit { display: block; font-size: var(--unit-size); font-weight: var(--typography-font-weight-medium); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .proof-words { display: block; grid-column: 1 / -1; font-size: var(--words-size); color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+
+@media (prefers-reduced-motion: reduce) { [data-option="1"] .card::after { transition: none; } }
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --sky-rest: var(--opacity-semantic-illumination-strong);
+  --sky-focus: var(--opacity-semantic-visible);
+  --veil-top: 42%;
+  --veil-bottom: 56%;
+  --sky-band: var(--dimension-spacing-core-6xl);
+  --name-size: var(--typography-font-size-base);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --top-gap: var(--dimension-spacing-core-3xs);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --temp-label-size: var(--typography-font-size-md);
+  --temp-label-gap: var(--dimension-spacing-core-2xs);
+  --foot-label-size: var(--typography-font-size-sm);
+  --foot-value-size: var(--typography-font-size-base);
+  --foot-value-color: var(--color-semantic-functional-text-primary);
+  --foot-col-gap: var(--dimension-spacing-core-lg);
+  --foot-row-gap: var(--dimension-spacing-core-sm);
+  --foot-inner-gap: var(--dimension-spacing-core-3xs);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: Content Card surface (kit radius, inset, width); the sky is a layer inside it. */
+[data-option="2"] .card { position: relative; overflow: hidden; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius);
+  background: var(--color-semantic-functional-background-elevated); }
+
+/* The weather as ambient: the kit's tarde gradient as it is, then the card scrim as a veil on the two calm bands. */
+[data-option="2"] .sky { position: absolute; inset: 0; background: var(--gradient-primary-tarde); opacity: var(--sky-rest);
+  transition: opacity var(--dur) var(--ease); }
+[data-option="2"][data-state="foco"] .sky { opacity: var(--sky-focus); }
+[data-option="2"] .veil { position: absolute; inset: 0; pointer-events: none; }
+[data-option="2"] .veil::before, [data-option="2"] .veil::after { content: ''; position: absolute; left: 0; right: 0; background: var(--gradient-semantic-card-scrim); }
+[data-option="2"] .veil::before { top: 0; height: var(--veil-top); transform: scaleY(-1); }
+[data-option="2"] .veil::after { bottom: 0; height: var(--veil-bottom); }
+
+/* The calm middle of the sky is its own band, not a gap between groups: the weather shows through it. */
+[data-option="2"] .band { display: block; height: var(--sky-band); }
+[data-option="2"] .top, [data-option="2"] .foot { position: relative; }
+[data-option="2"] .top { display: flex; flex-direction: column; gap: var(--top-gap); }
+[data-option="2"] .name { margin: 0; font-size: var(--name-size); color: var(--name-color); text-wrap: balance; }
+[data-option="2"] .temp { margin: 0; display: flex; align-items: baseline; gap: var(--temp-label-gap); }
+[data-option="2"] .temp-value { display: block; font-size: var(--temp-size); color: var(--temp-color); font-variant-numeric: tabular-nums; }
+[data-option="2"] .temp-label { display: block; font-size: var(--temp-label-size); color: var(--color-semantic-functional-text-muted); }
+
+[data-option="2"] .foot { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--foot-col-gap); row-gap: var(--foot-row-gap); }
+[data-option="2"] .fact { display: flex; flex-direction: column; gap: var(--foot-inner-gap); }
+[data-option="2"] .fact-label { margin: 0; font-size: var(--foot-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .fact-value { margin: 0; font-size: var(--foot-value-size); color: var(--foot-value-color); font-variant-numeric: tabular-nums; }
+
+/* Focus: the kit's ring, inside the card, drawn only in the foco state. Nothing moves. */
+[data-option="2"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="2"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { [data-option="2"] .sky, [data-option="2"] .card::after { transition: none; } }
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --name-size: var(--typography-font-size-md);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --local-gap: var(--dimension-spacing-core-3xs);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --temp-label-size: var(--typography-font-size-md);
+  --temp-label-gap: var(--dimension-spacing-core-2xs);
+  --track-h: var(--dimension-size-semantic-icon-lg);
+  --tick-w: var(--dimension-border-width-core-thin);
+  --mark-w: var(--dimension-border-width-core-medium);
+  --mark-extra: var(--dimension-spacing-core-2xs);
+  --mark-color: var(--color-semantic-functional-text-primary);
+  --feels-pos: 58%;
+  --avg-pos: 38%;
+  --scale-gap: var(--dimension-spacing-core-2xs);
+  --mark-label-size: var(--typography-font-size-sm);
+  --mark-label-color: var(--color-semantic-functional-text-primary);
+  --end-label-size: var(--typography-font-size-sm);
+  --sentence-size: var(--typography-font-size-md);
+  --sentence-gap: var(--dimension-spacing-core-xs);
+  --sup-label-size: var(--typography-font-size-sm);
+  --sup-value-size: var(--typography-font-size-base);
+  --sup-value-color: var(--color-semantic-functional-text-primary);
+  --sup-col-gap: var(--dimension-spacing-core-lg);
+  --sup-inner-gap: var(--dimension-spacing-core-3xs);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Content Card surface: kit radius, inset and width. Height hugs the content. */
+[data-option="3"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius);
+  background: var(--bg); }
+
+/* Local and anchor: the name and the number it belongs to read as one group. */
+[data-option="3"] .local { display: flex; flex-direction: column; gap: var(--local-gap); }
+[data-option="3"] .name { margin: 0; font-size: var(--name-size); color: var(--name-color); text-wrap: balance; }
+[data-option="3"] .temp { margin: 0; display: flex; align-items: baseline; gap: var(--temp-label-gap); }
+[data-option="3"] .temp-value { display: block; font-size: var(--temp-size); color: var(--temp-color); font-variant-numeric: tabular-nums; }
+[data-option="3"] .temp-label { display: block; font-size: var(--temp-label-size); color: var(--color-semantic-functional-text-muted); }
+
+/* Comfort scale: 25 cells, one per degree from 12 to 36. The ticks are one masked layer, not 25 elements.
+   Cell n sits at (n + 0.5) / 25 of the width; lit up to the felt temperature (26 = cell 14 = 58%). */
+[data-option="3"] .scale { display: flex; flex-direction: column; }
+[data-option="3"] .tag-row { display: block; position: relative; }
+[data-option="3"] .tag-row-top { height: calc(var(--mark-label-size) * 1.2); margin-bottom: calc(var(--mark-extra) + var(--scale-gap)); }
+[data-option="3"] .tag-row-bottom { height: calc(var(--mark-label-size) * 1.2); margin-top: calc(var(--mark-extra) + var(--scale-gap)); }
+[data-option="3"] .tag { display: block; position: absolute; top: 0; white-space: nowrap; }
+[data-option="3"] .tag-feels { left: var(--feels-pos); transform: translateX(-50%); font-size: var(--mark-label-size); color: var(--mark-label-color); }
+[data-option="3"] .tag-avg { left: var(--avg-pos); transform: translateX(-50%); font-size: var(--mark-label-size); color: var(--mark-label-color); }
+[data-option="3"] .tag-end { font-size: var(--end-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .tag-cold { left: 0; }
+[data-option="3"] .tag-hot { right: 0; }
+
+[data-option="3"] .track { display: block; position: relative; height: var(--track-h); }
+[data-option="3"] .ticks { display: block; position: absolute; inset: 0;
+  mask-image: linear-gradient(to right,
+    transparent calc(50% - var(--tick-w) / 2),
+    var(--color-semantic-focus-outline) calc(50% - var(--tick-w) / 2) calc(50% + var(--tick-w) / 2),
+    transparent calc(50% + var(--tick-w) / 2));
+  mask-size: calc(100% / 25) 100%; mask-repeat: repeat-x; }
+[data-option="3"] .ticks-off { background: var(--color-opacity-light-20); }
+[data-option="3"] .ticks-on { background: var(--color-opacity-light-70); clip-path: inset(0 calc(100% - var(--feels-pos) - 2%) 0 0); }
+[data-option="3"] .mark { display: block; position: absolute; width: var(--mark-w); transform: translateX(-50%); background: var(--mark-color); }
+[data-option="3"] .mark-feels { left: var(--feels-pos); top: calc(var(--mark-extra) * -1); bottom: 0; }
+[data-option="3"] .mark-avg { left: var(--avg-pos); top: 0; bottom: calc(var(--mark-extra) * -1); background: var(--color-semantic-functional-text-muted); }
+
+[data-option="3"] .sentence { margin: var(--sentence-gap) 0 0; font-size: var(--sentence-size); color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+
+/* Support line: wind and humidity, label above value, side by side. */
+[data-option="3"] .support { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--sup-col-gap); }
+[data-option="3"] .fact { display: flex; flex-direction: column; gap: var(--sup-inner-gap); }
+[data-option="3"] .fact-label { margin: 0; font-size: var(--sup-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .fact-value { margin: 0; font-size: var(--sup-value-size); color: var(--sup-value-color); font-variant-numeric: tabular-nums; }
+
+/* Focus: the kit's ring, inside the card, shown only in the foco state. Nothing moves. */
+[data-option="3"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="3"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { [data-option="3"] .card::after { transition: none; } }
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --cap-opacity: var(--opacity-semantic-visible);
+  --cap-gap: var(--dimension-spacing-core-sm);
+  --place-size: var(--typography-font-size-md);
+  --place-color: var(--color-semantic-functional-text-inverse);
+  --pill-size: var(--typography-font-size-md);
+  --pill-pad-x: var(--dimension-spacing-core-xs);
+  --pill-pad-y: var(--dimension-spacing-core-3xs);
+  --pill-bg: var(--color-semantic-functional-background-primary);
+  --pill-color: var(--color-semantic-functional-text-primary);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-color: var(--color-semantic-functional-text-inverse);
+  --temp-label-size: var(--typography-font-size-md);
+  --temp-label-gap: var(--dimension-spacing-core-2xs);
+  --zone-tint: var(--opacity-semantic-overlay-minimal);
+  --facts-col-gap: var(--dimension-spacing-core-lg);
+  --facts-row-gap: var(--dimension-spacing-core-sm);
+  --fact-inner-gap: var(--dimension-spacing-core-3xs);
+  --fact-label-size: var(--typography-font-size-sm);
+  --fact-value-size: var(--typography-font-size-base);
+  --fact-value-color: var(--color-semantic-functional-text-primary);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: Content Card surface (kit radius, inset, width). The cap and the data zone bleed to the card edge, so the hue reads as a layer of the card. */
+[data-option="4"] .card { position: relative; overflow: hidden; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius); background: var(--bg); }
+
+/* Fixed skeleton: place in the corner and condition name on one row, anchor under it, data zone at the foot. One hue (dia) for every layer. */
+[data-option="4"] .cap { position: relative; display: flex; flex-direction: column; gap: var(--cap-gap);
+  margin: calc(-1 * var(--inset)) calc(-1 * var(--inset)) 0; padding: var(--inset); }
+[data-option="4"] .cap::before { content: ''; position: absolute; inset: 0; background: var(--gradient-primary-dia); opacity: var(--cap-opacity); }
+[data-option="4"] .cap-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .place { display: block; margin: 0; font-size: var(--place-size); color: var(--place-color); text-wrap: balance; }
+[data-option="4"] .condition { display: block; margin: 0; padding: var(--pill-pad-y) var(--pill-pad-x); border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--pill-bg); color: var(--pill-color); font-size: var(--pill-size); white-space: nowrap; }
+[data-option="4"] .temp { position: relative; margin: 0; display: flex; align-items: baseline; gap: var(--temp-label-gap); color: var(--temp-color); }
+[data-option="4"] .temp-value { display: block; font-size: var(--temp-size); font-variant-numeric: tabular-nums; }
+[data-option="4"] .temp-label { display: block; font-size: var(--temp-label-size); }
+
+[data-option="4"] .zone { position: relative; display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--facts-col-gap); row-gap: var(--facts-row-gap);
+  margin: 0 calc(-1 * var(--inset)) calc(-1 * var(--inset)); padding: var(--inset); }
+[data-option="4"] .zone::before { content: ''; position: absolute; inset: 0; background: var(--gradient-primary-dia); opacity: var(--zone-tint); }
+[data-option="4"] .fact { position: relative; display: flex; flex-direction: column; gap: var(--fact-inner-gap); }
+[data-option="4"] .fact-label { display: block; margin: 0; font-size: var(--fact-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .fact-value { display: block; margin: 0; font-size: var(--fact-value-size); color: var(--fact-value-color); font-variant-numeric: tabular-nums; }
+
+/* Focus: the kit's ring, inside the card, drawn only in the foco state. Nothing moves. */
+[data-option="4"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="4"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { [data-option="4"] .card::after { transition: none; } }
+/* tune:vars */
+[data-option="5"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --name-size: var(--typography-font-size-base);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --id-gap: var(--dimension-spacing-core-3xs);
+  --now-scale: 2.5;
+  --now-lh: var(--typography-line-height-tight);
+  --now-ls: var(--typography-letter-spacing-tighter);
+  --now-color: var(--color-semantic-functional-text-primary);
+  --now-label-size: var(--typography-font-size-md);
+  --now-label-gap: var(--dimension-spacing-core-2xs);
+  --fact-label-size: var(--typography-font-size-sm);
+  --fact-value-size: var(--typography-font-size-base);
+  --fact-value-color: var(--color-semantic-functional-text-primary);
+  --facts-col-gap: var(--dimension-spacing-core-lg);
+  --facts-row-gap: var(--dimension-spacing-core-sm);
+  --fact-inner-gap: var(--dimension-spacing-core-3xs);
+  --tex-size: var(--typography-font-size-sm);
+  --tex-lh: 1.4;
+  --tex-color: var(--color-semantic-functional-text-secondary);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Content Card surface: kit radius, inset and width. Two zones, never overlapping: a smooth one for the text, a textured one for the rest. */
+[data-option="5"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius);
+  background: var(--bg); }
+
+/* Smooth zone, group 1: the place and the anchor, close together. One left axis for everything. */
+[data-option="5"] .local { display: flex; flex-direction: column; gap: var(--id-gap); }
+[data-option="5"] .name { margin: 0; font-size: var(--name-size); color: var(--name-color); text-wrap: balance; }
+[data-option="5"] .temp { margin: 0; display: flex; align-items: baseline; gap: var(--now-label-gap); }
+[data-option="5"] .temp-value { display: block; font-size: calc(var(--typography-font-size-3xl) * var(--now-scale)); line-height: var(--now-lh);
+  letter-spacing: var(--now-ls); color: var(--now-color); font-variant-numeric: tabular-nums; }
+[data-option="5"] .temp-label { display: block; font-size: var(--now-label-size); color: var(--color-semantic-functional-text-muted); }
+
+/* Smooth zone, group 2: the four supporting data, label above value. */
+[data-option="5"] .facts { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--facts-col-gap); row-gap: var(--facts-row-gap); }
+[data-option="5"] .fact { display: flex; flex-direction: column; gap: var(--fact-inner-gap); }
+[data-option="5"] .fact-label { margin: 0; font-size: var(--fact-label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .fact-value { margin: 0; font-size: var(--fact-value-size); color: var(--fact-value-color); font-variant-numeric: tabular-nums; }
+
+/* Textured zone: the same material as the message (the six data), at a fraction of the anchor's size. Each line is justified to the card's axes. */
+[data-option="5"] .texture { margin: 0; font-size: var(--tex-size); line-height: var(--tex-lh); color: var(--tex-color);
+  text-align: justify; text-align-last: justify; font-variant-numeric: tabular-nums; user-select: none; }
+
+/* Focus: the kit's ring inside the card, drawn only in the foco state. Nothing moves. */
+[data-option="5"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="5"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { [data-option="5"] .card::after { transition: none; } }
+/* tune:vars */
+[data-option="6"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --icon-size: var(--dimension-size-semantic-icon-2xl);
+  --icon-color: var(--color-semantic-functional-text-primary);
+  --void: var(--dimension-spacing-core-5xl);
+  --phrase-size: var(--typography-font-size-md);
+  --light-weight: var(--typography-font-weight-regular);
+  --phrase-gap: var(--dimension-spacing-core-3xs);
+  --place-weight: var(--typography-font-weight-bold);
+  --place-color: var(--color-semantic-functional-text-primary);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-ls: var(--typography-letter-spacing-tight);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --lines-gap: var(--dimension-spacing-core-2xs);
+  --line-size: var(--typography-font-size-md);
+  --line-inner-gap: var(--dimension-spacing-core-3xs);
+  --val-weight: var(--typography-font-weight-bold);
+  --val-color: var(--color-semantic-functional-text-primary);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-inset: 0px;
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: Content Card surface (kit radius, inset, width). Icon on top, empty centre, text anchored at the bottom, one left axis. */
+[data-option="6"] .card { position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius);
+  background: var(--bg); }
+
+/* The icon carries the meaning by shape (a thermometer, mercury part way up); colour stays a kit token via the mask. */
+[data-option="6"] .icon { display: block; width: var(--icon-size); height: var(--icon-size); background: var(--icon-color);
+  -webkit-mask: url(data:image/png;base64,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) left center / contain no-repeat; mask: url(data:image/png;base64,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) left center / contain no-repeat; }
+[data-option="6"] .void { display: block; height: var(--void); }
+
+/* Two voices: the constant part is light and muted, the variable part one step up and primary. */
+[data-option="6"] .phrase-group { display: flex; flex-direction: column; gap: var(--phrase-gap); }
+[data-option="6"] .phrase { margin: 0; font-size: var(--phrase-size); font-weight: var(--light-weight); color: var(--color-semantic-functional-text-muted); text-wrap: balance; }
+[data-option="6"] .place { font-weight: var(--place-weight); color: var(--place-color); }
+[data-option="6"] .temp { display: block; margin: 0; font-size: var(--temp-size); letter-spacing: var(--temp-ls); color: var(--temp-color); font-variant-numeric: tabular-nums; }
+
+[data-option="6"] .lines { display: flex; flex-direction: column; gap: var(--lines-gap); margin: var(--group-gap) 0 0; padding: 0; list-style: none; }
+[data-option="6"] .line { display: flex; align-items: baseline; gap: var(--line-inner-gap); font-size: var(--line-size); }
+[data-option="6"] .line-lead { display: block; font-weight: var(--light-weight); color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .line-value { display: block; font-weight: var(--val-weight); color: var(--val-color); font-variant-numeric: tabular-nums; }
+
+/* Focus: the kit's ring, inside the card, drawn only in the foco state. Nothing moves. */
+[data-option="6"] .card::after { content: ''; position: absolute; inset: var(--ring-inset); border-radius: inherit; padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="6"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { [data-option="6"] .card::after { transition: none; } }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o card abre com uma frase-conclusão ("Parece mais quente do que é") e os números vêm como prova, em lista, cada um com seu nome, valor e comparação em palavras. -->
+  <p class="opt-label" data-part="label">Opção 1 - Título que diz como é lá fora</p>
+  <div class="opt-content" data-part="content">
+    <section class="card" data-part="card">
+      <header class="head" data-part="header">
+        <p class="place text-body-sm-medium" data-part="place">São Paulo</p>
+        <h2 class="title text-body-sm-bold" data-part="title">Parece mais quente do que é</h2>
+      </header>
+      <div class="now" data-part="current">
+        <p class="now-label text-body-sm-medium" data-part="current-label">Agora</p>
+        <p class="now-value text-heading-3-bold" data-part="current-value">24°</p>
+      </div>
+      <ul class="proofs" data-part="proofs">
+        <li class="proof" data-part="feels">
+          <span class="proof-name text-body-sm-medium" data-part="feels-name">Sensação</span>
+          <span class="proof-value text-body-sm-bold" data-part="feels-value">26°</span>
+          <span class="proof-words text-footnote-medium" data-part="feels-words">2° acima do termômetro</span>
+        </li>
+        <li class="proof" data-part="average">
+          <span class="proof-name text-body-sm-medium" data-part="average-name">Média do dia</span>
+          <span class="proof-value text-body-sm-bold" data-part="average-value">21°</span>
+          <span class="proof-words text-footnote-medium" data-part="average-words">agora está 3° acima</span>
+        </li>
+        <li class="proof" data-part="wind">
+          <span class="proof-name text-body-sm-medium" data-part="wind-name">Vento</span>
+          <span class="proof-value text-body-sm-bold" data-part="wind-value">14<span class="proof-unit text-footnote-medium">km/h</span></span>
+          <span class="proof-words text-footnote-medium" data-part="wind-words">brisa moderada</span>
+        </li>
+        <li class="proof" data-part="humidity">
+          <span class="proof-name text-body-sm-medium" data-part="humidity-name">Umidade</span>
+          <span class="proof-value text-body-sm-bold" data-part="humidity-value">68%</span>
+          <span class="proof-words text-footnote-medium" data-part="humidity-words">ar úmido, abafa um pouco</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+  <script type="application/json" data-tune="1">{"states":["repouso","foco"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+{"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}
+]},
+{"name":"Local e frase","part":"header","controls":[
+{"id":"head-gap","label":"Vão local e frase","type":"slider","var":"--head-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"place-size","label":"Tamanho do local","type":"slider","var":"--place-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"title-size","label":"Tamanho da frase","type":"slider","var":"--title-size","value":14,"base":14,"min":12,"max":24,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"title-weight","label":"Peso da frase","type":"slider","var":"--title-weight","value":700,"base":700,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-bold"},
+{"id":"title-lh","label":"Entrelinha da frase","type":"slider","var":"--title-lh","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor da frase","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Temperatura atual","part":"current","controls":[
+{"id":"now-gap","label":"Vão rótulo e número","type":"slider","var":"--now-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"now-label-size","label":"Tamanho do rótulo","type":"slider","var":"--now-label-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"now-size","label":"Tamanho do número","type":"slider","var":"--now-size","value":28,"base":28,"min":24,"max":56,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+{"id":"now-weight","label":"Peso do número","type":"slider","var":"--now-weight","value":700,"base":700,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-bold"},
+{"id":"now-ls","label":"Espaçamento do número","type":"slider","var":"--now-ls","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"now-color","label":"Cor do número","type":"color","var":"--now-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Provas","part":"proofs","controls":[
+{"id":"rows-gap","label":"Vão entre linhas","type":"slider","var":"--rows-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"row-gap","label":"Vão dentro da linha","type":"slider","var":"--row-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"col-gap","label":"Vão nome e valor","type":"slider","var":"--col-gap","value":8,"base":8,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"name-size","label":"Tamanho do nome","type":"slider","var":"--name-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"val-size","label":"Tamanho do valor","type":"slider","var":"--val-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"val-weight","label":"Peso do valor","type":"slider","var":"--val-weight","value":700,"base":700,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-bold"},
+{"id":"val-color","label":"Cor do valor","type":"color","var":"--val-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"unit-size","label":"Tamanho da unidade","type":"slider","var":"--unit-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"words-size","label":"Tamanho da comparação","type":"slider","var":"--words-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"ring-inset","label":"Afastamento do anel","type":"slider","var":"--ring-inset","value":0,"min":0,"max":8,"step":1,"unit":"px"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o clima aparece como ambiente de ponta a ponta no card e o texto fica só nas faixas mais calmas, de modo que se sente o tempo antes de ler o número. -->
+  <p class="opt-label" data-part="label">Opção 2 - O ambiente como fundo</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="sky" data-part="sky" data-stack aria-hidden="true"></div>
+      <div class="veil" data-part="veil" data-stack aria-hidden="true"></div>
+      <div class="top" data-part="local">
+        <p class="name text-body-md-bold" data-part="name">São Paulo</p>
+        <p class="temp" data-part="temperature">
+          <span class="temp-value text-heading-3-bold" data-part="temperature-value">24°</span>
+          <span class="temp-label text-body-sm-medium" data-part="temperature-label">agora</span>
+        </p>
+      </div>
+      <div class="band" data-part="sky-band" aria-hidden="true"></div>
+      <div class="foot" data-part="details">
+        <div class="fact" data-part="feels-like"><p class="fact-label text-footnote-medium">Sensação</p><p class="fact-value text-body-md-bold">26°</p></div>
+        <div class="fact" data-part="average"><p class="fact-label text-footnote-medium">Média do dia</p><p class="fact-value text-body-md-bold">21°</p></div>
+        <div class="fact" data-part="wind"><p class="fact-label text-footnote-medium">Vento</p><p class="fact-value text-body-md-bold">14 km/h</p></div>
+        <div class="fact" data-part="humidity"><p class="fact-label text-footnote-medium">Umidade</p><p class="fact-value text-body-md-bold">68%</p></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":2,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"}]},
+    {"name":"Céu","part":"sky","controls":[
+      {"id":"sky-rest","label":"Brilho em repouso","type":"slider","var":"--sky-rest","value":0.8,"base":0.8,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-illumination-strong"},
+      {"id":"sky-focus","label":"Brilho em foco","type":"slider","var":"--sky-focus","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"},
+      {"id":"veil-top","label":"Véu do topo","type":"slider","var":"--veil-top","value":42,"min":0,"max":70,"step":1,"unit":"%"},
+      {"id":"veil-bottom","label":"Véu do rodapé","type":"slider","var":"--veil-bottom","value":56,"min":0,"max":80,"step":1,"unit":"%"},
+      {"id":"sky-band","label":"Faixa de céu entre os textos","type":"slider","var":"--sky-band","value":96,"base":96,"min":24,"max":160,"step":4,"unit":"px","token":"--dimension-spacing-core-6xl"}]},
+    {"name":"Local","part":"name","controls":[
+      {"id":"name-size","label":"Tamanho","type":"slider","var":"--name-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"top-gap","label":"Distância até a temperatura","type":"slider","var":"--top-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Temperatura","part":"temperature","controls":[
+      {"id":"temp-size","label":"Tamanho do número","type":"slider","var":"--temp-size","value":28,"base":28,"min":20,"max":40,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"temp-color","label":"Cor do número","type":"color","var":"--temp-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"temp-label-size","label":"Tamanho do apoio","type":"slider","var":"--temp-label-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"temp-label-gap","label":"Distância do apoio","type":"slider","var":"--temp-label-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Detalhes","part":"details","controls":[
+      {"id":"foot-label-size","label":"Tamanho do rótulo","type":"slider","var":"--foot-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"foot-value-size","label":"Tamanho do valor","type":"slider","var":"--foot-value-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"foot-value-color","label":"Cor do valor","type":"color","var":"--foot-value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"foot-col-gap","label":"Vão entre colunas","type":"slider","var":"--foot-col-gap","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"foot-row-gap","label":"Vão entre linhas","type":"slider","var":"--foot-row-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"foot-inner-gap","label":"Vão rótulo e valor","type":"slider","var":"--foot-inner-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Variações da Opção 2 · forte</h2>
+<article data-parent="2" class="opt" data-option="3" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o número atual responde "como está?", e uma escala de traços de frio a quente com marcador mostra onde a sensação térmica cai e onde está a média do dia; vento e umidade ficam em linha de apoio. -->
+  <p class="opt-label" data-part="label">Opção 3 - Escala de conforto</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="local" data-part="local">
+        <p class="name text-body-sm-bold" data-part="name">São Paulo</p>
+        <p class="temp" data-part="temperature">
+          <span class="temp-value text-heading-3-bold" data-part="temperature-value">24°</span>
+          <span class="temp-label text-body-sm-medium" data-part="temperature-label">agora</span>
+        </p>
+      </div>
+      <div class="scale" data-part="scale">
+        <span class="tag-row tag-row-top" data-part="feels-like"><span class="tag tag-feels text-footnote-bold">Sensação 26°</span></span>
+        <span class="track" data-part="track" data-stack>
+          <span class="ticks ticks-off" aria-hidden="true"></span>
+          <span class="ticks ticks-on" aria-hidden="true"></span>
+          <span class="mark mark-feels" data-part="feels-mark" aria-hidden="true"></span>
+          <span class="mark mark-avg" data-part="average-mark" aria-hidden="true"></span>
+        </span>
+        <span class="tag-row tag-row-bottom" data-part="average">
+          <span class="tag tag-end tag-cold text-footnote-medium">frio</span>
+          <span class="tag tag-avg text-footnote-bold">Média 21°</span>
+          <span class="tag tag-end tag-hot text-footnote-medium">quente</span>
+        </span>
+        <p class="sentence text-body-sm-medium" data-part="sentence">Parece 5° mais quente que a média do dia.</p>
+      </div>
+      <div class="support" data-part="support">
+        <div class="fact" data-part="wind"><p class="fact-label text-footnote-medium">Vento</p><p class="fact-value text-body-md-bold">14 km/h</p></div>
+        <div class="fact" data-part="humidity"><p class="fact-label text-footnote-medium">Umidade</p><p class="fact-value text-body-md-bold">68%</p></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":2,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Local","part":"name","controls":[
+      {"id":"name-size","label":"Tamanho do nome","type":"slider","var":"--name-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"name-color","label":"Cor do nome","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"local-gap","label":"Vão nome e número","type":"slider","var":"--local-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Temperatura atual","part":"temperature","controls":[
+      {"id":"temp-size","label":"Tamanho do número","type":"slider","var":"--temp-size","value":28,"base":28,"min":20,"max":48,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"temp-color","label":"Cor do número","type":"color","var":"--temp-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"temp-label-size","label":"Tamanho do apoio","type":"slider","var":"--temp-label-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"temp-label-gap","label":"Distância do apoio","type":"slider","var":"--temp-label-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Escala","part":"track","controls":[
+      {"id":"track-h","label":"Altura dos traços","type":"slider","var":"--track-h","value":24,"base":24,"min":12,"max":48,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-lg"},
+      {"id":"tick-w","label":"Largura do traço","type":"slider","var":"--tick-w","value":2,"base":2,"min":1,"max":4,"step":1,"unit":"px","token":"--dimension-border-width-core-thin"},
+      {"id":"mark-w","label":"Largura do marcador","type":"slider","var":"--mark-w","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-core-medium"},
+      {"id":"mark-extra","label":"Saliência do marcador","type":"slider","var":"--mark-extra","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"mark-color","label":"Cor do marcador","type":"color","var":"--mark-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"feels-pos","label":"Posição da sensação","type":"slider","var":"--feels-pos","value":58,"min":2,"max":98,"step":4,"unit":"%"},
+      {"id":"avg-pos","label":"Posição da média","type":"slider","var":"--avg-pos","value":38,"min":2,"max":98,"step":4,"unit":"%"}]},
+    {"name":"Rótulos da escala","part":"feels-like","controls":[
+      {"id":"scale-gap","label":"Distância do traço ao rótulo","type":"slider","var":"--scale-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"mark-label-size","label":"Tamanho do rótulo","type":"slider","var":"--mark-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"mark-label-color","label":"Cor do rótulo","type":"color","var":"--mark-label-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"end-label-size","label":"Tamanho de frio e quente","type":"slider","var":"--end-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}]},
+    {"name":"Frase","part":"sentence","controls":[
+      {"id":"sentence-size","label":"Tamanho","type":"slider","var":"--sentence-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"sentence-gap","label":"Distância da escala","type":"slider","var":"--sentence-gap","value":12,"base":12,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"}]},
+    {"name":"Apoio","part":"support","controls":[
+      {"id":"sup-label-size","label":"Tamanho do rótulo","type":"slider","var":"--sup-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"sup-value-size","label":"Tamanho do valor","type":"slider","var":"--sup-value-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"sup-value-color","label":"Cor do valor","type":"color","var":"--sup-value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"sup-col-gap","label":"Vão entre colunas","type":"slider","var":"--sup-col-gap","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"sup-inner-gap","label":"Vão rótulo e valor","type":"slider","var":"--sup-inner-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="4" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o nome da condição ("Ameno") e um matiz único dizem como está antes de qualquer número; o esqueleto (local no canto, rodapé estável) fica parado e só a zona de dado muda. -->
+  <p class="opt-label" data-part="label">Opção 4 - A condição dá a cor</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="cap" data-part="cap">
+        <div class="cap-row" data-part="header">
+          <p class="place text-body-sm-bold" data-part="place">São Paulo</p>
+          <p class="condition text-body-sm-bold" data-part="condition">Ameno</p>
+        </div>
+        <p class="temp" data-part="temperature">
+          <span class="temp-value text-heading-3-bold" data-part="temperature-value">24°</span>
+          <span class="temp-label text-body-sm-medium" data-part="temperature-label">agora</span>
+        </p>
+      </div>
+      <div class="zone" data-part="details">
+        <div class="fact" data-part="feels-like"><p class="fact-label text-footnote-medium">Sensação</p><p class="fact-value text-body-md-bold">26°</p></div>
+        <div class="fact" data-part="average"><p class="fact-label text-footnote-medium">Média do dia</p><p class="fact-value text-body-md-bold">21°</p></div>
+        <div class="fact" data-part="wind"><p class="fact-label text-footnote-medium">Vento</p><p class="fact-value text-body-md-bold">14 km/h</p></div>
+        <div class="fact" data-part="humidity"><p class="fact-label text-footnote-medium">Umidade</p><p class="fact-value text-body-md-bold">68%</p></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":2,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Faixa da condição","part":"cap","controls":[
+      {"id":"cap-opacity","label":"Intensidade do matiz","type":"slider","var":"--cap-opacity","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"},
+      {"id":"cap-gap","label":"Vão entre linha e temperatura","type":"slider","var":"--cap-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Local","part":"place","controls":[
+      {"id":"place-size","label":"Tamanho","type":"slider","var":"--place-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"place-color","label":"Cor","type":"color","var":"--place-color","value":"#000000","base":"#000000","token":"--color-semantic-functional-text-inverse"}]},
+    {"name":"Condição","part":"condition","controls":[
+      {"id":"pill-size","label":"Tamanho do texto","type":"slider","var":"--pill-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"pill-pad-x","label":"Respiro lateral","type":"slider","var":"--pill-pad-x","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"pill-pad-y","label":"Respiro vertical","type":"slider","var":"--pill-pad-y","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"pill-bg","label":"Fundo","type":"color","var":"--pill-bg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+      {"id":"pill-color","label":"Cor do texto","type":"color","var":"--pill-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Temperatura","part":"temperature","controls":[
+      {"id":"temp-size","label":"Tamanho do número","type":"slider","var":"--temp-size","value":28,"base":28,"min":20,"max":48,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"temp-color","label":"Cor","type":"color","var":"--temp-color","value":"#000000","base":"#000000","token":"--color-semantic-functional-text-inverse"},
+      {"id":"temp-label-size","label":"Tamanho do apoio","type":"slider","var":"--temp-label-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"temp-label-gap","label":"Distância do apoio","type":"slider","var":"--temp-label-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Dados","part":"details","controls":[
+      {"id":"zone-tint","label":"Matiz do fundo","type":"slider","var":"--zone-tint","value":0.1,"base":0.1,"min":0,"max":0.6,"step":0.05,"unit":"","token":"--opacity-semantic-overlay-minimal"},
+      {"id":"facts-col-gap","label":"Vão entre colunas","type":"slider","var":"--facts-col-gap","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"facts-row-gap","label":"Vão entre linhas","type":"slider","var":"--facts-row-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"fact-inner-gap","label":"Vão rótulo e valor","type":"slider","var":"--fact-inner-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"fact-label-size","label":"Tamanho do rótulo","type":"slider","var":"--fact-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"fact-value-size","label":"Tamanho do valor","type":"slider","var":"--fact-value-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"fact-value-color","label":"Cor do valor","type":"color","var":"--fact-value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="5" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o card é um cartaz tipográfico: o número atual em letra enorme numa zona lisa com o local, e o resto do card preenchido por uma textura de letras miúdas feita dos próprios dados, sem sobrepor o texto. -->
+  <p class="opt-label" data-part="label">Opção 5 - Cartaz do tempo</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="local" data-part="local">
+        <p class="name text-body-md-bold" data-part="name">São Paulo</p>
+        <p class="temp" data-part="temperature">
+          <span class="temp-value text-heading-3-bold" data-part="temperature-value">24°</span>
+          <span class="temp-label text-body-sm-medium" data-part="temperature-label">agora</span>
+        </p>
+      </div>
+      <div class="facts" data-part="details">
+        <div class="fact" data-part="feels-like"><p class="fact-label text-footnote-medium">Sensação</p><p class="fact-value text-body-md-bold">26°</p></div>
+        <div class="fact" data-part="average"><p class="fact-label text-footnote-medium">Média do dia</p><p class="fact-value text-body-md-bold">21°</p></div>
+        <div class="fact" data-part="wind"><p class="fact-label text-footnote-medium">Vento</p><p class="fact-value text-body-md-bold">14 km/h</p></div>
+        <div class="fact" data-part="humidity"><p class="fact-label text-footnote-medium">Umidade</p><p class="fact-value text-body-md-bold">68%</p></div>
+      </div>
+      <p class="texture text-footnote-medium" data-part="texture" aria-hidden="true">24° 26° 21° 14&nbsp;km/h 68% 24° 26°<br>26° 21° 14&nbsp;km/h 68% 24° 26° 21°<br>21° 14&nbsp;km/h 68% 24° 26° 21° 24°<br>14&nbsp;km/h 68% 24° 26° 21° 14&nbsp;km/h<br>68% 24° 26° 21° 24° 68% 14&nbsp;km/h</p>
+    </div>
+  </div>
+  <script type="application/json" data-tune="5">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":2,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre zonas e grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Local","part":"name","controls":[
+      {"id":"name-size","label":"Tamanho","type":"slider","var":"--name-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"id-gap","label":"Distância até o número","type":"slider","var":"--id-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Temperatura","part":"temperature","controls":[
+      {"id":"now-scale","label":"Escala do número","type":"slider","var":"--now-scale","value":2.5,"min":1.5,"max":3.2,"step":0.1,"unit":""},
+      {"id":"now-lh","label":"Entrelinha do número","type":"slider","var":"--now-lh","value":1.1,"base":1.1,"min":0.9,"max":1.4,"step":0.05,"unit":"","token":"--typography-line-height-tight"},
+      {"id":"now-ls","label":"Espaçamento do número","type":"slider","var":"--now-ls","value":-0.02,"base":-0.02,"min":-0.06,"max":0.04,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tighter"},
+      {"id":"now-color","label":"Cor do número","type":"color","var":"--now-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"now-label-size","label":"Tamanho do apoio","type":"slider","var":"--now-label-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"now-label-gap","label":"Distância do apoio","type":"slider","var":"--now-label-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Dados de apoio","part":"details","controls":[
+      {"id":"fact-label-size","label":"Tamanho do rótulo","type":"slider","var":"--fact-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"fact-value-size","label":"Tamanho do valor","type":"slider","var":"--fact-value-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"fact-value-color","label":"Cor do valor","type":"color","var":"--fact-value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"facts-col-gap","label":"Vão entre colunas","type":"slider","var":"--facts-col-gap","value":24,"base":24,"min":8,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-lg"},
+      {"id":"facts-row-gap","label":"Vão entre linhas","type":"slider","var":"--facts-row-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"fact-inner-gap","label":"Vão rótulo e valor","type":"slider","var":"--fact-inner-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Textura","part":"texture","controls":[
+      {"id":"tex-size","label":"Tamanho da letra","type":"slider","var":"--tex-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"tex-lh","label":"Entrelinha","type":"slider","var":"--tex-lh","value":1.4,"min":1,"max":2,"step":0.05,"unit":""},
+      {"id":"tex-color","label":"Cor","type":"color","var":"--tex-color","value":"#888888","base":"#888888","token":"--color-semantic-functional-text-secondary"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article data-parent="2" class="opt" data-option="6" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o card se lê como uma frase em duas vozes ("Em São Paulo faz" em peso leve, "24°" na voz forte), com um ícone que codifica o sentido pela forma e o centro vazio; os demais dados completam a frase em linhas curtas. -->
+  <p class="opt-label" data-part="label">Opção 6 - Frase em duas vozes</p>
+  <div class="opt-content" data-part="content">
+    <section class="card" data-part="card">
+      <span class="icon" data-part="icon" role="img" aria-label="Termômetro"></span>
+      <span class="void" data-part="void" aria-hidden="true"></span>
+      <div class="phrase-group" data-part="phrase">
+        <p class="phrase text-body-sm-medium" data-part="place-phrase">Em <span class="place" data-part="place">São Paulo</span> faz</p>
+        <p class="temp text-heading-3-bold" data-part="temperature">24°</p>
+      </div>
+      <ul class="lines" data-part="lines">
+        <li class="line text-body-sm-medium" data-part="feels-like"><span class="line-lead">Sensação de</span><span class="line-value">26°</span></li>
+        <li class="line text-body-sm-medium" data-part="average"><span class="line-lead">Média do dia</span><span class="line-value">21°</span></li>
+        <li class="line text-body-sm-medium" data-part="wind"><span class="line-lead">Vento a</span><span class="line-value">14 km/h</span></li>
+        <li class="line text-body-sm-medium" data-part="humidity"><span class="line-lead">Umidade em</span><span class="line-value">68%</span></li>
+      </ul>
+    </section>
+  </div>
+  <script type="application/json" data-tune="6">{"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre frase e linhas","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Ícone","part":"icon","controls":[
+      {"id":"icon-size","label":"Tamanho","type":"slider","var":"--icon-size","value":40,"base":40,"min":24,"max":64,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-2xl"},
+      {"id":"icon-color","label":"Cor","type":"color","var":"--icon-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Centro vazio","part":"void","controls":[
+      {"id":"void","label":"Altura do vazio","type":"slider","var":"--void","value":80,"base":80,"min":16,"max":128,"step":4,"unit":"px","token":"--dimension-spacing-core-5xl"}]},
+    {"name":"Frase","part":"phrase","controls":[
+      {"id":"phrase-size","label":"Tamanho da frase","type":"slider","var":"--phrase-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"light-weight","label":"Peso da voz leve","type":"slider","var":"--light-weight","value":400,"base":400,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-regular"},
+      {"id":"phrase-gap","label":"Vão frase e número","type":"slider","var":"--phrase-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"place-weight","label":"Peso do local","type":"slider","var":"--place-weight","value":700,"base":700,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-bold"},
+      {"id":"place-color","label":"Cor do local","type":"color","var":"--place-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Temperatura","part":"temperature","controls":[
+      {"id":"temp-size","label":"Tamanho do número","type":"slider","var":"--temp-size","value":28,"base":28,"min":24,"max":56,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"temp-ls","label":"Espaçamento do número","type":"slider","var":"--temp-ls","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+      {"id":"temp-color","label":"Cor do número","type":"color","var":"--temp-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Linhas","part":"lines","controls":[
+      {"id":"lines-gap","label":"Vão entre linhas","type":"slider","var":"--lines-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"line-size","label":"Tamanho do texto","type":"slider","var":"--line-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"line-inner-gap","label":"Vão texto e valor","type":"slider","var":"--line-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"val-weight","label":"Peso do valor","type":"slider","var":"--val-weight","value":700,"base":700,"min":400,"max":700,"step":100,"unit":"","token":"--typography-font-weight-bold"},
+      {"id":"val-color","label":"Cor do valor","type":"color","var":"--val-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+      {"id":"ring-inset","label":"Afastamento do anel","type":"slider","var":"--ring-inset","value":0,"min":0,"max":8,"step":1,"unit":"px"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  // Só visual: o card recebe foco e mostra o anel do kit; ←/→, Enter e Voltar não mudam nada, ↑/↓ passam para a tela.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  // The card only takes focus: the state follows the DOM focus. No key is used inside it; up/down leave untouched.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  // The card only takes focus: the state follows the DOM focus. No key is used inside it; up/down leave untouched.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  // Só visual: o estado segue o foco do DOM; nenhuma tecla muda o conteúdo, ↑/↓ passam para a tela.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  // The card only takes focus: the state follows the DOM focus. No key is used inside it; up/down are left to the screen.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  // Só visual: o estado segue o foco do DOM. Nenhuma tecla é usada dentro do card; ↑/↓ passam para a tela.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+</body>
+</html>

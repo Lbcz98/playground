@@ -1,0 +1,30 @@
+{
+ "url": "https://www.figma.com/design/zZEVjjTxUdFPCioyUoWUcQ",
+ "fileKey": "zZEVjjTxUdFPCioyUoWUcQ",
+ "snapshot": {
+  "0.card-radius": 13,
+  "0.card-inset": 10,
+  "0.card-bg": "#3f3f3f",
+  "0.group-gap": 16,
+  "1.portrait-h": 136,
+  "1.portrait-radius": 8,
+  "1.portrait-bg": "#191919",
+  "2.text-gap": 8,
+  "2.title-color": "#eeeeee",
+  "3.sel-pad": 4,
+  "3.seg-h": 40,
+  "3.seg-pad": 12,
+  "3.seg-on-bg": "#eeeeee",
+  "3.seg-on-text": "#191919",
+  "4.ring-w": 4,
+  "5.move": {
+   "duration": 0.15,
+   "ease": [
+    0.2,
+    0,
+    0,
+    1
+   ]
+  }
+ }
+}

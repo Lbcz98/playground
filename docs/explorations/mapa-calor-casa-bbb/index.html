@@ -1,0 +1,2954 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Mapa de calor da casa do BBB</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. Colors: web/protos/generated/tokens.md; the rest: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] {
+  --o1-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o1-off: var(--dimension-spacing-semantic-focus-offset);
+  --o1-ease: var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="1"] .o1-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+}
+/* Focus: the kit's gradient ring, outside the focused piece, on exactly one piece at a time. */
+[data-option="1"] .o1-focus { position: relative; }
+[data-option="1"] .o1-focus.is-focus::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--o1-ring) + var(--o1-off)));
+  border-radius: calc(var(--o1-r) + var(--o1-ring) + var(--o1-off));
+  padding: var(--o1-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+/* The house: a dark plate, the drawing on a layer that zooms. */
+[data-option="1"] .o1-stage-wrap { --o1-r: var(--dimension-radius-core-lg); display: block; border-radius: var(--o1-r); }
+[data-option="1"] .o1-stage {
+  position: relative; display: block; height: 152px; overflow: hidden;
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="1"] .o1-layer {
+  position: absolute; left: 0; top: 0; display: block; width: 100%; aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0; transition: transform var(--o1-ease);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="1"] .o1-layer img { display: block; width: 100%; height: 100%; mix-blend-mode: lighten; }
+[data-option="1"] .o1-heat {
+  position: absolute; display: block; width: calc(var(--w) * 100%); aspect-ratio: 5 / 3;
+  left: calc(var(--x) * 100%); top: calc(var(--y) * 100%); transform: translate(-50%, -50%);
+  border-radius: var(--dimension-radius-core-full);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--heat) calc(var(--a) * 100%), transparent), transparent);
+  transition: opacity var(--o1-ease);
+}
+[data-option="1"] .o1-layer[data-zoom] .o1-heat { opacity: var(--opacity-semantic-text-secondary); }
+[data-option="1"] .o1-layer[data-zoom] .o1-heat.is-on { opacity: var(--opacity-semantic-visible); }
+[data-option="1"] [data-heat="alto"] { --heat: var(--color-semantic-functional-status-live); }
+[data-option="1"] [data-heat="medio"] { --heat: var(--color-semantic-theme-tarde-dark); }
+[data-option="1"] [data-heat="baixo"] { --heat: var(--color-semantic-theme-tarde-light); }
+
+/* Summary sentence: the number is the hero, the words explain it. */
+[data-option="1"] .o1-summary { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); min-height: 34px; margin: 0; }
+[data-option="1"] .o1-value {
+  font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-words { color: var(--color-semantic-functional-text-muted); }
+
+/* Detail: who is there, in place of the sentence. */
+[data-option="1"] .o1-detail { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0; padding: 0; list-style: none; }
+[data-option="1"] .o1-detail[hidden], [data-option="1"] .o1-summary[hidden] { display: none; }
+[data-option="1"] .o1-detail-head { color: var(--color-semantic-functional-text-muted); margin-bottom: var(--dimension-spacing-core-3xs); }
+[data-option="1"] .o1-person { display: flex; justify-content: space-between; align-items: baseline; }
+[data-option="1"] .o1-person span:last-child { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+
+/* The rail: seven equal rooms in a tray one step darker than the card. */
+[data-option="1"] .o1-tray {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--dimension-spacing-core-2xs);
+  padding: var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-opacity-dark-30);
+}
+[data-option="1"] .o1-cell {
+  --o1-r: var(--dimension-radius-core-sm);
+  display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-2xs);
+  padding: var(--dimension-spacing-core-2xs) 0;
+  border-radius: var(--o1-r);
+  color: var(--color-semantic-functional-text-muted);
+  transition: background-color var(--o1-ease), color var(--o1-ease);
+}
+[data-option="1"] .o1-dot { display: block; width: 8px; height: 8px; border-radius: var(--dimension-radius-core-full); background: var(--heat); }
+[data-option="1"] .o1-cell.is-sel { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="1"] .o1-cell .o1-pct { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { [data-option="1"] .o1-layer, [data-option="1"] .o1-cell, [data-option="1"] .o1-heat { transition: none; } }
+[data-option="2"] {
+  --o2-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o2-off: var(--dimension-spacing-semantic-focus-offset);
+  --o2-ease: var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="2"] .o2-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+}
+/* Focus: the kit's gradient ring, on exactly one piece at a time. */
+[data-option="2"] .o2-focus { position: relative; }
+[data-option="2"] .o2-focus.is-focus::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--o2-ring) + var(--o2-off)));
+  border-radius: calc(var(--o2-r) + var(--o2-ring) + var(--o2-off));
+  padding: var(--o2-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+/* Title as the conclusion. */
+[data-option="2"] .o2-title { margin: 0; color: var(--color-semantic-functional-text-primary); }
+
+/* Side by side: the house answers "where", the ranking answers "how much". */
+[data-option="2"] .o2-body { display: flex; align-items: stretch; gap: var(--dimension-spacing-core-xs); }
+
+[data-option="2"] .o2-stage-wrap { --o2-r: var(--dimension-radius-core-lg); display: flex; flex: none; width: 92px; border-radius: var(--o2-r); }
+[data-option="2"] .o2-stage {
+  position: relative; display: block; flex: 1; overflow: hidden;
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="2"] .o2-layer {
+  position: absolute; left: 0; top: 0; display: block; width: 100%; aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0; transition: transform var(--o2-ease);
+  background: var(--color-semantic-functional-background-primary);
+}
+[data-option="2"] .o2-layer img { display: block; width: 100%; height: 100%; mix-blend-mode: lighten; }
+[data-option="2"] .o2-heat {
+  position: absolute; display: block; width: calc(var(--w) * 100%); aspect-ratio: 5 / 3;
+  left: calc(var(--x) * 100%); top: calc(var(--y) * 100%); transform: translate(-50%, -50%);
+  border-radius: var(--dimension-radius-core-full);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--heat) calc(var(--a) * 100%), transparent), transparent);
+  transition: opacity var(--o2-ease);
+}
+[data-option="2"] .o2-layer[data-zoom] .o2-heat { opacity: var(--opacity-semantic-text-secondary); }
+[data-option="2"] .o2-layer[data-zoom] .o2-heat.is-on { opacity: var(--opacity-semantic-visible); }
+[data-option="2"] [data-heat="alto"] { --heat: var(--color-semantic-functional-status-live); }
+[data-option="2"] [data-heat="medio"] { --heat: var(--color-semantic-theme-tarde-dark); }
+[data-option="2"] [data-heat="baixo"] { --heat: var(--color-semantic-theme-tarde-light); }
+
+/* Ranking: one row per room, value and a bar ending in a dot. */
+[data-option="2"] .o2-list { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-none); flex: none; width: 136px; margin: 0; padding: 0; list-style: none; }
+[data-option="2"] .o2-row {
+  --o2-r: var(--dimension-radius-core-sm);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--o2-r);
+  color: var(--color-semantic-functional-text-muted);
+  transition: background-color var(--o2-ease);
+}
+[data-option="2"] .o2-line { display: flex; justify-content: space-between; align-items: baseline; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-pct { font-variant-numeric: tabular-nums; }
+[data-option="2"] .o2-hero { display: none; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-big {
+  font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"] .o2-rank { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-bar { position: relative; display: block; height: 6px; }
+[data-option="2"] .o2-bar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  height: var(--dimension-border-width-core-thin); background: var(--color-semantic-functional-border-subtle);
+  border-radius: var(--dimension-radius-core-full);
+}
+[data-option="2"] .o2-fill {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: block; width: var(--v);
+  height: var(--dimension-border-width-core-thin); background: var(--color-semantic-functional-border-default);
+  border-radius: var(--dimension-radius-core-full);
+}
+[data-option="2"] .o2-fill::after {
+  content: ""; position: absolute; right: -3px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: var(--dimension-radius-core-full); background: var(--heat);
+}
+/* The selected row: the hero value, the rest of the row brightens. */
+[data-option="2"] .o2-row.is-sel { background: var(--color-semantic-functional-background-tint); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .o2-row.is-sel .o2-line .o2-pct { display: none; }
+[data-option="2"] .o2-row.is-sel .o2-hero { display: flex; }
+[data-option="2"] .o2-row.is-sel .o2-fill { background: var(--color-semantic-functional-text-primary); }
+/* Open row: who is there, pushing the rows below. */
+[data-option="2"] .o2-people { display: none; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: var(--dimension-spacing-core-3xs) 0 0; padding: 0; list-style: none; }
+[data-option="2"] .o2-row.is-open .o2-people { display: flex; }
+[data-option="2"] .o2-row.is-open .o2-bar { display: none; }
+[data-option="2"] .o2-person { display: flex; justify-content: space-between; }
+[data-option="2"] .o2-person span:last-child { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { [data-option="2"] .o2-layer, [data-option="2"] .o2-row, [data-option="2"] .o2-heat { transition: none; } }
+[data-option="3"] {
+  --o3-win-rest: 196px;
+  --o3-tx: 0px; --o3-ty: 0px; --o3-s: 1;
+  --o3-x: 50%; --o3-y: 50%; --o3-r: 10%; --o3-c: var(--color-semantic-theme-tarde-light); --o3-o: 0.5;
+}
+[data-option="3"] .o3-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro. O grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="3"] .o3-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="3"] .o3-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="3"] .o3-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o3-tx), var(--o3-ty)) scale(var(--o3-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="3"] .o3-map img { display: block; width: 100%; height: 100%; }
+[data-option="3"] .o3-heat {
+  position: absolute; display: block; left: var(--o3-x); top: var(--o3-y); width: var(--o3-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o3-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o3-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+/* Janela: o espaço por onde se vê o cômodo em zoom */
+[data-option="3"] .o3-win { display: block; height: var(--o3-win-rest); }
+/* Âncora + linha: sobre um degradê que funde a casa no fundo do card */
+[data-option="3"] .o3-info { position: relative; z-index: 1; display: flex; flex-direction: column; }
+[data-option="3"] .o3-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+/* Cômodo em foco: nome e horas empilhados à esquerda, porcentagem à direita */
+[data-option="3"] .o3-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+  padding: var(--dimension-spacing-core-2xs) var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg); background: var(--color-semantic-functional-background-tint);
+}
+[data-option="3"] .o3-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="3"] .o3-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="3"] .o3-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="3"] .o3-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+/* Quem fica no cômodo: avatares sempre visíveis, quem mais fica na frente */
+[data-option="3"] .o3-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="3"] .o3-avs { display: flex; flex: none; }
+[data-option="3"] .o3-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .o3-av + .o3-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="3"] .o3-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="3"] .o3-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="3"] .o3-lead p { margin: 0; }
+[data-option="3"] .o3-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-anchor::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: calc(var(--dimension-radius-core-lg) + var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-primary) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-primary) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-map, [data-option="3"] .o3-heat { transition: none; }
+}
+[data-option="4"] {
+  --o4-win-rest: 236px;
+  --o4-tx: 0px; --o4-ty: 0px; --o4-s: 1;
+  --o4-x: 50%; --o4-y: 50%; --o4-r: 10%; --o4-c: var(--color-semantic-theme-tarde-light); --o4-o: 0.5;
+}
+[data-option="4"] .o4-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro, com uma janela mais alta que a do pai */
+[data-option="4"] .o4-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="4"] .o4-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="4"] .o4-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o4-tx), var(--o4-ty)) scale(var(--o4-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="4"] .o4-map img { display: block; width: 100%; height: 100%; }
+[data-option="4"] .o4-heat {
+  position: absolute; display: block; left: var(--o4-x); top: var(--o4-y); width: var(--o4-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o4-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o4-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="4"] .o4-win { display: block; height: var(--o4-win-rest); }
+[data-option="4"] .o4-info { position: relative; z-index: 1; display: flex; flex-direction: column; }
+[data-option="4"] .o4-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-3xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-3xl));
+}
+/* Linha compacta: o número manda na altura, nome e horas recuam */
+[data-option="4"] .o4-anchor {
+  position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: var(--dimension-spacing-core-2xs);
+  padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg); background: var(--color-semantic-functional-background-tint);
+}
+[data-option="4"] .o4-name {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-none); min-width: 0;
+  padding-bottom: var(--dimension-spacing-core-2xs);
+}
+[data-option="4"] .o4-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="4"] .o4-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="4"] .o4-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-2xl) * 3); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="4"] .o4-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+/* Quem fica no cômodo: igual ao pai, um pouco mais perto da linha */
+[data-option="4"] .o4-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-xs);
+}
+[data-option="4"] .o4-avs { display: flex; flex: none; }
+[data-option="4"] .o4-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="4"] .o4-av + .o4-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="4"] .o4-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="4"] .o4-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="4"] .o4-lead p { margin: 0; }
+[data-option="4"] .o4-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="4"] .o4-anchor::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: calc(var(--dimension-radius-core-lg) + var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-primary) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-primary) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="4"] .o4-map, [data-option="4"] .o4-heat { transition: none; }
+}
+[data-option="5"] {
+  --o5-win-rest: 148px;
+  --o5-av: calc(var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-3xs));
+  --o5-tx: 0px; --o5-ty: 0px; --o5-s: 1;
+  --o5-x: 50%; --o5-y: 50%; --o5-r: 10%; --o5-c: var(--color-semantic-theme-tarde-light); --o5-o: 0.5;
+}
+[data-option="5"] .o5-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card, numa janela mais baixa e com a ilustração menor */
+[data-option="5"] .o5-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="5"] .o5-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-4xl));
+}
+[data-option="5"] .o5-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: var(--dimension-size-semantic-content-card-width); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o5-tx), var(--o5-ty)) scale(var(--o5-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="5"] .o5-map img { display: block; width: 100%; height: 100%; }
+[data-option="5"] .o5-heat {
+  position: absolute; display: block; left: var(--o5-x); top: var(--o5-y); width: var(--o5-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o5-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o5-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="5"] .o5-win { display: block; height: var(--o5-win-rest); }
+[data-option="5"] .o5-info { position: relative; z-index: 1; display: flex; flex-direction: column; }
+[data-option="5"] .o5-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-3xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-3xl));
+}
+/* Linha do cômodo com mais ar: nome maior, % em peso mais leve */
+[data-option="5"] .o5-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+  padding: var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg); background: var(--color-semantic-functional-background-tint);
+}
+[data-option="5"] .o5-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="5"] .o5-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="5"] .o5-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="5"] .o5-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="5"] .o5-val small { font-size: var(--typography-font-size-2xl); font-weight: var(--typography-font-weight-medium); }
+/* Quem fica no cômodo: avatares maiores, soltos, e quem lidera logo abaixo */
+[data-option="5"] .o5-who {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs);
+  margin-top: var(--dimension-spacing-core-lg);
+}
+[data-option="5"] .o5-avs { display: flex; gap: var(--dimension-spacing-core-2xs); }
+[data-option="5"] .o5-av {
+  position: relative; display: flex; flex: none; align-items: center; justify-content: center;
+  width: var(--o5-av); height: var(--o5-av);
+  border-radius: 50%;
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="5"] .o5-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="5"] .o5-lead { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="5"] .o5-lead p { margin: 0; }
+[data-option="5"] .o5-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="5"] .o5-anchor::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: calc(var(--dimension-radius-core-lg) + var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-primary) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-primary) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"] .o5-map, [data-option="5"] .o5-heat { transition: none; }
+}
+[data-option="6"] {
+  --o6-win-rest: 196px;
+  --o6-tx: 0px; --o6-ty: 0px; --o6-s: 1;
+  --o6-x: 50%; --o6-y: 50%; --o6-r: 10%; --o6-c: var(--color-semantic-theme-tarde-light); --o6-o: 0.2;
+}
+[data-option="6"] .o6-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="6"] .o6-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="6"] .o6-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="6"] .o6-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o6-tx), var(--o6-ty)) scale(var(--o6-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="6"] .o6-map img { display: block; width: 100%; height: 100%; }
+/* Calor discreto: manchas menores e mais fracas; só o cômodo selecionado acende de verdade */
+[data-option="6"] .o6-heat {
+  position: absolute; display: block; left: var(--o6-x); top: var(--o6-y); width: var(--o6-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o6-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o6-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="6"] .o6-win { display: block; height: var(--o6-win-rest); }
+[data-option="6"] .o6-info { position: relative; z-index: 1; display: flex; flex-direction: column; }
+[data-option="6"] .o6-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+/* Setas-dica nas laterais da casa: dizem que ←/→ trocam de cômodo; esmaecem na ponta (sem laço). Não são botões. */
+[data-option="6"] .o6-win { position: relative; display: flex; align-items: center; justify-content: space-between; }
+[data-option="6"] .o6-arrow {
+  display: block; width: var(--dimension-spacing-core-xs); height: var(--dimension-spacing-core-xs);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-right: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  opacity: var(--opacity-semantic-illumination-strong);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="6"] .o6-arrow[data-dir="prev"] { rotate: -135deg; }
+[data-option="6"] .o6-arrow[data-dir="next"] { rotate: 45deg; }
+[data-option="6"] .o6-arrow.is-end { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="6"] .o6-arrow.is-nudge[data-dir="prev"] { animation: o6-nudge-prev var(--motion-semantic-duration) var(--motion-semantic-easing); }
+[data-option="6"] .o6-arrow.is-nudge[data-dir="next"] { animation: o6-nudge-next var(--motion-semantic-duration) var(--motion-semantic-easing); }
+@keyframes o6-nudge-prev { 50% { translate: calc(-1 * var(--dimension-spacing-core-3xs)) 0; } }
+@keyframes o6-nudge-next { 50% { translate: var(--dimension-spacing-core-3xs) 0; } }
+/* Cômodo selecionado: nome em destaque e horas à esquerda, porcentagem à direita; texto puro, sem cara de botão */
+[data-option="6"] .o6-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+}
+[data-option="6"] .o6-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="6"] .o6-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="6"] .o6-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="6"] .o6-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="6"] .o6-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+/* Quem fica no cômodo: avatares sempre visíveis, quem mais fica na frente */
+[data-option="6"] .o6-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="6"] .o6-avs { display: flex; flex: none; }
+[data-option="6"] .o6-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="6"] .o6-av + .o6-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="6"] .o6-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="6"] .o6-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="6"] .o6-lead p { margin: 0; }
+[data-option="6"] .o6-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .o6-map, [data-option="6"] .o6-heat, [data-option="6"] .o6-arrow { transition: none; animation: none; }
+}
+[data-option="7"] {
+  --o7-win-rest: 168px;
+  --o7-tx: 0px; --o7-ty: 0px; --o7-s: 1;
+  --o7-x: 50%; --o7-y: 50%; --o7-r: 10%; --o7-c: var(--color-semantic-theme-tarde-light); --o7-o: 0.5;
+}
+[data-option="7"] .o7-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="7"] .o7-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="7"] .o7-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="7"] .o7-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o7-tx), var(--o7-ty)) scale(var(--o7-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="7"] .o7-map img { display: block; width: 100%; height: 100%; }
+[data-option="7"] .o7-heat {
+  position: absolute; display: block; left: var(--o7-x); top: var(--o7-y); width: var(--o7-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o7-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o7-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+/* Janela: o espaço por onde se vê o cômodo em zoom (mais baixa que na opção 3, para equilibrar com a bandeja) */
+[data-option="7"] .o7-win { display: block; height: var(--o7-win-rest); }
+[data-option="7"] .o7-info { position: relative; z-index: 1; display: flex; flex-direction: column; margin-top: var(--dimension-spacing-core-xs); }
+[data-option="7"] .o7-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+/* Bandeja: um degrau mais escura que o card, raio concêntrico (menor que o do card); guarda o cômodo e quem está lá */
+[data-option="7"] .o7-tray {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  padding: var(--dimension-spacing-core-sm) var(--dimension-spacing-core-xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: linear-gradient(var(--color-opacity-dark-30), var(--color-opacity-dark-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="7"] .o7-anchor { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs); }
+[data-option="7"] .o7-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="7"] .o7-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="7"] .o7-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="7"] .o7-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="7"] .o7-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+/* Quem fica no cômodo: dentro da bandeja, separado do número por um fio */
+[data-option="7"] .o7-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs);
+  padding-top: var(--dimension-spacing-core-sm);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-border-subtle);
+}
+[data-option="7"] .o7-avs { display: flex; flex: none; }
+[data-option="7"] .o7-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-primary);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="7"] .o7-av + .o7-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="7"] .o7-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="7"] .o7-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="7"] .o7-lead p { margin: 0; white-space: nowrap; }
+[data-option="7"] .o7-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+/* Foco: o anel do kit em volta da bandeja inteira */
+[data-option="7"] .o7-tray::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: calc(var(--dimension-radius-core-lg) + var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-primary) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-primary) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="7"] .o7-map, [data-option="7"] .o7-heat { transition: none; }
+}
+[data-option="8"] {
+  --o8-win-rest: 196px;
+  --o8-tx: 0px; --o8-ty: 0px; --o8-s: 1;
+  --o8-x: 50%; --o8-y: 50%; --o8-r: 10%; --o8-c: var(--color-semantic-theme-tarde-light); --o8-o: 0;
+}
+[data-option="8"] .o8-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="8"] .o8-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="8"] .o8-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="8"] .o8-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o8-tx), var(--o8-ty)) scale(var(--o8-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing), opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="8"] .o8-map img { display: block; width: 100%; height: 100%; }
+/* Estado vazio: a casa descansa, um pouco apagada e sem nenhum calor aceso */
+[data-option="8"] .o8-card.is-empty .o8-map { opacity: var(--opacity-semantic-illumination-strong); }
+[data-option="8"] .o8-heat {
+  position: absolute; display: block; left: var(--o8-x); top: var(--o8-y); width: var(--o8-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o8-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o8-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="8"] .o8-info { position: relative; z-index: 1; display: grid; }
+[data-option="8"] .o8-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+/* Os dois estados ocupam a mesma célula: o card não muda de altura ao entrar no primeiro cômodo */
+[data-option="8"] .o8-state {
+  grid-area: 1 / 1; display: flex; flex-direction: column;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="8"] .o8-state.is-off { opacity: 0; visibility: hidden; }
+/* Setas-dica nas laterais da casa: dizem que ←/→ trocam de cômodo; esmaecem na ponta (sem laço). Não são botões. */
+[data-option="8"] .o8-win { position: relative; display: flex; align-items: center; justify-content: space-between; height: var(--o8-win-rest); }
+[data-option="8"] .o8-arrow {
+  display: block; width: var(--dimension-spacing-core-xs); height: var(--dimension-spacing-core-xs);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-right: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  opacity: var(--opacity-semantic-illumination-strong);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="8"] .o8-arrow[data-dir="prev"] { rotate: -135deg; }
+[data-option="8"] .o8-arrow[data-dir="next"] { rotate: 45deg; }
+[data-option="8"] .o8-arrow.is-end { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="8"] .o8-arrow.is-nudge[data-dir="prev"] { animation: o8-nudge-prev var(--motion-semantic-duration) var(--motion-semantic-easing); }
+[data-option="8"] .o8-arrow.is-nudge[data-dir="next"] { animation: o8-nudge-next var(--motion-semantic-duration) var(--motion-semantic-easing); }
+@keyframes o8-nudge-prev { 50% { translate: calc(-1 * var(--dimension-spacing-core-3xs)) 0; } }
+@keyframes o8-nudge-next { 50% { translate: var(--dimension-spacing-core-3xs) 0; } }
+/* Convite: o único texto do estado vazio, embaixo, onde o número vai aparecer */
+[data-option="8"] .o8-invite { justify-content: flex-end; gap: var(--dimension-spacing-core-2xs); }
+[data-option="8"] .o8-invite p { margin: 0; }
+[data-option="8"] .o8-invite-t { color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="8"] .o8-invite-k { color: var(--color-semantic-functional-text-muted); }
+/* Cômodo selecionado: nome em destaque e horas à esquerda, porcentagem à direita */
+[data-option="8"] .o8-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+}
+[data-option="8"] .o8-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="8"] .o8-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="8"] .o8-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="8"] .o8-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="8"] .o8-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+[data-option="8"] .o8-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="8"] .o8-avs { display: flex; flex: none; }
+[data-option="8"] .o8-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="8"] .o8-av + .o8-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="8"] .o8-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="8"] .o8-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="8"] .o8-lead p { margin: 0; }
+[data-option="8"] .o8-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="8"] .o8-map, [data-option="8"] .o8-heat, [data-option="8"] .o8-arrow, [data-option="8"] .o8-state { transition: none; animation: none; }
+}
+[data-option="9"] {
+  --o9-win-rest: 196px;
+  --o9-tx: 0px; --o9-ty: 0px; --o9-s: 1;
+  --o9-x: 50%; --o9-y: 50%; --o9-r: 10%; --o9-c: var(--color-semantic-theme-tarde-light); --o9-o: 0;
+}
+[data-option="9"] .o9-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="9"] .o9-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="9"] .o9-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="9"] .o9-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o9-tx), var(--o9-ty)) scale(var(--o9-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing), opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="9"] .o9-map img { display: block; width: 100%; height: 100%; }
+[data-option="9"] .o9-heat {
+  position: absolute; display: block; left: var(--o9-x); top: var(--o9-y); width: var(--o9-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o9-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o9-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="9"] .o9-info { position: relative; z-index: 1; display: grid; }
+[data-option="9"] .o9-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+/* Os dois estados ocupam a mesma célula: o card não muda de altura ao entrar no primeiro cômodo */
+[data-option="9"] .o9-state {
+  grid-area: 1 / 1; display: flex; flex-direction: column;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="9"] .o9-state.is-off { opacity: 0; visibility: hidden; }
+/* Setas-dica nas laterais da casa: dizem que ←/→ trocam de cômodo; esmaecem na ponta (sem laço). Não são botões. */
+[data-option="9"] .o9-win { position: relative; display: flex; align-items: center; justify-content: space-between; height: var(--o9-win-rest); }
+[data-option="9"] .o9-arrow {
+  display: block; width: var(--dimension-spacing-core-xs); height: var(--dimension-spacing-core-xs);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-right: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  opacity: var(--opacity-semantic-illumination-strong);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="9"] .o9-arrow[data-dir="prev"] { rotate: -135deg; }
+[data-option="9"] .o9-arrow[data-dir="next"] { rotate: 45deg; }
+[data-option="9"] .o9-arrow.is-end { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="9"] .o9-arrow.is-nudge[data-dir="prev"] { animation: o9-nudge-prev var(--motion-semantic-duration) var(--motion-semantic-easing); }
+[data-option="9"] .o9-arrow.is-nudge[data-dir="next"] { animation: o9-nudge-next var(--motion-semantic-duration) var(--motion-semantic-easing); }
+@keyframes o9-nudge-prev { 50% { translate: calc(-1 * var(--dimension-spacing-core-3xs)) 0; } }
+@keyframes o9-nudge-next { 50% { translate: var(--dimension-spacing-core-3xs) 0; } }
+/* Visão geral: o pedido de escolha e a legenda do calor, embaixo, onde o número vai aparecer */
+[data-option="9"] .o9-invite { justify-content: flex-end; gap: var(--dimension-spacing-core-sm); }
+[data-option="9"] .o9-invite-t { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="9"] .o9-legend { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="9"] .o9-ramp {
+  display: block; flex: 1; height: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-full);
+  background: linear-gradient(to right,
+    var(--color-semantic-theme-tarde-light),
+    var(--color-semantic-functional-status-warning),
+    var(--color-semantic-theme-tarde-dark),
+    var(--color-semantic-functional-status-live));
+}
+/* Cômodo selecionado: nome em destaque e horas à esquerda, porcentagem à direita */
+[data-option="9"] .o9-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+}
+[data-option="9"] .o9-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="9"] .o9-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="9"] .o9-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="9"] .o9-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="9"] .o9-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+[data-option="9"] .o9-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="9"] .o9-avs { display: flex; flex: none; }
+[data-option="9"] .o9-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="9"] .o9-av + .o9-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="9"] .o9-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="9"] .o9-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="9"] .o9-lead p { margin: 0; }
+[data-option="9"] .o9-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="9"] .o9-map, [data-option="9"] .o9-heat, [data-option="9"] .o9-arrow, [data-option="9"] .o9-state { transition: none; animation: none; }
+}
+[data-option="10"] {
+  --o10-win-rest: 196px;
+  --o10-tx: 0px; --o10-ty: 0px; --o10-s: 1;
+  --o10-x: 50%; --o10-y: 50%; --o10-r: 10%; --o10-c: var(--color-semantic-theme-tarde-light); --o10-o: 0.2;
+}
+[data-option="10"] .o10-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="10"] .o10-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="10"] .o10-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="10"] .o10-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o10-tx), var(--o10-ty)) scale(var(--o10-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="10"] .o10-map img { display: block; width: 100%; height: 100%; }
+[data-option="10"] .o10-heat {
+  position: absolute; display: block; left: var(--o10-x); top: var(--o10-y); width: var(--o10-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o10-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o10-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+/* Estado vazio: um marcador numerado por cômodo, na ordem em que → percorre a casa; o 1 é o ponto de partida */
+[data-option="10"] .o10-pin {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  left: var(--o10-x); top: var(--o10-y); translate: -50% -50%;
+  width: var(--dimension-spacing-core-sm); height: var(--dimension-spacing-core-sm);
+  border-radius: 50%;
+  background: var(--color-opacity-dark-80);
+  border: var(--dimension-border-width-core-thin) solid var(--color-opacity-light-50);
+  color: var(--color-semantic-functional-text-primary);
+  font-variant-numeric: tabular-nums;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="10"] .o10-pin.is-start {
+  width: var(--dimension-spacing-core-lg); height: var(--dimension-spacing-core-lg);
+  background: var(--color-semantic-functional-text-primary);
+  border-color: var(--color-semantic-functional-text-primary);
+  color: var(--color-semantic-functional-text-inverse);
+  box-shadow: 0 0 0 var(--dimension-spacing-core-3xs) var(--color-opacity-light-30);
+}
+[data-option="10"] .o10-card:not(.is-empty) .o10-pin { opacity: 0; }
+/* Setas-dica nas laterais da casa: dizem que ←/→ trocam de cômodo; esmaecem na ponta (sem laço). Não são botões. */
+[data-option="10"] .o10-win { position: relative; display: flex; align-items: center; justify-content: space-between; height: var(--o10-win-rest); }
+[data-option="10"] .o10-arrow {
+  display: block; width: var(--dimension-spacing-core-xs); height: var(--dimension-spacing-core-xs);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-right: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  opacity: var(--opacity-semantic-illumination-strong);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="10"] .o10-arrow[data-dir="prev"] { rotate: -135deg; }
+[data-option="10"] .o10-arrow[data-dir="next"] { rotate: 45deg; }
+[data-option="10"] .o10-arrow.is-end { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="10"] .o10-arrow.is-nudge[data-dir="prev"] { animation: o10-nudge-prev var(--motion-semantic-duration) var(--motion-semantic-easing); }
+[data-option="10"] .o10-arrow.is-nudge[data-dir="next"] { animation: o10-nudge-next var(--motion-semantic-duration) var(--motion-semantic-easing); }
+@keyframes o10-nudge-prev { 50% { translate: calc(-1 * var(--dimension-spacing-core-3xs)) 0; } }
+@keyframes o10-nudge-next { 50% { translate: var(--dimension-spacing-core-3xs) 0; } }
+/* Faixa: duas camadas no mesmo lugar (vazio e cômodo), a altura é a da maior; troca por esmaecimento */
+[data-option="10"] .o10-info { position: relative; z-index: 1; display: grid; }
+[data-option="10"] .o10-info > * { grid-area: 1 / 1; }
+[data-option="10"] .o10-intro, [data-option="10"] .o10-detail {
+  position: relative; z-index: 0; display: flex; flex-direction: column;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing), visibility var(--motion-semantic-duration);
+}
+[data-option="10"] .o10-intro::before, [data-option="10"] .o10-detail::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+[data-option="10"] .o10-intro { align-self: end; gap: var(--dimension-spacing-core-2xs); }
+[data-option="10"] .o10-card.is-empty .o10-detail,
+[data-option="10"] .o10-card:not(.is-empty) .o10-intro { opacity: 0; visibility: hidden; }
+[data-option="10"] .o10-count { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="10"] .o10-start {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs); margin: 0;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="10"] .o10-start b { color: var(--color-semantic-functional-text-primary); }
+[data-option="10"] .o10-start-pin {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: var(--dimension-spacing-core-sm); height: var(--dimension-spacing-core-sm); border-radius: 50%;
+  background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse);
+}
+/* Cômodo selecionado: nome em destaque e horas à esquerda, porcentagem à direita */
+[data-option="10"] .o10-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+}
+[data-option="10"] .o10-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="10"] .o10-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="10"] .o10-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="10"] .o10-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="10"] .o10-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+[data-option="10"] .o10-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="10"] .o10-avs { display: flex; flex: none; }
+[data-option="10"] .o10-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="10"] .o10-av + .o10-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="10"] .o10-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="10"] .o10-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="10"] .o10-lead p { margin: 0; }
+[data-option="10"] .o10-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="10"] .o10-map, [data-option="10"] .o10-heat, [data-option="10"] .o10-arrow,
+  [data-option="10"] .o10-pin, [data-option="10"] .o10-intro, [data-option="10"] .o10-detail { transition: none; animation: none; }
+}
+[data-option="11"] {
+  --o11-win-rest: 196px;
+  --o11-tx: 0px; --o11-ty: 0px; --o11-s: 1;
+  --o11-x: 50%; --o11-y: 50%; --o11-r: 10%; --o11-c: var(--color-semantic-theme-tarde-light); --o11-o: 0.2;
+}
+[data-option="11"] .o11-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro; o grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="11"] .o11-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="11"] .o11-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--dimension-spacing-core-5xl));
+}
+[data-option="11"] .o11-map {
+  position: absolute; left: 0; top: 0; display: block;
+  width: calc(var(--dimension-size-semantic-content-card-width) * 1.2); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform: translate(var(--o11-tx), var(--o11-ty)) scale(var(--o11-s));
+  transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing);
+  mix-blend-mode: lighten;
+}
+[data-option="11"] .o11-map img { display: block; width: 100%; height: 100%; }
+[data-option="11"] .o11-heat {
+  position: absolute; display: block; left: var(--o11-x); top: var(--o11-y); width: var(--o11-r); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--o11-c), transparent);
+  mix-blend-mode: multiply; opacity: var(--o11-o);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+/* Estado vazio: o cômodo mais quente pulsa de leve como pista de por onde olhar; some quando um cômodo é escolhido */
+[data-option="11"] .o11-pulse {
+  position: absolute; display: block; left: var(--o11-x); top: var(--o11-y); translate: -50% -50%;
+  width: var(--dimension-spacing-core-3xl); aspect-ratio: 1; border-radius: 50%;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="11"] .o11-pulse::before {
+  content: ""; position: absolute; inset: 0; margin: auto; display: block;
+  width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs); border-radius: 50%;
+  background: var(--color-semantic-functional-status-live);
+  box-shadow: 0 0 0 var(--dimension-border-width-core-thin) var(--color-semantic-functional-text-primary);
+}
+[data-option="11"] .o11-pulse::after {
+  content: ""; position: absolute; inset: 0; display: block; border-radius: 50%;
+  border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-status-live);
+  animation: o11-pulse var(--motion-semantic-carousel-step) ease-out infinite;
+}
+@keyframes o11-pulse {
+  0% { scale: 0.3; opacity: var(--opacity-semantic-illumination-strong); }
+  60%, 100% { scale: 1; opacity: 0; }
+}
+[data-option="11"] .o11-card:not(.is-empty) .o11-pulse { opacity: 0; }
+[data-option="11"] .o11-card:not(.is-empty) .o11-pulse::after { animation-play-state: paused; }
+/* Setas-dica nas laterais da casa: dizem que ←/→ trocam de cômodo; esmaecem na ponta (sem laço). Não são botões. */
+[data-option="11"] .o11-win { position: relative; display: flex; align-items: center; justify-content: space-between; height: var(--o11-win-rest); }
+[data-option="11"] .o11-arrow {
+  display: block; width: var(--dimension-spacing-core-xs); height: var(--dimension-spacing-core-xs);
+  border-top: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  border-right: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-text-primary);
+  opacity: var(--opacity-semantic-illumination-strong);
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="11"] .o11-arrow[data-dir="prev"] { rotate: -135deg; }
+[data-option="11"] .o11-arrow[data-dir="next"] { rotate: 45deg; }
+[data-option="11"] .o11-arrow.is-end { opacity: var(--opacity-semantic-image-subdued); }
+[data-option="11"] .o11-arrow.is-nudge[data-dir="prev"] { animation: o11-nudge-prev var(--motion-semantic-duration) var(--motion-semantic-easing); }
+[data-option="11"] .o11-arrow.is-nudge[data-dir="next"] { animation: o11-nudge-next var(--motion-semantic-duration) var(--motion-semantic-easing); }
+@keyframes o11-nudge-prev { 50% { translate: calc(-1 * var(--dimension-spacing-core-3xs)) 0; } }
+@keyframes o11-nudge-next { 50% { translate: var(--dimension-spacing-core-3xs) 0; } }
+/* Faixa: duas camadas no mesmo lugar (vazio e cômodo), a altura é a da maior; troca por esmaecimento */
+[data-option="11"] .o11-info { position: relative; z-index: 1; display: grid; }
+[data-option="11"] .o11-info > * { grid-area: 1 / 1; }
+[data-option="11"] .o11-intro, [data-option="11"] .o11-detail {
+  position: relative; z-index: 0; display: flex; flex-direction: column;
+  transition: opacity var(--motion-semantic-duration) var(--motion-semantic-easing), visibility var(--motion-semantic-duration);
+}
+[data-option="11"] .o11-intro::before, [data-option="11"] .o11-detail::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  right: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  bottom: calc(-1 * var(--dimension-spacing-semantic-card-inset-expanded));
+  top: calc(-1 * var(--dimension-spacing-core-4xl));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-functional-background-elevated) var(--dimension-spacing-core-4xl));
+}
+[data-option="11"] .o11-intro { align-self: end; gap: var(--dimension-spacing-core-2xs); }
+[data-option="11"] .o11-card.is-empty .o11-detail,
+[data-option="11"] .o11-card:not(.is-empty) .o11-intro { opacity: 0; visibility: hidden; }
+[data-option="11"] .o11-count { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="11"] .o11-hint {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); margin: 0;
+  color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums;
+}
+[data-option="11"] .o11-hint b { color: var(--color-semantic-functional-text-primary); }
+[data-option="11"] .o11-dot {
+  display: block; flex: none; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs);
+  border-radius: 50%; background: var(--color-semantic-functional-status-live);
+}
+/* Cômodo selecionado: nome em destaque e horas à esquerda, porcentagem à direita */
+[data-option="11"] .o11-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-xs);
+}
+[data-option="11"] .o11-name { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="11"] .o11-room { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+[data-option="11"] .o11-hours { margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="11"] .o11-val {
+  display: block; flex: none; margin: 0;
+  font-size: calc(var(--typography-font-size-3xl) * 2); font-weight: var(--typography-font-weight-extra-bold);
+  letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="11"] .o11-val small { font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-bold); }
+[data-option="11"] .o11-who {
+  display: flex; align-items: center; gap: var(--dimension-spacing-core-xs);
+  margin-top: var(--dimension-spacing-core-sm);
+}
+[data-option="11"] .o11-avs { display: flex; flex: none; }
+[data-option="11"] .o11-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: 50%; border: var(--dimension-border-width-core-thin) solid var(--color-semantic-functional-background-elevated);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="11"] .o11-av + .o11-av { margin-left: calc(-1 * var(--dimension-spacing-core-sm)); }
+[data-option="11"] .o11-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--color-semantic-functional-background-elevated);
+}
+[data-option="11"] .o11-lead { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="11"] .o11-lead p { margin: 0; }
+[data-option="11"] .o11-lead-t { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="11"] .o11-pulse::after { animation: none; scale: 0.7; opacity: var(--opacity-semantic-content-muted); }
+  [data-option="11"] .o11-map, [data-option="11"] .o11-heat, [data-option="11"] .o11-arrow,
+  [data-option="11"] .o11-pulse, [data-option="11"] .o11-intro, [data-option="11"] .o11-detail { transition: none; animation: none; }
+}
+/* tune:vars */
+[data-option="12"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --fg: var(--color-semantic-functional-text-primary);
+  --win-rest: 196px;
+  --map-scale: 1.2;
+  --zoom-k: 1;
+  --ov-z: 1;
+  --ov-x: 0.43;
+  --ov-y: 0.525;
+  --house-fade: var(--dimension-spacing-core-5xl);
+  --map-blend: lighten;
+  --heat-k: 1;
+  --heat-core: 0%;
+  --heat-base: 0.35;
+  --heat-gain: 0.025;
+  --heat-on: 0.95;
+  --heat-dim: 0.3;
+  --heat-c1: var(--color-semantic-functional-status-live);
+  --heat-c2: var(--color-semantic-theme-tarde-dark);
+  --heat-c3: var(--color-semantic-functional-status-warning);
+  --heat-c4: var(--color-semantic-theme-tarde-light);
+  --heat-blend: multiply;
+  --anchor-radius: var(--dimension-radius-core-lg);
+  --anchor-py: var(--dimension-spacing-core-xs);
+  --anchor-px: var(--dimension-spacing-core-xs);
+  --anchor-gap: var(--dimension-spacing-core-xs);
+  --info-fade: var(--dimension-spacing-core-4xl);
+  --room-size: var(--typography-font-size-base);
+  --room-weight: var(--typography-font-weight-bold);
+  --room-ls: var(--typography-letter-spacing-tight);
+  --room-lh: var(--typography-line-height-normal);
+  --hours-size: var(--typography-font-size-sm);
+  --hours-weight: var(--typography-font-weight-medium);
+  --name-gap: var(--dimension-spacing-core-3xs);
+  --val-size: 56px;
+  --val-weight: var(--typography-font-weight-extra-bold);
+  --val-ls: var(--typography-letter-spacing-tighter);
+  --val-lh: var(--typography-line-height-tight);
+  --val-small-size: var(--typography-font-size-3xl);
+  --val-small-weight: var(--typography-font-weight-bold);
+  --who-top: var(--dimension-spacing-core-sm);
+  --who-gap: var(--dimension-spacing-core-xs);
+  --av-size: var(--dimension-size-semantic-avatar);
+  --av-overlap: var(--dimension-spacing-core-sm);
+  --av-border: var(--dimension-border-width-core-thin);
+  --av-fs: var(--typography-font-size-md);
+  --av-weight: var(--typography-font-weight-bold);
+  --lead-name-size: var(--typography-font-size-md);
+  --lead-name-weight: var(--typography-font-weight-bold);
+  --lead-time-size: var(--typography-font-size-sm);
+  --lead-time-weight: var(--typography-font-weight-medium);
+  --lead-gap: var(--dimension-spacing-core-3xs);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --ring-off: var(--dimension-spacing-semantic-focus-offset);
+  --zoom-dur: var(--motion-semantic-duration);
+  --zoom-ease: cubic-bezier(0.2, 0.1, 0.25, 1);
+  --heat-dur: var(--motion-semantic-duration);
+  --heat-ease: cubic-bezier(0.2, 0.1, 0.25, 1);
+}
+/* /tune:vars */
+
+/* Valores do cômodo em foco, escritos pelo script: dados, não ajustes. */
+[data-option="12"] { --rz: 3; --rx: 0.565; --ry: 0.542; }
+
+[data-option="12"] .o12-card {
+  position: relative; display: flex; flex-direction: column;
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--typography-font-family-primary);
+  overflow: hidden;
+}
+/* Casa: fundo do card inteiro. O grupo do mapa clareia sobre o fundo (o preto da ilustração some). */
+[data-option="12"] .o12-house {
+  position: absolute; inset: 0; z-index: 0; display: block; overflow: hidden;
+  border-radius: inherit; background: var(--bg);
+}
+[data-option="12"] .o12-house::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, var(--color-opacity-dark-80), transparent var(--house-fade));
+}
+/* Enquadramento feito só em CSS: o centro da janela fica sobre o ponto (x, y) do cômodo, com zoom z. */
+[data-option="12"] .o12-map {
+  --w: calc(var(--dimension-size-semantic-content-card-width) * var(--map-scale));
+  --h: calc(var(--w) * 1649 / 2400);
+  --z: calc(var(--rz) * var(--zoom-k)); --x: var(--rx); --y: var(--ry);
+  position: absolute; left: 0; top: 0; display: block;
+  width: var(--w); aspect-ratio: 2400 / 1649;
+  transform-origin: 0 0;
+  transform:
+    translate(
+      calc(var(--dimension-size-semantic-content-card-width) / 2 - var(--z) * var(--x) * var(--w)),
+      calc(var(--inset) + var(--win-rest) / 2 - var(--z) * var(--y) * var(--h))
+    )
+    scale(var(--z));
+  transition-property: transform;
+  transition-duration: var(--zoom-dur);
+  transition-timing-function: var(--zoom-ease);
+  mix-blend-mode: var(--map-blend);
+}
+[data-option="12"][data-state="visao-geral"] .o12-map { --z: var(--ov-z); --x: var(--ov-x); --y: var(--ov-y); }
+[data-option="12"] .o12-map img { display: block; width: 100%; height: 100%; }
+[data-option="12"] .o12-heat {
+  --hc: var(--heat-c4);
+  position: absolute; display: block; left: var(--hx); top: var(--hy); width: calc(var(--hr) * var(--heat-k)); aspect-ratio: 1;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--hc) var(--heat-core), transparent);
+  mix-blend-mode: var(--heat-blend);
+  transition-property: opacity;
+  transition-duration: var(--heat-dur);
+  transition-timing-function: var(--heat-ease);
+}
+[data-option="12"] .o12-heat[data-tier="1"] { --hc: var(--heat-c1); }
+[data-option="12"] .o12-heat[data-tier="2"] { --hc: var(--heat-c2); }
+[data-option="12"] .o12-heat[data-tier="3"] { --hc: var(--heat-c3); }
+/* Estados: visão geral mostra o calor de todos; com um cômodo escolhido, só ele acende. */
+[data-option="12"][data-state="visao-geral"] .o12-heat { opacity: calc(var(--heat-base) + var(--hp) * var(--heat-gain)); }
+[data-option="12"][data-state="selecionado"] .o12-heat,
+[data-option="12"][data-state="primeiro"] .o12-heat,
+[data-option="12"][data-state="ultimo"] .o12-heat { opacity: var(--heat-dim); }
+[data-option="12"][data-state="selecionado"] .o12-heat[data-on],
+[data-option="12"][data-state="primeiro"] .o12-heat[data-on],
+[data-option="12"][data-state="ultimo"] .o12-heat[data-on] { opacity: var(--heat-on); }
+/* Janela: o espaço por onde se vê o cômodo em zoom */
+[data-option="12"] .o12-win { display: block; height: var(--win-rest); }
+/* Âncora + linha: sobre um degradê que funde a casa no fundo do card */
+[data-option="12"] .o12-info { position: relative; z-index: 1; display: flex; flex-direction: column; }
+[data-option="12"] .o12-info::before {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--inset)); right: calc(-1 * var(--inset)); bottom: calc(-1 * var(--inset));
+  top: calc(-1 * var(--info-fade));
+  background: linear-gradient(to bottom, transparent, var(--bg) var(--info-fade));
+}
+/* Cômodo em foco: nome e horas empilhados à esquerda, porcentagem à direita */
+[data-option="12"] .o12-anchor {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--anchor-gap);
+  padding: var(--anchor-py) var(--anchor-px);
+  border-radius: var(--anchor-radius); background: var(--color-semantic-functional-background-tint);
+}
+[data-option="12"] .o12-name { display: flex; flex-direction: column; gap: var(--name-gap); min-width: 0; }
+[data-option="12"] .o12-room {
+  margin: 0; color: var(--fg); text-wrap: balance;
+  font-size: var(--room-size); font-weight: var(--room-weight); letter-spacing: var(--room-ls); line-height: var(--room-lh);
+}
+[data-option="12"] .o12-hours {
+  margin: 0; color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums;
+  font-size: var(--hours-size); font-weight: var(--hours-weight); letter-spacing: var(--typography-letter-spacing-tight); line-height: var(--typography-line-height-normal);
+}
+[data-option="12"] .o12-val {
+  display: block; flex: none; margin: 0;
+  font-size: var(--val-size); font-weight: var(--val-weight);
+  letter-spacing: var(--val-ls); line-height: var(--val-lh);
+  font-variant-numeric: tabular-nums;
+}
+[data-option="12"] .o12-val small { font-size: var(--val-small-size); font-weight: var(--val-small-weight); }
+/* Quem fica no cômodo: avatares sempre visíveis, quem mais fica na frente */
+[data-option="12"] .o12-who {
+  display: flex; align-items: center; gap: var(--who-gap);
+  margin-top: var(--who-top);
+}
+[data-option="12"] .o12-avs { display: flex; flex: none; }
+[data-option="12"] .o12-av {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: var(--av-size); height: var(--av-size);
+  border-radius: 50%; border: var(--av-border) solid var(--bg);
+  background: linear-gradient(var(--color-opacity-light-10), var(--color-opacity-light-10)), var(--bg);
+  color: var(--fg);
+  font-size: var(--av-fs); font-weight: var(--av-weight); letter-spacing: var(--typography-letter-spacing-tight); line-height: var(--typography-line-height-normal);
+}
+[data-option="12"] .o12-av + .o12-av { margin-left: calc(-1 * var(--av-overlap)); }
+[data-option="12"] .o12-av:first-child {
+  background: linear-gradient(var(--color-opacity-light-30), var(--color-opacity-light-30)), var(--bg);
+}
+[data-option="12"] .o12-lead { display: flex; flex-direction: column; gap: var(--lead-gap); min-width: 0; }
+[data-option="12"] .o12-lead p { margin: 0; }
+[data-option="12"] .o12-lead-n {
+  font-size: var(--lead-name-size); font-weight: var(--lead-name-weight);
+  letter-spacing: var(--typography-letter-spacing-tight); line-height: var(--typography-line-height-normal);
+}
+[data-option="12"] .o12-lead-t {
+  color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums;
+  font-size: var(--lead-time-size); font-weight: var(--lead-time-weight);
+  letter-spacing: var(--typography-letter-spacing-tight); line-height: var(--typography-line-height-normal);
+}
+/* Anel de foco da faixa (o foco do card fica no cômodo escolhido) */
+[data-option="12"] .o12-anchor::after {
+  content: ""; position: absolute; pointer-events: none;
+  inset: calc(-1 * (var(--ring-off) + var(--ring-w)));
+  border-radius: calc(var(--anchor-radius) + var(--ring-off) + var(--ring-w));
+  padding: var(--ring-w);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--fg) 0 0) content-box, linear-gradient(var(--fg) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+/* Movimento reduzido: o zoom vira troca imediata, o calor continua em fusão de opacidade e o anel fica. */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="12"] .o12-map { transition-property: none; }
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: a casa é o palco e a navegação é uma fileira de cômodos abaixo dela: o cômodo selecionado inverte a cor, e a casa dá zoom nele. -->
+  <p class="opt-label" data-part="label">Opção 1 - Trilho de cômodos</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-card">
+      <div class="o1-stage-wrap o1-focus is-focus" data-part="casa">
+        <div class="o1-stage" data-stack>
+          <div class="o1-layer" data-stack>
+            <img src="casa-bbb.png" alt="Desenho da casa do BBB com o calor de presença em cada cômodo">
+          </div>
+        </div>
+      </div>
+      <p class="o1-summary" data-part="resumo" aria-live="polite"><span class="o1-value">24%</span><span class="o1-words text-body-sm-medium">do tempo na Sala, o cômodo mais quente</span></p>
+      <ul class="o1-detail" data-part="detalhe" aria-live="polite" hidden></ul>
+      <div class="o1-tray" data-part="trilho"></div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: o mapa de calor responde "onde estão?" e a lista responde "quanto?": casa à esquerda, ranking de cômodos à direita, os dois girando juntos. -->
+  <p class="opt-label" data-part="label">Opção 2 - Ranking lado a lado</p>
+  <div class="opt-content" data-part="content">
+    <div class="o2-card">
+      <p class="o2-title text-body-md-bold" data-part="titulo" aria-live="polite">A galera vive na Sala</p>
+      <div class="o2-body">
+        <div class="o2-stage-wrap o2-focus is-focus" data-part="casa">
+          <div class="o2-stage" data-stack>
+            <div class="o2-layer" data-stack>
+              <img src="casa-bbb.png" alt="Desenho da casa do BBB com o calor de presença em cada cômodo">
+            </div>
+          </div>
+        </div>
+        <ol class="o2-list" data-part="ranking"></ol>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 3 - Número em cima da casa</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. -->
+    <div class="o3-card" data-part="card">
+      <div class="o3-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o3-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o3-win" data-stack aria-hidden="true"></div>
+      <div class="o3-info">
+        <div class="o3-anchor" data-part="numero" aria-live="polite">
+          <div class="o3-name" data-part="comodo">
+            <p class="o3-room text-body-md-bold">Mais tempo na Sala</p>
+            <p class="o3-hours text-footnote-medium">84h na semana</p>
+          </div>
+          <p class="o3-val" data-part="porcentagem">24<small>%</small></p>
+        </div>
+        <div class="o3-who" data-part="quem-esta">
+          <div class="o3-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+          <div class="o3-lead" aria-live="polite">
+            <p class="o3-lead-n text-body-sm-bold">Marcos</p>
+            <p class="o3-lead-t text-footnote-medium">lidera · 3h20</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Variações da Opção 3 · sutil</h2>
+<article data-parent="3" class="opt" data-option="4" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 4 - Casa alta, número maior</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. -->
+    <div class="o4-card" data-part="card">
+      <div class="o4-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o4-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o4-win" data-stack aria-hidden="true"></div>
+      <div class="o4-info">
+        <div class="o4-anchor" data-part="numero" aria-live="polite">
+          <div class="o4-name" data-part="comodo">
+            <p class="o4-room text-footnote-bold">Mais tempo na Sala</p>
+            <p class="o4-hours text-footnote-medium">84h na semana</p>
+          </div>
+          <p class="o4-val" data-part="porcentagem">24<small>%</small></p>
+        </div>
+        <div class="o4-who" data-part="quem-esta">
+          <div class="o4-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+          <div class="o4-lead" aria-live="polite">
+            <p class="o4-lead-n text-body-sm-bold">Marcos</p>
+            <p class="o4-lead-t text-footnote-medium">lidera · 3h20</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="5" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 5 - Casa menor, gente em destaque</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. -->
+    <div class="o5-card" data-part="card">
+      <div class="o5-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o5-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o5-win" data-stack aria-hidden="true"></div>
+      <div class="o5-info">
+        <div class="o5-anchor" data-part="numero" aria-live="polite">
+          <div class="o5-name" data-part="comodo">
+            <p class="o5-room text-body-lg-bold">Mais tempo na Sala</p>
+            <p class="o5-hours text-body-sm-medium">84h na semana</p>
+          </div>
+          <p class="o5-val" data-part="porcentagem">24<small>%</small></p>
+        </div>
+        <div class="o5-who" data-part="quem-esta">
+          <div class="o5-avs" data-part="avatares" aria-hidden="true"></div>
+          <div class="o5-lead" aria-live="polite">
+            <p class="o5-lead-n text-body-md-bold">Marcos</p>
+            <p class="o5-lead-t text-body-sm-medium">lidera · 3h20</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="6" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 6 - Cômodo em primeiro plano</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação sutil da opção 3: calor mais discreto, zoom mais próximo, nome do cômodo com mais peso) -->
+    <div class="o6-card" data-part="card">
+      <div class="o6-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o6-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o6-win" data-part="setas" data-stack aria-hidden="true">
+        <span class="o6-arrow is-end" data-dir="prev"></span>
+        <span class="o6-arrow" data-dir="next"></span>
+      </div>
+      <div class="o6-info">
+        <div class="o6-anchor" data-part="numero" aria-live="polite">
+          <div class="o6-name" data-part="comodo">
+            <p class="o6-room text-body-lg-bold">Sala</p>
+            <p class="o6-hours text-footnote-medium">Mais tempo · 84h</p>
+          </div>
+          <p class="o6-val" data-part="porcentagem">24<small>%</small></p>
+        </div>
+        <div class="o6-who" data-part="quem-esta">
+          <div class="o6-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+          <div class="o6-lead" aria-live="polite">
+            <p class="o6-lead-n text-body-sm-bold">Marcos</p>
+            <p class="o6-lead-t text-footnote-medium">lidera · 3h20</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="7" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 7 - Número na bandeja</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação sutil da opção 3: número e avatares numa bandeja própria, casa e informação em proporção mais equilibrada) -->
+    <div class="o7-card" data-part="card">
+      <div class="o7-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o7-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o7-win" data-stack aria-hidden="true"></div>
+      <div class="o7-info">
+        <div class="o7-tray" data-part="bandeja">
+          <div class="o7-anchor" data-part="numero" aria-live="polite">
+            <div class="o7-name" data-part="comodo">
+              <p class="o7-room text-body-md-bold">Mais tempo na Sala</p>
+              <p class="o7-hours text-footnote-medium">84h na semana</p>
+            </div>
+            <p class="o7-val" data-part="porcentagem">24<small>%</small></p>
+          </div>
+          <div class="o7-who" data-part="quem-esta">
+            <div class="o7-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+            <div class="o7-lead" aria-live="polite">
+              <p class="o7-lead-n text-body-sm-bold">Marcos</p>
+              <p class="o7-lead-t text-footnote-medium">lidera · 3h20</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Variações da Opção 6 · estado vazio</h2>
+<article data-parent="6" data-parent="6" class="opt" data-option="8" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 8 - Casa em repouso</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação livre da opção 6: estado vazio inicial com a casa inteira em repouso, sem calor, e um convite a navegar no lugar do número) -->
+    <div class="o8-card is-empty" data-part="card">
+      <div class="o8-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o8-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o8-win" data-part="setas" data-stack aria-hidden="true">
+        <span class="o8-arrow" data-dir="prev"></span>
+        <span class="o8-arrow" data-dir="next"></span>
+      </div>
+      <div class="o8-info" data-stack>
+        <div class="o8-state o8-invite" data-part="convite" aria-live="polite">
+          <p class="o8-invite-t text-body-lg-bold">Onde a casa passa o tempo?</p>
+          <p class="o8-invite-k text-footnote-medium">Use ← → para explorar os cômodos</p>
+        </div>
+        <div class="o8-state o8-room-state is-off" data-part="comodo-selecionado">
+          <div class="o8-anchor" data-part="numero" aria-live="polite">
+            <div class="o8-name" data-part="comodo">
+              <p class="o8-room text-body-lg-bold">Academia</p>
+              <p class="o8-hours text-footnote-medium">25h na semana</p>
+            </div>
+            <p class="o8-val" data-part="porcentagem">7<small>%</small></p>
+          </div>
+          <div class="o8-who" data-part="quem-esta">
+            <div class="o8-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+            <div class="o8-lead" aria-live="polite">
+              <p class="o8-lead-n text-body-sm-bold">Caio</p>
+              <p class="o8-lead-t text-footnote-medium">lidera · 1h50</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="6" data-parent="6" class="opt" data-option="9" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 9 - Mapa inteiro aquecido</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação livre da opção 6: estado vazio inicial com a casa inteira e o calor discreto em todos os cômodos, "Escolha um cômodo" e a legenda menos → mais no lugar do número) -->
+    <div class="o9-card is-empty" data-part="card">
+      <div class="o9-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o9-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o9-win" data-part="setas" data-stack aria-hidden="true">
+        <span class="o9-arrow" data-dir="prev"></span>
+        <span class="o9-arrow" data-dir="next"></span>
+      </div>
+      <div class="o9-info" data-stack>
+        <div class="o9-state o9-invite" data-part="visao-geral" aria-live="polite">
+          <p class="o9-invite-t text-body-lg-bold" data-part="escolha">Escolha um cômodo</p>
+          <div class="o9-legend" data-part="legenda" aria-label="Legenda do calor: de menos tempo a mais tempo">
+            <span class="text-footnote-medium">menos</span>
+            <span class="o9-ramp" aria-hidden="true"></span>
+            <span class="text-footnote-medium">mais</span>
+          </div>
+        </div>
+        <div class="o9-state o9-room-state is-off" data-part="comodo-selecionado">
+          <div class="o9-anchor" data-part="numero" aria-live="polite">
+            <div class="o9-name" data-part="comodo">
+              <p class="o9-room text-body-lg-bold">Academia</p>
+              <p class="o9-hours text-footnote-medium">25h na semana</p>
+            </div>
+            <p class="o9-val" data-part="porcentagem">7<small>%</small></p>
+          </div>
+          <div class="o9-who" data-part="quem-esta">
+            <div class="o9-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+            <div class="o9-lead" aria-live="polite">
+              <p class="o9-lead-n text-body-sm-bold">Caio</p>
+              <p class="o9-lead-t text-footnote-medium">lidera · 1h50</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="6" data-parent="6" class="opt" data-option="10" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 10 - Roteiro numerado</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação livre da opção 6: estado vazio inicial = casa inteira com os 7 cômodos numerados na ordem do passeio, o 1 em destaque como ponto de partida) -->
+    <div class="o10-card is-empty" data-part="card">
+      <div class="o10-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o10-map" data-part="marcadores" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o10-win" data-part="setas" data-stack aria-hidden="true">
+        <span class="o10-arrow is-end" data-dir="prev"></span>
+        <span class="o10-arrow" data-dir="next"></span>
+      </div>
+      <div class="o10-info" data-stack>
+        <div class="o10-intro" data-part="vazio" aria-live="polite">
+          <p class="o10-count text-body-lg-bold">7 cômodos</p>
+          <p class="o10-start text-footnote-medium">Comece pela <span class="o10-start-pin text-caption-extra-bold" aria-hidden="true">1</span><b>Academia</b></p>
+        </div>
+        <div class="o10-detail" data-part="detalhe">
+          <div class="o10-anchor" data-part="numero" aria-live="polite">
+            <div class="o10-name" data-part="comodo">
+              <p class="o10-room text-body-lg-bold">Academia</p>
+              <p class="o10-hours text-footnote-medium">25h na semana</p>
+            </div>
+            <p class="o10-val" data-part="porcentagem">7<small>%</small></p>
+          </div>
+          <div class="o10-who" data-part="quem-esta">
+            <div class="o10-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+            <div class="o10-lead" aria-live="polite">
+              <p class="o10-lead-n text-body-sm-bold">Caio</p>
+              <p class="o10-lead-t text-footnote-medium">lidera · 1h50</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="6" data-parent="6" class="opt" data-option="11" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 11 - Pista do mais quente</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. (variação livre da opção 6: estado vazio inicial = casa inteira, só a Sala (a mais quente) pulsa de leve como pista; a faixa convida a explorar e diz onde está o mais tempo; avatares ocultos até escolher um cômodo) -->
+    <div class="o11-card is-empty" data-part="card">
+      <div class="o11-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o11-map" data-part="pulso" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o11-win" data-part="setas" data-stack aria-hidden="true">
+        <span class="o11-arrow is-end" data-dir="prev"></span>
+        <span class="o11-arrow" data-dir="next"></span>
+      </div>
+      <div class="o11-info" data-stack>
+        <div class="o11-intro" data-part="vazio" aria-live="polite">
+          <p class="o11-count text-body-lg-bold">Explore os 7 cômodos</p>
+          <p class="o11-hint text-footnote-medium" data-part="pista"><span class="o11-dot" aria-hidden="true"></span><span>Mais tempo: <b>Sala 24%</b></span></p>
+        </div>
+        <div class="o11-detail" data-part="detalhe">
+          <div class="o11-anchor" data-part="numero" aria-live="polite">
+            <div class="o11-name" data-part="comodo">
+              <p class="o11-room text-body-lg-bold">Academia</p>
+              <p class="o11-hours text-footnote-medium">25h na semana</p>
+            </div>
+            <p class="o11-val" data-part="porcentagem">7<small>%</small></p>
+          </div>
+          <div class="o11-who" data-part="quem-esta">
+            <div class="o11-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+            <div class="o11-lead" aria-live="polite">
+              <p class="o11-lead-n text-body-sm-bold">Caio</p>
+              <p class="o11-lead-t text-footnote-medium">lidera · 1h50</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 3</h2>
+<article data-parent="3" data-pretuned class="opt" data-option="12" data-tuned data-state="visao-geral" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 12 - Ajuste da 3</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a casa dá zoom ocupando o card inteiro e um único número gigante sobre ela diz a presença; o resto é só apoio mínimo. -->
+    <div class="o12-card" data-part="card">
+      <div class="o12-house" data-part="casa" data-stack aria-hidden="true">
+        <div class="o12-map" data-stack>
+          <img src="casa-bbb.png" alt="">
+        </div>
+      </div>
+      <div class="o12-win" data-stack aria-hidden="true"></div>
+      <div class="o12-info">
+        <div class="o12-anchor" data-part="numero" aria-live="polite">
+          <div class="o12-name" data-part="comodo">
+            <p class="o12-room">Mais tempo na Sala</p>
+            <p class="o12-hours">84h na semana</p>
+          </div>
+          <p class="o12-val" data-part="porcentagem">24<small>%</small></p>
+        </div>
+        <div class="o12-who" data-part="quem-esta">
+          <div class="o12-avs" data-part="avatares" data-stack aria-hidden="true"></div>
+          <div class="o12-lead" aria-live="polite">
+            <p class="o12-lead-n">Marcos</p>
+            <p class="o12-lead-t">lidera · 3h20</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="12">{"states":["visao-geral","selecionado","primeiro","ultimo"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"token":"--dimension-radius-semantic-content-card","min":0,"max":64,"step":1,"unit":"px"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"token":"--dimension-spacing-semantic-card-inset-expanded","min":8,"max":48,"step":1,"unit":"px"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+{"id":"fg","label":"Cor do texto","type":"color","var":"--fg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Casa","part":"casa","controls":[
+{"id":"win","label":"Altura da janela","type":"slider","var":"--win-rest","value":196,"min":120,"max":240,"step":2,"unit":"px"},
+{"id":"mapscale","label":"Tamanho da casa","type":"slider","var":"--map-scale","value":1.2,"min":0.8,"max":2.4,"step":0.05},
+{"id":"zoomk","label":"Zoom nos cômodos","type":"slider","var":"--zoom-k","value":1,"min":0.5,"max":1.6,"step":0.05},
+{"id":"ovz","label":"Zoom da visão geral","type":"slider","var":"--ov-z","value":1,"min":0.5,"max":2,"step":0.05},
+{"id":"ovx","label":"Foco da visão geral, horizontal","type":"slider","var":"--ov-x","value":0.43,"min":0,"max":1,"step":0.005},
+{"id":"ovy","label":"Foco da visão geral, vertical","type":"slider","var":"--ov-y","value":0.525,"min":0,"max":1,"step":0.005},
+{"id":"topfade","label":"Degradê do topo","type":"slider","var":"--house-fade","value":80,"base":80,"token":"--dimension-spacing-core-5xl","min":0,"max":160,"step":4,"unit":"px"},
+{"id":"mapblend","label":"Mistura da ilustração","type":"select","var":"--map-blend","value":"lighten","options":["lighten","screen","normal"]}
+]},
+{"name":"Calor","part":"calor","controls":[
+{"id":"heatk","label":"Tamanho das manchas","type":"slider","var":"--heat-k","value":1,"min":0.4,"max":2,"step":0.05},
+{"id":"heatcore","label":"Miolo cheio da mancha","type":"slider","var":"--heat-core","value":0,"min":0,"max":70,"step":1,"unit":"%"},
+{"id":"heatbase","label":"Intensidade base (visão geral)","type":"slider","var":"--heat-base","value":0.35,"min":0,"max":1,"step":0.01},
+{"id":"heatgain","label":"Ganho por presença (visão geral)","type":"slider","var":"--heat-gain","value":0.025,"min":0,"max":0.05,"step":0.001},
+{"id":"heaton","label":"Intensidade do cômodo em foco","type":"slider","var":"--heat-on","value":0.95,"min":0,"max":1,"step":0.01},
+{"id":"heatdim","label":"Intensidade dos outros cômodos","type":"slider","var":"--heat-dim","value":0.3,"min":0,"max":1,"step":0.01},
+{"id":"heatc1","label":"Cor de 20% ou mais","type":"color","var":"--heat-c1","value":"#fd4142","base":"#fd4142","token":"--color-semantic-functional-status-live"},
+{"id":"heatc2","label":"Cor de 15% a 19%","type":"color","var":"--heat-c2","value":"#ed6001","base":"#ed6001","token":"--color-semantic-theme-tarde-dark"},
+{"id":"heatc3","label":"Cor de 10% a 14%","type":"color","var":"--heat-c3","value":"#ffa90a","base":"#ffa90a","token":"--color-semantic-functional-status-warning"},
+{"id":"heatc4","label":"Cor abaixo de 10%","type":"color","var":"--heat-c4","value":"#e7c300","base":"#e7c300","token":"--color-semantic-theme-tarde-light"},
+{"id":"heatblend","label":"Mistura da mancha","type":"select","var":"--heat-blend","value":"multiply","options":["multiply","normal","overlay","soft-light"]}
+]},
+{"name":"Número","part":"numero","controls":[
+{"id":"anchorradius","label":"Raio da faixa","type":"slider","var":"--anchor-radius","value":16,"base":16,"token":"--dimension-radius-core-lg","min":0,"max":40,"step":1,"unit":"px"},
+{"id":"anchorpy","label":"Respiro vertical da faixa","type":"slider","var":"--anchor-py","value":12,"base":12,"token":"--dimension-spacing-core-xs","min":0,"max":32,"step":1,"unit":"px"},
+{"id":"anchorpx","label":"Respiro lateral da faixa","type":"slider","var":"--anchor-px","value":12,"base":12,"token":"--dimension-spacing-core-xs","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"anchorgap","label":"Espaço entre nome e número","type":"slider","var":"--anchor-gap","value":12,"base":12,"token":"--dimension-spacing-core-xs","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"infofade","label":"Degradê sob a faixa","type":"slider","var":"--info-fade","value":64,"base":64,"token":"--dimension-spacing-core-4xl","min":0,"max":120,"step":4,"unit":"px"}
+]},
+{"name":"Cômodo","part":"comodo","controls":[
+{"id":"roomsize","label":"Tamanho do nome","type":"slider","var":"--room-size","value":16,"base":16,"token":"--typography-font-size-base","min":10,"max":28,"step":1,"unit":"px"},
+{"id":"roomweight","label":"Peso do nome","type":"slider","var":"--room-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100},
+{"id":"roomls","label":"Espaçamento do nome","type":"slider","var":"--room-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.05,"step":0.005,"unit":"em"},
+{"id":"roomlh","label":"Altura de linha do nome","type":"slider","var":"--room-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05},
+{"id":"hoursize","label":"Tamanho das horas","type":"slider","var":"--hours-size","value":12,"base":12,"token":"--typography-font-size-sm","min":8,"max":20,"step":1,"unit":"px"},
+{"id":"hoursweight","label":"Peso das horas","type":"slider","var":"--hours-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100},
+{"id":"namegap","label":"Espaço entre nome e horas","type":"slider","var":"--name-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":16,"step":1,"unit":"px"}
+]},
+{"name":"Porcentagem","part":"porcentagem","controls":[
+{"id":"valsize","label":"Tamanho do número","type":"slider","var":"--val-size","value":56,"min":24,"max":96,"step":1,"unit":"px"},
+{"id":"valweight","label":"Peso do número","type":"slider","var":"--val-weight","value":800,"base":800,"token":"--typography-font-weight-extra-bold","min":400,"max":800,"step":100},
+{"id":"valls","label":"Espaçamento do número","type":"slider","var":"--val-ls","value":-0.02,"base":-0.02,"token":"--typography-letter-spacing-tighter","min":-0.06,"max":0.05,"step":0.005,"unit":"em"},
+{"id":"vallh","label":"Altura de linha do número","type":"slider","var":"--val-lh","value":1.1,"base":1.1,"token":"--typography-line-height-tight","min":0.9,"max":1.6,"step":0.05},
+{"id":"smallsize","label":"Tamanho do símbolo %","type":"slider","var":"--val-small-size","value":28,"base":28,"token":"--typography-font-size-3xl","min":10,"max":56,"step":1,"unit":"px"},
+{"id":"smallweight","label":"Peso do símbolo %","type":"slider","var":"--val-small-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100}
+]},
+{"name":"Quem está","part":"quem-esta","controls":[
+{"id":"whotop","label":"Distância da faixa","type":"slider","var":"--who-top","value":16,"base":16,"token":"--dimension-spacing-core-sm","min":0,"max":40,"step":1,"unit":"px"},
+{"id":"whogap","label":"Espaço entre avatares e texto","type":"slider","var":"--who-gap","value":12,"base":12,"token":"--dimension-spacing-core-xs","min":0,"max":40,"step":1,"unit":"px"},
+{"id":"avsize","label":"Tamanho do avatar","type":"slider","var":"--av-size","value":40,"base":40,"token":"--dimension-size-semantic-avatar","min":24,"max":64,"step":1,"unit":"px"},
+{"id":"avoverlap","label":"Sobreposição dos avatares","type":"slider","var":"--av-overlap","value":16,"base":16,"token":"--dimension-spacing-core-sm","min":0,"max":32,"step":1,"unit":"px"},
+{"id":"avborder","label":"Borda do avatar","type":"slider","var":"--av-border","value":2,"base":2,"token":"--dimension-border-width-core-thin","min":0,"max":6,"step":1,"unit":"px"},
+{"id":"avfs","label":"Tamanho da inicial","type":"slider","var":"--av-fs","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"avweight","label":"Peso da inicial","type":"slider","var":"--av-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100},
+{"id":"leadsize","label":"Tamanho do nome do líder","type":"slider","var":"--lead-name-size","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"leadweight","label":"Peso do nome do líder","type":"slider","var":"--lead-name-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100},
+{"id":"leadtsize","label":"Tamanho do tempo do líder","type":"slider","var":"--lead-time-size","value":12,"base":12,"token":"--typography-font-size-sm","min":8,"max":20,"step":1,"unit":"px"},
+{"id":"leadtweight","label":"Peso do tempo do líder","type":"slider","var":"--lead-time-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100},
+{"id":"leadgap","label":"Espaço entre nome e tempo","type":"slider","var":"--lead-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":16,"step":1,"unit":"px"}
+]},
+{"name":"Foco","part":"numero","controls":[
+{"id":"ringw","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"token":"--dimension-border-width-semantic-focus-ring","min":0,"max":8,"step":1,"unit":"px"},
+{"id":"ringoff","label":"Distância do anel","type":"slider","var":"--ring-off","value":2,"base":2,"token":"--dimension-spacing-semantic-focus-offset","min":0,"max":12,"step":1,"unit":"px"}
+]},
+{"name":"Movimento","controls":[
+{"id":"zoomtr","label":"Zoom da casa","type":"easing","durVar":"--zoom-dur","easeVar":"--zoom-ease","value":{"duration":0.8,"ease":[0.2,0.1,0.25,1]},"base":{"duration":0.8,"ease":[0.2,0.1,0.25,1]},"token":"--motion-semantic-duration"},
+{"id":"heattr","label":"Calor dos cômodos","type":"easing","durVar":"--heat-dur","easeVar":"--heat-ease","value":{"duration":0.8,"ease":[0.2,0.1,0.25,1]},"base":{"duration":0.8,"ease":[0.2,0.1,0.25,1]},"token":"--motion-semantic-duration"}
+]}
+]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]');
+  if (!root) return;
+  // Spatial order, left to right across the drawing; x, y: room centre on the image; w: heat size.
+  const rooms = [
+    { name: 'Academia', em: 'na Academia', p: 7, x: .31, y: .40, w: .08, people: [['Diego', '1h35'], ['Paulo', '1h10'], ['Camila', '0h55'], ['Lucas', '0h40']] },
+    { name: 'Jardim', em: 'no Jardim', p: 16, x: .37, y: .62, w: .2, people: [['Lucas', '2h35'], ['Camila', '2h10'], ['Bia', '1h55'], ['Rodrigo', '1h20']] },
+    { name: 'Quarto do Líder', em: 'no Quarto do Líder', p: 9, x: .49, y: .34, w: .1, people: [['Rodrigo', '2h40'], ['Fernanda', '0h45'], ['Davi', '0h30'], ['Marcos', '0h20']] },
+    { name: 'Quarto Colorido', em: 'no Quarto Colorido', p: 11, x: .62, y: .27, w: .1, people: [['Larissa', '1h45'], ['Gabi', '1h30'], ['Thiago', '1h05'], ['Renata', '0h50']] },
+    { name: 'Sala', em: 'na Sala', p: 24, x: .56, y: .54, w: .1, people: [['Marcos', '3h20'], ['Aline', '2h55'], ['Davi', '2h40'], ['Bia', '2h10'], ['Rodrigo', '1h45']] },
+    { name: 'Cozinha', em: 'na Cozinha', p: 19, x: .625, y: .64, w: .09, people: [['Fernanda', '2h50'], ['Davi', '2h15'], ['Gabi', '1h50'], ['Thiago', '1h30'], ['Marcos', '1h05']] },
+    { name: 'Quarto Azul', em: 'no Quarto Azul', p: 14, x: .725, y: .58, w: .08, people: [['Juliana', '2h05'], ['Paulo', '1h50'], ['Aline', '1h25'], ['Diego', '1h10']] },
+  ];
+  const heat = (p) => (p >= 18 ? 'alto' : p >= 11 ? 'medio' : 'baixo');
+  const stageWrap = root.querySelector('.o1-stage-wrap'), stage = root.querySelector('.o1-stage'), layer = root.querySelector('.o1-layer');
+  const summary = root.querySelector('.o1-summary'), detail = root.querySelector('.o1-detail'), tray = root.querySelector('.o1-tray');
+
+  const blobs = rooms.map((r) => {
+    const b = document.createElement('span');
+    b.className = 'o1-heat'; b.dataset.heat = heat(r.p);
+    b.style.cssText = `--x:${r.x};--y:${r.y};--w:${r.w};--a:${(0.6 + (r.p / 24) * 0.35).toFixed(2)}`;
+    layer.appendChild(b); return b;
+  });
+  const cells = rooms.map((r) => {
+    const c = document.createElement('div');
+    c.className = 'o1-cell o1-focus'; c.dataset.heat = heat(r.p); c.dataset.part = 'comodo';
+    c.innerHTML = `<span class="o1-dot"></span><span class="o1-pct text-footnote-bold">${r.p}</span>`;
+    c.setAttribute('aria-label', `${r.name}, ${r.p}%`);
+    tray.appendChild(c); return c;
+  });
+
+  let idx = -1, open = false; // -1: the whole house (initial overview)
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  function zoom() {
+    const W = stage.clientWidth, H = stage.clientHeight, LW = layer.offsetWidth, LH = layer.offsetHeight;
+    const fx = idx < 0 ? .43 : rooms[idx].x, fy = idx < 0 ? .52 : rooms[idx].y;
+    const s = idx < 0 ? Math.min(W / (.76 * LW), H / (.74 * LH)) : 2.6;
+    layer.style.transform = `translate(${W / 2 - s * fx * LW}px, ${H / 2 - s * fy * LH}px) scale(${s})`;
+  }
+  function render() {
+    const r = idx < 0 ? top : rooms[idx];
+    stageWrap.classList.toggle('is-focus', idx < 0);
+    cells.forEach((c, i) => { c.classList.toggle('is-sel', i === idx); c.classList.toggle('is-focus', i === idx); });
+    blobs.forEach((b, i) => b.classList.toggle('is-on', i === idx));
+    layer.toggleAttribute('data-zoom', idx >= 0);
+    summary.querySelector('.o1-value').textContent = `${r.p}%`;
+    summary.querySelector('.o1-words').textContent = idx < 0 ? `do tempo ${r.em}, o cômodo mais quente` : `do tempo ${r.em}`;
+    summary.hidden = open; detail.hidden = !open;
+    if (open) {
+      detail.innerHTML = `<li class="o1-detail-head text-footnote-bold">Quem fica ${r.em} · ${r.p}%</li>` +
+        r.people.map(([n, t]) => `<li class="o1-person text-body-sm-medium"><span>${n}</span><span>${t}</span></li>`).join('');
+    }
+    zoom();
+  }
+  root.addEventListener('keydown', (e) => {
+    if (document.activeElement !== root) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); if (idx < rooms.length - 1) { idx++; open = false; render(); } }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); if (idx > -1) { idx--; open = false; render(); } }
+    else if (e.key === 'Enter') { e.preventDefault(); if (idx >= 0) { open = !open; render(); } }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      e.preventDefault();
+      if (open) open = false; else if (idx >= 0) idx = -1;
+      render();
+    }
+  });
+  render();
+  addEventListener('resize', zoom);
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]');
+  if (!root) return;
+  // Ranking order; x, y: room centre on the image; w: heat size; t: the title as a conclusion.
+  const rooms = [
+    { name: 'Sala', p: 24, x: .56, y: .54, w: .1, t: 'A Sala é o ponto de encontro', people: [['Marcos', '3h20'], ['Aline', '2h55'], ['Davi', '2h40'], ['Bia', '2h10'], ['Rodrigo', '1h45']] },
+    { name: 'Cozinha', p: 19, x: .625, y: .64, w: .09, t: 'A Cozinha vem logo atrás', people: [['Fernanda', '2h50'], ['Davi', '2h15'], ['Gabi', '1h50'], ['Thiago', '1h30'], ['Marcos', '1h05']] },
+    { name: 'Jardim', p: 16, x: .37, y: .62, w: .2, t: 'O Jardim é o refúgio da casa', people: [['Lucas', '2h35'], ['Camila', '2h10'], ['Bia', '1h55'], ['Rodrigo', '1h20']] },
+    { name: 'Quarto Azul', p: 14, x: .725, y: .58, w: .08, t: 'Quarto Azul: o mais dormido', people: [['Juliana', '2h05'], ['Paulo', '1h50'], ['Aline', '1h25'], ['Diego', '1h10']] },
+    { name: 'Quarto Colorido', p: 11, x: .62, y: .27, w: .1, t: 'O Colorido fica no meio', people: [['Larissa', '1h45'], ['Gabi', '1h30'], ['Thiago', '1h05'], ['Renata', '0h50']] },
+    { name: 'Quarto do Líder', p: 9, x: .49, y: .34, w: .1, t: 'O Quarto do Líder é restrito', people: [['Rodrigo', '2h40'], ['Fernanda', '0h45'], ['Davi', '0h30'], ['Marcos', '0h20']] },
+    { name: 'Academia', p: 7, x: .31, y: .40, w: .08, t: 'A Academia fica por último', people: [['Diego', '1h35'], ['Paulo', '1h10'], ['Camila', '0h55'], ['Lucas', '0h40']] },
+  ];
+  const heat = (p) => (p >= 18 ? 'alto' : p >= 11 ? 'medio' : 'baixo');
+  const max = rooms[0].p;
+  const stageWrap = root.querySelector('.o2-stage-wrap'), stage = root.querySelector('.o2-stage'), layer = root.querySelector('.o2-layer');
+  const title = root.querySelector('.o2-title'), list = root.querySelector('.o2-list');
+
+  const blobs = rooms.map((r) => {
+    const b = document.createElement('span');
+    b.className = 'o2-heat'; b.dataset.heat = heat(r.p);
+    b.style.cssText = `--x:${r.x};--y:${r.y};--w:${r.w};--a:${(0.6 + (r.p / 24) * 0.35).toFixed(2)}`;
+    layer.appendChild(b); return b;
+  });
+  const rows = rooms.map((r, i) => {
+    const li = document.createElement('li');
+    li.className = 'o2-row o2-focus'; li.dataset.heat = heat(r.p); li.dataset.part = 'linha';
+    li.innerHTML =
+      `<span class="o2-line"><span class="text-footnote-medium">${r.name}</span><span class="o2-pct text-footnote-bold">${r.p}%</span></span>` +
+      `<span class="o2-hero"><span class="o2-big">${r.p}%</span><span class="o2-rank text-footnote-medium">${i + 1}º de 7</span></span>` +
+      `<span class="o2-bar"><span class="o2-fill" style="--v:${Math.round((r.p / max) * 100)}%"></span></span>` +
+      `<ul class="o2-people" data-part="participantes">${r.people.map(([n, t]) => `<li class="o2-person text-footnote-medium"><span>${n}</span><span>${t}</span></li>`).join('')}</ul>`;
+    list.appendChild(li); return li;
+  });
+
+  let idx = -1, open = false; // -1: the whole house (initial overview)
+  function zoom() {
+    const W = stage.clientWidth, H = stage.clientHeight, LW = layer.offsetWidth, LH = layer.offsetHeight;
+    const fx = idx < 0 ? .43 : rooms[idx].x, fy = idx < 0 ? .52 : rooms[idx].y;
+    const s = idx < 0 ? W / (.62 * LW) : Math.max(3.4, (H / LH) * 1.15);
+    layer.style.transform = `translate(${W / 2 - s * fx * LW}px, ${H / 2 - s * fy * LH}px) scale(${s})`;
+  }
+  function render() {
+    stageWrap.classList.toggle('is-focus', idx < 0);
+    rows.forEach((li, i) => {
+      li.classList.toggle('is-sel', i === idx); li.classList.toggle('is-focus', i === idx);
+      li.classList.toggle('is-open', i === idx && open);
+    });
+    blobs.forEach((b, i) => b.classList.toggle('is-on', i === idx));
+    layer.toggleAttribute('data-zoom', idx >= 0);
+    title.textContent = idx < 0 ? 'A galera vive na Sala' : rooms[idx].t;
+    requestAnimationFrame(zoom);
+  }
+  root.addEventListener('keydown', (e) => {
+    if (document.activeElement !== root) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); if (idx < rooms.length - 1) { idx++; open = false; render(); } }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); if (idx > -1) { idx--; open = false; render(); } }
+    else if (e.key === 'Enter') { e.preventDefault(); if (idx >= 0) { open = !open; render(); } }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      e.preventDefault();
+      if (open) open = false; else if (idx >= 0) idx = -1;
+      render();
+    }
+  });
+  render();
+  addEventListener('resize', zoom);
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="3"]');
+  if (!art) return;
+  const card = art.querySelector('.o3-card'), map = art.querySelector('.o3-map'), win = art.querySelector('.o3-win');
+  const room = art.querySelector('.o3-room'), hours = art.querySelector('.o3-hours'), val = art.querySelector('.o3-val');
+  const avs = art.querySelector('.o3-avs'), leadN = art.querySelector('.o3-lead-n'), leadT = art.querySelector('.o3-lead-t');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  // Ordem espacial: um passeio pela casa da esquerda para a direita (jardim, quartos de cima, bloco da sala).
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .12, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .34, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .14, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .16, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .14, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .13, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .13, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o3-heat';
+    h.style.cssText = `--o3-x:${r.x * 100}%;--o3-y:${r.y * 100}%;--o3-r:${r.r * 100}%;--o3-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+
+  const winH = () => win.offsetHeight;
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2, fy = win.offsetTop + winH() / 2;
+    const t = i < 0 ? { x: .43, y: .525, z: 1 } : rooms[i];
+    map.style.setProperty('--o3-s', t.z);
+    map.style.setProperty('--o3-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o3-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    heats.forEach((h, k) => h.style.setProperty('--o3-o', i < 0 ? (.35 + rooms[k].p / 40).toFixed(2) : k === i ? '0.95' : '0.3'));
+    const r = i < 0 ? top : rooms[i];
+    room.textContent = i < 0 ? `Mais tempo na ${top.n}` : r.n;
+    hours.textContent = `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n], k) => `<span class="o3-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+    frame();
+  }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="4"]');
+  if (!art) return;
+  const card = art.querySelector('.o4-card'), map = art.querySelector('.o4-map'), win = art.querySelector('.o4-win');
+  const room = art.querySelector('.o4-room'), hours = art.querySelector('.o4-hours'), val = art.querySelector('.o4-val');
+  const avs = art.querySelector('.o4-avs'), leadN = art.querySelector('.o4-lead-n'), leadT = art.querySelector('.o4-lead-t');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  // Ordem espacial: um passeio pela casa da esquerda para a direita (jardim, quartos de cima, bloco da sala).
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .12, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .34, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .14, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .16, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .14, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .13, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .13, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o4-heat';
+    h.style.cssText = `--o4-x:${r.x * 100}%;--o4-y:${r.y * 100}%;--o4-r:${r.r * 100}%;--o4-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2, fy = win.offsetTop + win.offsetHeight / 2;
+    const t = i < 0 ? { x: .43, y: .525, z: 1 } : rooms[i];
+    map.style.setProperty('--o4-s', t.z);
+    map.style.setProperty('--o4-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o4-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    heats.forEach((h, k) => h.style.setProperty('--o4-o', i < 0 ? (.35 + rooms[k].p / 40).toFixed(2) : k === i ? '0.95' : '0.3'));
+    const r = i < 0 ? top : rooms[i];
+    room.textContent = i < 0 ? `Mais tempo na ${top.n}` : r.n;
+    hours.textContent = `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n], k) => `<span class="o4-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+    frame();
+  }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="5"]');
+  if (!art) return;
+  const card = art.querySelector('.o5-card'), map = art.querySelector('.o5-map'), win = art.querySelector('.o5-win');
+  const room = art.querySelector('.o5-room'), hours = art.querySelector('.o5-hours'), val = art.querySelector('.o5-val');
+  const avs = art.querySelector('.o5-avs'), leadN = art.querySelector('.o5-lead-n'), leadT = art.querySelector('.o5-lead-t');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  // Ordem espacial: um passeio pela casa da esquerda para a direita (jardim, quartos de cima, bloco da sala).
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .12, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .34, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .14, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .16, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .14, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .13, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .13, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o5-heat';
+    h.style.cssText = `--o5-x:${r.x * 100}%;--o5-y:${r.y * 100}%;--o5-r:${r.r * 100}%;--o5-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2, fy = win.offsetTop + win.offsetHeight / 2;
+    // Visão geral: a casa inteira cabe na janela mais baixa.
+    const t = i < 0 ? { x: .5, y: .5, z: win.offsetHeight / H } : rooms[i];
+    map.style.setProperty('--o5-s', t.z);
+    map.style.setProperty('--o5-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o5-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    heats.forEach((h, k) => h.style.setProperty('--o5-o', i < 0 ? (.35 + rooms[k].p / 40).toFixed(2) : k === i ? '0.95' : '0.3'));
+    const r = i < 0 ? top : rooms[i];
+    room.textContent = i < 0 ? `Mais tempo na ${top.n}` : r.n;
+    hours.textContent = `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n]) => `<span class="o5-av text-body-md-bold">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+    frame();
+  }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="6"]');
+  if (!art) return;
+  const card = art.querySelector('.o6-card'), map = art.querySelector('.o6-map'), win = art.querySelector('.o6-win');
+  const room = art.querySelector('.o6-room'), hours = art.querySelector('.o6-hours'), val = art.querySelector('.o6-val');
+  const avs = art.querySelector('.o6-avs'), leadN = art.querySelector('.o6-lead-n'), leadT = art.querySelector('.o6-lead-t');
+  const prev = art.querySelector('.o6-arrow[data-dir="prev"]'), next = art.querySelector('.o6-arrow[data-dir="next"]');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  // Ordem espacial: um passeio pela casa da esquerda para a direita. Zoom ~1,35x mais perto que a opção 3.
+  const ZOOM = 1.35;
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .1, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .26, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .11, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .12, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .11, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .1, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .1, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o6-heat';
+    h.style.cssText = `--o6-x:${r.x * 100}%;--o6-y:${r.y * 100}%;--o6-r:${r.r * 100}%;--o6-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2, fy = win.offsetTop + win.offsetHeight / 2;
+    const t = i < 0 ? { x: .43, y: .525, z: 1 } : { ...rooms[i], z: rooms[i].z * ZOOM };
+    map.style.setProperty('--o6-s', t.z);
+    map.style.setProperty('--o6-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o6-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    heats.forEach((h, k) => h.style.setProperty('--o6-o', i < 0 ? (.15 + rooms[k].p / 80).toFixed(2) : k === i ? '0.7' : '0.1'));
+    const r = i < 0 ? top : rooms[i];
+    room.textContent = r.n;
+    hours.textContent = i < 0 ? `Mais tempo · ${r.h}h` : `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n], k) => `<span class="o6-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+    // Visão geral e primeiro cômodo: ← sem efeito; último cômodo: → sem efeito
+    prev.classList.toggle('is-end', i <= 0);
+    next.classList.toggle('is-end', i >= rooms.length - 1);
+    frame();
+  }
+  function nudge(el) { el.classList.remove('is-nudge'); void el.offsetWidth; el.classList.add('is-nudge'); }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); nudge(next); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); nudge(prev); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="7"]');
+  if (!art) return;
+  const card = art.querySelector('.o7-card'), map = art.querySelector('.o7-map'), win = art.querySelector('.o7-win');
+  const room = art.querySelector('.o7-room'), hours = art.querySelector('.o7-hours'), val = art.querySelector('.o7-val');
+  const avs = art.querySelector('.o7-avs'), leadN = art.querySelector('.o7-lead-n'), leadT = art.querySelector('.o7-lead-t');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  // Ordem espacial: um passeio pela casa da esquerda para a direita (jardim, quartos de cima, bloco da sala).
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .12, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .34, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .14, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .16, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .14, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .13, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .13, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o7-heat';
+    h.style.cssText = `--o7-x:${r.x * 100}%;--o7-y:${r.y * 100}%;--o7-r:${r.r * 100}%;--o7-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2, fy = win.offsetTop + win.offsetHeight / 2;
+    const t = i < 0 ? { x: .43, y: .525, z: 1 } : rooms[i];
+    map.style.setProperty('--o7-s', t.z);
+    map.style.setProperty('--o7-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o7-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    heats.forEach((h, k) => h.style.setProperty('--o7-o', i < 0 ? (.35 + rooms[k].p / 40).toFixed(2) : k === i ? '0.95' : '0.3'));
+    const r = i < 0 ? top : rooms[i];
+    room.textContent = i < 0 ? `Mais tempo na ${top.n}` : r.n;
+    hours.textContent = `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n], k) => `<span class="o7-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+    frame();
+  }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="8"]');
+  if (!art) return;
+  const card = art.querySelector('.o8-card'), map = art.querySelector('.o8-map'), win = art.querySelector('.o8-win');
+  const invite = art.querySelector('.o8-invite'), roomState = art.querySelector('.o8-room-state');
+  const room = art.querySelector('.o8-room'), hours = art.querySelector('.o8-hours'), val = art.querySelector('.o8-val');
+  const avs = art.querySelector('.o8-avs'), leadN = art.querySelector('.o8-lead-n'), leadT = art.querySelector('.o8-lead-t');
+  const prev = art.querySelector('.o8-arrow[data-dir="prev"]'), next = art.querySelector('.o8-arrow[data-dir="next"]');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  const ZOOM = 1.35;
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .1, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .26, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .11, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .12, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .11, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .1, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .1, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o8-heat';
+    h.style.cssText = `--o8-x:${r.x * 100}%;--o8-y:${r.y * 100}%;--o8-r:${r.r * 100}%;--o8-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: estado vazio, nenhum cômodo escolhido
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    // Vazio: a casa inteira, um pouco menor, cabe entre as setas; cômodo: centrada na janela acima do número
+    const fx = card.clientWidth / 2;
+    const fy = i < 0 ? card.clientHeight * 0.4 : win.offsetTop + win.offsetHeight / 2;
+    const t = i < 0 ? { x: .43, y: .5, z: .82 } : { ...rooms[i], z: rooms[i].z * ZOOM };
+    map.style.setProperty('--o8-s', t.z);
+    map.style.setProperty('--o8-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o8-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    const empty = i < 0;
+    card.classList.toggle('is-empty', empty);
+    invite.classList.toggle('is-off', !empty);
+    roomState.classList.toggle('is-off', empty);
+    // Vazio: nenhum calor aceso. Cômodo: só ele acende de verdade.
+    heats.forEach((h, k) => h.style.setProperty('--o8-o', empty ? '0' : k === i ? '0.7' : '0.1'));
+    if (!empty) {
+      const r = rooms[i];
+      room.textContent = r.n;
+      hours.textContent = `${r.h}h na semana`;
+      val.innerHTML = `${r.p}<small>%</small>`;
+      avs.innerHTML = r.who.map(([n], k) => `<span class="o8-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+      leadN.textContent = r.who[0][0];
+      leadT.textContent = `lidera · ${r.who[0][1]}`;
+    }
+    // Vazio: ← e → entram no primeiro cômodo, as duas setas acesas. Primeiro: ← sem efeito; último: → sem efeito.
+    prev.classList.toggle('is-end', i === 0);
+    next.classList.toggle('is-end', i >= rooms.length - 1);
+    frame();
+  }
+  function nudge(el) { el.classList.remove('is-nudge'); void el.offsetWidth; el.classList.add('is-nudge'); }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); nudge(next); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i < 0) { i = 0; render(); nudge(prev); }
+      else if (i > 0) { i -= 1; render(); nudge(prev); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // vazio: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="9"]');
+  if (!art) return;
+  const card = art.querySelector('.o9-card'), map = art.querySelector('.o9-map'), win = art.querySelector('.o9-win');
+  const invite = art.querySelector('.o9-invite'), roomState = art.querySelector('.o9-room-state');
+  const room = art.querySelector('.o9-room'), hours = art.querySelector('.o9-hours'), val = art.querySelector('.o9-val');
+  const avs = art.querySelector('.o9-avs'), leadN = art.querySelector('.o9-lead-n'), leadT = art.querySelector('.o9-lead-t');
+  const prev = art.querySelector('.o9-arrow[data-dir="prev"]'), next = art.querySelector('.o9-arrow[data-dir="next"]');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  const ZOOM = 1.35;
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .1, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .26, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .11, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .12, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .11, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .1, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .1, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o9-heat';
+    h.style.cssText = `--o9-x:${r.x * 100}%;--o9-y:${r.y * 100}%;--o9-r:${r.r * 100}%;--o9-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: estado vazio (visão geral do calor), nenhum cômodo escolhido
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    // Vazio: a casa inteira, um pouco menor, cabe entre as setas; cômodo: centrada na janela acima do número
+    const fx = card.clientWidth / 2;
+    const fy = i < 0 ? card.clientHeight * 0.4 : win.offsetTop + win.offsetHeight / 2;
+    const t = i < 0 ? { x: .43, y: .5, z: .82 } : { ...rooms[i], z: rooms[i].z * ZOOM };
+    map.style.setProperty('--o9-s', t.z);
+    map.style.setProperty('--o9-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o9-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    const empty = i < 0;
+    card.classList.toggle('is-empty', empty);
+    invite.classList.toggle('is-off', !empty);
+    roomState.classList.toggle('is-off', empty);
+    // Visão geral: calor discreto em todos, proporcional à presença. Cômodo: só ele acende de verdade.
+    heats.forEach((h, k) => h.style.setProperty('--o9-o', empty ? (.25 + rooms[k].p / 60).toFixed(2) : k === i ? '0.7' : '0.1'));
+    if (!empty) {
+      const r = rooms[i];
+      room.textContent = r.n;
+      hours.textContent = `${r.h}h na semana`;
+      val.innerHTML = `${r.p}<small>%</small>`;
+      avs.innerHTML = r.who.map(([n], k) => `<span class="o9-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+      leadN.textContent = r.who[0][0];
+      leadT.textContent = `lidera · ${r.who[0][1]}`;
+    }
+    // Vazio: ← e → entram no primeiro cômodo, as duas setas acesas. Primeiro: ← sem efeito; último: → sem efeito.
+    prev.classList.toggle('is-end', i === 0);
+    next.classList.toggle('is-end', i >= rooms.length - 1);
+    frame();
+  }
+  function nudge(el) { el.classList.remove('is-nudge'); void el.offsetWidth; el.classList.add('is-nudge'); }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); nudge(next); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i < 0) { i = 0; render(); nudge(prev); }
+      else if (i > 0) { i -= 1; render(); nudge(prev); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // vazio: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="10"]');
+  if (!art) return;
+  const card = art.querySelector('.o10-card'), map = art.querySelector('.o10-map'), win = art.querySelector('.o10-win');
+  const info = art.querySelector('.o10-info'), intro = art.querySelector('.o10-intro');
+  const room = art.querySelector('.o10-room'), hours = art.querySelector('.o10-hours'), val = art.querySelector('.o10-val');
+  const avs = art.querySelector('.o10-avs'), leadN = art.querySelector('.o10-lead-n'), leadT = art.querySelector('.o10-lead-t');
+  const prev = art.querySelector('.o10-arrow[data-dir="prev"]'), next = art.querySelector('.o10-arrow[data-dir="next"]');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  const ZOOM = 1.35;
+  // Ordem espacial: o passeio pela casa da esquerda para a direita; o número do marcador é a posição nessa ordem.
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .1, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .26, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .11, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .12, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .11, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .1, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .1, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o10-heat';
+    h.style.cssText = `--o10-x:${r.x * 100}%;--o10-y:${r.y * 100}%;--o10-r:${r.r * 100}%;--o10-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  rooms.forEach((r, k) => {
+    const pin = document.createElement('span');
+    pin.className = `o10-pin ${k === 0 ? 'is-start text-body-sm-extra-bold' : 'text-caption-bold'}`;
+    pin.style.cssText = `--o10-x:${r.x * 100}%;--o10-y:${r.y * 100}%`;
+    pin.textContent = k + 1;
+    map.appendChild(pin);
+  });
+  let i = -1; // -1: estado vazio (nenhum cômodo escolhido)
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2;
+    // Vazio: a casa ocupa da janela até o topo da faixa curta; com cômodo, centra na janela.
+    const bottom = i < 0 ? info.offsetTop + intro.offsetTop : win.offsetTop + win.offsetHeight;
+    const fy = (win.offsetTop + bottom) / 2;
+    const t = i < 0 ? { x: .5, y: .5, z: .86 } : { ...rooms[i], z: rooms[i].z * ZOOM };
+    map.style.setProperty('--o10-s', t.z);
+    map.style.setProperty('--o10-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o10-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    card.classList.toggle('is-empty', i < 0);
+    heats.forEach((h, k) => h.style.setProperty('--o10-o', i < 0 ? (.1 + rooms[k].p / 100).toFixed(2) : k === i ? '0.7' : '0.1'));
+    if (i >= 0) {
+      const r = rooms[i];
+      room.textContent = r.n;
+      hours.textContent = `${r.h}h na semana`;
+      val.innerHTML = `${r.p}<small>%</small>`;
+      avs.innerHTML = r.who.map(([n], k) => `<span class="o10-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+      leadN.textContent = r.who[0][0];
+      leadT.textContent = `lidera · ${r.who[0][1]}`;
+    }
+    // Vazio e primeiro cômodo: ← sem efeito; último: → sem efeito
+    prev.classList.toggle('is-end', i <= 0);
+    next.classList.toggle('is-end', i >= rooms.length - 1);
+    frame();
+  }
+  function nudge(el) { el.classList.remove('is-nudge'); void el.offsetWidth; el.classList.add('is-nudge'); }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); nudge(next); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); nudge(prev); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // vazio: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  render();
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="11"]');
+  if (!art) return;
+  const card = art.querySelector('.o11-card'), map = art.querySelector('.o11-map'), win = art.querySelector('.o11-win');
+  const info = art.querySelector('.o11-info'), intro = art.querySelector('.o11-intro');
+  const room = art.querySelector('.o11-room'), hours = art.querySelector('.o11-hours'), val = art.querySelector('.o11-val');
+  const avs = art.querySelector('.o11-avs'), leadN = art.querySelector('.o11-lead-n'), leadT = art.querySelector('.o11-lead-t');
+  const prev = art.querySelector('.o11-arrow[data-dir="prev"]'), next = art.querySelector('.o11-arrow[data-dir="next"]');
+  const hot = (p) => p >= 20 ? 'var(--color-semantic-functional-status-live)'
+    : p >= 15 ? 'var(--color-semantic-theme-tarde-dark)'
+    : p >= 10 ? 'var(--color-semantic-functional-status-warning)'
+    : 'var(--color-semantic-theme-tarde-light)';
+  const ZOOM = 1.35;
+  // Ordem espacial: o passeio pela casa da esquerda para a direita; o número do marcador é a posição nessa ordem.
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .1, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .26, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .11, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .12, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .11, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .1, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .1, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o11-heat';
+    h.style.cssText = `--o11-x:${r.x * 100}%;--o11-y:${r.y * 100}%;--o11-r:${r.r * 100}%;--o11-c:${hot(r.p)}`;
+    map.appendChild(h);
+    return h;
+  });
+  // Pista do estado vazio: o cômodo com mais tempo pulsa
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const pulse = document.createElement('i');
+  pulse.className = 'o11-pulse';
+  pulse.style.cssText = `--o11-x:${top.x * 100}%;--o11-y:${top.y * 100}%`;
+  map.appendChild(pulse);
+  let i = -1; // -1: estado vazio (nenhum cômodo escolhido)
+
+  function frame() {
+    const W = map.offsetWidth, H = map.offsetHeight;
+    const fx = card.clientWidth / 2;
+    // Vazio: a casa ocupa da janela até o topo da faixa curta; com cômodo, centra na janela.
+    const bottom = i < 0 ? info.offsetTop + intro.offsetTop : win.offsetTop + win.offsetHeight;
+    const fy = (win.offsetTop + bottom) / 2;
+    const t = i < 0 ? { x: .5, y: .5, z: .86 } : { ...rooms[i], z: rooms[i].z * ZOOM };
+    map.style.setProperty('--o11-s', t.z);
+    map.style.setProperty('--o11-tx', `${fx - t.z * t.x * W}px`);
+    map.style.setProperty('--o11-ty', `${fy - t.z * t.y * H}px`);
+  }
+  function render() {
+    card.classList.toggle('is-empty', i < 0);
+    heats.forEach((h, k) => h.style.setProperty('--o11-o', i < 0 ? (rooms[k] === top ? '0.6' : (.05 + rooms[k].p / 120).toFixed(2)) : k === i ? '0.7' : '0.1'));
+    if (i >= 0) {
+      const r = rooms[i];
+      room.textContent = r.n;
+      hours.textContent = `${r.h}h na semana`;
+      val.innerHTML = `${r.p}<small>%</small>`;
+      avs.innerHTML = r.who.map(([n], k) => `<span class="o11-av text-body-sm-bold" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+      leadN.textContent = r.who[0][0];
+      leadT.textContent = `lidera · ${r.who[0][1]}`;
+    }
+    // Vazio e primeiro cômodo: ← sem efeito; último: → sem efeito
+    prev.classList.toggle('is-end', i <= 0);
+    next.classList.toggle('is-end', i >= rooms.length - 1);
+    frame();
+  }
+  function nudge(el) { el.classList.remove('is-nudge'); void el.offsetWidth; el.classList.add('is-nudge'); }
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < rooms.length - 1) { i += 1; render(); nudge(next); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); nudge(prev); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // vazio: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  render();
+  map.style.transition = 'none';
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { map.style.transition = ''; }));
+})();
+</script>
+<script>
+(() => {
+  const art = document.querySelector('[data-option="12"]');
+  if (!art) return;
+  const map = art.querySelector('.o12-map');
+  const room = art.querySelector('.o12-room'), hours = art.querySelector('.o12-hours'), val = art.querySelector('.o12-val');
+  const avs = art.querySelector('.o12-avs'), leadN = art.querySelector('.o12-lead-n'), leadT = art.querySelector('.o12-lead-t');
+  const tier = (p) => p >= 20 ? 1 : p >= 15 ? 2 : p >= 10 ? 3 : 4;
+  // Ordem espacial: um passeio pela casa da esquerda para a direita (jardim, quartos de cima, bloco da sala).
+  const rooms = [
+    { n: 'Academia', h: 25, p: 7, x: .305, y: .393, z: 3.2, r: .12, who: [['Caio', '1h50'], ['Rafa', '1h20'], ['Bia', '0h55'], ['Gil', '0h40']] },
+    { n: 'Jardim', h: 56, p: 16, x: .35, y: .62, z: 1.7, r: .34, who: [['Aline', '4h10'], ['Davi', '3h45'], ['Thaís', '3h05'], ['Pedro', '2h30'], ['Bia', '2h10']] },
+    { n: 'Quarto do Líder', h: 31, p: 9, x: .4925, y: .349, z: 2.8, r: .14, who: [['Fernanda', '4h30'], ['Juliana', '2h15'], ['Marcos', '1h05'], ['Caio', '0h40']] },
+    { n: 'Quarto Colorido', h: 38, p: 11, x: .615, y: .269, z: 2.8, r: .16, who: [['Juliana', '3h40'], ['Lucas', '3h10'], ['Thaís', '2h20'], ['Rafa', '1h50']] },
+    { n: 'Sala', h: 84, p: 24, x: .565, y: .542, z: 3, r: .14, who: [['Marcos', '3h20'], ['Aline', '3h05'], ['Davi', '2h50'], ['Fernanda', '2h40'], ['Gil', '2h15']] },
+    { n: 'Cozinha', h: 66, p: 19, x: .62, y: .64, z: 3, r: .13, who: [['Gil', '4h05'], ['Bia', '3h30'], ['Pedro', '3h10'], ['Lucas', '2h45'], ['Aline', '2h00']] },
+    { n: 'Quarto Azul', h: 49, p: 14, x: .73, y: .575, z: 3, r: .13, who: [['Pedro', '4h20'], ['Davi', '3h55'], ['Marcos', '3h30'], ['Lucas', '2h40'], ['Caio', '2h05']] },
+  ];
+  const last = rooms.length - 1;
+  const top = rooms.reduce((a, b) => (b.p > a.p ? b : a));
+  const heats = rooms.map((r) => {
+    const h = document.createElement('i');
+    h.className = 'o12-heat';
+    h.dataset.part = 'calor';
+    h.dataset.tier = tier(r.p);
+    h.style.cssText = `--hx:${r.x * 100}%;--hy:${r.y * 100}%;--hr:${r.r * 100}%;--hp:${r.p}`;
+    map.appendChild(h);
+    return h;
+  });
+  let i = -1; // -1: visão geral
+  const stateOf = (k) => k < 0 ? 'visao-geral' : k === 0 ? 'primeiro' : k === last ? 'ultimo' : 'selecionado';
+  function render() {
+    art.dataset.state = stateOf(i);
+    heats.forEach((h, k) => h.toggleAttribute('data-on', k === i));
+    const r = i < 0 ? top : rooms[i];
+    if (i >= 0) { map.style.setProperty('--rz', r.z); map.style.setProperty('--rx', r.x); map.style.setProperty('--ry', r.y); }
+    room.textContent = i < 0 ? `Mais tempo na ${top.n}` : r.n;
+    hours.textContent = `${r.h}h na semana`;
+    val.innerHTML = `${r.p}<small>%</small>`;
+    avs.innerHTML = r.who.map(([n], k) => `<span class="o12-av" style="z-index:${r.who.length - k}">${n[0]}</span>`).join('');
+    leadN.textContent = r.who[0][0];
+    leadT.textContent = `lidera · ${r.who[0][1]}`;
+  }
+  // O simulador do palco troca o estado pelo atributo: o cômodo acompanha.
+  new MutationObserver(() => {
+    const s = art.dataset.state;
+    if (s === stateOf(i)) return;
+    i = s === 'visao-geral' ? -1 : s === 'primeiro' ? 0 : s === 'ultimo' ? last : (i > 0 && i < last ? i : 4);
+    render();
+  }).observe(art, { attributes: true, attributeFilter: ['data-state'] });
+  art.addEventListener('keydown', (e) => {
+    if (e.target !== art) return;
+    const k = e.key;
+    if (k === 'ArrowRight') {
+      if (i < last) { i += 1; render(); }
+      e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      if (i > 0) { i -= 1; render(); }
+      e.preventDefault();
+    } else if (k === 'Enter') {
+      if (i < 0) { i = 0; render(); }
+      e.preventDefault();
+    } else if (k === 'Escape' || k === 'Backspace') {
+      if (i > 0) i = 0;
+      else if (i === 0) i = -1;
+      else return; // visão geral: Voltar sai do card
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

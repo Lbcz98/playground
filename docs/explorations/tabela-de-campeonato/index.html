@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Tabela de campeonato</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --title-size: var(--typography-font-size-2xl);
+  --title-line: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --overline-size: var(--typography-font-size-sm);
+  --overline-gap: var(--dimension-spacing-core-3xs);
+  --cols-gap: var(--dimension-spacing-core-3xs);
+  --row-gap: var(--dimension-spacing-core-3xs);
+  --rest-gap: var(--dimension-spacing-core-2xs);
+  --line-gap: var(--dimension-spacing-core-2xs);
+  --stat-col: var(--dimension-size-semantic-table-stat-column);
+  --stat-gap: var(--dimension-spacing-core-2xs);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --row-pad: var(--dimension-spacing-core-2xs);
+  --row-radius: var(--dimension-radius-core-lg);
+  --outline-w: var(--dimension-border-width-semantic-button);
+  --lead-size: var(--typography-font-size-base);
+  --name-size: var(--typography-font-size-md);
+  --stat-size: var(--typography-font-size-md);
+  --pos-size: var(--typography-font-size-sm);
+  --crest: var(--dimension-size-semantic-icon-sm);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --detail-gap: var(--dimension-spacing-core-2xs);
+  --detail-inner: var(--dimension-spacing-core-2xs);
+  --trio-gap: var(--dimension-spacing-core-2xs);
+  --detail-size: var(--typography-font-size-md);
+  --val-size: var(--typography-font-size-base);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: the kit's Content Card (radius, inset and width are tokens; height hugs the content). */
+[data-option="1"] .card { display: flex; flex-direction: column; gap: var(--group-gap); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); background: var(--bg); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+
+/* Group 1: the conclusion. */
+[data-option="1"] .head { display: flex; flex-direction: column; gap: var(--overline-gap); }
+[data-option="1"] .overline { display: block; margin: 0; font-size: var(--overline-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .title { display: block; margin: 0; font-size: var(--title-size); line-height: var(--title-line); color: var(--title-color); text-wrap: balance; }
+
+/* Group 2: the table, the proof. */
+[data-option="1"] .table { display: flex; flex-direction: column; gap: var(--cols-gap); }
+[data-option="1"] .cols { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .cols .round { display: block; }
+[data-option="1"] .stats { display: flex; flex: none; align-items: center; gap: var(--stat-gap); }
+[data-option="1"] .stat { display: block; width: var(--stat-col); text-align: center; }
+[data-option="1"] .rows { display: flex; flex-direction: column; gap: var(--row-gap); }
+[data-option="1"] .rest { display: block; margin: var(--rest-gap) 0 0; color: var(--color-semantic-functional-text-muted); }
+
+/* A row: a 1px light outline at rest (the remote reaches it), the kit's ring when focused. The padding is the room the ring needs. */
+[data-option="1"] .row { position: relative; display: flex; flex-direction: column; margin-inline: calc(-1 * var(--row-pad)); padding: var(--row-pad); border-radius: var(--row-radius); transition-property: background-color; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="1"] .row::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--outline-w); background: var(--gradient-semantic-border-default); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="1"] .row::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="1"][data-state="foco"] .row[data-focus]::after,
+[data-option="1"][data-state="aberta"] .row[data-focus]::after { opacity: var(--opacity-semantic-visible); }
+[data-option="1"][data-state="repouso"] .row::after { opacity: var(--opacity-semantic-hidden); }
+[data-option="1"][data-state="aberta"] .row[data-focus] { background: var(--color-semantic-functional-background-tint); }
+
+[data-option="1"] .line { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); height: var(--row-h); }
+[data-option="1"] .who { display: flex; align-items: center; gap: var(--line-gap); min-width: 0; }
+[data-option="1"] .pos { display: block; font-size: var(--pos-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .crest { display: flex; flex: none; align-items: center; justify-content: center; width: var(--crest); height: var(--crest); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); font-size: var(--pos-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--name-size); color: var(--color-semantic-functional-text-muted); }
+/* The favourite's heart, drawn in CSS from two rounded halves (a shape, not an icon file). */
+[data-option="1"] .heart { position: relative; display: block; flex: none; width: 1em; height: 1em; font-size: var(--name-size); }
+[data-option="1"] .heart::before,
+[data-option="1"] .heart::after { content: ''; position: absolute; top: 0.1em; display: block; width: 0.5em; height: 0.8em; border-radius: 0.5em 0.5em 0 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .heart::before { left: 0.5em; transform: rotate(-45deg); transform-origin: 0 100%; }
+[data-option="1"] .heart::after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+[data-option="1"] .row .stat { font-size: var(--stat-size); color: var(--color-semantic-functional-text-muted); }
+/* The top of the table is the first plane; the rest stays behind it. */
+[data-option="1"] .row[data-lead] .name { font-size: var(--lead-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .row[data-lead] .stat { color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .row[data-focus] .name,
+[data-option="1"] .row[data-focus] .stat { color: var(--color-semantic-functional-text-primary); }
+
+/* The open row: the detail takes its place under the line and pushes the rows below. */
+[data-option="1"] .detail { display: none; }
+[data-option="1"][data-state="aberta"] .row[data-focus] .detail { display: flex; flex-direction: column; gap: var(--detail-inner); margin-top: var(--detail-gap); animation: o1-in var(--dur) var(--ease); }
+[data-option="1"] .compare { display: block; margin: 0; font-size: var(--detail-size); color: var(--color-semantic-functional-text-primary); text-wrap: pretty; }
+[data-option="1"] .trio { display: flex; gap: var(--trio-gap); }
+[data-option="1"] .cell { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+[data-option="1"] .cell .lbl { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .cell .val { display: block; font-size: var(--val-size); color: var(--color-semantic-functional-text-primary); }
+
+@keyframes o1-in { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"] .row { transition-property: none; }
+  [data-option="1"][data-state="aberta"] .row[data-focus] .detail { animation: none; }
+}
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --gap-groups: var(--dimension-spacing-core-sm);
+  --head-size: var(--typography-font-size-sm);
+  --head-gap: var(--dimension-spacing-core-2xs);
+  --sum-size: var(--typography-font-size-base);
+  --rail-gap: var(--dimension-spacing-core-2xs);
+  --item-radius: var(--dimension-radius-core-lg);
+  --item-pad: var(--dimension-spacing-core-xs);
+  --item-gap: var(--dimension-spacing-core-3xs);
+  --crest: var(--dimension-size-semantic-icon-xl);
+  --pts-size: var(--typography-font-size-3xl);
+  --code-size: var(--typography-font-size-md);
+  --sel-bg: var(--color-semantic-functional-text-primary);
+  --sel-fg: var(--color-semantic-functional-background-primary);
+  --outline-w: var(--dimension-border-width-semantic-button);
+  --list-head-gap: var(--dimension-spacing-core-2xs);
+  --row-gap: var(--dimension-spacing-semantic-table-row-gap);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --row-size: var(--typography-font-size-md);
+  --crest-sm: var(--dimension-size-semantic-icon-md);
+  --heart-color: var(--color-semantic-functional-status-error);
+  --heart-size: var(--dimension-size-semantic-icon-sm);
+  --d-gap: var(--dimension-spacing-core-2xs);
+  --d-name-size: var(--typography-font-size-base);
+  --d-stat-size: var(--typography-font-size-2xl);
+  --d-label-size: var(--typography-font-size-sm);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Content Card: kit width, radius and inset; height hugs the content. */
+[data-option="2"] .o2-card { width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--gap-groups); padding: var(--inset); border-radius: var(--radius); background: var(--bg); color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+
+/* Group 1: header + summary (one subject, tight gap). */
+[data-option="2"] .o2-head { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-over { display: flex; align-items: center; gap: var(--head-gap); margin: 0; color: var(--color-semantic-functional-text-muted); font-size: var(--head-size); }
+[data-option="2"] .o2-dot { display: block; width: var(--dimension-spacing-core-3xs); height: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-sum { margin: 0; color: var(--color-semantic-functional-text-muted); font-size: var(--sum-size); text-wrap: balance; }
+[data-option="2"] .o2-sum strong { color: var(--color-semantic-functional-text-primary); font-weight: var(--typography-font-weight-bold); }
+
+/* Group 2: the podium rail, three equal pieces. */
+[data-option="2"] .o2-rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--rail-gap); }
+[data-option="2"] .o2-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--item-gap); padding: var(--item-pad); border-radius: var(--item-radius); color: var(--color-semantic-functional-text-primary); transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease); }
+/* Resting outline: says "the remote reaches me". */
+[data-option="2"] .o2-item::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--outline-w); background: var(--gradient-semantic-border-default); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; transition: opacity var(--dur) var(--ease); }
+/* Focus ring: the kit's, inside the item. */
+[data-option="2"] .o2-item::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition: opacity var(--dur) var(--ease); }
+/* Selected: the only inverted piece. */
+[data-option="2"] .o2-item[aria-selected="true"] { background: var(--sel-bg); color: var(--sel-fg); }
+[data-option="2"] .o2-item[aria-selected="true"]::before { opacity: var(--opacity-semantic-hidden); }
+[data-option="2"][data-state="foco"] .o2-item[aria-selected="true"]::after,
+[data-option="2"][data-state="aberto"] .o2-item[aria-selected="true"]::after { opacity: var(--opacity-semantic-visible); }
+[data-option="2"] .o2-crest { display: block; width: var(--crest); height: var(--crest); border-radius: var(--dimension-radius-core-full); background: currentColor; opacity: var(--opacity-semantic-content-muted); }
+[data-option="2"] .o2-id { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-3xs); font-size: var(--code-size); }
+[data-option="2"] .o2-pos { display: block; opacity: var(--opacity-semantic-text-secondary); }
+[data-option="2"] .o2-pts { display: block; font-size: var(--pts-size); }
+
+/* Group 3: one zone, two layers (the rest of the table, or the open detail). */
+[data-option="2"] .o2-zone { display: grid; }
+[data-option="2"] .o2-rest, [data-option="2"] .o2-detail { grid-area: 1 / 1; transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease); }
+[data-option="2"] .o2-detail { display: flex; flex-direction: column; gap: var(--d-gap); opacity: var(--opacity-semantic-hidden); visibility: hidden; }
+[data-option="2"][data-state="aberto"] .o2-detail { opacity: var(--opacity-semantic-visible); visibility: visible; }
+[data-option="2"][data-state="aberto"] .o2-rest { opacity: var(--opacity-semantic-hidden); visibility: hidden; }
+
+[data-option="2"] .o2-rest { display: flex; flex-direction: column; gap: var(--list-head-gap); }
+[data-option="2"] .o2-cols { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-rows { display: flex; flex-direction: column; gap: var(--row-gap); }
+[data-option="2"] .o2-row { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); height: var(--row-h); font-size: var(--row-size); }
+[data-option="2"] .o2-who { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); min-width: 0; }
+[data-option="2"] .o2-row .o2-rank { display: block; width: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); font-size: var(--head-size); }
+[data-option="2"] .o2-row .o2-crest { width: var(--crest-sm); height: var(--crest-sm); flex: none; }
+[data-option="2"] .o2-heart { display: block; width: var(--heart-size); height: var(--heart-size); flex: none; background: var(--heart-color); mask: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAGUUlEQVR4nOydW6hVRRjH/0eLsIukZWoPVlghYUH0onSOkrcMUksLy7ConiqifCqxKA4VPZUQ5ls9hGlUSFR0MSMrqRcjxHxIoowoKzJLsyud/v/WHNDDWmuvy8yatc/+fvAx5+x12TPft+ayZr759hgYURkDIypmgMiYASJjBoiMGSAyZoDImAEiYwaIjBkgMmaAyJgBImMGiMwJCMzQ0NA0JpNHyF+UnykHKQf6+vo+QgSYt9lMplImODmR8gPlG5e375m3rxGQPniGhTqTySrKdZSBgpcdpWynvEV5NVSh3cNwDWUhZR7l5IKXfkB5gbKZeTsIj3gzAAu3hMm9SApWlx2Ux1nYN+EB5u1qJvdR+lGfdyhPMG9vwAO1DcDCnc3kacoy+GcX5THKVhZ4qMyFzJf6txWUtZRL4Z+XKXczX9+hBpUN4Ap4D2WQcirCohpxAwt7oMjJzJv6mZfg54nP4zBlHWUD8/YvKlDJACyg2s6tlEVoDnWON7Kg7+adxLwtYPI8ZRKaQ03lCubtKEpSehjKAqpgO9Gs8sVZlG38/odd7RuZr7GUR5B05E0qXyym7HS6KUWpGsAvmI5ktHIO4vIsn7bbjv2AedvCZCXisp8yn3n7ougFhWsACziRyfuIr3xxK/Ozdvgf/v0A4itfSDc7mJ/Ti15QuAbwpuoI56Bd6F1DL5Nb0C7epiwuMnIrZADXtq6DUYaHaIDBTid1NACVrw7Gy0tHD7KIRtiWd0KuAah8Hf+ccj6MKkh3M/Kaok6dsNpYU351LqRcm3dCpxrwGZOLYNRhD2vAxVkHM2uAm1wz5ddnJnV5VdbBvCboFhi+uDnrQGYTRKtpwaTwC4WRixadpqYdSK0BVL7aLFO+P6ZQpzPSDmQ1QVfA8E2qTrMMEHoevRdJncbJWpS3sb9/pqd9mGWAKTB8MzntwywDhF5i7EVSdZplAO/uKgbGpn2Y1QkfhuGbVJ1mGeAXGL45lPZhlgH2w/DNV2kfZhngUxi+SdVpVif8CQzfpOo0dbTDeYvTmPyExFvYqM/flImckDsy8kBqE8QT1WPbOrA/XktTvshbD9gMwxeZusxbDxiHpBkaB6MOevInsQb8kXYwswbwgt+ZbIBRl6eylC86LcqPRzJ+nQCjCj9Szs3zms51S+GFvyLZ4GBU4/5OLutFPON0zh6Yh0RZ9lJmdvIP7egd7W5wE2x+qAzS1SpvzrmCNUE1QO7pZ8DIQyPHOVT+3iInF94f4G6ofbXfwshCupldVPmi9MKL22urfbPTYByL9jYPlN3jXHqPmPsC1YQvYQyzD8mTX3qDeaVYEfwiVbVZSHr6Xuf/ptnppDS11n7dXihtXboEvcluylwq/xAqUitaivtixYP4GL2HyjxQR/nCi/eDm7jT/tyiwTm6HQ1CrnTzZbXwEi/IZUQRSHphDUFlXOhD+cJbwCZm6E8mSymvYPSisi11ZfWC14hZzNg/TJZTXsToYxNluSujN7yHLHNRQ7Rr/RmMHlSW1VUjouQRJGacJqEot/PPjeh+1qssZeMVFSVo0D5m+k4mj6J7GWQZ1iAgjTjhcpiqUGZPortYQ+WvR2Aa84KmEe5Assbcds9rNTV3UfmNNJ+NKoNG0MLOc2ivEaR8dbab0BCNK4JGuB5JeJm2BY3V8FKrWI0OoaM8iTSCIiyqoG1xfZTr4DJfoSjLEK0poBHmM3mdchLioimFJVT+dkQgaltMI2jyTk/dKYjDb5QFVH602dzonSGNcBkThaIcj2bRNLKUvwsRacVohEbQgo6M0JTHRSnPhZC0ZjhII1zA5EMk8UFDogCw/VT+PrSA1gwFnUK0zhzS7UWL5rPaonzRuhci5/byHuU8+EVeHP1VF89D0baXoWG3F9UEn0+p2vpZbVO+aOVPmFBRaqfle7Qb9dE9Lnf3bB2t/Q0ZKkwjFb0n1BkmevFcCEmrf8TH7U+Yi8QLoSy6Zp67R2tp/a8oUYF6W5XHRZmpAq+eCyFpvQGE80JQ6Mcik2XePRdC0hUGEFSoZizl9pI3Xaxj3j0XQtI1BhBOsfK4SFswkefCyhCeCyHpKgMI552wGsd7XGwM6bkQkq6OjMW3Zi30H6HiH0SXYqHJItN1TdBowwwQGTNAZMwAkTEDRMYMEBkzQGT+AwAA//86NYH6AAAABklEQVQDAMLYj5HSrw49AAAAAElFTkSuQmCC") center / contain no-repeat; }
+[data-option="2"] .o2-stats { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); flex: none; }
+[data-option="2"] .o2-stat { display: block; width: var(--dimension-size-semantic-table-stat-column); text-align: center; }
+
+[data-option="2"] .o2-d-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-d-name { font-size: var(--d-name-size); }
+[data-option="2"] .o2-d-games { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-d-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-d-stat { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-d-lab { display: block; color: var(--color-semantic-functional-text-muted); font-size: var(--d-label-size); }
+[data-option="2"] .o2-d-val { display: block; font-size: var(--d-stat-size); }
+[data-option="2"] .o2-d-last { display: flex; align-items: baseline; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-d-last-lab { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-d-form { display: flex; gap: var(--dimension-spacing-core-2xs); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="2"] .o2-item, [data-option="2"] .o2-item::before, [data-option="2"] .o2-item::after, [data-option="2"] .o2-rest, [data-option="2"] .o2-detail { transition-duration: 0ms; }
+}
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --title-size: var(--typography-font-size-2xl);
+  --title-line: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --overline-size: var(--typography-font-size-sm);
+  --overline-gap: var(--dimension-spacing-core-3xs);
+  --cols-gap: var(--dimension-spacing-core-3xs);
+  --row-gap: var(--dimension-spacing-core-none);
+  --line-gap: var(--dimension-spacing-core-2xs);
+  --stat-col: var(--dimension-size-semantic-table-stat-column);
+  --stat-gap: var(--dimension-spacing-core-3xs);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --name-size: var(--typography-font-size-md);
+  --stat-size: var(--typography-font-size-md);
+  --pos-size: var(--typography-font-size-sm);
+  --crest: var(--dimension-size-semantic-icon-sm);
+  --foot-size: var(--typography-font-size-md);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --outline-w: var(--dimension-border-width-semantic-button);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: the kit's Content Card. The whole card is the one control, so the card carries the outline at rest and the ring on focus. */
+[data-option="3"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); background: var(--bg); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+[data-option="3"] .card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--outline-w); background: var(--gradient-semantic-border-default); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="3"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="3"][data-state="repouso"] .card::after { opacity: var(--opacity-semantic-hidden); }
+[data-option="3"][data-state="foco"] .card::after,
+[data-option="3"][data-state="resto"] .card::after { opacity: var(--opacity-semantic-visible); }
+
+/* The two views share one mould: only the data zone (title, rows, footer) changes. */
+[data-option="3"] .p2 { display: none; }
+[data-option="3"][data-state="resto"] .p1 { display: none; }
+[data-option="3"][data-state="resto"] .p2 { display: flex; }
+[data-option="3"] .swap { animation: o3-in var(--dur) var(--ease); }
+
+/* Group 1: the conclusion. */
+[data-option="3"] .head { display: flex; flex-direction: column; gap: var(--overline-gap); }
+[data-option="3"] .overline { display: block; margin: 0; font-size: var(--overline-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .title { display: none; margin: 0; font-size: var(--title-size); line-height: var(--title-line); color: var(--title-color); text-wrap: balance; }
+[data-option="3"] .title.p1 { display: block; }
+[data-option="3"][data-state="resto"] .title.p1 { display: none; }
+[data-option="3"][data-state="resto"] .title.p2 { display: block; }
+
+/* Group 2: the table, the proof. Ten plain rows, no outline, no ring: the card is the control. */
+[data-option="3"] .table { display: flex; flex-direction: column; gap: var(--cols-gap); }
+[data-option="3"] .cols { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .cols .round { display: block; }
+[data-option="3"] .stats { display: flex; flex: none; align-items: center; gap: var(--stat-gap); }
+[data-option="3"] .stat { display: block; width: var(--stat-col); text-align: center; }
+[data-option="3"] .rows { flex-direction: column; gap: var(--row-gap); }
+[data-option="3"] .rows.p1 { display: flex; }
+[data-option="3"][data-state="resto"] .rows.p1 { display: none; }
+[data-option="3"] .row { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); height: var(--row-h); }
+[data-option="3"] .who { display: flex; align-items: center; gap: var(--line-gap); min-width: 0; }
+[data-option="3"] .pos { display: block; width: 2ch; font-size: var(--pos-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .crest { display: block; flex: none; width: var(--crest); height: var(--crest); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); }
+[data-option="3"] .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--name-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .row .stat { font-size: var(--stat-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .row .stat.pts { color: var(--color-semantic-functional-text-primary); }
+/* The favourite's heart, drawn in CSS from two rounded halves (a shape, not an icon file). */
+[data-option="3"] .heart { position: relative; display: block; flex: none; width: 1em; height: 1em; font-size: var(--name-size); }
+[data-option="3"] .heart::before,
+[data-option="3"] .heart::after { content: ''; position: absolute; top: 0.1em; display: block; width: 0.5em; height: 0.8em; border-radius: 0.5em 0.5em 0 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .heart::before { left: 0.5em; transform: rotate(-45deg); transform-origin: 0 100%; }
+[data-option="3"] .heart::after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+
+/* Group 3: what the switch shows. */
+[data-option="3"] .foot { margin: 0; font-size: var(--foot-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .foot.p1 { display: block; }
+[data-option="3"][data-state="resto"] .foot.p1 { display: none; }
+[data-option="3"][data-state="resto"] .foot.p2 { display: block; }
+
+@keyframes o3-in { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .swap { animation: none; }
+  [data-option="3"] .card::after { transition-property: none; }
+}
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-xs);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --title-size: var(--typography-font-size-2xl);
+  --title-line: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --overline-size: var(--typography-font-size-sm);
+  --head-gap: var(--dimension-spacing-core-3xs);
+  --cols-gap: var(--dimension-spacing-core-3xs);
+  --stat-col: var(--dimension-size-semantic-table-stat-column);
+  --stat-gap: var(--dimension-spacing-core-none);
+  --lead-size: var(--typography-font-size-base);
+  --mid-size: var(--typography-font-size-md);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --line-gap: var(--dimension-spacing-core-2xs);
+  --who-gap: var(--dimension-spacing-core-3xs);
+  --pos-col: var(--dimension-spacing-core-sm);
+  --crest: var(--dimension-size-semantic-icon-sm);
+  --pos-size: var(--typography-font-size-sm);
+  --stat-size: var(--typography-font-size-md);
+  --foot-size: var(--typography-font-size-md);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: the kit's Content Card (radius, inset and width are tokens; height hugs the content). The whole card is the one control. */
+[data-option="4"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); background: var(--bg); border-radius: var(--radius); font-variant-numeric: tabular-nums; cursor: pointer; }
+/* Focus: the kit's ring on the whole card, inside its edge (the inset is the room it needs). */
+[data-option="4"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="4"][data-state="repouso"] .card::after { opacity: var(--opacity-semantic-hidden); }
+[data-option="4"][data-state="foco"] .card::after,
+[data-option="4"][data-state="segunda"] .card::after { opacity: var(--opacity-semantic-visible); }
+
+/* Two pages in one skeleton: the data zone swaps, the frame does not. */
+[data-option="4"] [data-p] { animation: o4-in var(--dur) var(--ease); }
+[data-option="4"][data-state="segunda"] [data-p="1"] { display: none; }
+[data-option="4"]:not([data-state="segunda"]) [data-p="2"] { display: none; }
+
+/* Piece 1: the conclusion. */
+[data-option="4"] .head { display: flex; flex-direction: column; gap: var(--head-gap); }
+[data-option="4"] .overline { display: block; margin: 0; font-size: var(--overline-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .title { display: block; margin: 0; font-size: var(--title-size); line-height: var(--title-line); color: var(--title-color); text-wrap: balance; }
+
+/* Pieces 2 and 3: the table in two bands. Space does the grouping, no dividers. */
+[data-option="4"] .table { display: flex; flex-direction: column; }
+[data-option="4"] .cols { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); margin-bottom: var(--cols-gap); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .cols .round { display: block; }
+[data-option="4"] .stats { display: flex; flex: none; align-items: center; gap: var(--stat-gap); }
+[data-option="4"] .stat { display: block; width: var(--stat-col); text-align: center; }
+[data-option="4"] .page { display: flex; flex-direction: column; gap: var(--group-gap); }
+[data-option="4"] .group { display: flex; flex-direction: column; }
+[data-option="4"] .row { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); height: var(--row-h); }
+[data-option="4"] .who { display: flex; align-items: center; gap: var(--who-gap); min-width: 0; }
+[data-option="4"] .nb { white-space: nowrap; }
+[data-option="4"] .pos { display: block; flex: none; width: var(--pos-col); font-size: var(--pos-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .crest { display: flex; flex: none; align-items: center; justify-content: center; width: var(--crest); height: var(--crest); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); font-size: var(--pos-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-option="4"] .stat-pts { font-size: var(--stat-size); }
+[data-option="4"] .row .stat { font-size: var(--stat-size); }
+
+/* The highlighted band (the subject of the title): bigger names, full strength. The other band stays behind it. */
+[data-option="4"] .group[data-tone="forte"] .name { font-size: var(--lead-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .group[data-tone="forte"] .stat { color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .group[data-tone="calmo"] .name { font-size: var(--mid-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .group[data-tone="calmo"] .stat { color: var(--color-semantic-functional-text-muted); }
+
+/* The favourite's heart, drawn in CSS from two rounded halves (a shape, not an icon file). */
+[data-option="4"] .heart { position: relative; display: block; flex: none; width: 1em; height: 1em; font-size: var(--mid-size); }
+[data-option="4"] .heart::before,
+[data-option="4"] .heart::after { content: ''; position: absolute; top: 0.1em; display: block; width: 0.5em; height: 0.8em; border-radius: 0.5em 0.5em 0 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .heart::before { left: 0.5em; transform: rotate(-45deg); transform-origin: 0 100%; }
+[data-option="4"] .heart::after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+
+/* Piece 4: the footer of the swap. */
+[data-option="4"] .foot { display: block; }
+[data-option="4"] .foot-line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--line-gap); font-size: var(--foot-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .foot-line span { display: block; }
+
+@keyframes o4-in { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="4"] .card::after { transition-property: none; }
+  [data-option="4"] [data-p] { animation: none; }
+}
+/* tune:vars */
+[data-option="5"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-xs);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --chip-gap: var(--dimension-spacing-core-3xs);
+  --chip-pad-y: var(--dimension-spacing-core-3xs);
+  --chip-pad-x: var(--dimension-spacing-core-xs);
+  --chip-radius: var(--dimension-radius-semantic-pill);
+  --chip-size: var(--typography-font-size-md);
+  --sel-bg: var(--color-semantic-functional-text-primary);
+  --sel-fg: var(--color-semantic-functional-background-primary);
+  --title-size: var(--typography-font-size-2xl);
+  --title-line: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --overline-size: var(--typography-font-size-sm);
+  --overline-gap: var(--dimension-spacing-core-3xs);
+  --cols-gap: var(--dimension-spacing-core-3xs);
+  --row-gap: var(--dimension-spacing-core-none);
+  --line-gap: var(--dimension-spacing-core-2xs);
+  --stat-col: var(--dimension-size-semantic-table-stat-column);
+  --stat-gap: var(--dimension-spacing-core-3xs);
+  --who-gap: var(--dimension-spacing-core-3xs);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --lead-size: var(--typography-font-size-base);
+  --name-size: var(--typography-font-size-md);
+  --stat-size: var(--typography-font-size-md);
+  --pos-size: var(--typography-font-size-sm);
+  --crest: var(--dimension-size-semantic-icon-sm);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: the kit's Content Card (radius, inset and width are tokens; height hugs the content). */
+[data-option="5"] .card { position: relative; display: flex; flex-direction: column; gap: var(--group-gap); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); background: var(--bg); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+
+/* Whole-card focus ring: the card is the one control. */
+[data-option="5"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="5"][data-state="foco"] .card::after,
+[data-option="5"][data-state="segunda"] .card::after { opacity: var(--opacity-semantic-visible); }
+[data-option="5"][data-state="repouso"] .card::after { opacity: var(--opacity-semantic-hidden); }
+
+/* Pager: two equal pages, the current one inverted. A marker only: no key reaches a page by itself. */
+[data-option="5"] .pager { display: flex; align-items: center; gap: var(--chip-gap); margin: 0; }
+[data-option="5"] .chip { display: flex; align-items: center; padding: var(--chip-pad-y) var(--chip-pad-x); border-radius: var(--chip-radius); font-size: var(--chip-size); color: var(--color-semantic-functional-text-muted); transition-property: background-color, color; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="5"]:not([data-state="segunda"]) .chip[data-page="1"],
+[data-option="5"][data-state="segunda"] .chip[data-page="2"] { background: var(--sel-bg); color: var(--sel-fg); }
+
+/* Head: championship, then the conclusion of the visible page. */
+[data-option="5"] .head { display: flex; flex-direction: column; gap: var(--overline-gap); }
+[data-option="5"] .overline { display: block; margin: 0; font-size: var(--overline-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .title { display: block; margin: 0; font-size: var(--title-size); line-height: var(--title-line); color: var(--title-color); text-wrap: balance; }
+[data-option="5"] .t { display: block; }
+[data-option="5"] .t[data-page="2"],
+[data-option="5"][data-state="segunda"] .t[data-page="1"] { display: none; }
+[data-option="5"][data-state="segunda"] .t[data-page="2"] { display: block; }
+
+/* Table */
+[data-option="5"] .table { display: flex; flex-direction: column; gap: var(--cols-gap); }
+[data-option="5"] .cols { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .stats { display: flex; flex: none; align-items: center; gap: var(--stat-gap); }
+[data-option="5"] .stat { display: block; width: var(--stat-col); text-align: center; }
+[data-option="5"] .rows { display: flex; flex-direction: column; gap: var(--row-gap); animation: o5-in var(--dur) var(--ease); }
+[data-option="5"] .rows[data-page="2"],
+[data-option="5"][data-state="segunda"] .rows[data-page="1"] { display: none; }
+[data-option="5"][data-state="segunda"] .rows[data-page="2"] { display: flex; }
+
+[data-option="5"] .row { display: flex; align-items: center; justify-content: space-between; gap: var(--line-gap); height: var(--row-h); }
+[data-option="5"] .who { display: flex; align-items: center; gap: var(--who-gap); min-width: 0; }
+[data-option="5"] .pos { display: block; width: 2ch; text-align: right; font-size: var(--pos-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .crest { display: flex; flex: none; align-items: center; justify-content: center; width: var(--crest); height: var(--crest); border-radius: var(--dimension-radius-core-full); background: var(--color-opacity-light-20); font-size: var(--pos-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--name-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .stat { font-size: var(--stat-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .row[data-lead] .name { font-size: var(--lead-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .row[data-lead] .stat { color: var(--color-semantic-functional-text-primary); }
+
+/* Favourite mark: a CSS shape, not an icon file. */
+[data-option="5"] .heart { position: relative; display: block; flex: none; width: 1em; height: 1em; font-size: var(--name-size); }
+[data-option="5"] .heart::before,
+[data-option="5"] .heart::after { content: ''; position: absolute; top: 0.1em; display: block; width: 0.5em; height: 0.8em; border-radius: 0.5em 0.5em 0 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .heart::before { left: 0.5em; transform: rotate(-45deg); transform-origin: 0 100%; }
+[data-option="5"] .heart::after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+
+@keyframes o5-in { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"] .rows { animation: none; }
+  [data-option="5"] .card::after,
+  [data-option="5"] .chip { transition-property: none; }
+}
+/* tune:vars */
+[data-option="6"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --title-size: var(--typography-font-size-2xl);
+  --title-line: var(--typography-line-height-normal);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --overline-size: var(--typography-font-size-sm);
+  --overline-gap: var(--dimension-spacing-core-3xs);
+  --row-gap: var(--dimension-spacing-core-none);
+  --row-h: var(--dimension-size-semantic-table-cell-md);
+  --col-gap: var(--dimension-spacing-core-2xs);
+  --pos-col: var(--dimension-size-semantic-icon-sm);
+  --name-col: 88px;
+  --stat-col: var(--dimension-size-semantic-table-stat-column);
+  --lead-size: var(--typography-font-size-base);
+  --name-size: var(--typography-font-size-md);
+  --stat-size: var(--typography-font-size-md);
+  --pos-size: var(--typography-font-size-sm);
+  --bar-h: var(--dimension-spacing-core-3xs);
+  --bar-radius: var(--dimension-radius-core-full);
+  --bar-color: var(--color-semantic-functional-text-primary);
+  --bar-opacity: var(--opacity-semantic-content-muted);
+  --foot-size: var(--typography-font-size-sm);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --outline-w: var(--dimension-border-width-semantic-button);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Card: the kit's Content Card (radius, inset and width are tokens; height hugs the content). The whole card is the one control. */
+[data-option="6"] .card { position: relative; display: block; width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); background: var(--bg); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+/* Rests with the 1px light outline (the remote reaches the whole card); the kit ring when it has the focus. */
+[data-option="6"] .card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--outline-w); background: var(--gradient-semantic-border-default); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="6"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring-w); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: var(--opacity-semantic-hidden); transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="6"][data-state="foco"] .card::after,
+[data-option="6"][data-state="segunda"] .card::after { opacity: var(--opacity-semantic-visible); }
+[data-option="6"][data-state="foco"] .card::before,
+[data-option="6"][data-state="segunda"] .card::before { opacity: var(--opacity-semantic-hidden); }
+
+/* One skeleton, two pages: only the data zone (title, rows, footer) changes. */
+[data-option="6"] .page { display: flex; flex-direction: column; gap: var(--group-gap); }
+[data-option="6"] .page[data-page="2"] { display: none; }
+[data-option="6"][data-state="segunda"] .page[data-page="1"] { display: none; }
+[data-option="6"][data-state="segunda"] .page[data-page="2"] { display: flex; animation: o6-in var(--dur) var(--ease); }
+
+/* Group 1: the conclusion. */
+[data-option="6"] .head { display: flex; flex-direction: column; gap: var(--overline-gap); }
+[data-option="6"] .overline { display: flex; align-items: center; gap: var(--dimension-spacing-core-2xs); margin: 0; font-size: var(--overline-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .dot { display: block; flex: none; width: var(--dimension-spacing-core-3xs); height: var(--dimension-spacing-core-3xs); border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .title { display: block; margin: 0; font-size: var(--title-size); line-height: var(--title-line); color: var(--title-color); text-wrap: balance; }
+
+/* Group 2: ten rows, each with its bar (points against the leader's). */
+[data-option="6"] .rows { display: flex; flex-direction: column; gap: var(--row-gap); }
+[data-option="6"] .row { display: grid; grid-template-columns: var(--pos-col) var(--name-col) minmax(0, 1fr) var(--stat-col); align-items: center; column-gap: var(--col-gap); height: var(--row-h); }
+[data-option="6"] .pos { display: block; font-size: var(--pos-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .who { display: flex; align-items: center; gap: var(--dimension-spacing-core-3xs); min-width: 0; }
+[data-option="6"] .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--name-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .pts { display: block; text-align: right; font-size: var(--stat-size); color: var(--color-semantic-functional-text-muted); }
+/* The track is the leader's points (full length); the fill is this team's share of it. */
+[data-option="6"] .bar { display: block; height: var(--bar-h); border-radius: var(--bar-radius); background: var(--color-opacity-light-10); overflow: hidden; }
+[data-option="6"] .fill { --p: 1; display: block; width: calc(var(--p) * 100%); height: 100%; border-radius: var(--bar-radius); background: var(--bar-color); opacity: var(--bar-opacity); }
+/* The top of the table is the first plane; the leader is the only full-strength bar. */
+[data-option="6"] .row[data-top] .name { color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .row[data-lead] .name { font-size: var(--lead-size); color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .row[data-lead] .pts { color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .row[data-lead] .fill { opacity: var(--opacity-semantic-visible); }
+/* The favourite's heart, drawn in CSS from two rounded halves (a shape, not an icon file). */
+[data-option="6"] .heart { position: relative; display: block; flex: none; width: 1em; height: 1em; font-size: var(--name-size); }
+[data-option="6"] .heart::before,
+[data-option="6"] .heart::after { content: ''; position: absolute; top: 0.1em; display: block; width: 0.5em; height: 0.8em; border-radius: 0.5em 0.5em 0 0; background: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .heart::before { left: 0.5em; transform: rotate(-45deg); transform-origin: 0 100%; }
+[data-option="6"] .heart::after { left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
+
+/* Group 3: the swap footer. */
+[data-option="6"] .foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); margin: 0; font-size: var(--foot-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="6"] .foot-now, [data-option="6"] .foot-next { display: block; }
+[data-option="6"] .foot-next { color: var(--color-semantic-functional-text-primary); }
+
+@keyframes o6-in { from { opacity: var(--opacity-semantic-hidden); } to { opacity: var(--opacity-semantic-visible); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .card::after { transition-property: none; }
+  [data-option="6"][data-state="segunda"] .page[data-page="2"] { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: o card abre com a conclusão ("Palmeiras lidera por 4 pontos") e a tabela vem como prova, em lista na ordem de leitura, com o topo em destaque e o resto em segundo plano. -->
+  <p class="opt-label" data-part="label">Opção 1 - O título diz quem lidera</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="head" data-part="head">
+        <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro</span>
+        <h2 class="title text-heading-4-bold" data-part="title">Palmeiras lidera por 4 pontos</h2>
+      </div>
+      <div class="table" data-part="table">
+        <div class="cols text-footnote-medium" data-part="columns">
+          <span class="round">Rodada 28</span>
+          <span class="stats"><span class="stat">Pts</span><span class="stat">J</span><span class="stat">V</span></span>
+        </div>
+        <div class="rows" data-part="rows" data-stack>
+          <div class="row" data-part="row" data-lead data-focus aria-expanded="false">
+            <div class="line">
+              <span class="who"><span class="pos text-footnote-medium">1</span><span class="crest text-footnote-bold" aria-hidden="true">P</span><span class="name text-body-md-bold">Palmeiras</span></span>
+              <span class="stats"><span class="stat text-body-sm-bold">58</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">17</span></span>
+            </div>
+            <div class="detail" data-part="detail" aria-live="polite">
+              <p class="compare text-body-sm-bold">4 pontos à frente do Flamengo</p>
+              <div class="trio">
+                <p class="cell"><span class="lbl text-footnote-medium">Empates</span><span class="val text-body-md-bold">7</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Derrotas</span><span class="val text-body-md-bold">4</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Saldo</span><span class="val text-body-md-bold">+21</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="row" data-part="row" aria-expanded="false">
+            <div class="line">
+              <span class="who"><span class="pos text-footnote-medium">2</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Flamengo</span><span class="heart" role="img" aria-label="Seu time" data-part="favorite"></span></span>
+              <span class="stats"><span class="stat text-body-sm-bold">54</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">16</span></span>
+            </div>
+            <div class="detail" data-part="detail" aria-live="polite">
+              <p class="compare text-body-sm-bold">4 pontos atrás do líder</p>
+              <div class="trio">
+                <p class="cell"><span class="lbl text-footnote-medium">Empates</span><span class="val text-body-md-bold">6</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Derrotas</span><span class="val text-body-md-bold">6</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Saldo</span><span class="val text-body-md-bold">+17</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="row" data-part="row" aria-expanded="false">
+            <div class="line">
+              <span class="who"><span class="pos text-footnote-medium">3</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-sm-medium">Botafogo</span></span>
+              <span class="stats"><span class="stat text-body-sm-bold">53</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">15</span></span>
+            </div>
+            <div class="detail" data-part="detail" aria-live="polite">
+              <p class="compare text-body-sm-bold">1 ponto atrás do Flamengo</p>
+              <div class="trio">
+                <p class="cell"><span class="lbl text-footnote-medium">Empates</span><span class="val text-body-md-bold">8</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Derrotas</span><span class="val text-body-md-bold">5</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Saldo</span><span class="val text-body-md-bold">+14</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="row" data-part="row" aria-expanded="false">
+            <div class="line">
+              <span class="who"><span class="pos text-footnote-medium">4</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-sm-medium">Cruzeiro</span></span>
+              <span class="stats"><span class="stat text-body-sm-bold">49</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">14</span></span>
+            </div>
+            <div class="detail" data-part="detail" aria-live="polite">
+              <p class="compare text-body-sm-bold">4 pontos atrás do Botafogo</p>
+              <div class="trio">
+                <p class="cell"><span class="lbl text-footnote-medium">Empates</span><span class="val text-body-md-bold">7</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Derrotas</span><span class="val text-body-md-bold">7</span></p>
+                <p class="cell"><span class="lbl text-footnote-medium">Saldo</span><span class="val text-body-md-bold">+9</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="rest text-footnote-medium" data-part="rest">Mais 16 times, do 5º ao 20º lugar</span>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">{"states":["foco","aberta","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Título","part":"head","controls":[
+{"id":"title-size","label":"Tamanho do título","type":"slider","var":"--title-size","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+{"id":"title-line","label":"Altura da linha","type":"slider","var":"--title-line","value":1.2,"base":1.2,"min":1,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor do título","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"overline-size","label":"Tamanho do campeonato","type":"slider","var":"--overline-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"overline-gap","label":"Vão campeonato e título","type":"slider","var":"--overline-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Tabela","part":"table","controls":[
+{"id":"cols-gap","label":"Vão cabeçalho e linhas","type":"slider","var":"--cols-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"row-gap","label":"Vão entre linhas","type":"slider","var":"--row-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"rest-gap","label":"Vão até o restante","type":"slider","var":"--rest-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"line-gap","label":"Vão dentro da linha","type":"slider","var":"--line-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"stat-col","label":"Largura da coluna","type":"slider","var":"--stat-col","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-stat-column"},
+{"id":"stat-gap","label":"Vão entre colunas","type":"slider","var":"--stat-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-cell-md"}
+]},
+{"name":"Linhas","part":"row","controls":[
+{"id":"row-pad","label":"Folga da linha","type":"slider","var":"--row-pad","value":8,"base":8,"min":8,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"row-radius","label":"Raio da linha","type":"slider","var":"--row-radius","value":16,"base":16,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-lg"},
+{"id":"outline-w","label":"Contorno em repouso","type":"slider","var":"--outline-w","value":1,"base":1,"min":1,"max":2,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"},
+{"id":"lead-size","label":"Nome do líder","type":"slider","var":"--lead-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"name-size","label":"Nome dos demais","type":"slider","var":"--name-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"stat-size","label":"Números","type":"slider","var":"--stat-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"pos-size","label":"Posição e escudo","type":"slider","var":"--pos-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"crest","label":"Escudo","type":"slider","var":"--crest","value":16,"base":16,"min":16,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}
+]},
+{"name":"Foco","part":"row","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}
+]},
+{"name":"Detalhe","part":"detail","controls":[
+{"id":"detail-gap","label":"Vão linha e detalhe","type":"slider","var":"--detail-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"detail-inner","label":"Vão dentro do detalhe","type":"slider","var":"--detail-inner","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"trio-gap","label":"Vão entre números","type":"slider","var":"--trio-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"detail-size","label":"Frase de comparação","type":"slider","var":"--detail-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"val-size","label":"Números do detalhe","type":"slider","var":"--val-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Foco e abertura","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: os três primeiros ficam como uma fileira de peças grandes (o pódio) e uma frase diz a distância entre eles; o resto da tabela fica em lista simples abaixo e o detalhe do time escolhido abre no lugar dela. -->
+  <p class="opt-label" data-part="label">Opção 2 - O pódio em primeiro plano</p>
+  <div class="opt-content" data-part="content">
+    <div class="o2-card" data-part="card">
+      <div class="o2-head" data-part="header">
+        <p class="o2-over text-footnote-medium" data-part="title"><span>Campeonato Brasileiro</span><span class="o2-dot"></span><span>Rodada 28</span></p>
+        <p class="o2-sum text-body-md-medium" data-part="summary"><strong>11 pontos</strong> separam o 1º do 3º colocado</p>
+      </div>
+      <div class="o2-rail" role="listbox" aria-label="Pódio" data-part="rail" data-items-ok="pódio de 3 times">
+        <div class="o2-item" role="option" aria-selected="true" data-part="team">
+          <span class="o2-crest"></span>
+          <span class="o2-id text-body-sm-bold"><span class="o2-pos text-body-sm-medium">1</span><span>FLA</span></span>
+          <span class="o2-pts text-heading-3-bold">60</span>
+        </div>
+        <div class="o2-item" role="option" aria-selected="false" data-part="team">
+          <span class="o2-crest"></span>
+          <span class="o2-id text-body-sm-bold"><span class="o2-pos text-body-sm-medium">2</span><span>PAL</span></span>
+          <span class="o2-pts text-heading-3-bold">57</span>
+        </div>
+        <div class="o2-item" role="option" aria-selected="false" data-part="team">
+          <span class="o2-crest"></span>
+          <span class="o2-id text-body-sm-bold"><span class="o2-pos text-body-sm-medium">3</span><span>CAP</span></span>
+          <span class="o2-pts text-heading-3-bold">49</span>
+        </div>
+      </div>
+      <div class="o2-zone" data-stack>
+        <div class="o2-rest" data-part="rest">
+          <div class="o2-cols text-footnote-medium">
+            <span>Do 4º ao 6º</span>
+            <span class="o2-stats"><span class="o2-stat">Pts</span><span class="o2-stat">J</span><span class="o2-stat">V</span></span>
+          </div>
+          <div class="o2-rows">
+            <div class="o2-row">
+              <span class="o2-who"><span class="o2-rank text-footnote-medium">4</span><span class="o2-crest"></span><span class="text-body-sm-medium">FLU</span></span>
+              <span class="o2-stats text-body-sm-medium"><span class="o2-stat text-body-sm-bold">48</span><span class="o2-stat">28</span><span class="o2-stat">13</span></span>
+            </div>
+            <div class="o2-row" data-part="favorite">
+              <span class="o2-who"><span class="o2-rank text-footnote-medium">5</span><span class="o2-crest"></span><span class="text-body-sm-medium">BAH</span><span class="o2-heart" aria-label="Seu time"></span></span>
+              <span class="o2-stats text-body-sm-medium"><span class="o2-stat text-body-sm-bold">46</span><span class="o2-stat">28</span><span class="o2-stat">12</span></span>
+            </div>
+            <div class="o2-row">
+              <span class="o2-who"><span class="o2-rank text-footnote-medium">6</span><span class="o2-crest"></span><span class="text-body-sm-medium">CRU</span></span>
+              <span class="o2-stats text-body-sm-medium"><span class="o2-stat text-body-sm-bold">45</span><span class="o2-stat">28</span><span class="o2-stat">13</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="o2-detail" data-part="detail" aria-live="polite">
+          <div class="o2-d-head">
+            <span class="o2-d-name text-body-md-bold" data-f="name">Flamengo</span>
+            <span class="o2-d-games text-body-sm-medium" data-f="games">28 jogos</span>
+          </div>
+          <div class="o2-d-stats">
+            <div class="o2-d-stat"><span class="o2-d-lab text-footnote-medium">Vitórias</span><span class="o2-d-val text-heading-4-bold" data-f="v">18</span></div>
+            <div class="o2-d-stat"><span class="o2-d-lab text-footnote-medium">Empates</span><span class="o2-d-val text-heading-4-bold" data-f="e">6</span></div>
+            <div class="o2-d-stat"><span class="o2-d-lab text-footnote-medium">Derrotas</span><span class="o2-d-val text-heading-4-bold" data-f="d">4</span></div>
+            <div class="o2-d-stat"><span class="o2-d-lab text-footnote-medium">Saldo</span><span class="o2-d-val text-heading-4-bold" data-f="sg">+24</span></div>
+          </div>
+          <div class="o2-d-last text-body-sm-medium">
+            <span class="o2-d-last-lab">Últimos jogos</span>
+            <span class="o2-d-form text-body-sm-bold" data-f="form"><span>V</span><span>V</span><span>E</span><span>V</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["repouso","foco","aberto"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":4,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"gap-groups","label":"Vão entre grupos","type":"slider","var":"--gap-groups","value":16,"base":16,"min":8,"max":32,"step":4,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Cabeçalho","part":"header","controls":[
+      {"id":"head-size","label":"Tamanho do título","type":"slider","var":"--head-size","value":12,"base":12,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"head-gap","label":"Vão do separador","type":"slider","var":"--head-gap","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"sum-size","label":"Tamanho da frase","type":"slider","var":"--sum-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"}]},
+    {"name":"Trilho","part":"rail","controls":[
+      {"id":"rail-gap","label":"Vão entre times","type":"slider","var":"--rail-gap","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"item-radius","label":"Raio do time","type":"slider","var":"--item-radius","value":16,"base":16,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-radius-core-lg"},
+      {"id":"item-pad","label":"Respiro do time","type":"slider","var":"--item-pad","value":12,"base":12,"min":8,"max":20,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"item-gap","label":"Vão dentro do time","type":"slider","var":"--item-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"crest","label":"Tamanho do escudo","type":"slider","var":"--crest","value":32,"base":32,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-xl"},
+      {"id":"pts-size","label":"Tamanho dos pontos","type":"slider","var":"--pts-size","value":28,"base":28,"min":20,"max":32,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"code-size","label":"Tamanho da sigla","type":"slider","var":"--code-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"sel-bg","label":"Fundo do selecionado","type":"color","var":"--sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"sel-fg","label":"Texto do selecionado","type":"color","var":"--sel-fg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+      {"id":"outline-w","label":"Contorno em repouso","type":"slider","var":"--outline-w","value":1,"base":1,"min":1,"max":4,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}]},
+    {"name":"Resto da tabela","part":"rest","controls":[
+      {"id":"list-head-gap","label":"Vão do cabeçalho","type":"slider","var":"--list-head-gap","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"row-gap","label":"Vão entre linhas","type":"slider","var":"--row-gap","value":8,"base":8,"min":0,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-semantic-table-row-gap"},
+      {"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":40,"step":4,"unit":"px","token":"--dimension-size-semantic-table-cell-md"},
+      {"id":"row-size","label":"Tamanho do texto","type":"slider","var":"--row-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"crest-sm","label":"Escudo da linha","type":"slider","var":"--crest-sm","value":20,"base":20,"min":12,"max":28,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-md"},
+      {"id":"heart-color","label":"Cor do coração","type":"color","var":"--heart-color","value":"#de2c2c","base":"#de2c2c","token":"--color-semantic-functional-status-error"},
+      {"id":"heart-size","label":"Tamanho do coração","type":"slider","var":"--heart-size","value":16,"base":16,"min":8,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}]},
+    {"name":"Detalhe","part":"detail","controls":[
+      {"id":"d-gap","label":"Vão do detalhe","type":"slider","var":"--d-gap","value":8,"base":8,"min":4,"max":16,"step":4,"unit":"px","token":"--dimension-spacing-core-2xs"},
+      {"id":"d-name-size","label":"Tamanho do nome","type":"slider","var":"--d-name-size","value":16,"base":16,"min":14,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"d-stat-size","label":"Tamanho dos números","type":"slider","var":"--d-stat-size","value":24,"base":24,"min":18,"max":28,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+      {"id":"d-label-size","label":"Tamanho dos rótulos","type":"slider","var":"--d-label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}]},
+    {"name":"Foco","controls":[
+      {"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição de seleção e abertura","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Variações da Opção 1 · livre</h2>
+<article data-parent="1" class="opt" data-option="3" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: o card mantém o título-conclusão e mostra as 10 primeiras linhas simples; o rodapé diz o que a troca mostra ("11º ao 20º"), e o card inteiro é o único controle. -->
+  <p class="opt-label" data-part="label">Opção 3 - Dez linhas, uma troca</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="head" data-part="head" aria-live="polite">
+        <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro</span>
+        <h2 class="title p1 swap text-heading-4-bold" data-part="title">Palmeiras lidera por 4 pontos</h2>
+        <h2 class="title p2 swap text-heading-4-bold" data-part="title">Bragantino a 2&nbsp;pontos do&nbsp;Z4</h2>
+      </div>
+      <div class="table" data-part="table">
+        <div class="cols text-footnote-medium" data-part="columns">
+          <span class="round">Rodada 28</span>
+          <span class="stats"><span class="stat">Pts</span><span class="stat">J</span><span class="stat">V</span></span>
+        </div>
+        <div class="rows p1 swap" data-part="rows" data-items-ok="pedido explícito do designer: mostrar os 10 primeiros times">
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">1</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Palmeiras</span></span><span class="stats"><span class="stat pts text-body-sm-bold">58</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">17</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">2</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Flamengo</span><span class="heart" role="img" aria-label="Seu time" data-part="favorite"></span></span><span class="stats"><span class="stat pts text-body-sm-bold">54</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">16</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">3</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Botafogo</span></span><span class="stats"><span class="stat pts text-body-sm-bold">53</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">15</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">4</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Cruzeiro</span></span><span class="stats"><span class="stat pts text-body-sm-bold">49</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">14</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">5</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Fluminense</span></span><span class="stats"><span class="stat pts text-body-sm-bold">47</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">6</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Atlético-MG</span></span><span class="stats"><span class="stat pts text-body-sm-bold">45</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">7</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Grêmio</span></span><span class="stats"><span class="stat pts text-body-sm-bold">44</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">8</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Internacional</span></span><span class="stats"><span class="stat pts text-body-sm-bold">42</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">9</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">São Paulo</span></span><span class="stats"><span class="stat pts text-body-sm-bold">41</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">10</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Corinthians</span></span><span class="stats"><span class="stat pts text-body-sm-bold">39</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+        </div>
+        <div class="rows p2 swap" data-part="rows" data-items-ok="pedido explícito do designer: mostrar os 10 times restantes">
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">11</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Bahia</span></span><span class="stats"><span class="stat pts text-body-sm-bold">38</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">12</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Vasco</span></span><span class="stats"><span class="stat pts text-body-sm-bold">36</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">13</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Fortaleza</span></span><span class="stats"><span class="stat pts text-body-sm-bold">35</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">14</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Athletico</span></span><span class="stats"><span class="stat pts text-body-sm-bold">33</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">8</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">15</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Santos</span></span><span class="stats"><span class="stat pts text-body-sm-bold">31</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">8</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">16</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Bragantino</span></span><span class="stats"><span class="stat pts text-body-sm-bold">30</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">17</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Vitória</span></span><span class="stats"><span class="stat pts text-body-sm-bold">28</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">18</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Juventude</span></span><span class="stats"><span class="stat pts text-body-sm-bold">26</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">6</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">19</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Criciúma</span></span><span class="stats"><span class="stat pts text-body-sm-bold">24</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">6</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">20</span><span class="crest" aria-hidden="true"></span><span class="name text-body-sm-medium">Cuiabá</span></span><span class="stats"><span class="stat pts text-body-sm-bold">20</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">4</span></span></div>
+        </div>
+      </div>
+      <div class="foot-group" data-part="foot" aria-live="polite">
+        <p class="foot p1 swap text-body-sm-medium">OK mostra do 11º ao 20º lugar</p>
+        <p class="foot p2 swap text-body-sm-medium">OK mostra do 1º ao 10º lugar</p>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">{"states":["foco","resto","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Título","part":"head","controls":[
+{"id":"title-size","label":"Tamanho do título","type":"slider","var":"--title-size","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+{"id":"title-line","label":"Altura da linha","type":"slider","var":"--title-line","value":1.2,"base":1.2,"min":1,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor do título","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"overline-size","label":"Tamanho do campeonato","type":"slider","var":"--overline-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"overline-gap","label":"Vão campeonato e título","type":"slider","var":"--overline-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Tabela","part":"table","controls":[
+{"id":"cols-gap","label":"Vão cabeçalho e linhas","type":"slider","var":"--cols-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"row-gap","label":"Vão entre linhas","type":"slider","var":"--row-gap","value":0,"base":0,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-none"},
+{"id":"line-gap","label":"Vão dentro da linha","type":"slider","var":"--line-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"stat-col","label":"Largura da coluna","type":"slider","var":"--stat-col","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-stat-column"},
+{"id":"stat-gap","label":"Vão entre colunas","type":"slider","var":"--stat-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Linhas","part":"row","controls":[
+{"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-cell-md"},
+{"id":"name-size","label":"Nome do time","type":"slider","var":"--name-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"stat-size","label":"Números","type":"slider","var":"--stat-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"pos-size","label":"Posição","type":"slider","var":"--pos-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"crest","label":"Escudo","type":"slider","var":"--crest","value":16,"base":16,"min":16,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}
+]},
+{"name":"Rodapé","part":"foot","controls":[
+{"id":"foot-size","label":"Tamanho do rodapé","type":"slider","var":"--foot-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"outline-w","label":"Contorno em repouso","type":"slider","var":"--outline-w","value":1,"base":1,"min":1,"max":2,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Foco e troca","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+<article data-parent="1" class="opt" data-option="4" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: as 10 linhas se agrupam por proximidade em duas faixas (o topo em destaque, o meio atrás), com um vão maior entre elas e sem divisores; o card inteiro é o único controle e a troca mostra os outros 10 times. -->
+  <p class="opt-label" data-part="label">Opção 4 - Dez linhas em faixas</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card" role="button" aria-label="Tabela do Campeonato Brasileiro, Enter troca entre o 1º ao 10º e o 11º ao 20º">
+      <div class="head" data-part="head" aria-live="polite">
+        <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro</span>
+        <h2 class="title text-heading-4-bold" data-part="title" data-p="1">Palmeiras lidera por 4 pontos</h2>
+        <h2 class="title text-heading-4-bold" data-part="title" data-p="2"><span class="nb">Z-4</span> começa com 27 pontos</h2>
+      </div>
+      <div class="table" data-part="table" data-items-ok="pedido explícito do designer: mostrar 10 times por vez">
+        <div class="cols text-footnote-medium" data-part="columns">
+          <span class="round">Rodada 28</span>
+          <span class="stats"><span class="stat">Pts</span><span class="stat">J</span><span class="stat">V</span></span>
+        </div>
+        <div class="page" data-p="1">
+          <div class="group" data-part="group-top" data-tone="forte">
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">1</span><span class="crest text-footnote-bold" aria-hidden="true">P</span><span class="name text-body-md-bold">Palmeiras</span></span><span class="stats"><span class="stat text-body-sm-bold">58</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">17</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">2</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-md-bold">Flamengo</span><span class="heart" role="img" aria-label="Seu time" data-part="favorite"></span></span><span class="stats"><span class="stat text-body-sm-bold">54</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">16</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">3</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-md-bold">Botafogo</span></span><span class="stats"><span class="stat text-body-sm-bold">53</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">15</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">4</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-md-bold">Cruzeiro</span></span><span class="stats"><span class="stat text-body-sm-bold">49</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">14</span></span></div>
+          </div>
+          <div class="group" data-part="group-mid" data-tone="calmo">
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">5</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Fortaleza</span></span><span class="stats"><span class="stat text-body-sm-medium">47</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">6</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-sm-medium">Bahia</span></span><span class="stats"><span class="stat text-body-sm-medium">45</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">7</span><span class="crest text-footnote-bold" aria-hidden="true">S</span><span class="name text-body-sm-medium">São Paulo</span></span><span class="stats"><span class="stat text-body-sm-medium">44</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">8</span><span class="crest text-footnote-bold" aria-hidden="true">A</span><span class="name text-body-sm-medium">Atlético-MG</span></span><span class="stats"><span class="stat text-body-sm-medium">42</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">9</span><span class="crest text-footnote-bold" aria-hidden="true">G</span><span class="name text-body-sm-medium">Grêmio</span></span><span class="stats"><span class="stat text-body-sm-medium">40</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">10</span><span class="crest text-footnote-bold" aria-hidden="true">I</span><span class="name text-body-sm-medium">Internacional</span></span><span class="stats"><span class="stat text-body-sm-medium">39</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+          </div>
+        </div>
+        <div class="page" data-p="2">
+          <div class="group" data-part="group-mid" data-tone="calmo">
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">11</span><span class="crest text-footnote-bold" aria-hidden="true">V</span><span class="name text-body-sm-medium">Vasco</span></span><span class="stats"><span class="stat text-body-sm-medium">37</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">12</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-sm-medium">Corinthians</span></span><span class="stats"><span class="stat text-body-sm-medium">36</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">13</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Fluminense</span></span><span class="stats"><span class="stat text-body-sm-medium">34</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">14</span><span class="crest text-footnote-bold" aria-hidden="true">A</span><span class="name text-body-sm-medium">Athletico</span></span><span class="stats"><span class="stat text-body-sm-medium">33</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">15</span><span class="crest text-footnote-bold" aria-hidden="true">V</span><span class="name text-body-sm-medium">Vitória</span></span><span class="stats"><span class="stat text-body-sm-medium">31</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">8</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">16</span><span class="crest text-footnote-bold" aria-hidden="true">J</span><span class="name text-body-sm-medium">Juventude</span></span><span class="stats"><span class="stat text-body-sm-medium">29</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+          </div>
+          <div class="group" data-part="group-top" data-tone="forte">
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">17</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-md-bold">Criciúma</span></span><span class="stats"><span class="stat text-body-sm-bold">27</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">18</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-md-bold">Bragantino</span></span><span class="stats"><span class="stat text-body-sm-bold">26</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">6</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">19</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-md-bold">Cuiabá</span></span><span class="stats"><span class="stat text-body-sm-bold">22</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">5</span></span></div>
+            <div class="row"><span class="who"><span class="pos text-footnote-medium">20</span><span class="crest text-footnote-bold" aria-hidden="true">A</span><span class="name text-body-md-bold">Atlético-GO</span></span><span class="stats"><span class="stat text-body-sm-bold">19</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">4</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="foot" data-part="footer" aria-live="polite">
+        <div class="foot-line text-body-sm-medium" data-p="1"><span>1º ao 10º</span><span>Enter: 11º ao 20º</span></div>
+        <div class="foot-line text-body-sm-medium" data-p="2"><span>11º ao 20º</span><span>Voltar: 1º ao 10º</span></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">{"states":["foco","segunda","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"group-gap","label":"Vão entre faixas","type":"slider","var":"--group-gap","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Título","part":"head","controls":[
+{"id":"title-size","label":"Tamanho do título","type":"slider","var":"--title-size","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+{"id":"title-line","label":"Altura da linha","type":"slider","var":"--title-line","value":1.2,"base":1.2,"min":1,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor do título","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"overline-size","label":"Tamanho do campeonato","type":"slider","var":"--overline-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"head-gap","label":"Vão campeonato e título","type":"slider","var":"--head-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Colunas","part":"columns","controls":[
+{"id":"cols-gap","label":"Vão cabeçalho e linhas","type":"slider","var":"--cols-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"stat-col","label":"Largura da coluna","type":"slider","var":"--stat-col","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-stat-column"},
+{"id":"stat-gap","label":"Vão entre colunas","type":"slider","var":"--stat-gap","value":0,"base":0,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-none"}
+]},
+{"name":"Faixa do topo","part":"group-top","controls":[
+{"id":"lead-size","label":"Nome em destaque","type":"slider","var":"--lead-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"}
+]},
+{"name":"Faixa do meio","part":"group-mid","controls":[
+{"id":"mid-size","label":"Nome em segundo plano","type":"slider","var":"--mid-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"}
+]},
+{"name":"Linhas","part":"table","controls":[
+{"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-cell-md"},
+{"id":"line-gap","label":"Vão dentro da linha","type":"slider","var":"--line-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"who-gap","label":"Vão posição, escudo e nome","type":"slider","var":"--who-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"pos-col","label":"Coluna da posição","type":"slider","var":"--pos-col","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"crest","label":"Escudo","type":"slider","var":"--crest","value":16,"base":16,"min":16,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"},
+{"id":"pos-size","label":"Posição e escudo","type":"slider","var":"--pos-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"stat-size","label":"Números","type":"slider","var":"--stat-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"}
+]},
+{"name":"Rodapé","part":"footer","controls":[
+{"id":"foot-size","label":"Tamanho do rodapé","type":"slider","var":"--foot-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Foco e troca de página","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+  
+</article>
+<article data-parent="1" class="opt" data-option="5" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: o card deixa claro que a tabela tem duas páginas: um indicador "1–10 / 11–20" com a página atual marcada por inversão no topo; as 10 linhas vêm abaixo, o resto fica em segundo plano. -->
+  <p class="opt-label" data-part="label">Opção 5 - Duas páginas marcadas</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <p class="pager text-body-sm-medium" data-part="pager" aria-label="Posições da tabela, página 1 de 2">
+        <span class="chip" data-page="1" aria-current="page">1–10</span><span class="chip" data-page="2">11–20</span>
+      </p>
+      <div class="head" data-part="head" aria-live="polite">
+        <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro</span>
+        <h2 class="title text-heading-4-bold" data-part="title"><span class="t" data-page="1">Palmeiras lidera por 4 pontos</span><span class="t" data-page="2">Sport se salva por 2 pontos</span></h2>
+      </div>
+      <div class="table" data-part="table">
+        <div class="cols text-footnote-medium" data-part="columns">
+          <span class="round">Rodada 28</span>
+          <span class="stats"><span class="stat">Pts</span><span class="stat">J</span><span class="stat">V</span></span>
+        </div>
+        <div class="rows" data-part="rows" data-page="1" data-items-ok="pedido do designer: mostrar os 10 primeiros times">
+          <div class="row" data-part="row" data-lead><span class="who"><span class="pos text-footnote-medium">1</span><span class="crest text-footnote-bold" aria-hidden="true">P</span><span class="name text-body-sm-bold">Palmeiras</span></span><span class="stats"><span class="stat text-body-sm-bold">58</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">17</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">2</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Flamengo</span><span class="heart" role="img" aria-label="Seu time" data-part="favorite"></span></span><span class="stats"><span class="stat text-body-sm-bold">54</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">16</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">3</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-sm-medium">Botafogo</span></span><span class="stats"><span class="stat text-body-sm-bold">53</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">15</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">4</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-sm-medium">Cruzeiro</span></span><span class="stats"><span class="stat text-body-sm-bold">49</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">14</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">5</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-sm-medium">Bahia</span></span><span class="stats"><span class="stat text-body-sm-bold">47</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">13</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">6</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Fluminense</span></span><span class="stats"><span class="stat text-body-sm-bold">45</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">7</span><span class="crest text-footnote-bold" aria-hidden="true">G</span><span class="name text-body-sm-medium">Grêmio</span></span><span class="stats"><span class="stat text-body-sm-bold">44</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">12</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">8</span><span class="crest text-footnote-bold" aria-hidden="true">S</span><span class="name text-body-sm-medium">São Paulo</span></span><span class="stats"><span class="stat text-body-sm-bold">42</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">9</span><span class="crest text-footnote-bold" aria-hidden="true">I</span><span class="name text-body-sm-medium">Inter</span></span><span class="stats"><span class="stat text-body-sm-bold">41</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">11</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">10</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-sm-medium">Corinthians</span></span><span class="stats"><span class="stat text-body-sm-bold">40</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+        </div>
+        <div class="rows" data-part="rows" data-page="2" data-items-ok="pedido do designer: os 10 times restantes na segunda página">
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">11</span><span class="crest text-footnote-bold" aria-hidden="true">A</span><span class="name text-body-sm-medium">Atlético-MG</span></span><span class="stats"><span class="stat text-body-sm-bold">39</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">10</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">12</span><span class="crest text-footnote-bold" aria-hidden="true">V</span><span class="name text-body-sm-medium">Vasco</span></span><span class="stats"><span class="stat text-body-sm-bold">37</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">13</span><span class="crest text-footnote-bold" aria-hidden="true">F</span><span class="name text-body-sm-medium">Fortaleza</span></span><span class="stats"><span class="stat text-body-sm-bold">35</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">9</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">14</span><span class="crest text-footnote-bold" aria-hidden="true">A</span><span class="name text-body-sm-medium">Athletico</span></span><span class="stats"><span class="stat text-body-sm-bold">34</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">8</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">15</span><span class="crest text-footnote-bold" aria-hidden="true">S</span><span class="name text-body-sm-medium">Santos</span></span><span class="stats"><span class="stat text-body-sm-bold">32</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">8</span></span></div>
+          <div class="row" data-part="row" data-lead><span class="who"><span class="pos text-footnote-medium">16</span><span class="crest text-footnote-bold" aria-hidden="true">S</span><span class="name text-body-sm-bold">Sport</span></span><span class="stats"><span class="stat text-body-sm-bold">30</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">17</span><span class="crest text-footnote-bold" aria-hidden="true">J</span><span class="name text-body-sm-medium">Juventude</span></span><span class="stats"><span class="stat text-body-sm-bold">28</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">7</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">18</span><span class="crest text-footnote-bold" aria-hidden="true">V</span><span class="name text-body-sm-medium">Vitória</span></span><span class="stats"><span class="stat text-body-sm-bold">27</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">6</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">19</span><span class="crest text-footnote-bold" aria-hidden="true">C</span><span class="name text-body-sm-medium">Ceará</span></span><span class="stats"><span class="stat text-body-sm-bold">25</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">6</span></span></div>
+          <div class="row" data-part="row"><span class="who"><span class="pos text-footnote-medium">20</span><span class="crest text-footnote-bold" aria-hidden="true">B</span><span class="name text-body-sm-medium">Bragantino</span></span><span class="stats"><span class="stat text-body-sm-bold">22</span><span class="stat text-body-sm-medium">28</span><span class="stat text-body-sm-medium">5</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="5">{"states":["foco","segunda","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":12,"base":12,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Indicador","part":"pager","controls":[
+{"id":"chip-gap","label":"Vão entre páginas","type":"slider","var":"--chip-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"chip-pad-y","label":"Folga vertical","type":"slider","var":"--chip-pad-y","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"chip-pad-x","label":"Folga lateral","type":"slider","var":"--chip-pad-x","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+{"id":"chip-radius","label":"Raio da página","type":"slider","var":"--chip-radius","value":100,"base":100,"min":0,"max":100,"step":1,"unit":"px","token":"--dimension-radius-semantic-pill"},
+{"id":"chip-size","label":"Tamanho do texto","type":"slider","var":"--chip-size","value":14,"base":14,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"sel-bg","label":"Fundo da página atual","type":"color","var":"--sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"sel-fg","label":"Texto da página atual","type":"color","var":"--sel-fg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"}
+]},
+{"name":"Título","part":"head","controls":[
+{"id":"title-size","label":"Tamanho do título","type":"slider","var":"--title-size","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+{"id":"title-line","label":"Altura da linha","type":"slider","var":"--title-line","value":1.2,"base":1.2,"min":1,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor do título","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"overline-size","label":"Tamanho do campeonato","type":"slider","var":"--overline-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"overline-gap","label":"Vão campeonato e título","type":"slider","var":"--overline-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Tabela","part":"table","controls":[
+{"id":"cols-gap","label":"Vão cabeçalho e linhas","type":"slider","var":"--cols-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"row-gap","label":"Vão entre linhas","type":"slider","var":"--row-gap","value":0,"base":0,"min":0,"max":8,"step":1,"unit":"px","token":"--dimension-spacing-core-none"},
+{"id":"line-gap","label":"Vão dentro da linha","type":"slider","var":"--line-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"stat-col","label":"Largura da coluna","type":"slider","var":"--stat-col","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-stat-column"},
+{"id":"stat-gap","label":"Vão entre colunas","type":"slider","var":"--stat-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"who-gap","label":"Vão posição, escudo e nome","type":"slider","var":"--who-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-cell-md"}
+]},
+{"name":"Linhas","part":"row","controls":[
+{"id":"lead-size","label":"Nome em destaque","type":"slider","var":"--lead-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"name-size","label":"Nome dos demais","type":"slider","var":"--name-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"stat-size","label":"Números","type":"slider","var":"--stat-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"pos-size","label":"Posição e escudo","type":"slider","var":"--pos-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"crest","label":"Escudo","type":"slider","var":"--crest","value":16,"base":16,"min":16,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Troca de página e foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+<article data-parent="1" class="opt" data-option="6" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: cada uma das 10 linhas mostra os pontos também como uma barra fina proporcional ao líder, de modo que a distância entre os times se vê sem ler números; o líder em destaque. -->
+  <p class="opt-label" data-part="label">Opção 6 - Pontos em barra</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="page" data-page="1">
+        <div class="head" data-part="head">
+          <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro<span class="dot"></span>Rodada 28</span>
+          <h2 class="title text-heading-4-bold" data-part="title">Palmeiras lidera por 4 pontos</h2>
+        </div>
+        <div class="rows" data-part="rows" data-items-ok="pedido do designer: 10 times por página">
+        <div class="row" data-part="row" data-lead><span class="pos text-footnote-medium">1</span><span class="who"><span class="name text-body-md-bold">Palmeiras</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:1.00"></span></span><span class="pts text-body-sm-bold">58</span></div>
+        <div class="row" data-part="row" data-top><span class="pos text-footnote-medium">2</span><span class="who"><span class="name text-body-sm-medium">Flamengo</span><span class="heart" role="img" aria-label="Seu time" data-part="favorite"></span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.93"></span></span><span class="pts text-body-sm-medium">54</span></div>
+        <div class="row" data-part="row" data-top><span class="pos text-footnote-medium">3</span><span class="who"><span class="name text-body-sm-medium">Botafogo</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.91"></span></span><span class="pts text-body-sm-medium">53</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">4</span><span class="who"><span class="name text-body-sm-medium">Cruzeiro</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.84"></span></span><span class="pts text-body-sm-medium">49</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">5</span><span class="who"><span class="name text-body-sm-medium">Fortaleza</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.81"></span></span><span class="pts text-body-sm-medium">47</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">6</span><span class="who"><span class="name text-body-sm-medium">Grêmio</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.78"></span></span><span class="pts text-body-sm-medium">45</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">7</span><span class="who"><span class="name text-body-sm-medium">Athletico</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.76"></span></span><span class="pts text-body-sm-medium">44</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">8</span><span class="who"><span class="name text-body-sm-medium">São Paulo</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.74"></span></span><span class="pts text-body-sm-medium">43</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">9</span><span class="who"><span class="name text-body-sm-medium">Bahia</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.72"></span></span><span class="pts text-body-sm-medium">42</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">10</span><span class="who"><span class="name text-body-sm-medium">Vasco</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.71"></span></span><span class="pts text-body-sm-medium">41</span></div>
+        </div>
+        <p class="foot text-footnote-medium" data-part="footer" aria-live="polite"><span class="foot-now">Times 1 a 10</span><span class="foot-next">Enter: 11 a 20</span></p>
+      </div>
+      <div class="page" data-page="2">
+        <div class="head" data-part="head">
+          <span class="overline text-footnote-medium" data-part="overline">Campeonato Brasileiro<span class="dot"></span>Rodada 28</span>
+          <h2 class="title text-heading-4-bold" data-part="title">Cuiabá está a 2 pontos da queda</h2>
+        </div>
+        <div class="rows" data-part="rows" data-items-ok="pedido do designer: 10 times por página">
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">11</span><span class="who"><span class="name text-body-sm-medium">Fluminense</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.67"></span></span><span class="pts text-body-sm-medium">39</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">12</span><span class="who"><span class="name text-body-sm-medium">Santos</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.64"></span></span><span class="pts text-body-sm-medium">37</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">13</span><span class="who"><span class="name text-body-sm-medium">Vitória</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.60"></span></span><span class="pts text-body-sm-medium">35</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">14</span><span class="who"><span class="name text-body-sm-medium">Juventude</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.57"></span></span><span class="pts text-body-sm-medium">33</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">15</span><span class="who"><span class="name text-body-sm-medium">Criciúma</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.55"></span></span><span class="pts text-body-sm-medium">32</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">16</span><span class="who"><span class="name text-body-sm-medium">Cuiabá</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.52"></span></span><span class="pts text-body-sm-medium">30</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">17</span><span class="who"><span class="name text-body-sm-medium">Sport</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.48"></span></span><span class="pts text-body-sm-medium">28</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">18</span><span class="who"><span class="name text-body-sm-medium">Ceará</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.45"></span></span><span class="pts text-body-sm-medium">26</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">19</span><span class="who"><span class="name text-body-sm-medium">Mirassol</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.41"></span></span><span class="pts text-body-sm-medium">24</span></div>
+        <div class="row" data-part="row"><span class="pos text-footnote-medium">20</span><span class="who"><span class="name text-body-sm-medium">Náutico</span></span><span class="bar" data-part="bar"><span class="fill" style="--p:0.38"></span></span><span class="pts text-body-sm-medium">22</span></div>
+        </div>
+        <p class="foot text-footnote-medium" data-part="footer" aria-live="polite"><span class="foot-now">Times 11 a 20</span><span class="foot-next">Enter: 1 a 10</span></p>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="6">{"states":["repouso","foco","segunda"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Título","part":"head","controls":[
+{"id":"title-size","label":"Tamanho do título","type":"slider","var":"--title-size","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--typography-font-size-2xl"},
+{"id":"title-line","label":"Altura da linha","type":"slider","var":"--title-line","value":1.2,"base":1.2,"min":1,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"title-color","label":"Cor do título","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"overline-size","label":"Tamanho do campeonato","type":"slider","var":"--overline-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"overline-gap","label":"Vão campeonato e título","type":"slider","var":"--overline-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Tabela","part":"rows","controls":[
+{"id":"row-gap","label":"Vão entre linhas","type":"slider","var":"--row-gap","value":0,"base":0,"min":0,"max":4,"step":1,"unit":"px","token":"--dimension-spacing-core-none"},
+{"id":"row-h","label":"Altura da linha","type":"slider","var":"--row-h","value":24,"base":24,"min":16,"max":32,"step":1,"unit":"px","token":"--dimension-size-semantic-table-cell-md"},
+{"id":"col-gap","label":"Vão entre colunas","type":"slider","var":"--col-gap","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"pos-col","label":"Coluna da posição","type":"slider","var":"--pos-col","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--dimension-size-semantic-icon-sm"},
+{"id":"name-col","label":"Coluna do nome","type":"slider","var":"--name-col","value":88,"base":88,"min":64,"max":104,"step":1,"unit":"px"},
+{"id":"stat-col","label":"Coluna dos pontos","type":"slider","var":"--stat-col","value":24,"base":24,"min":16,"max":40,"step":1,"unit":"px","token":"--dimension-size-semantic-table-stat-column"}
+]},
+{"name":"Linhas","part":"row","controls":[
+{"id":"lead-size","label":"Nome do líder","type":"slider","var":"--lead-size","value":16,"base":16,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-base"},
+{"id":"name-size","label":"Nome dos demais","type":"slider","var":"--name-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"stat-size","label":"Pontos","type":"slider","var":"--stat-size","value":14,"base":14,"min":14,"max":18,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"pos-size","label":"Posição","type":"slider","var":"--pos-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}
+]},
+{"name":"Barras","part":"bar","controls":[
+{"id":"bar-h","label":"Espessura da barra","type":"slider","var":"--bar-h","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"bar-radius","label":"Raio da barra","type":"slider","var":"--bar-radius","value":100,"base":100,"min":0,"max":100,"step":1,"unit":"px","token":"--dimension-radius-core-full"},
+{"id":"bar-color","label":"Cor da barra","type":"color","var":"--bar-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"bar-opacity","label":"Força das barras (exceto o líder)","type":"slider","var":"--bar-opacity","value":0.5,"base":0.5,"min":0.2,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-content-muted"}
+]},
+{"name":"Rodapé","part":"footer","controls":[
+{"id":"foot-size","label":"Tamanho do rodapé","type":"slider","var":"--foot-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"outline-w","label":"Contorno em repouso","type":"slider","var":"--outline-w","value":1,"base":1,"min":1,"max":2,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Foco e troca de página","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const rows = [...root.querySelectorAll('.row')]
+  let at = rows.findIndex((r) => r.hasAttribute('data-focus'))
+  const paint = () => rows.forEach((r, i) => {
+    r.toggleAttribute('data-focus', i === at)
+    r.setAttribute('aria-expanded', String(i === at && root.dataset.state === 'aberta'))
+  })
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') at = Math.max(0, at - 1)
+    else if (e.key === 'ArrowRight') at = Math.min(rows.length - 1, at + 1)
+    else if (e.key === 'Enter') root.dataset.state = root.dataset.state === 'aberta' ? 'foco' : 'aberta'
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state === 'aberta') root.dataset.state = 'foco'
+      else if (at > 0) at = 0
+      else return // at the start, Back leaves the card
+    } else return // ↑/↓ leave the card
+    e.preventDefault()
+    paint()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const items = [...root.querySelectorAll('.o2-item')]
+  const f = (k) => root.querySelector('[data-f="' + k + '"]')
+  const teams = [
+    { name: 'Flamengo', games: '28 jogos', v: '18', e: '6', d: '4', sg: '+24', form: ['V', 'V', 'E', 'V'] },
+    { name: 'Palmeiras', games: '28 jogos', v: '16', e: '9', d: '3', sg: '+19', form: ['V', 'E', 'V', 'V'] },
+    { name: 'Athletico', games: '28 jogos', v: '14', e: '7', d: '7', sg: '+9', form: ['D', 'V', 'E', 'V'] },
+  ]
+  let sel = 0
+  const render = () => {
+    items.forEach((it, i) => it.setAttribute('aria-selected', String(i === sel)))
+    const t = teams[sel]
+    f('name').textContent = t.name
+    f('games').textContent = t.games
+    ;['v', 'e', 'd', 'sg'].forEach((k) => { f(k).textContent = t[k] })
+    f('form').innerHTML = t.form.map((x) => '<span>' + x + '</span>').join('')
+  }
+  root.addEventListener('focus', () => { if (root.dataset.state === 'repouso') root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (sel > 0) { sel -= 1; render() } }
+    else if (e.key === 'ArrowRight') { if (sel < items.length - 1) { sel += 1; render() } }
+    else if (e.key === 'Enter') { root.dataset.state = 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state !== 'aberto') return // Back at the first view leaves the card
+      root.dataset.state = 'foco'
+    }
+    else return // ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const toggle = () => { root.dataset.state = root.dataset.state === 'resto' ? 'foco' : 'resto' }
+  root.addEventListener('focus', () => { if (root.dataset.state === 'repouso') root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+  root.addEventListener('click', toggle)
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') toggle()
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state !== 'resto') return // Back at the first ten leaves the card
+      root.dataset.state = 'foco'
+    } else return // ←/→ have no second piece to reach; ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+  (() => {
+    const root = document.querySelector('.opt[data-option="4"]')
+    const card = root.querySelector('.card')
+    // The whole card is the only control: Enter (or a click) swaps 1º-10º and 11º-20º.
+    const swap = () => { root.dataset.state = root.dataset.state === 'segunda' ? 'foco' : 'segunda' }
+    root.addEventListener('focus', () => { if (root.dataset.state === 'repouso') root.dataset.state = 'foco' })
+    root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+    card.addEventListener('click', () => { swap() })
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') swap()
+      else if (e.key === 'Escape' || e.key === 'Backspace') {
+        if (root.dataset.state !== 'segunda') return // at the first page, Back leaves the card
+        root.dataset.state = 'foco'
+      } else return // ←/→ and ↑/↓ pass: the screen handles them
+      e.preventDefault()
+    })
+  })()
+  </script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  const chips = [...root.querySelectorAll('.chip')]
+  const pager = root.querySelector('.pager')
+  // The whole card is the one control: Enter or a click swaps the two pages.
+  const paint = () => {
+    const second = root.dataset.state === 'segunda'
+    chips.forEach((c, i) => { if (i === (second ? 1 : 0)) c.setAttribute('aria-current', 'page'); else c.removeAttribute('aria-current') })
+    pager.setAttribute('aria-label', 'Posições da tabela, página ' + (second ? 2 : 1) + ' de 2')
+  }
+  const swap = () => { root.dataset.state = root.dataset.state === 'segunda' ? 'foco' : 'segunda'; paint() }
+  root.addEventListener('click', swap)
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') swap()
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (root.dataset.state !== 'segunda') return // on the first page, Back leaves the card
+      root.dataset.state = 'foco'; paint()
+    } else return // ←/→ do nothing here and ↑/↓ leave the card
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  const swap = () => { root.dataset.state = root.dataset.state === 'segunda' ? 'foco' : 'segunda' }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') swap()
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && root.dataset.state === 'segunda') root.dataset.state = 'foco'
+    else return // ←/→/↑/↓ pass: the whole card is the one control
+    e.preventDefault()
+  })
+  root.addEventListener('click', (e) => { if (e.target.closest('.card')) swap() })
+  root.addEventListener('focus', () => { if (root.dataset.state === 'repouso') root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { if (root.dataset.state === 'foco') root.dataset.state = 'repouso' })
+})()
+</script>
+</body>
+</html>
