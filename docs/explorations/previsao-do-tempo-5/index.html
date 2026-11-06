@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Previsão do tempo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --bg: var(--color-semantic-functional-background-elevated);
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --inner-gap: var(--dimension-spacing-core-3xs);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --rail-gap: var(--dimension-spacing-core-3xs);
+  --day-radius: var(--dimension-radius-core-sm);
+  --day-pad: var(--dimension-spacing-core-xs);
+  --day-color: var(--color-semantic-functional-text-primary);
+  --sel-bg: var(--color-semantic-functional-text-primary);
+  --sel-color: var(--color-semantic-functional-text-inverse);
+  --edge: var(--dimension-border-width-semantic-button);
+  --detail-gap: var(--dimension-spacing-core-sm);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="1"] .o1-card {
+  display: flex; flex-direction: column; gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width); box-sizing: border-box;
+  padding: var(--inset); border-radius: var(--radius); background: var(--bg);
+}
+[data-option="1"] .o1-head { display: flex; flex-direction: column; gap: var(--inner-gap); }
+[data-option="1"] .o1-place { color: var(--color-semantic-functional-text-muted); margin: 0; }
+[data-option="1"] .o1-temp { color: var(--temp-color); margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="1"] .o1-cond { color: var(--color-semantic-functional-text-muted); margin: 0; text-wrap: pretty; }
+[data-option="1"] .o1-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--rail-gap); }
+[data-option="1"] .o1-day {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--inner-gap);
+  padding: var(--day-pad) 0; border-radius: var(--day-radius); color: var(--day-color);
+  font-variant-numeric: tabular-nums;
+  transition-property: background-color, color; transition-duration: var(--dur); transition-timing-function: var(--ease);
+}
+[data-option="1"] .o1-day::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--edge);
+  background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="1"] .o1-day[aria-selected="true"] { background: var(--sel-bg); color: var(--sel-color); }
+[data-option="1"] .o1-day[aria-selected="true"]::before { content: none; }
+[data-option="1"]:focus-within .o1-day[aria-selected="true"]::after,
+[data-option="1"]:focus .o1-day[aria-selected="true"]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="1"] .o1-dname, [data-option="1"] .o1-dtemp { display: block; }
+[data-option="1"] .o1-detail { display: none; grid-template-columns: repeat(3, auto); justify-content: start; gap: var(--detail-gap); }
+[data-option="1"][data-state="aberto"] .o1-detail { display: grid; }
+[data-option="1"] .o1-stat { display: flex; flex-direction: column; gap: var(--inner-gap); }
+[data-option="1"] .o1-label { color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .o1-value { color: var(--value-color); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { [data-option="1"] .o1-day { transition-property: none; } }
+/* tune:vars */
+[data-option="2"] {
+  --bg: var(--color-semantic-functional-background-elevated);
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --head-gap: var(--dimension-spacing-core-3xs);
+  --day-gap: var(--dimension-spacing-core-3xs);
+  --day-pad: var(--dimension-spacing-core-xs);
+  --day-radius: var(--dimension-radius-core-sm);
+  --day-inner-gap: var(--dimension-spacing-core-3xs);
+  --sel-bg: var(--color-semantic-functional-text-primary);
+  --sel-fg: var(--color-semantic-functional-background-primary);
+  --detail-gap: var(--dimension-spacing-core-2xs);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="2"] .o2-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: var(--group-gap);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"][data-state="repouso"] .o2-card { padding-bottom: calc(var(--inset) - var(--day-pad)); }
+[data-option="2"] .o2-head { display: flex; flex-direction: column; gap: var(--head-gap); }
+[data-option="2"] .o2-place { color: var(--color-semantic-functional-text-muted); margin: 0; }
+[data-option="2"] .o2-temp { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="2"] .o2-cond { margin: 0; color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+[data-option="2"] .o2-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--day-gap); }
+[data-option="2"] .o2-day {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  gap: var(--day-inner-gap); padding: var(--day-pad) var(--dimension-spacing-core-3xs);
+  border-radius: var(--day-radius);
+  transition-property: background-color, color; transition-duration: var(--dur); transition-timing-function: var(--ease);
+}
+[data-option="2"] .o2-day > span { display: block; font-variant-numeric: tabular-nums; }
+[data-option="2"] .o2-day::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="2"] .o2-day.is-focus::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="2"][data-state="aberto"] .o2-day.is-focus { background: var(--sel-bg); color: var(--sel-fg); }
+[data-option="2"][data-state="aberto"] .o2-day.is-focus::before { display: none; }
+[data-option="2"] .o2-detail { display: none; flex-direction: column; gap: var(--detail-gap); margin: 0; }
+[data-option="2"][data-state="aberto"] .o2-detail { display: flex; }
+[data-option="2"] .o2-row { display: flex; justify-content: space-between; margin: 0; }
+[data-option="2"] .o2-row dt { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-row dd { margin: 0; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { [data-option="2"] .o2-day { transition-duration: 0ms; } }
+/* tune:vars */
+[data-option="3"] {
+  --o3-radius: var(--dimension-radius-semantic-content-card);
+  --o3-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --o3-bg: var(--color-semantic-functional-background-elevated);
+  --o3-group-gap: var(--dimension-spacing-core-sm);
+  --o3-inner-gap: var(--dimension-spacing-core-3xs);
+  --o3-anchor-color: var(--color-semantic-functional-text-primary);
+  --o3-chart-height: 96px;
+  --o3-col-gap: var(--dimension-spacing-core-2xs);
+  --o3-bar-radius: var(--dimension-radius-core-xs);
+  --o3-cell-radius: var(--dimension-radius-core-sm);
+  --o3-bar-active: var(--color-semantic-functional-text-primary);
+  --o3-dot: 4px;
+  --o3-dur: 150ms;
+  --o3-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="3"] {
+  --o3-support-color: var(--color-semantic-functional-text-muted);
+  --o3-track: var(--color-opacity-light-10);
+  --o3-bar: var(--color-opacity-light-30);
+}
+[data-option="3"] .o3-card {
+  display: flex; flex-direction: column; gap: var(--o3-group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box; padding: var(--o3-inset);
+  border-radius: var(--o3-radius); background: var(--o3-bg);
+}
+[data-option="3"] .o3-group { display: flex; flex-direction: column; gap: var(--o3-inner-gap); margin: 0; }
+[data-option="3"] .o3-card p { margin: 0; }
+[data-option="3"] .o3-place, [data-option="3"] .o3-cond, [data-option="3"] .o3-detail, [data-option="3"] .o3-view { color: var(--o3-support-color); }
+[data-option="3"] .o3-cond, [data-option="3"] .o3-detail { text-wrap: pretty; font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-temp { color: var(--o3-anchor-color); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--o3-col-gap); }
+[data-option="3"] .o3-col { display: flex; flex-direction: column; align-items: center; gap: var(--o3-inner-gap); }
+[data-option="3"] .o3-stage { display: grid; position: relative; width: 100%; height: var(--o3-chart-height); }
+[data-option="3"] .o3-track {
+  grid-area: 1 / 1; display: flex; align-items: flex-end;
+  border-radius: var(--o3-bar-radius); background: var(--o3-track);
+  transition-property: opacity; transition-duration: var(--o3-dur); transition-timing-function: var(--o3-ease);
+}
+[data-option="3"] .o3-fill {
+  display: block; width: 100%; height: var(--h);
+  border-radius: var(--o3-bar-radius); background: var(--o3-bar);
+  transition-property: background-color; transition-duration: var(--o3-dur); transition-timing-function: var(--o3-ease);
+}
+[data-option="3"] .o3-num {
+  grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--o3-inner-gap);
+  border-radius: var(--o3-cell-radius); color: var(--o3-anchor-color); opacity: 0;
+  font-variant-numeric: tabular-nums;
+  transition-property: opacity, background-color, color; transition-duration: var(--o3-dur); transition-timing-function: var(--o3-ease);
+}
+[data-option="3"] .o3-num span { display: block; }
+[data-option="3"] .o3-num .o3-rain { color: var(--o3-support-color); }
+[data-option="3"] .o3-hour { color: var(--o3-support-color); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-mark { display: block; width: var(--o3-dot); height: var(--o3-dot); border-radius: var(--dimension-radius-core-full); }
+[data-option="3"] .o3-hour { display: flex; align-items: center; gap: var(--o3-inner-gap); }
+[data-option="3"] .o3-mark { background: var(--o3-anchor-color); }
+
+/* visão números */
+[data-option="3"][data-state="numeros"] .o3-track { opacity: 0; }
+[data-option="3"][data-state="numeros"] .o3-num { opacity: 1; }
+/* hora em foco (a marca do dado é o sinal) */
+[data-option="3"][data-hour="0"] .o3-col:nth-child(1) .o3-fill,
+[data-option="3"][data-hour="1"] .o3-col:nth-child(2) .o3-fill,
+[data-option="3"][data-hour="2"] .o3-col:nth-child(3) .o3-fill,
+[data-option="3"][data-hour="3"] .o3-col:nth-child(4) .o3-fill { background: var(--o3-bar-active); }
+[data-option="3"][data-state="numeros"][data-hour="0"] .o3-col:nth-child(1) .o3-num,
+[data-option="3"][data-state="numeros"][data-hour="1"] .o3-col:nth-child(2) .o3-num,
+[data-option="3"][data-state="numeros"][data-hour="2"] .o3-col:nth-child(3) .o3-num,
+[data-option="3"][data-state="numeros"][data-hour="3"] .o3-col:nth-child(4) .o3-num { background: var(--o3-bar-active); color: var(--color-semantic-functional-text-inverse); }
+[data-option="3"][data-state="numeros"][data-hour="0"] .o3-col:nth-child(1) .o3-rain,
+[data-option="3"][data-state="numeros"][data-hour="1"] .o3-col:nth-child(2) .o3-rain,
+[data-option="3"][data-state="numeros"][data-hour="2"] .o3-col:nth-child(3) .o3-rain,
+[data-option="3"][data-state="numeros"][data-hour="3"] .o3-col:nth-child(4) .o3-rain { color: var(--color-semantic-functional-text-inverse); }
+[data-option="3"][data-hour="0"] .o3-col:nth-child(1) .o3-hour,
+[data-option="3"][data-hour="1"] .o3-col:nth-child(2) .o3-hour,
+[data-option="3"][data-hour="2"] .o3-col:nth-child(3) .o3-hour,
+[data-option="3"][data-hour="3"] .o3-col:nth-child(4) .o3-hour { color: var(--o3-anchor-color); }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-fill, [data-option="3"] .o3-num, [data-option="3"] .o3-track { transition-property: opacity; }
+}
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-xs);
+  --inner-gap: var(--dimension-spacing-core-3xs);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --rail-gap: var(--dimension-spacing-core-2xs);
+  --tile-radius: var(--dimension-radius-core-sm);
+  --tile-pad: var(--dimension-spacing-core-xs);
+  --tile-text: var(--color-semantic-functional-text-primary);
+  --tile-sel-bg: var(--color-semantic-functional-text-primary);
+  --tile-sel-text: var(--color-semantic-functional-text-inverse);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="4"] .o4-card { display: flex; flex-direction: column; gap: var(--group-gap); box-sizing: border-box; width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius); background: var(--bg); }
+[data-option="4"] .o4-head { display: flex; flex-direction: column; gap: var(--inner-gap); }
+[data-option="4"] .o4-place { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .o4-title { margin: 0; color: var(--title-color); text-wrap: balance; }
+[data-option="4"] .o4-proof { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="4"] .o4-value { margin: 0; color: var(--value-color); font-variant-numeric: tabular-nums; }
+[data-option="4"] .o4-note { margin: 0; color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+[data-option="4"] .o4-rail { display: flex; gap: var(--rail-gap); }
+[data-option="4"] .o4-tile { position: relative; display: flex; flex-direction: column; gap: var(--inner-gap); flex: 1 1 0; min-width: 0; padding: var(--tile-pad); border-radius: var(--tile-radius); color: var(--tile-text); transition-property: background-color, color; transition-duration: var(--dur); transition-timing-function: var(--ease); }
+[data-option="4"] .o4-tile::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-button); background: var(--gradient-semantic-border-default); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="4"] .o4-tile::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: 0; }
+[data-option="4"] .o4-tile span { display: block; font-variant-numeric: tabular-nums; }
+[data-option="4"] .o4-tile.is-focus::after { opacity: 1; }
+[data-option="4"][data-state="aberto"] .o4-tile.is-focus { background: var(--tile-sel-bg); color: var(--tile-sel-text); }
+[data-option="4"][data-state="aberto"] .o4-tile.is-focus::before { display: none; }
+[data-option="4"] .o4-detail { margin: 0; color: var(--color-semantic-functional-text-muted); text-wrap: pretty; display: none; }
+[data-option="4"][data-state="aberto"] .o4-detail { display: block; }
+@media (prefers-reduced-motion: reduce) { [data-option="4"] .o4-tile { transition-property: none; } }
+/* tune:vars */
+[data-option="5"] {
+  --o5-radius: var(--dimension-radius-semantic-content-card);
+  --o5-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --o5-bg: var(--color-semantic-functional-background-elevated);
+  --o5-group-gap: var(--dimension-spacing-core-sm);
+  --o5-inner-gap: var(--dimension-spacing-core-3xs);
+  --o5-anchor-color: var(--color-semantic-functional-text-primary);
+  --o5-seg-gap: var(--dimension-spacing-core-2xs);
+  --o5-seg-radius: var(--dimension-radius-core-sm);
+  --o5-seg-pad: var(--dimension-spacing-core-2xs);
+  --o5-sel-bg: var(--color-semantic-functional-text-primary);
+  --o5-sel-color: var(--color-semantic-functional-background-primary);
+  --o5-bar: 4px;
+  --o5-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o5-dur: 150ms;
+  --o5-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="5"] {
+  --o5-support: var(--color-semantic-functional-text-muted);
+  --o5-bar-rest: var(--color-opacity-light-20);
+}
+[data-option="5"] .o5-card {
+  display: flex; flex-direction: column; gap: var(--o5-group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box; padding: var(--o5-inset);
+  border-radius: var(--o5-radius); background: var(--o5-bg);
+}
+[data-option="5"] .o5-card p { margin: 0; }
+[data-option="5"] .o5-group { display: flex; flex-direction: column; gap: var(--o5-inner-gap); }
+[data-option="5"] .o5-place, [data-option="5"] .o5-cond, [data-option="5"] .o5-detail { color: var(--o5-support); text-wrap: pretty; font-variant-numeric: tabular-nums; }
+[data-option="5"] .o5-phase { color: var(--o5-anchor-color); }
+[data-option="5"] .o5-temp { color: var(--o5-anchor-color); font-variant-numeric: tabular-nums; }
+[data-option="5"] .o5-more { display: none; }
+[data-option="5"][data-state="aberto"] .o5-more { display: block; }
+[data-option="5"] .o5-swap { transition-property: opacity; transition-duration: var(--o5-dur); transition-timing-function: var(--o5-ease); }
+[data-option="5"].o5-fading .o5-swap { opacity: 0; }
+
+[data-option="5"] .o5-arc { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--o5-seg-gap); }
+[data-option="5"] .o5-seg {
+  position: relative; display: flex; flex-direction: column; gap: var(--o5-inner-gap);
+  padding: var(--o5-seg-pad); border-radius: var(--o5-seg-radius);
+  color: var(--o5-anchor-color);
+  transition-property: background-color, color; transition-duration: var(--o5-dur); transition-timing-function: var(--o5-ease);
+}
+[data-option="5"] .o5-bar { display: block; height: var(--o5-bar); border-radius: var(--dimension-radius-core-full); background: var(--o5-bar-rest); }
+[data-option="5"] .o5-seg[data-phase="manha"] .o5-bar { --o5-g: var(--gradient-primary-dia); }
+[data-option="5"] .o5-seg[data-phase="tarde"] .o5-bar { --o5-g: var(--gradient-primary-tarde); }
+[data-option="5"] .o5-seg[data-phase="noite"] .o5-bar { --o5-g: var(--gradient-primary-noite); }
+[data-option="5"] .o5-seg[aria-selected="true"] { background: var(--o5-sel-bg); color: var(--o5-sel-color); }
+[data-option="5"] .o5-seg[aria-selected="true"] .o5-bar { background: var(--o5-g); }
+[data-option="5"] .o5-seg::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--o5-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0;
+}
+[data-option="5"]:focus .o5-seg[aria-selected="true"]::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"] .o5-swap, [data-option="5"] .o5-seg { transition-duration: 0ms; }
+}
+/* tune:vars */
+[data-option="6"] {
+  --o6-radius: var(--dimension-radius-semantic-content-card);
+  --o6-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --o6-bg: var(--color-semantic-functional-background-elevated);
+  --o6-group-gap: var(--dimension-spacing-core-sm);
+  --o6-inner-gap: var(--dimension-spacing-core-3xs);
+  --o6-anchor-color: var(--color-semantic-functional-text-primary);
+  --o6-stage-height: 124px;
+  --o6-orbit-width: 176px;
+  --o6-orbit-top: 12px;
+  --o6-track-width: var(--dimension-border-width-core-hairline);
+  --o6-chip: 48px;
+  --o6-chip-color: var(--color-semantic-functional-text-primary);
+  --o6-chip-selected: var(--color-semantic-functional-text-primary);
+  --o6-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o6-dur: 150ms;
+  --o6-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="6"] {
+  --o6-support-color: var(--color-semantic-functional-text-muted);
+  --o6-track: var(--color-opacity-light-10);
+}
+[data-option="6"] .o6-card {
+  display: flex; flex-direction: column; gap: var(--o6-group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box; padding: var(--o6-inset);
+  border-radius: var(--o6-radius); background: var(--o6-bg);
+}
+[data-option="6"] .o6-card p { margin: 0; }
+[data-option="6"] .o6-stage { display: block; position: relative; width: 100%; height: var(--o6-stage-height); }
+[data-option="6"] .o6-orbit {
+  display: block; position: absolute; left: 50%; top: var(--o6-orbit-top);
+  width: var(--o6-orbit-width); height: calc(var(--o6-orbit-width) / 2);
+  transform: translateX(-50%); box-sizing: border-box;
+  border: var(--o6-track-width) solid var(--o6-track); border-bottom: 0;
+  border-top-left-radius: var(--dimension-radius-core-full) ;
+  border-top-right-radius: var(--dimension-radius-core-full);
+}
+[data-option="6"] .o6-center {
+  display: flex; flex-direction: column; align-items: center; gap: var(--o6-inner-gap);
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+}
+[data-option="6"] .o6-temp { color: var(--o6-anchor-color); font-variant-numeric: tabular-nums; }
+[data-option="6"] .o6-place { color: var(--o6-support-color); }
+[data-option="6"] .o6-hour {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; width: var(--o6-chip); height: var(--o6-chip);
+  transform: translate(-50%, -50%);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--o6-bg); color: var(--o6-chip-color);
+  font-variant-numeric: tabular-nums;
+  transition-property: background-color, color; transition-duration: var(--o6-dur); transition-timing-function: var(--o6-ease);
+}
+/* meia órbita: centro (50%, 100px), raio 88px; 180°, 120°, 60°, 0° */
+[data-option="6"] .o6-hour:nth-child(2) { left: calc(50% - 88px); top: 100px; }
+[data-option="6"] .o6-hour:nth-child(3) { left: calc(50% - 44px); top: 24px; }
+[data-option="6"] .o6-hour:nth-child(4) { left: calc(50% + 44px); top: 24px; }
+[data-option="6"] .o6-hour:nth-child(5) { left: calc(50% + 88px); top: 100px; }
+[data-option="6"] .o6-hour::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button);
+  background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="6"] .o6-hour::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--o6-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0;
+}
+[data-option="6"][data-hour="0"] .o6-hour:nth-child(2)::after,
+[data-option="6"][data-hour="1"] .o6-hour:nth-child(3)::after,
+[data-option="6"][data-hour="2"] .o6-hour:nth-child(4)::after,
+[data-option="6"][data-hour="3"] .o6-hour:nth-child(5)::after { opacity: 1; }
+/* aberto: a hora focada fica preenchida (selecionada) */
+[data-option="6"][data-state="aberto"][data-hour="0"] .o6-hour:nth-child(2),
+[data-option="6"][data-state="aberto"][data-hour="1"] .o6-hour:nth-child(3),
+[data-option="6"][data-state="aberto"][data-hour="2"] .o6-hour:nth-child(4),
+[data-option="6"][data-state="aberto"][data-hour="3"] .o6-hour:nth-child(5) { background: var(--o6-chip-selected); color: var(--color-semantic-functional-text-inverse); }
+[data-option="6"] .o6-info { display: flex; flex-direction: column; gap: var(--o6-inner-gap); align-items: center; text-align: center; }
+[data-option="6"] .o6-label { color: var(--o6-anchor-color); text-wrap: pretty; }
+[data-option="6"] .o6-detail { color: var(--o6-support-color); text-wrap: pretty; font-variant-numeric: tabular-nums; display: none; }
+[data-option="6"][data-state="aberto"] .o6-detail { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .o6-hour { transition-property: opacity; }
+}
+/* tune:vars */
+[data-option="7"] {
+  --o7-radius: var(--dimension-radius-semantic-content-card);
+  --o7-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --o7-bg: var(--color-semantic-functional-background-elevated);
+  --o7-group-gap: var(--dimension-spacing-core-sm);
+  --o7-inner-gap: var(--dimension-spacing-core-3xs);
+  --o7-anchor-color: var(--color-semantic-functional-text-primary);
+  --o7-track-pad: var(--dimension-spacing-core-3xs);
+  --o7-seg-height: var(--dimension-size-semantic-control-height-lg);
+  --o7-seg-pad: var(--dimension-spacing-core-sm);
+  --o7-sel-bg: var(--color-semantic-functional-text-primary);
+  --o7-sel-fg: var(--color-semantic-functional-background-primary);
+  --o7-dur: 150ms;
+  --o7-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="7"] {
+  --o7-support: var(--color-semantic-functional-text-muted);
+  --o7-track: var(--color-opacity-light-10);
+}
+[data-option="7"] .o7-card {
+  display: flex; flex-direction: column; gap: var(--o7-group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box; padding: var(--o7-inset);
+  border-radius: var(--o7-radius); background: var(--o7-bg);
+}
+[data-option="7"] .o7-card p { margin: 0; }
+[data-option="7"] .o7-group { display: flex; flex-direction: column; gap: var(--o7-inner-gap); }
+[data-option="7"] .o7-place, [data-option="7"] .o7-cond, [data-option="7"] .o7-more { color: var(--o7-support); text-wrap: pretty; }
+[data-option="7"] .o7-temp, [data-option="7"] .o7-range { color: var(--o7-anchor-color); }
+[data-option="7"] .o7-temp, [data-option="7"] .o7-range, [data-option="7"] .o7-more { font-variant-numeric: tabular-nums; }
+[data-option="7"] .o7-day { transition-property: opacity; transition-duration: var(--o7-dur); transition-timing-function: var(--o7-ease); }
+[data-option="7"][data-state="hoje"] .o7-day[data-day="amanha"],
+[data-option="7"][data-state="amanha"] .o7-day[data-day="hoje"] { display: none; }
+[data-option="7"] .o7-track {
+  display: flex; gap: var(--o7-inner-gap); padding: var(--o7-track-pad);
+  border-radius: var(--dimension-radius-semantic-pill); background: var(--o7-track);
+}
+[data-option="7"] .o7-seg {
+  position: relative; display: flex; flex: 1; align-items: center; justify-content: center;
+  height: var(--o7-seg-height); box-sizing: border-box; padding: 0 var(--o7-seg-pad);
+  border-radius: var(--dimension-radius-semantic-pill); color: var(--o7-anchor-color);
+  transition-property: background-color, color; transition-duration: var(--o7-dur); transition-timing-function: var(--o7-ease);
+}
+[data-option="7"][data-state="hoje"] .o7-seg[data-day="hoje"],
+[data-option="7"][data-state="amanha"] .o7-seg[data-day="amanha"] { background: var(--o7-sel-bg); color: var(--o7-sel-fg); }
+[data-option="7"]:focus-visible[data-state="hoje"] .o7-seg[data-day="hoje"]::after,
+[data-option="7"]:focus-visible[data-state="amanha"] .o7-seg[data-day="amanha"]::after,
+[data-option="7"]:focus[data-state="hoje"] .o7-seg[data-day="hoje"]::after,
+[data-option="7"]:focus[data-state="amanha"] .o7-seg[data-day="amanha"]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="7"] .o7-seg, [data-option="7"] .o7-day { transition-duration: 0ms; } }
+/* tune:vars */
+[data-option="8"] {
+  --o8-radius: var(--dimension-radius-semantic-content-card);
+  --o8-inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --o8-bg: var(--color-semantic-functional-background-elevated);
+  --o8-group-gap: var(--dimension-spacing-core-sm);
+  --o8-inner-gap: var(--dimension-spacing-core-3xs);
+  --o8-anchor-color: var(--color-semantic-functional-text-primary);
+  --o8-tile-gap: var(--dimension-spacing-core-2xs);
+  --o8-tile-pad: var(--dimension-spacing-core-2xs);
+  --o8-tile-radius: var(--dimension-radius-core-sm);
+  --o8-tile-height: 72px;
+  --o8-swatch: 16px;
+  --o8-picked-bg: var(--color-semantic-functional-text-primary);
+  --o8-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o8-dur: 150ms;
+  --o8-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="8"] { --o8-support: var(--color-semantic-functional-text-muted); }
+[data-option="8"] .o8-card {
+  display: flex; flex-direction: column; gap: var(--o8-group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  box-sizing: border-box; padding: var(--o8-inset);
+  border-radius: var(--o8-radius); background: var(--o8-bg);
+}
+[data-option="8"] .o8-card p { margin: 0; }
+[data-option="8"] .o8-group { display: flex; flex-direction: column; gap: var(--o8-inner-gap); }
+[data-option="8"] .o8-place, [data-option="8"] .o8-cond, [data-option="8"] .o8-rain { color: var(--o8-support); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+[data-option="8"] .o8-temp { color: var(--o8-anchor-color); font-variant-numeric: tabular-nums; }
+[data-option="8"] .o8-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--o8-tile-gap); }
+[data-option="8"] .o8-tile {
+  position: relative; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  box-sizing: border-box; height: var(--o8-tile-height); padding: calc(var(--o8-tile-pad) + var(--o8-ring) / 2);
+  border-radius: var(--o8-tile-radius); color: var(--color-semantic-functional-text-primary);
+  transition-property: background-color, color; transition-duration: var(--o8-dur); transition-timing-function: var(--o8-ease);
+}
+[data-option="8"] .o8-tile::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-button); background: var(--gradient-semantic-border-default);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="8"] .o8-tile::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--o8-ring); background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0;
+}
+[data-option="8"] .o8-swatch { display: block; width: var(--o8-swatch); height: var(--o8-swatch); border-radius: var(--dimension-radius-core-full); }
+[data-option="8"] .o8-hour { display: block; font-variant-numeric: tabular-nums; }
+[data-option="8"] [data-t="dia"] .o8-swatch { background: var(--gradient-primary-dia); }
+[data-option="8"] [data-t="tarde"] .o8-swatch { background: var(--gradient-primary-tarde); }
+[data-option="8"] [data-t="noite"] .o8-swatch { background: var(--gradient-primary-noite); }
+/* foco: anel */
+[data-option="8"][data-focus="0"] .o8-tile:nth-child(1)::after,
+[data-option="8"][data-focus="1"] .o8-tile:nth-child(2)::after,
+[data-option="8"][data-focus="2"] .o8-tile:nth-child(3)::after,
+[data-option="8"][data-focus="3"] .o8-tile:nth-child(4)::after { opacity: 1; }
+/* escolhido: fundo invertido */
+[data-option="8"][data-pick="0"] .o8-tile:nth-child(1),
+[data-option="8"][data-pick="1"] .o8-tile:nth-child(2),
+[data-option="8"][data-pick="2"] .o8-tile:nth-child(3),
+[data-option="8"][data-pick="3"] .o8-tile:nth-child(4) { background: var(--o8-picked-bg); color: var(--color-semantic-functional-text-inverse); }
+[data-option="8"][data-pick="0"] .o8-tile:nth-child(1)::before,
+[data-option="8"][data-pick="1"] .o8-tile:nth-child(2)::before,
+[data-option="8"][data-pick="2"] .o8-tile:nth-child(3)::before,
+[data-option="8"][data-pick="3"] .o8-tile:nth-child(4)::before { opacity: 0; }
+/* escolhido fora de agora: a hora fixada sobe para o tom da âncora */
+[data-option="8"][data-state="escolhido"] .o8-place { color: var(--o8-anchor-color); }
+@media (prefers-reduced-motion: reduce) { [data-option="8"] .o8-tile { transition-duration: 0ms; } }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o dia selecionado vira o herói e o detalhe dele aparece no próprio card. -->
+  <p class="opt-label" data-part="label">Opção 1 - Trilho de dias</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-card" data-part="card">
+      <div class="o1-head" data-part="heroi" aria-live="polite">
+        <p class="o1-place text-body-sm-medium" data-part="local"><span class="o1-when">Hoje</span> em São Paulo</p>
+        <p class="o1-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        <p class="o1-cond text-body-sm-medium" data-part="condicao">Parcialmente nublado</p>
+      </div>
+      <div class="o1-rail" data-part="trilho" role="listbox" aria-label="Próximos dias">
+        <div class="o1-day" role="option" aria-selected="true"><span class="o1-dname text-body-sm-bold">Hoje</span><span class="o1-dtemp text-body-sm-medium">24°</span></div>
+        <div class="o1-day" role="option" aria-selected="false"><span class="o1-dname text-body-sm-bold">Qui</span><span class="o1-dtemp text-body-sm-medium">22°</span></div>
+        <div class="o1-day" role="option" aria-selected="false"><span class="o1-dname text-body-sm-bold">Sex</span><span class="o1-dtemp text-body-sm-medium">26°</span></div>
+        <div class="o1-day" role="option" aria-selected="false"><span class="o1-dname text-body-sm-bold">Sáb</span><span class="o1-dtemp text-body-sm-medium">25°</span></div>
+      </div>
+      <div class="o1-detail" data-part="detalhe" aria-live="polite">
+        <div class="o1-stat"><span class="o1-label text-footnote-medium">Máx/mín</span><span class="o1-value o1-mm text-body-sm-bold">27°/18°</span></div>
+        <div class="o1-stat"><span class="o1-label text-footnote-medium">Chuva</span><span class="o1-value o1-rain text-body-sm-bold">30%</span></div>
+        <div class="o1-stat"><span class="o1-label text-footnote-medium">Vento</span><span class="o1-value o1-wind text-body-sm-bold">14 km/h</span></div>
+      </div>
+    </div>
+    <script type="application/json" data-tune="1">
+    {"states":["repouso","aberto"],"folders":[
+      {"name":"Superfície","part":"card","controls":[
+        {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+        {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+        {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":8,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+        {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":4,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+        {"id":"innergap","label":"Vão dentro do grupo","type":"slider","var":"--inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+      {"name":"Herói","part":"heroi","controls":[
+        {"id":"tempcolor","label":"Cor da temperatura","type":"color","var":"--temp-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+      {"name":"Trilho","part":"trilho","controls":[
+        {"id":"railgap","label":"Vão entre dias","type":"slider","var":"--rail-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+        {"id":"dayradius","label":"Raio do dia","type":"slider","var":"--day-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+        {"id":"daypad","label":"Respiro do dia","type":"slider","var":"--day-pad","value":12,"base":12,"min":8,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+        {"id":"daycolor","label":"Texto do dia","type":"color","var":"--day-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+        {"id":"selbg","label":"Fundo do escolhido","type":"color","var":"--sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+        {"id":"selcolor","label":"Texto do escolhido","type":"color","var":"--sel-color","value":"#000000","base":"#000000","token":"--color-semantic-functional-text-inverse"},
+        {"id":"edge","label":"Contorno em repouso","type":"slider","var":"--edge","value":1,"base":1,"min":0,"max":4,"step":1,"unit":"px","token":"--dimension-border-width-semantic-button"}]},
+      {"name":"Detalhe","part":"detalhe","controls":[
+        {"id":"detailgap","label":"Vão entre dados","type":"slider","var":"--detail-gap","value":16,"base":16,"min":4,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+        {"id":"valuecolor","label":"Cor do valor","type":"color","var":"--value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+      {"name":"Foco","controls":[
+        {"id":"ring","label":"Largura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+      {"name":"Movimento","controls":[
+        {"id":"move","label":"Troca de dia","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o foco revela o detalhe na própria linha do dia, sem sair do card. -->
+  <p class="opt-label" data-part="label">Opção 2 - Dia que se abre</p>
+  <div class="opt-content" data-part="content">
+    <div class="o2-card" data-part="card">
+      <div class="o2-head" data-part="ancora" aria-live="polite">
+        <p class="o2-place text-body-sm-medium" data-part="local">São Paulo · <span class="o2-dayname">Hoje</span></p>
+        <p class="o2-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        <p class="o2-cond text-body-md-regular" data-part="condicao">Parcialmente nublado</p>
+      </div>
+      <div class="o2-rail" data-part="dias">
+        <div class="o2-day is-focus" data-i="0"><span class="text-body-sm-bold">Hoje</span><span class="text-body-sm-medium">24°</span></div>
+        <div class="o2-day" data-i="1"><span class="text-body-sm-bold">Qui</span><span class="text-body-sm-medium">22°</span></div>
+        <div class="o2-day" data-i="2"><span class="text-body-sm-bold">Sex</span><span class="text-body-sm-medium">26°</span></div>
+        <div class="o2-day" data-i="3"><span class="text-body-sm-bold">Sáb</span><span class="text-body-sm-medium">25°</span></div>
+      </div>
+      <dl class="o2-detail text-body-sm-medium" data-part="detalhe" aria-live="polite">
+        <div class="o2-row"><dt>Máx / mín</dt><dd class="o2-mm">27° / 18°</dd></div>
+        <div class="o2-row"><dt>Chuva</dt><dd class="o2-rain">30%</dd></div>
+        <div class="o2-row"><dt>Vento</dt><dd class="o2-wind">14 km/h</dd></div>
+      </dl>
+    </div>
+    <script type="application/json" data-tune="2">
+{"states":["repouso","aberto"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":8,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+ {"name":"Âncora","part":"ancora","controls":[
+  {"id":"headgap","label":"Vão interno","type":"slider","var":"--head-gap","value":4,"base":4,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Dias","part":"dias","controls":[
+  {"id":"daygap","label":"Vão entre dias","type":"slider","var":"--day-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+  {"id":"daypad","label":"Respiro do dia","type":"slider","var":"--day-pad","value":12,"base":12,"min":8,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+  {"id":"dayradius","label":"Raio do dia","type":"slider","var":"--day-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+  {"id":"dayinner","label":"Vão nome-temperatura","type":"slider","var":"--day-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+  {"id":"selbg","label":"Fundo do aberto","type":"color","var":"--sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"selfg","label":"Texto do aberto","type":"color","var":"--sel-fg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"}]},
+ {"name":"Detalhe","part":"detalhe","controls":[
+  {"id":"detailgap","label":"Vão entre linhas","type":"slider","var":"--detail-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+ {"name":"Foco","controls":[
+  {"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca de estado","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="barras" data-hour="0" tabindex="0">
+  <!-- tese: o mesmo dia em duas leituras, números ou curva por hora, com o resumo fixo -->
+  <p class="opt-label" data-part="label">Opção 3 - Duas leituras do dia</p>
+  <div class="opt-content" data-part="content">
+    <section class="o3-card" data-part="card">
+      <div class="o3-group" data-part="resumo">
+        <p class="o3-place text-body-sm-medium">São Paulo · Hoje</p>
+        <p class="o3-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        <p class="o3-cond text-body-sm-medium">Parcialmente nublado · 27° / 18°</p>
+      </div>
+      <div class="o3-group" data-part="grafico">
+        <p class="o3-view text-footnote-medium" data-part="visao" aria-live="polite">Temperatura por hora · barras</p>
+        <div class="o3-cols">
+          <div class="o3-col"><div class="o3-stage" data-stack><div class="o3-track"><span class="o3-fill" style="--h:89%"></span></div><div class="o3-num"><span class="text-heading-5-bold">26°</span><span class="o3-rain text-footnote-medium">20%</span></div></div><span class="o3-hour text-footnote-medium"><span class="o3-mark" data-part="agora"></span>15h</span></div>
+          <div class="o3-col"><div class="o3-stage" data-stack><div class="o3-track"><span class="o3-fill" style="--h:74%"></span></div><div class="o3-num"><span class="text-heading-5-bold">24°</span><span class="o3-rain text-footnote-medium">30%</span></div></div><span class="o3-hour text-footnote-medium">18h</span></div>
+          <div class="o3-col"><div class="o3-stage" data-stack><div class="o3-track"><span class="o3-fill" style="--h:52%"></span></div><div class="o3-num"><span class="text-heading-5-bold">21°</span><span class="o3-rain text-footnote-medium">40%</span></div></div><span class="o3-hour text-footnote-medium">21h</span></div>
+          <div class="o3-col"><div class="o3-stage" data-stack><div class="o3-track"><span class="o3-fill" style="--h:37%"></span></div><div class="o3-num"><span class="text-heading-5-bold">19°</span><span class="o3-rain text-footnote-medium">20%</span></div></div><span class="o3-hour text-footnote-medium">00h</span></div>
+        </div>
+      </div>
+      <p class="o3-detail text-body-sm-medium" data-part="detalhe" aria-live="polite">Agora, 15h · 26° · chuva 20% · vento 14 km/h</p>
+    </section>
+    <script type="application/json" data-tune="3">
+{"states":["barras","numeros"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--o3-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Respiro","type":"slider","var":"--o3-inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--o3-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--o3-group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"innergap","label":"Vão no grupo","type":"slider","var":"--o3-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Resumo","part":"resumo","controls":[
+  {"id":"anchorcolor","label":"Cor da âncora","type":"color","var":"--o3-anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Gráfico","part":"grafico","controls":[
+  {"id":"chartheight","label":"Altura","type":"slider","var":"--o3-chart-height","value":96,"base":96,"min":48,"max":160,"step":4,"unit":"px"},
+  {"id":"colgap","label":"Vão entre horas","type":"slider","var":"--o3-col-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"barradius","label":"Raio da barra","type":"slider","var":"--o3-bar-radius","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-radius-core-xs"},
+  {"id":"cellradius","label":"Raio da casa","type":"slider","var":"--o3-cell-radius","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+  {"id":"baractive","label":"Barra em foco","type":"color","var":"--o3-bar-active","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Agora","part":"agora","controls":[
+  {"id":"dot","label":"Ponto","type":"slider","var":"--o3-dot","value":4,"base":4,"min":2,"max":12,"step":1,"unit":"px"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca de foco e visão","type":"easing","durVar":"--o3-dur","easeVar":"--o3-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="fechado" tabindex="0">
+  <!-- tese: a previsão é uma lista de conclusões ("Leve guarda-chuva") com o número como prova. -->
+  <p class="opt-label" data-part="label">Opção 4 - Lista de métricas</p>
+  <div class="opt-content" data-part="content">
+    <div class="o4-card" data-part="card">
+      <div class="o4-head" data-part="titulo">
+        <p class="o4-place text-footnote-medium">São Paulo · hoje</p>
+        <p class="o4-title text-body-md-medium" aria-live="polite">Leve um casaco à noite</p>
+      </div>
+      <div class="o4-rail" data-part="metricas">
+        <div class="o4-tile is-focus" data-part="temperatura"><span class="text-footnote-medium">Temp.</span><span class="text-body-sm-bold">24°</span></div>
+        <div class="o4-tile" data-part="chuva"><span class="text-footnote-medium">Chuva</span><span class="text-body-sm-bold">30%</span></div>
+        <div class="o4-tile" data-part="vento"><span class="text-footnote-medium">Vento</span><span class="text-body-sm-bold">14</span></div>
+      </div>
+      <div class="o4-proof" data-part="prova">
+        <p class="o4-value text-heading-3-bold">24°</p>
+        <p class="o4-note text-body-sm-medium">parcialmente nublado</p>
+      </div>
+      <p class="o4-detail text-body-sm-medium" data-part="detalhe" aria-live="polite">Máx 27° às 14h · mín 18° de madrugada</p>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">
+{"states":["fechado","aberto"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":8,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":12,"base":12,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+  {"id":"innergap","label":"Vão dentro do grupo","type":"slider","var":"--inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Título","part":"titulo","controls":[
+  {"id":"titlecolor","label":"Cor da conclusão","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Prova","part":"prova","controls":[
+  {"id":"valuecolor","label":"Cor do número","type":"color","var":"--value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Métricas","part":"metricas","controls":[
+  {"id":"railgap","label":"Vão entre métricas","type":"slider","var":"--rail-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"tileradius","label":"Raio da métrica","type":"slider","var":"--tile-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+  {"id":"tilepad","label":"Respiro da métrica","type":"slider","var":"--tile-pad","value":12,"base":12,"min":8,"max":20,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+  {"id":"tiletext","label":"Texto","type":"color","var":"--tile-text","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"selbg","label":"Fundo aberto","type":"color","var":"--tile-sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"seltext","label":"Texto aberto","type":"color","var":"--tile-sel-text","value":"#000000","base":"#000000","token":"--color-semantic-functional-text-inverse"}]},
+ {"name":"Foco","controls":[
+  {"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca de estado","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+    <h2 class="opt-group">Variações da Opção 3 · forte</h2>
+<article data-parent="3" class="opt" data-option="5" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o dia vira um arco de fases (manhã, tarde, noite) e o card inteiro muda de fase -->
+  <p class="opt-label" data-part="label">Opção 5 - Arco de fases do dia</p>
+  <div class="opt-content" data-part="content">
+    <section class="o5-card" data-part="card">
+      <p class="o5-place text-body-sm-medium" data-part="local">São Paulo · Hoje</p>
+      <div class="o5-group o5-swap" data-part="fase-atual" aria-live="polite">
+        <p class="o5-phase text-body-sm-bold" data-part="fase">Tarde · agora</p>
+        <p class="o5-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        <p class="o5-cond text-body-sm-medium" data-part="condicao">Parcialmente nublado</p>
+      </div>
+      <div class="o5-group o5-swap" data-part="detalhe" aria-live="polite">
+        <p class="o5-detail text-body-sm-medium" data-part="chuva-vento">Chuva 30% · Vento 14 km/h</p>
+        <p class="o5-detail o5-more text-body-sm-medium" data-part="mais">Sensação 25° · Umidade 62%</p>
+      </div>
+      <div class="o5-arc" data-part="arco" role="tablist">
+        <div class="o5-seg" data-phase="manha" role="tab" aria-selected="false"><span class="o5-bar"></span><span class="text-body-sm-medium">Manhã</span></div>
+        <div class="o5-seg" data-phase="tarde" role="tab" aria-selected="true"><span class="o5-bar"></span><span class="text-body-sm-bold">Tarde</span></div>
+        <div class="o5-seg" data-phase="noite" role="tab" aria-selected="false"><span class="o5-bar"></span><span class="text-body-sm-medium">Noite</span></div>
+      </div>
+    </section>
+    <script type="application/json" data-tune="5">
+{"states":["repouso","aberto"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--o5-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Respiro","type":"slider","var":"--o5-inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--o5-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--o5-group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"innergap","label":"Vão no grupo","type":"slider","var":"--o5-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Fase atual","part":"fase-atual","controls":[
+  {"id":"anchorcolor","label":"Cor da âncora","type":"color","var":"--o5-anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Arco","part":"arco","controls":[
+  {"id":"seggap","label":"Vão entre fases","type":"slider","var":"--o5-seg-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"segradius","label":"Raio da fase","type":"slider","var":"--o5-seg-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+  {"id":"segpad","label":"Respiro da fase","type":"slider","var":"--o5-seg-pad","value":8,"base":8,"min":8,"max":20,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"selbg","label":"Fundo escolhido","type":"color","var":"--o5-sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"selcolor","label":"Texto escolhido","type":"color","var":"--o5-sel-color","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"},
+  {"id":"bar","label":"Espessura da faixa","type":"slider","var":"--o5-bar","value":4,"base":4,"min":2,"max":12,"step":1,"unit":"px"}]},
+ {"name":"Foco","controls":[
+  {"id":"ring","label":"Espessura do anel","type":"slider","var":"--o5-ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca de fase","type":"easing","durVar":"--o5-dur","easeVar":"--o5-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="6" data-tuned data-state="repouso" data-hour="0" tabindex="0">
+  <!-- tese: as horas moram numa meia órbita em volta da temperatura; a hora focada ganha rótulo -->
+  <p class="opt-label" data-part="label">Opção 6 - Órbita das horas</p>
+  <div class="opt-content" data-part="content">
+    <section class="o6-card" data-part="card">
+      <div class="o6-stage" data-stack data-part="orbita">
+        <span class="o6-orbit" data-part="trilho"></span>
+        <span class="o6-hour text-body-sm-medium" data-part="hora">15h</span>
+        <span class="o6-hour text-body-sm-medium" data-part="hora">18h</span>
+        <span class="o6-hour text-body-sm-medium" data-part="hora">21h</span>
+        <span class="o6-hour text-body-sm-medium" data-part="hora">00h</span>
+        <div class="o6-center" data-part="temperatura">
+          <p class="o6-temp text-heading-3-bold" aria-live="polite">26°</p>
+          <p class="o6-place text-footnote-medium">São Paulo</p>
+        </div>
+      </div>
+      <div class="o6-info">
+        <p class="o6-label text-body-sm-medium" data-part="rotulo" aria-live="polite">15h · Parcialmente nublado</p>
+        <p class="o6-detail text-body-sm-medium" data-part="detalhe" aria-live="polite">Chuva 20% · vento 14 km/h</p>
+      </div>
+    </section>
+    <script type="application/json" data-tune="6">
+{"states":["repouso","aberto"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--o6-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Respiro","type":"slider","var":"--o6-inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--o6-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--o6-group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"innergap","label":"Vão no grupo","type":"slider","var":"--o6-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Temperatura","part":"temperatura","controls":[
+  {"id":"anchorcolor","label":"Cor da âncora","type":"color","var":"--o6-anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Órbita","part":"orbita","controls":[
+  {"id":"stageheight","label":"Altura do palco","type":"slider","var":"--o6-stage-height","value":124,"base":124,"min":96,"max":200,"step":4,"unit":"px"},
+  {"id":"orbitwidth","label":"Diâmetro do trilho","type":"slider","var":"--o6-orbit-width","value":176,"base":176,"min":120,"max":224,"step":4,"unit":"px"},
+  {"id":"orbittop","label":"Topo do trilho","type":"slider","var":"--o6-orbit-top","value":12,"base":12,"min":0,"max":40,"step":1,"unit":"px"},
+  {"id":"trackwidth","label":"Espessura do trilho","type":"slider","var":"--o6-track-width","value":1,"base":1,"min":0,"max":6,"step":1,"unit":"px","token":"--dimension-border-width-core-hairline"}]},
+ {"name":"Horas","part":"hora","controls":[
+  {"id":"chip","label":"Tamanho da hora","type":"slider","var":"--o6-chip","value":48,"base":48,"min":40,"max":64,"step":2,"unit":"px"},
+  {"id":"chipcolor","label":"Cor do texto","type":"color","var":"--o6-chip-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"chipsel","label":"Fundo selecionado","type":"color","var":"--o6-chip-selected","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Foco","controls":[
+  {"id":"ring","label":"Largura do anel","type":"slider","var":"--o6-ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca de hora","type":"easing","durVar":"--o6-dur","easeVar":"--o6-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="7" data-tuned data-state="hoje" tabindex="0">
+  <!-- tese: um seletor troca o card inteiro entre Hoje e Amanhã -->
+  <p class="opt-label" data-part="label">Opção 7 - Hoje ou amanhã</p>
+  <div class="opt-content" data-part="content">
+    <section class="o7-card" data-part="card">
+      <div class="o7-day o7-group" data-day="hoje" data-part="resumo" aria-live="polite">
+        <p class="o7-place text-body-sm-medium">São Paulo · hoje</p>
+        <p class="o7-temp text-heading-3-bold" data-part="temperatura">24°</p>
+        <p class="o7-cond text-body-sm-medium" data-part="condicao">Parcialmente nublado</p>
+      </div>
+      <div class="o7-day o7-group" data-day="hoje" data-part="maxmin">
+        <p class="o7-range text-body-sm-bold">Máx 27° · mín 18°</p>
+        <p class="o7-more text-body-sm-medium">Chuva 30% · vento 14 km/h</p>
+      </div>
+      <div class="o7-day o7-group" data-day="amanha" data-part="resumo-amanha" aria-live="polite">
+        <p class="o7-place text-body-sm-medium">São Paulo · amanhã</p>
+        <p class="o7-temp text-heading-3-bold">21°</p>
+        <p class="o7-cond text-body-sm-medium">Chuva fraca à tarde</p>
+      </div>
+      <div class="o7-day o7-group" data-day="amanha">
+        <p class="o7-range text-body-sm-bold">Máx 23° · mín 17°</p>
+        <p class="o7-more text-body-sm-medium">Chuva 70% · vento 18 km/h</p>
+      </div>
+      <div class="o7-track" data-part="seletor">
+        <span class="o7-seg text-body-sm-bold" data-day="hoje">Hoje</span>
+        <span class="o7-seg text-body-sm-bold" data-day="amanha">Amanhã</span>
+      </div>
+    </section>
+    <script type="application/json" data-tune="7">
+{"states":["hoje","amanha"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--o7-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Respiro","type":"slider","var":"--o7-inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--o7-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--o7-group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"innergap","label":"Vão no grupo","type":"slider","var":"--o7-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Temperatura","part":"temperatura","controls":[
+  {"id":"anchor","label":"Cor","type":"color","var":"--o7-anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Seletor","part":"seletor","controls":[
+  {"id":"trackpad","label":"Folga da barra","type":"slider","var":"--o7-track-pad","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+  {"id":"segh","label":"Altura do segmento","type":"slider","var":"--o7-seg-height","value":48,"base":48,"min":32,"max":64,"step":1,"unit":"px","token":"--dimension-size-semantic-control-height-lg"},
+  {"id":"segpad","label":"Respiro do segmento","type":"slider","var":"--o7-seg-pad","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"selbg","label":"Fundo do escolhido","type":"color","var":"--o7-sel-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+  {"id":"selfg","label":"Texto do escolhido","type":"color","var":"--o7-sel-fg","value":"#191919","base":"#191919","token":"--color-semantic-functional-background-primary"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca do segmento","type":"easing","durVar":"--o7-dur","easeVar":"--o7-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+    </script>
+  </div>
+</article>
+<article data-parent="3" class="opt" data-option="8" data-tuned data-state="repouso" data-focus="0" data-pick="0" tabindex="0">
+  <!-- tese: cada hora é um cartão igual; escolher um fixa a previsão do dia naquela hora -->
+  <p class="opt-label" data-part="label">Opção 8 - Cartões de hora</p>
+  <div class="opt-content" data-part="content">
+    <section class="o8-card" data-part="card">
+      <div class="o8-group" data-part="resumo" aria-live="polite">
+        <p class="o8-place text-body-sm-medium" data-part="local">São Paulo · hoje às <span class="o8-at">15h</span></p>
+        <p class="o8-temp text-heading-3-bold" data-part="temperatura">26°</p>
+        <p class="o8-cond text-body-sm-medium" data-part="condicao">Parcialmente nublado</p>
+      </div>
+      <div class="o8-rail" data-part="horas">
+        <div class="o8-tile" data-t="dia"><span class="o8-swatch"></span><span class="o8-hour text-body-sm-bold">15h</span></div>
+        <div class="o8-tile" data-t="tarde"><span class="o8-swatch"></span><span class="o8-hour text-body-sm-bold">18h</span></div>
+        <div class="o8-tile" data-t="noite"><span class="o8-swatch"></span><span class="o8-hour text-body-sm-bold">21h</span></div>
+        <div class="o8-tile" data-t="noite"><span class="o8-swatch"></span><span class="o8-hour text-body-sm-bold">00h</span></div>
+      </div>
+      <p class="o8-rain text-body-sm-medium" data-part="chuva" aria-live="polite">Chuva 20% · vento 14 km/h</p>
+    </section>
+  </div>
+  <script type="application/json" data-tune="8">
+{"states":["repouso","escolhido"],"folders":[
+ {"name":"Superfície","part":"card","controls":[
+  {"id":"radius","label":"Raio","type":"slider","var":"--o8-radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+  {"id":"inset","label":"Respiro","type":"slider","var":"--o8-inset","value":32,"base":32,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+  {"id":"bg","label":"Fundo","type":"color","var":"--o8-bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+  {"id":"groupgap","label":"Vão entre grupos","type":"slider","var":"--o8-group-gap","value":16,"base":16,"min":0,"max":40,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+  {"id":"innergap","label":"Vão no grupo","type":"slider","var":"--o8-inner-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+ {"name":"Resumo","part":"resumo","controls":[
+  {"id":"anchorcolor","label":"Cor da âncora","type":"color","var":"--o8-anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Horas","part":"horas","controls":[
+  {"id":"tilegap","label":"Vão entre cartões","type":"slider","var":"--o8-tile-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"tilepad","label":"Respiro do cartão","type":"slider","var":"--o8-tile-pad","value":8,"base":8,"min":4,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+  {"id":"tileradius","label":"Raio do cartão","type":"slider","var":"--o8-tile-radius","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-radius-core-sm"},
+  {"id":"tileheight","label":"Altura do cartão","type":"slider","var":"--o8-tile-height","value":72,"base":72,"min":48,"max":120,"step":4,"unit":"px"},
+  {"id":"swatch","label":"Marca do período","type":"slider","var":"--o8-swatch","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px"},
+  {"id":"pickedbg","label":"Fundo do escolhido","type":"color","var":"--o8-picked-bg","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+ {"name":"Foco","controls":[
+  {"id":"ring","label":"Espessura do anel","type":"slider","var":"--o8-ring","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+ {"name":"Movimento","controls":[
+  {"id":"move","label":"Troca do escolhido","type":"easing","durVar":"--o8-dur","easeVar":"--o8-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  const days = [
+    { n: 'Hoje', t: '24°', c: 'Parcialmente nublado', mm: '27°/18°', r: '30%', w: '14 km/h' },
+    { n: 'Quinta', t: '22°', c: 'Chuva fraca à tarde', mm: '24°/17°', r: '70%', w: '18 km/h' },
+    { n: 'Sexta', t: '26°', c: 'Ensolarado', mm: '29°/19°', r: '10%', w: '10 km/h' },
+    { n: 'Sábado', t: '25°', c: 'Nublado', mm: '27°/18°', r: '40%', w: '12 km/h' },
+  ]
+  const pills = [...root.querySelectorAll('.o1-day')]
+  const q = (s) => root.querySelector(s)
+  let i = 0
+  const draw = () => {
+    pills.forEach((p, k) => p.setAttribute('aria-selected', String(k === i)))
+    const d = days[i]
+    q('.o1-when').textContent = d.n; q('.o1-temp').textContent = d.t; q('.o1-cond').textContent = d.c
+    q('.o1-mm').textContent = d.mm; q('.o1-rain').textContent = d.r; q('.o1-wind').textContent = d.w
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) { i--; draw() } }
+    else if (e.key === 'ArrowRight') { if (i < days.length - 1) { i++; draw() } }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'aberto' ? 'repouso' : 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'repouso' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  const D = [
+    { n: 'Hoje', t: '24°', c: 'Parcialmente nublado', mm: '27° / 18°', r: '30%', w: '14 km/h' },
+    { n: 'Quinta', t: '22°', c: 'Chuva fraca à tarde', mm: '24° / 17°', r: '70%', w: '18 km/h' },
+    { n: 'Sexta', t: '26°', c: 'Ensolarado', mm: '29° / 19°', r: '10%', w: '10 km/h' },
+    { n: 'Sábado', t: '25°', c: 'Nublado', mm: '27° / 19°', r: '40%', w: '12 km/h' },
+  ]
+  const days = [...root.querySelectorAll('.o2-day')]
+  const q = (s) => root.querySelector(s)
+  let i = 0
+  const show = () => {
+    days.forEach((d, k) => d.classList.toggle('is-focus', k === i))
+    const d = D[i]
+    q('.o2-dayname').textContent = d.n
+    q('.o2-temp').textContent = d.t
+    q('.o2-cond').textContent = d.c
+    q('.o2-mm').textContent = d.mm
+    q('.o2-rain').textContent = d.r
+    q('.o2-wind').textContent = d.w
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) { i--; show() } }
+    else if (e.key === 'ArrowRight') { if (i < D.length - 1) { i++; show() } }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'aberto' ? 'repouso' : 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'repouso' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  const hours = [['15h', 26, 20, 14], ['18h', 24, 30, 12], ['21h', 21, 40, 10], ['00h', 19, 20, 8]]
+  const detail = root.querySelector('.o3-detail')
+  const view = root.querySelector('.o3-view')
+  let i = 0
+  const render = () => {
+    root.dataset.hour = String(i)
+    const [h, t, c, v] = hours[i]
+    detail.textContent = `${i === 0 ? 'Agora, ' : ''}${h} · ${t}° · chuva ${c}% · vento ${v} km/h`
+    view.textContent = root.dataset.state === 'numeros' ? 'Temperatura por hora · números' : 'Temperatura por hora · barras'
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.target !== root) return
+    if (e.key === 'ArrowLeft') { if (i > 0) i-- }
+    else if (e.key === 'ArrowRight') { if (i < hours.length - 1) i++ }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'barras' ? 'numeros' : 'barras' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'barras' }
+    else return
+    e.preventDefault()
+    render()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  const tiles = [...root.querySelectorAll('.o4-tile')]
+  const title = root.querySelector('.o4-title')
+  const value = root.querySelector('.o4-value')
+  const note = root.querySelector('.o4-note')
+  const detail = root.querySelector('.o4-detail')
+  const data = [
+    { t: 'Leve um casaco à noite', v: '24°', n: 'parcialmente nublado', d: 'Máx 27° às 14h · mín 18° de madrugada' },
+    { t: 'Leve guarda-chuva à tarde', v: '30%', n: 'de chance de chuva', d: 'Mais provável entre 15h e 18h, chuva fraca' },
+    { t: 'Vento fraco, dá para pedalar', v: '14', n: 'km/h do leste', d: 'Rajadas de até 22 km/h no fim da tarde' }
+  ]
+  let i = 0
+  const draw = () => {
+    tiles.forEach((el, k) => el.classList.toggle('is-focus', k === i))
+    title.textContent = data[i].t
+    value.textContent = data[i].v
+    note.textContent = data[i].n
+    detail.textContent = data[i].d
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) { i--; draw() } }
+    else if (e.key === 'ArrowRight') { if (i < tiles.length - 1) { i++; draw() } }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'aberto' ? 'fechado' : 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'fechado' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  const P = [
+    { k: 'manha', n: 'Manhã', t: '19°', c: 'Nublado com névoa', d: 'Chuva 10% · Vento 10 km/h', m: 'Sensação 19° · Umidade 80%' },
+    { k: 'tarde', n: 'Tarde · agora', t: '24°', c: 'Parcialmente nublado', d: 'Chuva 30% · Vento 14 km/h', m: 'Sensação 25° · Umidade 62%' },
+    { k: 'noite', n: 'Noite', t: '20°', c: 'Chuva fraca', d: 'Chuva 40% · Vento 12 km/h', m: 'Sensação 20° · Umidade 75%' },
+  ]
+  const segs = [...root.querySelectorAll('.o5-seg')]
+  const q = (s) => root.querySelector(s)
+  let i = 1
+  const show = () => {
+    const p = P[i]
+    segs.forEach((s, k) => {
+      s.setAttribute('aria-selected', String(k === i))
+      s.lastElementChild.className = k === i ? 'text-body-sm-bold' : 'text-body-sm-medium'
+    })
+    q('.o5-phase').textContent = p.n
+    q('.o5-temp').textContent = p.t
+    q('.o5-cond').textContent = p.c
+    q('[data-part="chuva-vento"]').textContent = p.d
+    q('[data-part="mais"]').textContent = p.m
+  }
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { if (i > 0) { i--; show() } }
+    else if (e.key === 'ArrowRight') { if (i < P.length - 1) { i++; show() } }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'aberto' ? 'repouso' : 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'repouso' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  const hours = [
+    { h: '15h', t: '26°', c: 'Parcialmente nublado', d: 'Chuva 20% · vento 14 km/h' },
+    { h: '18h', t: '24°', c: 'Nublado', d: 'Chuva 30% · vento 12 km/h' },
+    { h: '21h', t: '21°', c: 'Chuva fraca', d: 'Chuva 40% · vento 10 km/h' },
+    { h: '00h', t: '19°', c: 'Nublado', d: 'Chuva 20% · vento 8 km/h' },
+  ]
+  const temp = root.querySelector('.o6-temp')
+  const label = root.querySelector('.o6-label')
+  const detail = root.querySelector('.o6-detail')
+  const show = (i) => {
+    root.dataset.hour = String(i)
+    temp.textContent = hours[i].t
+    label.textContent = hours[i].h + ' · ' + hours[i].c
+    detail.textContent = hours[i].d
+  }
+  root.addEventListener('keydown', (e) => {
+    const i = Number(root.dataset.hour)
+    if (e.key === 'ArrowLeft') { if (i > 0) show(i - 1) }
+    else if (e.key === 'ArrowRight') { if (i < hours.length - 1) show(i + 1) }
+    else if (e.key === 'Enter') { root.dataset.state = root.dataset.state === 'aberto' ? 'repouso' : 'aberto' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'repouso' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="7"]')
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { root.dataset.state = 'hoje' }
+    else if (e.key === 'ArrowRight') { root.dataset.state = 'amanha' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { root.dataset.state = 'hoje' }
+    else return // ↑/↓ leave the card; Enter does nothing in a segmented selector
+    e.preventDefault()
+  })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="8"]')
+  const hours = [
+    { h: '15h', t: '26°', c: 'Parcialmente nublado', r: 'Chuva 20% · vento 14 km/h' },
+    { h: '18h', t: '24°', c: 'Nublado', r: 'Chuva 30% · vento 16 km/h' },
+    { h: '21h', t: '21°', c: 'Garoa fraca', r: 'Chuva 40% · vento 12 km/h' },
+    { h: '00h', t: '19°', c: 'Nublado', r: 'Chuva 20% · vento 10 km/h' },
+  ]
+  const show = (i) => {
+    const d = hours[i]
+    root.dataset.pick = i
+    root.querySelector('.o8-at').textContent = d.h
+    root.querySelector('.o8-temp').textContent = d.t
+    root.querySelector('.o8-cond').textContent = d.c
+    root.querySelector('.o8-rain').textContent = d.r
+  }
+  root.addEventListener('keydown', (e) => {
+    const f = Number(root.dataset.focus)
+    if (e.key === 'ArrowLeft') { if (f > 0) root.dataset.focus = f - 1 }
+    else if (e.key === 'ArrowRight') { if (f < 3) root.dataset.focus = f + 1 }
+    else if (e.key === 'Enter') { show(f); root.dataset.state = f === 0 ? 'repouso' : 'escolhido' }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { show(0); root.dataset.focus = 0; root.dataset.state = 'repouso' }
+    else return
+    e.preventDefault()
+  })
+})()
+</script>
+</body>
+</html>

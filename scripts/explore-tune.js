@@ -61,7 +61,7 @@
     .tune-sizer { position: relative; flex: none; margin: auto; }
     .tune-scaler { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; padding: 64px; }
     .tune-scaler > .opt { grid-area: 1 / 1; justify-self: center; align-self: center; min-height: 0; padding: 0; background: none; border-radius: 0; }
-    .tune-scaler .opt-label, .tune-scaler .explore-card-menu { display: none; }
+    .tune-scaler .opt-label, .tune-scaler .explore-card-menu, .tune-scaler button[data-cta] { display: none; } /* the page's "Tocar efeito" control: the stage has its own Replay */
     .tune-scaler .opt:focus-visible { outline: none !important; }
     .tune-notrans, .tune-notrans *, .tune-notrans *::before, .tune-notrans *::after { transition: none !important; animation: none !important; }
     .tune-badge { position: fixed; left: calc(var(--explore-margin) + 12px); top: 84px; padding: 4px 10px; border-radius: 8px; background: #000a; color: #eee; font: 500 12px ${FONT}; pointer-events: none; }

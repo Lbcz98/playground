@@ -1,0 +1,2316 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Mapa de calor da casa BBB: planta baixa</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. Colors: web/protos/generated/tokens.md; the rest: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] { --o1-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="1"] .o1-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-lg);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="1"] .o1-plan { display: block; width: 100%; height: auto; overflow: visible; }
+[data-option="1"] .o1-floor { fill: var(--color-semantic-functional-background-primary); }
+[data-option="1"] .o1-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o1-h) * var(--o1-h) * 0.6); /* rampa de uma cor: o quadrado afasta o quente do frio */ }
+[data-option="1"] .o1-core { opacity: calc(var(--o1-h) * var(--o1-h)); }
+[data-option="1"] .o1-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="1"] .o1-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="1"] .o1-ring-a { stop-color: var(--color-semantic-focus-outline); }
+[data-option="1"] .o1-ring-b { stop-color: var(--color-semantic-focus-glow); }
+[data-option="1"] .o1-ring {
+  fill: none; stroke: url(#o1-ring-grad); stroke-width: var(--dimension-border-width-semantic-focus-ring);
+  vector-effect: non-scaling-stroke;
+  transition: x 240ms ease-out, y 240ms ease-out, width 240ms ease-out, height 240ms ease-out;
+}
+[data-option="1"] .o1-text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); }
+[data-option="1"] .o1-anchor { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); margin: 0; }
+[data-option="1"] .o1-pct { display: block; font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="1"] .o1-room { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .o1-detail {
+  display: grid; grid-template-rows: auto 0fr;
+  padding: var(--dimension-spacing-core-xs) var(--dimension-spacing-core-sm);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-semantic-functional-background-tint);
+  transition: grid-template-rows 240ms ease-out;
+}
+[data-option="1"] .o1-detail[data-open] { grid-template-rows: auto 1fr; }
+[data-option="1"] .o1-head { display: flex; align-items: center; justify-content: space-between; gap: var(--dimension-spacing-core-2xs); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .o1-chev {
+  display: block; width: var(--dimension-spacing-core-2xs); height: var(--dimension-spacing-core-2xs);
+  border-right: var(--dimension-border-width-core-thin) solid currentColor; border-bottom: var(--dimension-border-width-core-thin) solid currentColor;
+  transform: translateY(-25%) rotate(45deg); transition: transform 240ms ease-out;
+}
+[data-option="1"] .o1-detail[data-open] .o1-chev { transform: translateY(25%) rotate(-135deg); }
+[data-option="1"] .o1-body { display: block; overflow: hidden; min-height: 0; }
+[data-option="1"] .o1-body-in { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding-top: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .o1-when { display: block; }
+[data-option="1"] .o1-hours { display: block; color: var(--color-semantic-functional-text-muted); }
+@media (prefers-reduced-motion: reduce) { [data-option="1"] .o1-ring, [data-option="1"] .o1-detail, [data-option="1"] .o1-chev { transition: none; } }
+[data-option="2"] { --o2-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="2"] .o2-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"] .o2-title { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0; }
+[data-option="2"] .o2-pct { display: block; font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="2"] .o2-what { display: block; color: var(--color-semantic-functional-text-muted); }
+/* Palco: a planta é recortada na zona escolhida (viewBox), os rótulos ficam por cima. */
+[data-option="2"] .o2-stage { position: relative; display: block; height: 140px; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+[data-option="2"] .o2-plan { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+[data-option="2"] .o2-floor, [data-option="2"] .o2-door { fill: var(--color-semantic-functional-background-primary); }
+/* Desenho da planta: piso com textura, móveis em traço fino; o calor fica por baixo dos móveis. */
+[data-option="2"] .o2-tex { fill: none; stroke: var(--color-opacity-light-10); stroke-width: var(--dimension-border-width-core-hairline); }
+[data-option="2"] .o2-fx { fill: var(--color-opacity-light-10); stroke: var(--color-opacity-light-50); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="2"] .o2-solid { fill: var(--color-opacity-light-30); }
+[data-option="2"] .o2-line { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="2"] .o2-door { transition: opacity 160ms ease-out; }
+[data-option="2"] .o2-door[data-out] { opacity: var(--opacity-semantic-hidden); }
+[data-option="2"] .o2-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o2-h) * var(--o2-h) * 0.6); }
+[data-option="2"] .o2-core { opacity: calc(var(--o2-h) * var(--o2-h)); }
+[data-option="2"] .o2-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="2"] .o2-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="2"] .o2-r, [data-option="2"] .o2-pool { transition: opacity 160ms ease-out; }
+[data-option="2"] .o2-r[data-out], [data-option="2"] .o2-pool[data-out] { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="2"] .o2-labels { position: absolute; inset: 0; display: block; }
+[data-option="2"] .o2-lbl {
+  position: absolute; display: flex; flex-direction: column;
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-dark-50);
+}
+[data-option="2"] .o2-lbl[hidden] { display: none; }
+[data-option="2"] .o2-lbl-n { display: block; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .o2-lbl-p { display: block; }
+/* Top 4 do lugar em foco: quem mais passa tempo ali; Marcos (dono do perfil) marcado com anel. */
+[data-option="2"] .o2-top { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .o2-top-h { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-people { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; }
+[data-option="2"] .o2-p { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .o2-av {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-background-tint);
+  border: var(--dimension-border-width-core-thin) solid transparent;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="2"] .o2-p.is-me .o2-av { border-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .o2-pn { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .o2-p.is-me .o2-pn { color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .o2-pp { display: block; font-variant-numeric: tabular-nums; }
+/* Seletor: 3 segmentos; o escolhido é a única superfície opaca e leva o foco. */
+[data-option="2"] .o2-seg-bar {
+  display: flex; padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="2"] .o2-seg {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; height: var(--dimension-size-semantic-control-height); padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted); white-space: nowrap;
+}
+[data-option="2"] .o2-seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="2"] .o2-seg[aria-selected="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="2"] .o2-r, [data-option="2"] .o2-pool, [data-option="2"] .o2-door { transition: none; } }
+/* --heat: a room's share of time, 0.1 (least) to 1 (most), set per room by the script. */
+[data-option="3"] { --heat: 1; }
+[data-option="3"] .o3-card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .o3-plan { display: block; width: 100%; height: auto; overflow: visible; }
+[data-option="3"] .o3-stop-hot { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="3"] .o3-stop-edge { stop-color: var(--color-semantic-theme-tarde-dark); stop-opacity: var(--opacity-semantic-content-muted); }
+[data-option="3"] .o3-floor { fill: var(--color-opacity-light-10); rx: var(--dimension-radius-core-xs); }
+[data-option="3"] .o3-heat { fill: url(#o3-heat); opacity: var(--heat); rx: var(--dimension-radius-core-xs); }
+[data-option="3"] .o3-edge {
+  fill: none; stroke: transparent; stroke-width: var(--dimension-border-width-core-thin); rx: var(--dimension-radius-core-xs);
+  transition: stroke var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="3"] .o3-edge[data-on] { stroke: var(--color-semantic-functional-text-primary); }
+[data-option="3"] .o3-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); rx: var(--dimension-radius-core-xs); }
+
+[data-option="3"] .o3-sum { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); min-height: var(--dimension-size-semantic-control-height); }
+[data-option="3"] .o3-big { display: block; margin: 0; color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="3"] .o3-lines { display: flex; flex-direction: column; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .o3-lines strong { color: var(--color-semantic-functional-text-primary); font-weight: var(--typography-font-weight-bold); }
+
+[data-option="3"] .o3-rail {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--dimension-spacing-core-3xs);
+  margin: 0; padding: var(--dimension-spacing-core-3xs); list-style: none;
+  border-radius: var(--dimension-radius-core-2xl);
+  background: var(--color-opacity-dark-20);
+}
+[data-option="3"] .o3-pill {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--dimension-spacing-core-3xs);
+  height: var(--dimension-size-semantic-control-height-lg);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted);
+  transition: background-color var(--motion-semantic-duration) var(--motion-semantic-easing), color var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+[data-option="3"] .o3-dot {
+  display: block; width: 8px; height: 8px; border-radius: var(--dimension-radius-semantic-pill);
+  background: color-mix(in srgb, var(--color-semantic-theme-tarde-dark) calc(var(--heat) * 100%), transparent);
+}
+[data-option="3"] .o3-pill[aria-current="true"] {
+  background: var(--color-semantic-functional-text-primary);
+  color: var(--color-semantic-functional-text-inverse);
+}
+/* The one focus of the option: the kit's gradient ring around the selected pill. */
+[data-option="3"] .o3-pill[aria-current="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(white 0 0) content-box exclude, linear-gradient(white 0 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-option="3"] .o3-edge, [data-option="3"] .o3-pill { transition: none; }
+}
+/* --heat: a room's share of time, 0.1 (least) to 1 (most), set per room by the script. */
+[data-option="4"] { --heat: 1; }
+[data-option="4"] .o4-card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Fixed answer: the % and the room in focus, the same in both views. */
+[data-option="4"] .o4-head { display: flex; align-items: center; gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .o4-pct { display: block; margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="4"] .o4-meta { display: flex; flex-direction: column; margin: 0; }
+[data-option="4"] .o4-rank { color: var(--color-semantic-functional-text-muted); }
+
+/* The two views share one 168-unit-tall stage, so the card never jumps when Enter swaps them. */
+[data-option="4"] .o4-stage { display: block; position: relative; }
+[data-option="4"] .o4-stage [hidden] { display: none; }
+[data-option="4"] .o4-plan { display: block; position: relative; }
+[data-option="4"] .o4-plan svg { display: block; width: 100%; height: auto; }
+[data-option="4"] .o4-stop-hot { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="4"] .o4-stop-edge { stop-color: var(--color-semantic-theme-tarde-dark); stop-opacity: var(--opacity-semantic-content-muted); }
+[data-option="4"] .o4-floor { fill: var(--color-opacity-light-10); rx: var(--dimension-radius-core-xs); }
+[data-option="4"] .o4-heat { fill: url(#o4-heat); opacity: var(--heat); rx: var(--dimension-radius-core-xs); }
+[data-option="4"] .o4-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); rx: var(--dimension-radius-core-xs); }
+
+/* The one focus: the kit's gradient ring, on the room (plan) or on the row (ranking). */
+[data-option="4"] .o4-ring {
+  display: block; position: absolute; pointer-events: none;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: calc(var(--dimension-radius-core-xs) + var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring));
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(white 0 0) content-box exclude, linear-gradient(white 0 0);
+  transition: left var(--motion-semantic-duration) var(--motion-semantic-easing), top var(--motion-semantic-duration) var(--motion-semantic-easing),
+    width var(--motion-semantic-duration) var(--motion-semantic-easing), height var(--motion-semantic-duration) var(--motion-semantic-easing);
+}
+
+[data-option="4"] .o4-bars { display: grid; grid-template-rows: repeat(7, 1fr); height: 168px; margin: 0; padding: 0; list-style: none; }
+[data-option="4"] .o4-row {
+  position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr) var(--dimension-size-semantic-table-value-column);
+  align-items: center; gap: var(--dimension-spacing-core-2xs);
+  padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="4"] .o4-row[aria-current="true"] { background: var(--color-opacity-light-10); color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .o4-row[aria-current="true"]::after {
+  content: ""; position: absolute; inset: 0;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-core-sm);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(white 0 0) content-box, linear-gradient(white 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(white 0 0) content-box exclude, linear-gradient(white 0 0);
+}
+[data-option="4"] .o4-name { display: block; white-space: nowrap; }
+[data-option="4"] .o4-track { display: block; height: 8px; border-radius: var(--dimension-radius-semantic-pill); background: var(--color-opacity-light-10); }
+[data-option="4"] .o4-fill {
+  display: block; height: 100%; width: var(--w); border-radius: var(--dimension-radius-semantic-pill);
+  background: color-mix(in srgb, var(--color-semantic-theme-tarde-dark) calc(var(--heat) * 100%), transparent);
+}
+[data-option="4"] .o4-val { display: block; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Which view is on: the current word is lit and underlined, the other waits. */
+[data-option="4"] .o4-switch { display: flex; justify-content: center; align-items: center; gap: var(--dimension-spacing-core-2xs); margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .o4-tab { display: block; padding-block: var(--dimension-spacing-core-3xs); border-block: var(--dimension-border-width-core-thin) solid transparent; }
+[data-option="4"] .o4-tab[aria-current="true"] { color: var(--color-semantic-functional-text-primary); border-bottom-color: var(--color-semantic-functional-text-primary); }
+@media (prefers-reduced-motion: reduce) { [data-option="4"] .o4-ring { transition: none; } }
+[data-option="5"] {
+  --o5-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o5-off: var(--dimension-spacing-semantic-focus-offset);
+  --o5-heat: var(--color-semantic-theme-tarde-dark);
+  --o5-floor: var(--color-semantic-functional-background-primary);
+}
+[data-option="5"] .o5-card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+}
+[data-option="5"] .o5-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--dimension-spacing-core-xs); }
+[data-option="5"] .o5-claim { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="5"] .o5-claim h3, [data-option="5"] .o5-claim p { margin: 0; }
+[data-option="5"] .o5-sub { color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .o5-plan { display: block; flex: none; width: 112px; height: 67px; }
+[data-option="5"] .o5-plan .room { fill: color-mix(in srgb, var(--o5-heat) var(--h), var(--o5-floor)); }
+[data-option="5"] .o5-plan .hl { fill: none; stroke: var(--color-semantic-functional-text-primary); stroke-width: var(--dimension-border-width-core-thin); vector-effect: non-scaling-stroke; }
+
+[data-option="5"] .o5-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="5"] .o5-row {
+  position: relative; display: grid; grid-template-columns: 108px 1fr 36px; align-items: center;
+  column-gap: var(--dimension-spacing-core-2xs); row-gap: var(--dimension-spacing-core-3xs);
+  padding: var(--dimension-spacing-core-3xs) var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-sm);
+}
+[data-option="5"] .o5-row::after {
+  content: ""; position: absolute; inset: calc(-1 * (var(--o5-ring) + var(--o5-off)));
+  padding: var(--o5-ring); border-radius: calc(var(--dimension-radius-core-sm) + var(--o5-ring) + var(--o5-off));
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
+  opacity: 0; pointer-events: none;
+}
+[data-option="5"] .o5-row.is-focus::after { opacity: 1; }
+[data-option="5"] .o5-name { color: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .o5-row.is-focus .o5-name { color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .o5-pct { text-align: right; }
+[data-option="5"] .o5-bar { position: relative; display: block; height: 4px; border-radius: var(--dimension-radius-core-full); background: var(--color-semantic-functional-background-tint); }
+[data-option="5"] .o5-fill { position: absolute; left: 0; top: 0; bottom: 0; display: block; width: var(--w); border-radius: inherit; background: var(--color-semantic-functional-text-muted); }
+[data-option="5"] .o5-dot {
+  position: absolute; right: -4px; top: 50%; display: block; width: 8px; height: 8px; transform: translateY(-50%);
+  border-radius: var(--dimension-radius-core-full);
+  background: color-mix(in srgb, var(--o5-heat) var(--h), var(--o5-floor));
+}
+[data-option="5"] .o5-detail { grid-column: 1 / -1; margin: 0; display: none; color: var(--color-semantic-functional-text-primary); }
+[data-option="5"] .o5-row.is-open .o5-detail { display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-option="5"] .o5-row::after { transition: opacity 160ms ease-out; }
+}
+[data-option="6"] {
+  --o6-ring: var(--dimension-border-width-semantic-focus-ring);
+  --o6-off: var(--dimension-spacing-semantic-focus-offset);
+  --o6-heat: var(--color-semantic-theme-tarde-dark);
+  --o6-floor: var(--color-semantic-functional-background-primary);
+  --o6-shift: 0px;
+}
+[data-option="6"] .o6-card {
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+  font-family: var(--typography-font-family-primary);
+}
+[data-option="6"] .o6-phrase { margin: 0; display: flex; flex-direction: column; }
+[data-option="6"] .o6-quiet { color: var(--color-semantic-functional-text-muted); font-weight: var(--typography-font-weight-medium); }
+[data-option="6"] .o6-loud { color: var(--color-semantic-functional-text-primary); font-weight: var(--typography-font-weight-bold); }
+
+[data-option="6"] .o6-view {
+  display: block; overflow: hidden;
+  margin: calc(-1 * var(--dimension-spacing-core-2xs));
+  padding: var(--dimension-spacing-core-2xs);
+}
+[data-option="6"] .o6-track { display: flex; gap: var(--dimension-spacing-core-2xs); transform: translateX(calc(-1 * var(--o6-shift, 0px))); }
+[data-option="6"] .o6-room {
+  position: relative; flex: none; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs);
+  width: 88px; padding: var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-core-lg);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="6"] .o6-room::after {
+  content: ""; position: absolute; inset: calc(-1 * (var(--o6-ring) + var(--o6-off)));
+  padding: var(--o6-ring); border-radius: calc(var(--dimension-radius-core-lg) + var(--o6-ring) + var(--o6-off));
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
+  opacity: 0; pointer-events: none;
+}
+[data-option="6"] .o6-room.is-focus::after { opacity: 1; }
+[data-option="6"] .o6-crop { position: relative; display: block; height: 56px; border-radius: var(--dimension-radius-core-sm); overflow: hidden; background: var(--o6-floor); }
+[data-option="6"] .o6-crop svg { display: block; width: 100%; height: 100%; }
+[data-option="6"] .o6-crop .other { fill: var(--color-semantic-functional-background-tint); }
+[data-option="6"] .o6-crop .this { fill: color-mix(in srgb, var(--o6-heat) var(--h), var(--o6-floor)); }
+[data-option="6"] .o6-text { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="6"] .o6-text p { margin: 0; }
+[data-option="6"] .o6-name { color: var(--color-semantic-functional-text-muted); min-height: 2.4em; }
+[data-option="6"] .o6-fav {
+  position: absolute; top: var(--dimension-spacing-core-3xs); right: var(--dimension-spacing-core-3xs);
+  display: none; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse);
+}
+[data-option="6"] .o6-fav svg { display: block; width: var(--dimension-size-semantic-icon-sm); height: var(--dimension-size-semantic-icon-sm); fill: currentColor; }
+[data-option="6"] .o6-room.is-chosen .o6-fav { display: flex; }
+[data-option="6"] .o6-room.is-chosen { background: var(--color-opacity-light-20); }
+[data-option="6"] .o6-detail { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="6"] .o6-detail:empty { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-option="6"] .o6-track { transition: transform var(--motion-semantic-duration) var(--motion-semantic-easing); }
+  [data-option="6"] .o6-room::after { transition: opacity 160ms ease-out; }
+}
+[data-option="7"] { --o7-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="7"] .o7-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Ênfase: o título vira uma linha só, discreta; a planta fica com o peso. */
+[data-option="7"] .o7-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--dimension-spacing-core-2xs); row-gap: var(--dimension-spacing-core-none); margin: 0; }
+[data-option="7"] .o7-pct { display: block; font-size: var(--typography-font-size-xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="7"] .o7-what { display: block; color: var(--color-semantic-functional-text-muted); }
+/* Palco: a planta é recortada na zona escolhida (viewBox), os rótulos ficam por cima. */
+[data-option="7"] .o7-stage { position: relative; display: block; height: 192px; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+[data-option="7"] .o7-plan { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+[data-option="7"] .o7-floor, [data-option="7"] .o7-door { fill: var(--color-semantic-functional-background-primary); }
+/* Desenho da planta: piso com textura, móveis em traço fino; o calor fica por baixo dos móveis. */
+[data-option="7"] .o7-tex { fill: none; stroke: var(--color-opacity-light-10); stroke-width: var(--dimension-border-width-core-hairline); }
+[data-option="7"] .o7-fx { fill: var(--color-opacity-light-10); stroke: var(--color-opacity-light-50); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="7"] .o7-solid { fill: var(--color-opacity-light-30); }
+[data-option="7"] .o7-line { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="7"] .o7-door { transition: opacity 160ms ease-out; }
+[data-option="7"] .o7-door[data-out] { opacity: var(--opacity-semantic-hidden); }
+[data-option="7"] .o7-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o7-h) * var(--o7-h) * 0.6); }
+[data-option="7"] .o7-core { opacity: calc(var(--o7-h) * var(--o7-h)); }
+[data-option="7"] .o7-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="7"] .o7-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="7"] .o7-r, [data-option="7"] .o7-pool { transition: opacity 160ms ease-out; }
+[data-option="7"] .o7-r[data-out], [data-option="7"] .o7-pool[data-out] { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="7"] .o7-labels { position: absolute; inset: 0; display: block; }
+[data-option="7"] .o7-lbl {
+  position: absolute; display: flex; flex-direction: column;
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-dark-50);
+}
+[data-option="7"] .o7-lbl[hidden] { display: none; }
+[data-option="7"] .o7-lbl-n { display: block; color: var(--color-semantic-functional-text-primary); }
+[data-option="7"] .o7-lbl-p { display: block; }
+/* Top 4 do lugar em foco: quem mais passa tempo ali; Marcos (dono do perfil) marcado com anel. */
+[data-option="7"] .o7-top { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="7"] .o7-top-h { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="7"] .o7-people { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; }
+[data-option="7"] .o7-p { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-none); }
+[data-option="7"] .o7-av {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); margin-bottom: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-background-tint);
+  border: var(--dimension-border-width-core-thin) solid transparent;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="7"] .o7-p.is-me .o7-av { border-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="7"] .o7-pn { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="7"] .o7-p.is-me .o7-pn { color: var(--color-semantic-functional-text-primary); }
+[data-option="7"] .o7-pp { display: block; font-variant-numeric: tabular-nums; }
+/* Seletor: 3 segmentos; o escolhido é a única superfície opaca e leva o foco. */
+[data-option="7"] .o7-seg-bar {
+  display: flex; padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="7"] .o7-seg {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; height: var(--dimension-size-semantic-control-height); padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted); white-space: nowrap;
+}
+[data-option="7"] .o7-seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="7"] .o7-seg[aria-selected="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="7"] .o7-r, [data-option="7"] .o7-pool, [data-option="7"] .o7-door { transition: none; } }
+[data-option="8"] { --o8-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="8"] .o8-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Ênfase: o título-conclusão é o bloco mais forte e ganha ar embaixo; planta, top 4 e seletor se apertam. */
+[data-option="8"] .o8-title { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0 0 var(--dimension-spacing-core-2xs); }
+[data-option="8"] .o8-pct { display: block; font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="8"] .o8-what { display: block; color: var(--color-semantic-functional-text-primary); }
+/* Palco: a planta é recortada na zona escolhida (viewBox), os rótulos ficam por cima. */
+[data-option="8"] .o8-stage { position: relative; display: block; height: 112px; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+[data-option="8"] .o8-plan { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+[data-option="8"] .o8-floor, [data-option="8"] .o8-door { fill: var(--color-semantic-functional-background-primary); }
+/* Desenho da planta: piso com textura, móveis em traço fino; o calor fica por baixo dos móveis. */
+[data-option="8"] .o8-tex { fill: none; stroke: var(--color-opacity-light-10); stroke-width: var(--dimension-border-width-core-hairline); }
+[data-option="8"] .o8-fx { fill: var(--color-opacity-light-10); stroke: var(--color-opacity-light-50); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="8"] .o8-solid { fill: var(--color-opacity-light-30); }
+[data-option="8"] .o8-line { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="8"] .o8-door { transition: opacity 160ms ease-out; }
+[data-option="8"] .o8-door[data-out] { opacity: var(--opacity-semantic-hidden); }
+[data-option="8"] .o8-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o8-h) * var(--o8-h) * 0.6); }
+[data-option="8"] .o8-core { opacity: calc(var(--o8-h) * var(--o8-h)); }
+[data-option="8"] .o8-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="8"] .o8-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="8"] .o8-r, [data-option="8"] .o8-pool { transition: opacity 160ms ease-out; }
+[data-option="8"] .o8-r[data-out], [data-option="8"] .o8-pool[data-out] { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="8"] .o8-labels { position: absolute; inset: 0; display: block; }
+[data-option="8"] .o8-lbl {
+  position: absolute; display: flex; flex-direction: column;
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-dark-50);
+}
+[data-option="8"] .o8-lbl[hidden] { display: none; }
+[data-option="8"] .o8-lbl-n { display: block; color: var(--color-semantic-functional-text-primary); }
+[data-option="8"] .o8-lbl-p { display: block; }
+/* Top 4 do lugar em foco: quem mais passa tempo ali; Marcos (dono do perfil) marcado com anel. */
+[data-option="8"] .o8-top { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="8"] .o8-top-h { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="8"] .o8-people { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; }
+[data-option="8"] .o8-p { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-none); }
+[data-option="8"] .o8-av {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-icon-lg); height: var(--dimension-size-semantic-icon-lg); margin-bottom: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-background-tint);
+  border: var(--dimension-border-width-core-thin) solid transparent;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="8"] .o8-p.is-me .o8-av { border-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="8"] .o8-pn { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="8"] .o8-p.is-me .o8-pn { color: var(--color-semantic-functional-text-primary); }
+[data-option="8"] .o8-pp { display: block; font-variant-numeric: tabular-nums; }
+/* Seletor: 3 segmentos; o escolhido é a única superfície opaca e leva o foco. */
+[data-option="8"] .o8-seg-bar {
+  display: flex; padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="8"] .o8-seg {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; height: var(--dimension-size-semantic-control-height); padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted); white-space: nowrap;
+}
+[data-option="8"] .o8-seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="8"] .o8-seg[aria-selected="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="8"] .o8-r, [data-option="8"] .o8-pool, [data-option="8"] .o8-door { transition: none; } }
+[data-option="9"] { --o9-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="9"] .o9-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="9"] .o9-title { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0; }
+[data-option="9"] .o9-pct { display: block; font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="9"] .o9-what { display: block; color: var(--color-semantic-functional-text-muted); }
+/* Palco: a planta é recortada na zona escolhida (viewBox), os rótulos ficam por cima. */
+[data-option="9"] .o9-stage { position: relative; display: block; height: 104px; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+[data-option="9"] .o9-plan { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+[data-option="9"] .o9-floor, [data-option="9"] .o9-door { fill: var(--color-semantic-functional-background-primary); }
+/* Desenho da planta: piso com textura, móveis em traço fino; o calor fica por baixo dos móveis. */
+[data-option="9"] .o9-tex { fill: none; stroke: var(--color-opacity-light-10); stroke-width: var(--dimension-border-width-core-hairline); }
+[data-option="9"] .o9-fx { fill: var(--color-opacity-light-10); stroke: var(--color-opacity-light-50); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="9"] .o9-solid { fill: var(--color-opacity-light-30); }
+[data-option="9"] .o9-line { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="9"] .o9-door { transition: opacity 160ms ease-out; }
+[data-option="9"] .o9-door[data-out] { opacity: var(--opacity-semantic-hidden); }
+[data-option="9"] .o9-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o9-h) * var(--o9-h) * 0.6); }
+[data-option="9"] .o9-core { opacity: calc(var(--o9-h) * var(--o9-h)); }
+[data-option="9"] .o9-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="9"] .o9-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="9"] .o9-r, [data-option="9"] .o9-pool { transition: opacity 160ms ease-out; }
+[data-option="9"] .o9-r[data-out], [data-option="9"] .o9-pool[data-out] { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="9"] .o9-labels { position: absolute; inset: 0; display: block; }
+[data-option="9"] .o9-lbl {
+  position: absolute; display: flex; flex-direction: column;
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-dark-50);
+}
+[data-option="9"] .o9-lbl[hidden] { display: none; }
+[data-option="9"] .o9-lbl-n { display: block; color: var(--color-semantic-functional-text-primary); }
+[data-option="9"] .o9-lbl-p { display: block; }
+/* Top 4 do lugar em foco: quem mais passa tempo ali; Marcos (dono do perfil) marcado com anel. */
+[data-option="9"] .o9-top { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+[data-option="9"] .o9-top-h { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="9"] .o9-people { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; }
+[data-option="9"] .o9-p { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs); }
+[data-option="9"] .o9-av + .o9-pp { margin-top: var(--dimension-spacing-core-3xs); }
+[data-option="9"] .o9-av {
+  display: flex; align-items: center; justify-content: center;
+  /* um passo acima do avatar do kit (40 + 8) */
+  width: calc(var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-2xs)); height: calc(var(--dimension-size-semantic-avatar) + var(--dimension-spacing-core-2xs));
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-background-tint);
+  border: var(--dimension-border-width-core-thin) solid transparent;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="9"] .o9-p.is-me .o9-av { border-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="9"] .o9-pn { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="9"] .o9-p.is-me .o9-pn { color: var(--color-semantic-functional-text-primary); }
+[data-option="9"] .o9-pp { display: block; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+/* Seletor: 3 segmentos; o escolhido é a única superfície opaca e leva o foco. */
+[data-option="9"] .o9-seg-bar {
+  display: flex; padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="9"] .o9-seg {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; height: var(--dimension-size-semantic-control-height); padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted); white-space: nowrap;
+}
+[data-option="9"] .o9-seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="9"] .o9-seg[aria-selected="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="9"] .o9-r, [data-option="9"] .o9-pool, [data-option="9"] .o9-door { transition: none; } }
+[data-option="10"] { --o10-h: 0; } /* calor do cômodo, 0 a 1 (% / 28); cada cômodo declara o seu */
+[data-option="10"] .o10-card {
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  display: flex; flex-direction: column; gap: var(--dimension-spacing-core-lg);
+  font-family: var(--typography-font-family-primary);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="10"] .o10-title { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); margin: 0; }
+[data-option="10"] .o10-pct { display: block; font-size: var(--typography-font-size-3xl); font-weight: var(--typography-font-weight-extra-bold); letter-spacing: var(--typography-letter-spacing-tighter); line-height: var(--typography-line-height-tight); }
+[data-option="10"] .o10-what { display: block; color: var(--color-semantic-functional-text-muted); }
+/* Palco: a planta é recortada na zona escolhida (viewBox), os rótulos ficam por cima. */
+[data-option="10"] .o10-stage { position: relative; display: block; height: 120px; overflow: hidden; border-radius: var(--dimension-radius-core-lg); }
+[data-option="10"] .o10-plan { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+[data-option="10"] .o10-floor, [data-option="10"] .o10-door { fill: var(--color-semantic-functional-background-primary); }
+/* Desenho da planta: piso com textura, móveis em traço fino; o calor fica por baixo dos móveis. */
+[data-option="10"] .o10-tex { fill: none; stroke: var(--color-opacity-light-10); stroke-width: var(--dimension-border-width-core-hairline); }
+[data-option="10"] .o10-fx { fill: var(--color-opacity-light-10); stroke: var(--color-opacity-light-50); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="10"] .o10-solid { fill: var(--color-opacity-light-30); }
+[data-option="10"] .o10-line { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="10"] .o10-door { transition: opacity 160ms ease-out; }
+[data-option="10"] .o10-door[data-out] { opacity: var(--opacity-semantic-hidden); }
+[data-option="10"] .o10-heat { fill: var(--color-semantic-theme-tarde-dark); fill-opacity: calc(var(--o10-h) * var(--o10-h) * 0.6); }
+[data-option="10"] .o10-core { opacity: calc(var(--o10-h) * var(--o10-h)); }
+[data-option="10"] .o10-stop { stop-color: var(--color-semantic-theme-tarde-dark); }
+[data-option="10"] .o10-pool { fill: none; stroke: var(--color-opacity-light-20); stroke-width: var(--dimension-border-width-core-hairline); vector-effect: non-scaling-stroke; }
+[data-option="10"] .o10-r, [data-option="10"] .o10-pool { transition: opacity 160ms ease-out; }
+[data-option="10"] .o10-r[data-out], [data-option="10"] .o10-pool[data-out] { opacity: var(--opacity-semantic-overlay-minimal); }
+[data-option="10"] .o10-labels { position: absolute; inset: 0; display: block; }
+[data-option="10"] .o10-lbl {
+  position: absolute; display: flex; flex-direction: column;
+  padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-core-xs);
+  background: var(--color-opacity-dark-50);
+}
+[data-option="10"] .o10-lbl[hidden] { display: none; }
+[data-option="10"] .o10-lbl-n { display: block; color: var(--color-semantic-functional-text-primary); }
+/* Top 4 do lugar em foco: quem mais passa tempo ali; Marcos (dono do perfil) marcado com anel. */
+[data-option="10"] .o10-top { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-xs); }
+[data-option="10"] .o10-top-h { display: block; margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="10"] .o10-people { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; }
+[data-option="10"] .o10-p { display: flex; flex-direction: column; align-items: center; gap: var(--dimension-spacing-core-3xs); }
+[data-option="10"] .o10-av {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar);
+  border-radius: var(--dimension-radius-core-full);
+  background: var(--color-semantic-functional-background-tint);
+  border: var(--dimension-border-width-core-thin) solid transparent;
+  color: var(--color-semantic-functional-text-muted);
+}
+[data-option="10"] .o10-p.is-me .o10-av { border-color: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-primary); }
+[data-option="10"] .o10-pn { display: block; color: var(--color-semantic-functional-text-muted); }
+[data-option="10"] .o10-p.is-me .o10-pn { color: var(--color-semantic-functional-text-primary); }
+[data-option="10"] .o10-pp { display: block; font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-muted); }
+[data-option="10"] .o10-p.is-me .o10-pp { color: var(--color-semantic-functional-text-primary); }
+/* Seletor: 3 segmentos; o escolhido é a única superfície opaca e leva o foco. */
+[data-option="10"] .o10-seg-bar {
+  display: flex; padding: var(--dimension-spacing-core-3xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--color-semantic-functional-background-tint);
+}
+[data-option="10"] .o10-seg {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  flex: 1 1 auto; height: var(--dimension-size-semantic-control-height); padding: 0 var(--dimension-spacing-core-2xs);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-muted); white-space: nowrap;
+}
+[data-option="10"] .o10-seg[aria-selected="true"] { background: var(--color-semantic-functional-text-primary); color: var(--color-semantic-functional-text-inverse); }
+[data-option="10"] .o10-seg[aria-selected="true"]::after {
+  content: ""; position: absolute;
+  inset: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background: var(--gradient-semantic-focus-ring);
+  -webkit-mask: linear-gradient(var(--color-semantic-functional-text-inverse) 0 0) content-box, linear-gradient(var(--color-semantic-functional-text-inverse) 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (prefers-reduced-motion: reduce) { [data-option="10"] .o10-r, [data-option="10"] .o10-pool, [data-option="10"] .o10-door { transition: none; } }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: a planta ocupa o card e é a única protagonista; o foco passa de cômodo em cômodo e o detalhe se abre no próprio card, sem trocar de tela. -->
+  <p class="opt-label" data-part="label">Opção 1 - Planta cheia, o foco abre</p>
+  <div class="opt-content" data-part="content">
+    <div class="o1-card" data-part="card">
+      <svg class="o1-plan" data-part="planta" viewBox="-8 -8 376 256" role="img" aria-label="Planta da casa com o calor de presença de Marcos por cômodo">
+        <defs>
+          <radialGradient id="o1-core" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" class="o1-stop" stop-opacity="1"/>
+            <stop offset="1" class="o1-stop" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="o1-ring-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.3" class="o1-ring-a"/>
+            <stop offset="1" class="o1-ring-b"/>
+          </linearGradient>
+        </defs>
+        <!-- Área externa: academia e jardim (coluna da esquerda, como na casa) -->
+        <g class="o1-r" data-room="Academia" style="--o1-h:0.36"><rect class="o1-floor" x="0" y="0" width="174" height="70" rx="4"/><rect class="o1-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="0" y="0" width="174" height="70" rx="4"/></g>
+        <g class="o1-r" data-room="Jardim" style="--o1-h:0.54"><rect class="o1-floor" x="0" y="76" width="174" height="164" rx="4"/><rect class="o1-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="0" y="76" width="174" height="164" rx="4"/></g>
+        <rect class="o1-pool" x="28" y="168" width="96" height="48" rx="6"/>
+        <!-- Quartos (em cima, à direita) -->
+        <g class="o1-r" data-room="Quarto do Líder" style="--o1-h:0.21"><rect class="o1-floor" x="180" y="0" width="64" height="114" rx="4"/><rect class="o1-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="180" y="0" width="64" height="114" rx="4"/></g>
+        <g class="o1-r" data-room="Quarto Colorido" style="--o1-h:0.32"><rect class="o1-floor" x="250" y="0" width="52" height="114" rx="4"/><rect class="o1-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="250" y="0" width="52" height="114" rx="4"/></g>
+        <g class="o1-r" data-room="Quarto Azul" style="--o1-h:0.5"><rect class="o1-floor" x="308" y="0" width="52" height="114" rx="4"/><rect class="o1-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="308" y="0" width="52" height="114" rx="4"/></g>
+        <!-- Área social (embaixo, à direita) -->
+        <g class="o1-r" data-room="Sala" style="--o1-h:1"><rect class="o1-floor" x="180" y="120" width="104" height="120" rx="4"/><rect class="o1-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="180" y="120" width="104" height="120" rx="4"/></g>
+        <g class="o1-r" data-room="Cozinha" style="--o1-h:0.64"><rect class="o1-floor" x="290" y="120" width="70" height="120" rx="4"/><rect class="o1-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o1-core" fill="url(#o1-core)" x="290" y="120" width="70" height="120" rx="4"/></g>
+        <!-- Foco: um só anel, que viaja de cômodo em cômodo -->
+        <rect class="o1-ring" data-part="foco" x="174" y="114" width="116" height="132" rx="10"/>
+      </svg>
+      <div class="o1-text">
+        <p class="o1-anchor" data-part="numero" aria-live="polite"><span class="o1-pct">28%</span><span class="o1-room text-body-md-medium">na Sala</span></p>
+        <div class="o1-detail" data-part="detalhe">
+          <span class="o1-head text-footnote-bold"><span class="o1-head-t">Quando Marcos fica aqui</span><span class="o1-chev" aria-hidden="true"></span></span>
+          <span class="o1-body" data-stack aria-live="polite"><span class="o1-body-in"><span class="o1-when text-body-sm-bold">Mais tempo à noite</span><span class="o1-hours text-footnote-medium">31h esta semana</span></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: a casa é lida por zonas e, dentro delas, por cômodo; escolher troca o card inteiro: a planta enquadra só aquela parte, o título diz o quanto o participante vive ali e o top 4 mostra quem mais divide o lugar. -->
+  <p class="opt-label" data-part="label">Opção 2 - Zonas da casa</p>
+  <div class="opt-content" data-part="content">
+    <div class="o2-card" data-part="card">
+      <p class="o2-title" data-part="titulo" aria-live="polite"><span class="o2-pct">46%</span><span class="o2-what text-body-md-medium">do tempo na área social</span></p>
+      <div class="o2-stage" data-part="planta" data-stack>
+        <svg class="o2-plan" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta da casa recortada na zona escolhida, com o calor de presença de Marcos">
+          <defs>
+            <radialGradient id="o2-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" class="o2-stop" stop-opacity="1"/>
+              <stop offset="1" class="o2-stop" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Texturas de piso: tábuas (sala e quartos), ladrilho (cozinha e academia), grama (jardim) -->
+            <pattern id="o2-wood" width="24" height="8" patternUnits="userSpaceOnUse"><path class="o2-tex" d="M0 7.5H24M12 0V7.5"/></pattern>
+            <pattern id="o2-tile" width="10" height="10" patternUnits="userSpaceOnUse"><path class="o2-tex" d="M0 0.5H10M0.5 0V10"/></pattern>
+            <pattern id="o2-grass" width="14" height="14" patternUnits="userSpaceOnUse"><path class="o2-tex" d="M3 5l1.5-3 1.5 3M10 12l1.5-3 1.5 3"/></pattern>
+          </defs>
+          <!-- Portas: aberturas nas paredes entre cômodos vizinhos -->
+          <rect class="o2-door" data-rooms="Academia Jardim" x="130" y="70" width="24" height="6"/>
+          <rect class="o2-door" data-rooms="Jardim Sala" x="174" y="150" width="6" height="26"/>
+          <rect class="o2-door" data-rooms="Sala Cozinha" x="284" y="186" width="6" height="24"/>
+          <rect class="o2-door" data-rooms="Quarto do Líder Sala" x="200" y="114" width="20" height="6"/>
+          <rect class="o2-door" data-rooms="Quarto Colorido Sala" x="262" y="114" width="16" height="6"/>
+          <rect class="o2-door" data-rooms="Quarto Azul Cozinha" x="320" y="114" width="16" height="6"/>
+          <g class="o2-r" data-room="Academia" data-zone="externa" style="--o2-h:0.36">
+            <rect class="o2-floor" x="0" y="0" width="174" height="70" rx="4"/><rect fill="url(#o2-tile)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o2-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o2-fx" x="120" y="8" width="16" height="42" rx="3"/><rect class="o2-line" x="124" y="14" width="8" height="30" rx="1"/>
+            <rect class="o2-fx" x="144" y="8" width="16" height="42" rx="3"/><rect class="o2-line" x="148" y="14" width="8" height="30" rx="1"/>
+            <rect class="o2-fx" x="72" y="22" width="38" height="10" rx="3"/>
+            <rect class="o2-line" x="76" y="42" width="34" height="20" rx="2"/>
+            <rect class="o2-fx" x="10" y="52" width="56" height="10" rx="2"/>
+            <circle class="o2-solid" cx="18" cy="57" r="2.5"/><circle class="o2-solid" cx="28" cy="57" r="2.5"/><circle class="o2-solid" cx="38" cy="57" r="2.5"/><circle class="o2-solid" cx="48" cy="57" r="2.5"/><circle class="o2-solid" cx="58" cy="57" r="2.5"/>
+          </g>
+          <g class="o2-r" data-room="Jardim" data-zone="externa" style="--o2-h:0.54">
+            <rect class="o2-floor" x="0" y="76" width="174" height="164" rx="4"/><rect fill="url(#o2-grass)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o2-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o2-fx" x="28" y="168" width="96" height="48" rx="6"/>
+            <path class="o2-line" d="M40 184q6-4 12 0t12 0t12 0M68 200q6-4 12 0t12 0t12 0"/>
+            <rect class="o2-fx" x="40" y="136" width="10" height="24" rx="2"/><rect class="o2-fx" x="56" y="136" width="10" height="24" rx="2"/><rect class="o2-fx" x="72" y="136" width="10" height="24" rx="2"/>
+            <circle class="o2-fx" cx="104" cy="112" r="9"/><circle class="o2-solid" cx="92" cy="104" r="3"/><circle class="o2-solid" cx="116" cy="104" r="3"/><circle class="o2-solid" cx="104" cy="125" r="3"/>
+            <circle class="o2-fx" cx="152" cy="100" r="13"/><circle class="o2-solid" cx="152" cy="100" r="4"/>
+            <circle class="o2-fx" cx="148" cy="160" r="9"/><circle class="o2-solid" cx="148" cy="160" r="3"/>
+            <circle class="o2-fx" cx="152" cy="216" r="15"/><circle class="o2-solid" cx="152" cy="216" r="5"/>
+          </g>
+          <g class="o2-r" data-room="Quarto do Líder" data-zone="quartos" style="--o2-h:0.21">
+            <rect class="o2-floor" x="180" y="0" width="64" height="114" rx="4"/><rect fill="url(#o2-wood)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o2-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o2-fx" x="190" y="42" width="44" height="54" rx="3"/>
+            <rect class="o2-solid" x="194" y="46" width="17" height="9" rx="2"/><rect class="o2-solid" x="213" y="46" width="17" height="9" rx="2"/>
+            <path class="o2-line" d="M190 70H234"/>
+            <rect class="o2-fx" x="184" y="102" width="56" height="8" rx="1"/>
+          </g>
+          <g class="o2-r" data-room="Quarto Colorido" data-zone="quartos" style="--o2-h:0.32">
+            <rect class="o2-floor" x="250" y="0" width="52" height="114" rx="4"/><rect fill="url(#o2-wood)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o2-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o2-fx" x="256" y="42" width="40" height="18" rx="3"/><rect class="o2-solid" x="259" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o2-fx" x="256" y="66" width="40" height="18" rx="3"/><rect class="o2-solid" x="259" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o2-fx" x="256" y="90" width="40" height="18" rx="3"/><rect class="o2-solid" x="259" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o2-r" data-room="Quarto Azul" data-zone="quartos" style="--o2-h:0.5">
+            <rect class="o2-floor" x="308" y="0" width="52" height="114" rx="4"/><rect fill="url(#o2-wood)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o2-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o2-fx" x="314" y="42" width="40" height="18" rx="3"/><rect class="o2-solid" x="317" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o2-fx" x="314" y="66" width="40" height="18" rx="3"/><rect class="o2-solid" x="317" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o2-fx" x="314" y="90" width="40" height="18" rx="3"/><rect class="o2-solid" x="317" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o2-r" data-room="Sala" data-zone="social" style="--o2-h:1">
+            <rect class="o2-floor" x="180" y="120" width="104" height="120" rx="4"/><rect fill="url(#o2-wood)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o2-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o2-line" x="208" y="160" width="54" height="50" rx="3"/>
+            <path class="o2-fx" d="M186 165a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v53h45a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H189a3 3 0 0 1-3-3Z"/>
+            <rect class="o2-fx" x="222" y="176" width="26" height="18" rx="3"/>
+            <rect class="o2-solid" x="275" y="164" width="4" height="44" rx="1"/>
+            <circle class="o2-fx" cx="271" cy="131" r="6"/><circle class="o2-solid" cx="271" cy="131" r="2"/>
+          </g>
+          <g class="o2-r" data-room="Cozinha" data-zone="social" style="--o2-h:0.64">
+            <rect class="o2-floor" x="290" y="120" width="70" height="120" rx="4"/><rect fill="url(#o2-tile)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o2-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o2-core" fill="url(#o2-core)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o2-fx" x="342" y="150" width="14" height="60" rx="2"/>
+            <circle class="o2-line" cx="349" cy="160" r="3.5"/><circle class="o2-line" cx="349" cy="171" r="3.5"/>
+            <rect class="o2-line" x="344" y="186" width="10" height="14" rx="2"/>
+            <rect class="o2-solid" x="342" y="216" width="14" height="18" rx="2"/>
+            <rect class="o2-fx" x="302" y="184" width="28" height="30" rx="4"/>
+            <rect class="o2-fx" x="295" y="190" width="5" height="8" rx="1.5"/><rect class="o2-fx" x="295" y="201" width="5" height="8" rx="1.5"/>
+            <rect class="o2-fx" x="332" y="190" width="5" height="8" rx="1.5"/><rect class="o2-fx" x="332" y="201" width="5" height="8" rx="1.5"/>
+          </g>
+        </svg>
+        <!-- Rótulos só dos cômodos da zona escolhida (posição calculada a partir do recorte) -->
+        <div class="o2-labels" data-part="rotulos">
+          <span class="o2-lbl" data-for="Sala"><span class="o2-lbl-n text-footnote-medium">Sala</span><span class="o2-lbl-p text-body-md-bold">28%</span></span>
+          <span class="o2-lbl" data-for="Cozinha"><span class="o2-lbl-n text-footnote-medium">Cozinha</span><span class="o2-lbl-p text-body-md-bold">18%</span></span>
+          <span class="o2-lbl" data-for="Quarto do Líder"><span class="o2-lbl-n text-footnote-medium">Líder</span><span class="o2-lbl-p text-body-md-bold">6%</span></span>
+          <span class="o2-lbl" data-for="Quarto Colorido"><span class="o2-lbl-n text-footnote-medium">Colorido</span><span class="o2-lbl-p text-body-md-bold">9%</span></span>
+          <span class="o2-lbl" data-for="Quarto Azul"><span class="o2-lbl-n text-footnote-medium">Azul</span><span class="o2-lbl-p text-body-md-bold">14%</span></span>
+          <span class="o2-lbl" data-for="Academia"><span class="o2-lbl-n text-footnote-medium">Academia</span><span class="o2-lbl-p text-body-md-bold">10%</span></span>
+          <span class="o2-lbl" data-for="Jardim"><span class="o2-lbl-n text-footnote-medium">Jardim</span><span class="o2-lbl-p text-body-md-bold">15%</span></span>
+        </div>
+      </div>
+      <div class="o2-top" data-part="top4">
+        <p class="o2-top-h text-footnote-medium" aria-live="polite">Quem mais fica na área social</p>
+        <ol class="o2-people">
+          <li class="o2-p"><span class="o2-av text-body-sm-bold">B</span><span class="o2-pn text-footnote-medium">Bia</span><span class="o2-pp text-footnote-bold">52%</span></li>
+          <li class="o2-p is-me"><span class="o2-av text-body-sm-bold">M</span><span class="o2-pn text-footnote-medium">Marcos</span><span class="o2-pp text-footnote-bold">46%</span></li>
+          <li class="o2-p"><span class="o2-av text-body-sm-bold">D</span><span class="o2-pn text-footnote-medium">Davi</span><span class="o2-pp text-footnote-bold">44%</span></li>
+          <li class="o2-p"><span class="o2-av text-body-sm-bold">N</span><span class="o2-pn text-footnote-medium">Nina</span><span class="o2-pp text-footnote-bold">40%</span></li>
+        </ol>
+      </div>
+      <div class="o2-seg-bar" role="tablist" aria-label="Zona da casa" data-part="seletor">
+        <span class="o2-seg text-footnote-bold" role="tab" data-zone="social" aria-selected="true">Social</span>
+        <span class="o2-seg text-footnote-bold" role="tab" data-zone="quartos" aria-selected="false">Quartos</span>
+        <span class="o2-seg text-footnote-bold" role="tab" data-zone="externa" aria-selected="false">Área externa</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 3 - Trilho de cômodos</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: a planta mostra onde, o trilho abaixo mostra quanto: cada cômodo tem uma pílula com a sua %, e a selecionada inverte a cor e acende o cômodo na planta. -->
+    <div class="o3-card" data-part="card">
+      <svg class="o3-plan" data-part="plan" viewBox="0 0 240 168" role="img" aria-label="Planta da casa com o calor de cada cômodo">
+        <defs>
+          <radialGradient id="o3-heat" cx="50%" cy="50%" r="70%">
+            <stop offset="0" class="o3-stop-hot"/>
+            <stop offset="1" class="o3-stop-edge"/>
+          </radialGradient>
+        </defs>
+      </svg>
+      <div class="o3-sum" data-part="summary" aria-live="polite">
+        <p class="o3-big text-heading-3-bold" data-part="value">28%</p>
+        <p class="o3-lines text-body-sm-medium"><span>do tempo</span><span>na <strong>Sala</strong></span></p>
+      </div>
+      <ol class="o3-rail" data-part="rail" aria-label="Cômodos por presença"></ol>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 4 - Calor ou barras</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: o mesmo dado em duas leituras: a planta responde "onde", as barras respondem "quanto, em ordem"; o espectador alterna entre as duas sem mudar de card. -->
+    <div class="o4-card" data-part="card">
+      <div class="o4-head" data-part="value" aria-live="polite">
+        <p class="o4-pct text-heading-3-bold">28%</p>
+        <p class="o4-meta"><span class="o4-name-big text-body-sm-bold">Sala</span><span class="o4-rank text-footnote-medium">1º de 7 cômodos</span></p>
+      </div>
+      <div class="o4-stage" data-part="view">
+        <div class="o4-plan" data-stack>
+          <svg viewBox="0 0 240 168" role="img" aria-label="Planta da casa com o calor de cada cômodo">
+            <defs>
+              <radialGradient id="o4-heat" cx="50%" cy="50%" r="70%">
+                <stop offset="0" class="o4-stop-hot"/>
+                <stop offset="1" class="o4-stop-edge"/>
+              </radialGradient>
+            </defs>
+          </svg>
+          <span class="o4-ring" aria-hidden="true"></span>
+        </div>
+        <ol class="o4-bars" aria-label="Cômodos por presença" hidden></ol>
+      </div>
+      <p class="o4-switch text-footnote-bold" data-part="view-marker" aria-live="polite">
+        <span class="o4-tab" data-view="plan" aria-current="true">Planta</span>
+        <span aria-hidden="true">·</span>
+        <span class="o4-tab" data-view="bars" aria-current="false">Ranking</span>
+      </p>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="5" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 5 - Planta e ranking</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: o título já é a conclusão ("Vive na Sala") e a lista abaixo é a prova: uma planta pequena de um lado e os cômodos em ordem de presença do outro, com o foco girando nos dois. -->
+    <section class="o5-card" data-part="card" aria-label="Mapa de calor de Marcos na casa">
+      <header class="o5-head">
+        <div class="o5-claim" data-part="title">
+          <h3 class="text-heading-3-bold">Vive na<br>Sala</h3>
+          <p class="o5-sub text-footnote-medium">10 pontos acima da Cozinha</p>
+        </div>
+        <svg class="o5-plan" data-part="plan" viewBox="0 0 200 120" role="img" aria-label="Planta da casa com o calor de cada cômodo">
+          <path class="room" data-room="jardim" style="--h: 53%" d="M0 22H60V47H92V120H0Z"/>
+          <path class="room" data-room="academia" style="--h: 35%" d="M63 22H92V44H63Z"/>
+          <path class="room" data-room="lider" style="--h: 20%" d="M104 0H168V32H104Z"/>
+          <path class="room" data-room="sala" style="--h: 100%" d="M104 44H150V86H104Z"/>
+          <path class="room" data-room="cozinha" style="--h: 64%" d="M104 89H150V120H104Z"/>
+          <path class="room" data-room="colorido" style="--h: 31%" d="M153 44H200V72H153Z"/>
+          <path class="room" data-room="azul" style="--h: 49%" d="M153 75H200V120H153Z"/>
+          <path class="hl" data-part="plan-focus" d="M104 44H150V86H104Z"/>
+        </svg>
+      </header>
+      <ol class="o5-list" data-part="ranking">
+        <li class="o5-row is-focus" data-room="sala" style="--h: 100%; --w: 100%">
+          <span class="o5-name text-body-sm-medium">Sala</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">28%</span>
+          <p class="o5-detail text-footnote-medium" data-part="detail" aria-live="polite" data-text="Mais à noite · 4h30 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="cozinha" style="--h: 64%; --w: 64%">
+          <span class="o5-name text-body-sm-medium">Cozinha</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">18%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais no almoço · 2h50 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="jardim" style="--h: 53%; --w: 54%">
+          <span class="o5-name text-body-sm-medium">Jardim</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">15%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais à tarde · 2h25 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="azul" style="--h: 49%; --w: 50%">
+          <span class="o5-name text-body-sm-medium">Quarto Azul</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">14%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais de madrugada · 2h15 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="academia" style="--h: 35%; --w: 36%">
+          <span class="o5-name text-body-sm-medium">Academia</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">10%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais de manhã · 1h35 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="colorido" style="--h: 31%; --w: 32%">
+          <span class="o5-name text-body-sm-medium">Quarto Colorido</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">9%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais à tarde · 1h25 por dia"></p>
+        </li>
+        <li class="o5-row" data-room="lider" style="--h: 20%; --w: 21%">
+          <span class="o5-name text-body-sm-medium">Quarto do Líder</span>
+          <span class="o5-bar"><span class="o5-fill"><span class="o5-dot"></span></span></span>
+          <span class="o5-pct text-body-md-bold">6%</span>
+          <p class="o5-detail text-footnote-medium" aria-live="polite" data-text="Mais à noite · 1h por dia"></p>
+        </li>
+      </ol>
+    </section>
+  </div>
+</article>
+<article class="opt" data-option="6" tabindex="0">
+  <p class="opt-label" data-part="label">Opção 6 - Cartões-cômodo</p>
+  <div class="opt-content" data-part="content">
+    <!-- tese: cada cômodo é um cartão do mesmo molde com um recorte da planta já pintado pelo seu calor; olhar a fileira é comparar, e escolher um cartão o fixa como "o favorito" da leitura. -->
+    <section class="o6-card" data-part="card" aria-label="Mapa de calor de Marcos na casa">
+      <p class="o6-phrase text-heading-4-bold" data-part="phrase" aria-live="polite">
+        <span><span class="o6-quiet">Passa</span> <span class="o6-loud" data-f="pct">28%</span></span>
+        <span><span class="o6-quiet" data-f="prep">na</span> <span class="o6-loud" data-f="name">Sala</span></span>
+      </p>
+      <div class="o6-view" data-stack>
+        <div class="o6-track" data-part="cards" data-stack></div>
+      </div>
+      <p class="o6-detail text-footnote-medium" data-part="detail" aria-live="polite"></p>
+    </section>
+  </div>
+</article>
+    <h2 class="opt-group">Variações da Opção 2 · sutil</h2>
+<article data-parent="2" class="opt" data-option="7" tabindex="0">
+  <!-- tese (ênfase: a planta maior manda; título e top 4 recuam): a casa é lida por zonas e, dentro delas, por cômodo; escolher troca o card inteiro: a planta enquadra só aquela parte, o título diz o quanto o participante vive ali e o top 4 mostra quem mais divide o lugar. -->
+  <p class="opt-label" data-part="label">Opção 7 - Mapa maior</p>
+  <div class="opt-content" data-part="content">
+    <div class="o7-card" data-part="card">
+      <p class="o7-title" data-part="titulo" aria-live="polite"><span class="o7-pct">46%</span><span class="o7-what text-body-md-medium">do tempo na área social</span></p>
+      <div class="o7-stage" data-part="planta" data-stack>
+        <svg class="o7-plan" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta da casa recortada na zona escolhida, com o calor de presença de Marcos">
+          <defs>
+            <radialGradient id="o7-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" class="o7-stop" stop-opacity="1"/>
+              <stop offset="1" class="o7-stop" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Texturas de piso: tábuas (sala e quartos), ladrilho (cozinha e academia), grama (jardim) -->
+            <pattern id="o7-wood" width="24" height="8" patternUnits="userSpaceOnUse"><path class="o7-tex" d="M0 7.5H24M12 0V7.5"/></pattern>
+            <pattern id="o7-tile" width="10" height="10" patternUnits="userSpaceOnUse"><path class="o7-tex" d="M0 0.5H10M0.5 0V10"/></pattern>
+            <pattern id="o7-grass" width="14" height="14" patternUnits="userSpaceOnUse"><path class="o7-tex" d="M3 5l1.5-3 1.5 3M10 12l1.5-3 1.5 3"/></pattern>
+          </defs>
+          <!-- Portas: aberturas nas paredes entre cômodos vizinhos -->
+          <rect class="o7-door" data-rooms="Academia Jardim" x="130" y="70" width="24" height="6"/>
+          <rect class="o7-door" data-rooms="Jardim Sala" x="174" y="150" width="6" height="26"/>
+          <rect class="o7-door" data-rooms="Sala Cozinha" x="284" y="186" width="6" height="24"/>
+          <rect class="o7-door" data-rooms="Quarto do Líder Sala" x="200" y="114" width="20" height="6"/>
+          <rect class="o7-door" data-rooms="Quarto Colorido Sala" x="262" y="114" width="16" height="6"/>
+          <rect class="o7-door" data-rooms="Quarto Azul Cozinha" x="320" y="114" width="16" height="6"/>
+          <g class="o7-r" data-room="Academia" data-zone="externa" style="--o7-h:0.36">
+            <rect class="o7-floor" x="0" y="0" width="174" height="70" rx="4"/><rect fill="url(#o7-tile)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o7-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o7-fx" x="120" y="8" width="16" height="42" rx="3"/><rect class="o7-line" x="124" y="14" width="8" height="30" rx="1"/>
+            <rect class="o7-fx" x="144" y="8" width="16" height="42" rx="3"/><rect class="o7-line" x="148" y="14" width="8" height="30" rx="1"/>
+            <rect class="o7-fx" x="72" y="22" width="38" height="10" rx="3"/>
+            <rect class="o7-line" x="76" y="42" width="34" height="20" rx="2"/>
+            <rect class="o7-fx" x="10" y="52" width="56" height="10" rx="2"/>
+            <circle class="o7-solid" cx="18" cy="57" r="2.5"/><circle class="o7-solid" cx="28" cy="57" r="2.5"/><circle class="o7-solid" cx="38" cy="57" r="2.5"/><circle class="o7-solid" cx="48" cy="57" r="2.5"/><circle class="o7-solid" cx="58" cy="57" r="2.5"/>
+          </g>
+          <g class="o7-r" data-room="Jardim" data-zone="externa" style="--o7-h:0.54">
+            <rect class="o7-floor" x="0" y="76" width="174" height="164" rx="4"/><rect fill="url(#o7-grass)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o7-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o7-fx" x="28" y="168" width="96" height="48" rx="6"/>
+            <path class="o7-line" d="M40 184q6-4 12 0t12 0t12 0M68 200q6-4 12 0t12 0t12 0"/>
+            <rect class="o7-fx" x="40" y="136" width="10" height="24" rx="2"/><rect class="o7-fx" x="56" y="136" width="10" height="24" rx="2"/><rect class="o7-fx" x="72" y="136" width="10" height="24" rx="2"/>
+            <circle class="o7-fx" cx="104" cy="112" r="9"/><circle class="o7-solid" cx="92" cy="104" r="3"/><circle class="o7-solid" cx="116" cy="104" r="3"/><circle class="o7-solid" cx="104" cy="125" r="3"/>
+            <circle class="o7-fx" cx="152" cy="100" r="13"/><circle class="o7-solid" cx="152" cy="100" r="4"/>
+            <circle class="o7-fx" cx="148" cy="160" r="9"/><circle class="o7-solid" cx="148" cy="160" r="3"/>
+            <circle class="o7-fx" cx="152" cy="216" r="15"/><circle class="o7-solid" cx="152" cy="216" r="5"/>
+          </g>
+          <g class="o7-r" data-room="Quarto do Líder" data-zone="quartos" style="--o7-h:0.21">
+            <rect class="o7-floor" x="180" y="0" width="64" height="114" rx="4"/><rect fill="url(#o7-wood)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o7-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o7-fx" x="190" y="42" width="44" height="54" rx="3"/>
+            <rect class="o7-solid" x="194" y="46" width="17" height="9" rx="2"/><rect class="o7-solid" x="213" y="46" width="17" height="9" rx="2"/>
+            <path class="o7-line" d="M190 70H234"/>
+            <rect class="o7-fx" x="184" y="102" width="56" height="8" rx="1"/>
+          </g>
+          <g class="o7-r" data-room="Quarto Colorido" data-zone="quartos" style="--o7-h:0.32">
+            <rect class="o7-floor" x="250" y="0" width="52" height="114" rx="4"/><rect fill="url(#o7-wood)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o7-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o7-fx" x="256" y="42" width="40" height="18" rx="3"/><rect class="o7-solid" x="259" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o7-fx" x="256" y="66" width="40" height="18" rx="3"/><rect class="o7-solid" x="259" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o7-fx" x="256" y="90" width="40" height="18" rx="3"/><rect class="o7-solid" x="259" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o7-r" data-room="Quarto Azul" data-zone="quartos" style="--o7-h:0.5">
+            <rect class="o7-floor" x="308" y="0" width="52" height="114" rx="4"/><rect fill="url(#o7-wood)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o7-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o7-fx" x="314" y="42" width="40" height="18" rx="3"/><rect class="o7-solid" x="317" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o7-fx" x="314" y="66" width="40" height="18" rx="3"/><rect class="o7-solid" x="317" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o7-fx" x="314" y="90" width="40" height="18" rx="3"/><rect class="o7-solid" x="317" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o7-r" data-room="Sala" data-zone="social" style="--o7-h:1">
+            <rect class="o7-floor" x="180" y="120" width="104" height="120" rx="4"/><rect fill="url(#o7-wood)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o7-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o7-line" x="208" y="160" width="54" height="50" rx="3"/>
+            <path class="o7-fx" d="M186 165a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v53h45a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H189a3 3 0 0 1-3-3Z"/>
+            <rect class="o7-fx" x="222" y="176" width="26" height="18" rx="3"/>
+            <rect class="o7-solid" x="275" y="164" width="4" height="44" rx="1"/>
+            <circle class="o7-fx" cx="271" cy="131" r="6"/><circle class="o7-solid" cx="271" cy="131" r="2"/>
+          </g>
+          <g class="o7-r" data-room="Cozinha" data-zone="social" style="--o7-h:0.64">
+            <rect class="o7-floor" x="290" y="120" width="70" height="120" rx="4"/><rect fill="url(#o7-tile)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o7-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o7-core" fill="url(#o7-core)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o7-fx" x="342" y="150" width="14" height="60" rx="2"/>
+            <circle class="o7-line" cx="349" cy="160" r="3.5"/><circle class="o7-line" cx="349" cy="171" r="3.5"/>
+            <rect class="o7-line" x="344" y="186" width="10" height="14" rx="2"/>
+            <rect class="o7-solid" x="342" y="216" width="14" height="18" rx="2"/>
+            <rect class="o7-fx" x="302" y="184" width="28" height="30" rx="4"/>
+            <rect class="o7-fx" x="295" y="190" width="5" height="8" rx="1.5"/><rect class="o7-fx" x="295" y="201" width="5" height="8" rx="1.5"/>
+            <rect class="o7-fx" x="332" y="190" width="5" height="8" rx="1.5"/><rect class="o7-fx" x="332" y="201" width="5" height="8" rx="1.5"/>
+          </g>
+        </svg>
+        <!-- Rótulos só dos cômodos da zona escolhida (posição calculada a partir do recorte) -->
+        <div class="o7-labels" data-part="rotulos">
+          <span class="o7-lbl" data-for="Sala"><span class="o7-lbl-n text-footnote-medium">Sala</span><span class="o7-lbl-p text-body-lg-bold">28%</span></span>
+          <span class="o7-lbl" data-for="Cozinha"><span class="o7-lbl-n text-footnote-medium">Cozinha</span><span class="o7-lbl-p text-body-lg-bold">18%</span></span>
+          <span class="o7-lbl" data-for="Quarto do Líder"><span class="o7-lbl-n text-footnote-medium">Líder</span><span class="o7-lbl-p text-body-lg-bold">6%</span></span>
+          <span class="o7-lbl" data-for="Quarto Colorido"><span class="o7-lbl-n text-footnote-medium">Colorido</span><span class="o7-lbl-p text-body-lg-bold">9%</span></span>
+          <span class="o7-lbl" data-for="Quarto Azul"><span class="o7-lbl-n text-footnote-medium">Azul</span><span class="o7-lbl-p text-body-lg-bold">14%</span></span>
+          <span class="o7-lbl" data-for="Academia"><span class="o7-lbl-n text-footnote-medium">Academia</span><span class="o7-lbl-p text-body-lg-bold">10%</span></span>
+          <span class="o7-lbl" data-for="Jardim"><span class="o7-lbl-n text-footnote-medium">Jardim</span><span class="o7-lbl-p text-body-lg-bold">15%</span></span>
+        </div>
+      </div>
+      <div class="o7-top" data-part="top4">
+        <p class="o7-top-h text-footnote-medium" aria-live="polite">Quem mais fica na área social</p>
+        <ol class="o7-people">
+          <li class="o7-p"><span class="o7-av text-caption-bold">B</span><span class="o7-pn text-footnote-medium">Bia</span><span class="o7-pp text-footnote-bold">52%</span></li>
+          <li class="o7-p is-me"><span class="o7-av text-caption-bold">M</span><span class="o7-pn text-footnote-medium">Marcos</span><span class="o7-pp text-footnote-bold">46%</span></li>
+          <li class="o7-p"><span class="o7-av text-caption-bold">D</span><span class="o7-pn text-footnote-medium">Davi</span><span class="o7-pp text-footnote-bold">44%</span></li>
+          <li class="o7-p"><span class="o7-av text-caption-bold">N</span><span class="o7-pn text-footnote-medium">Nina</span><span class="o7-pp text-footnote-bold">40%</span></li>
+        </ol>
+      </div>
+      <div class="o7-seg-bar" role="tablist" aria-label="Zona da casa" data-part="seletor">
+        <span class="o7-seg text-footnote-bold" role="tab" data-zone="social" aria-selected="true">Social</span>
+        <span class="o7-seg text-footnote-bold" role="tab" data-zone="quartos" aria-selected="false">Quartos</span>
+        <span class="o7-seg text-footnote-bold" role="tab" data-zone="externa" aria-selected="false">Área externa</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="8" tabindex="0">
+  <!-- tese (ênfase: o título-conclusão e a % mandam; planta, top 4 e seletor recuam): a casa é lida por zonas e, dentro delas, por cômodo; escolher troca o card inteiro: a planta enquadra só aquela parte, o título diz o quanto o participante vive ali e o top 4 mostra quem mais divide o lugar. -->
+  <p class="opt-label" data-part="label">Opção 8 - Número maior</p>
+  <div class="opt-content" data-part="content">
+    <div class="o8-card" data-part="card">
+      <p class="o8-title" data-part="titulo" aria-live="polite"><span class="o8-pct">46%</span><span class="o8-what text-heading-5-medium">do tempo na área social</span></p>
+      <div class="o8-stage" data-part="planta" data-stack>
+        <svg class="o8-plan" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta da casa recortada na zona escolhida, com o calor de presença de Marcos">
+          <defs>
+            <radialGradient id="o8-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" class="o8-stop" stop-opacity="1"/>
+              <stop offset="1" class="o8-stop" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Texturas de piso: tábuas (sala e quartos), ladrilho (cozinha e academia), grama (jardim) -->
+            <pattern id="o8-wood" width="24" height="8" patternUnits="userSpaceOnUse"><path class="o8-tex" d="M0 7.5H24M12 0V7.5"/></pattern>
+            <pattern id="o8-tile" width="10" height="10" patternUnits="userSpaceOnUse"><path class="o8-tex" d="M0 0.5H10M0.5 0V10"/></pattern>
+            <pattern id="o8-grass" width="14" height="14" patternUnits="userSpaceOnUse"><path class="o8-tex" d="M3 5l1.5-3 1.5 3M10 12l1.5-3 1.5 3"/></pattern>
+          </defs>
+          <!-- Portas: aberturas nas paredes entre cômodos vizinhos -->
+          <rect class="o8-door" data-rooms="Academia Jardim" x="130" y="70" width="24" height="6"/>
+          <rect class="o8-door" data-rooms="Jardim Sala" x="174" y="150" width="6" height="26"/>
+          <rect class="o8-door" data-rooms="Sala Cozinha" x="284" y="186" width="6" height="24"/>
+          <rect class="o8-door" data-rooms="Quarto do Líder Sala" x="200" y="114" width="20" height="6"/>
+          <rect class="o8-door" data-rooms="Quarto Colorido Sala" x="262" y="114" width="16" height="6"/>
+          <rect class="o8-door" data-rooms="Quarto Azul Cozinha" x="320" y="114" width="16" height="6"/>
+          <g class="o8-r" data-room="Academia" data-zone="externa" style="--o8-h:0.36">
+            <rect class="o8-floor" x="0" y="0" width="174" height="70" rx="4"/><rect fill="url(#o8-tile)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o8-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o8-fx" x="120" y="8" width="16" height="42" rx="3"/><rect class="o8-line" x="124" y="14" width="8" height="30" rx="1"/>
+            <rect class="o8-fx" x="144" y="8" width="16" height="42" rx="3"/><rect class="o8-line" x="148" y="14" width="8" height="30" rx="1"/>
+            <rect class="o8-fx" x="72" y="22" width="38" height="10" rx="3"/>
+            <rect class="o8-line" x="76" y="42" width="34" height="20" rx="2"/>
+            <rect class="o8-fx" x="10" y="52" width="56" height="10" rx="2"/>
+            <circle class="o8-solid" cx="18" cy="57" r="2.5"/><circle class="o8-solid" cx="28" cy="57" r="2.5"/><circle class="o8-solid" cx="38" cy="57" r="2.5"/><circle class="o8-solid" cx="48" cy="57" r="2.5"/><circle class="o8-solid" cx="58" cy="57" r="2.5"/>
+          </g>
+          <g class="o8-r" data-room="Jardim" data-zone="externa" style="--o8-h:0.54">
+            <rect class="o8-floor" x="0" y="76" width="174" height="164" rx="4"/><rect fill="url(#o8-grass)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o8-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o8-fx" x="28" y="168" width="96" height="48" rx="6"/>
+            <path class="o8-line" d="M40 184q6-4 12 0t12 0t12 0M68 200q6-4 12 0t12 0t12 0"/>
+            <rect class="o8-fx" x="40" y="136" width="10" height="24" rx="2"/><rect class="o8-fx" x="56" y="136" width="10" height="24" rx="2"/><rect class="o8-fx" x="72" y="136" width="10" height="24" rx="2"/>
+            <circle class="o8-fx" cx="104" cy="112" r="9"/><circle class="o8-solid" cx="92" cy="104" r="3"/><circle class="o8-solid" cx="116" cy="104" r="3"/><circle class="o8-solid" cx="104" cy="125" r="3"/>
+            <circle class="o8-fx" cx="152" cy="100" r="13"/><circle class="o8-solid" cx="152" cy="100" r="4"/>
+            <circle class="o8-fx" cx="148" cy="160" r="9"/><circle class="o8-solid" cx="148" cy="160" r="3"/>
+            <circle class="o8-fx" cx="152" cy="216" r="15"/><circle class="o8-solid" cx="152" cy="216" r="5"/>
+          </g>
+          <g class="o8-r" data-room="Quarto do Líder" data-zone="quartos" style="--o8-h:0.21">
+            <rect class="o8-floor" x="180" y="0" width="64" height="114" rx="4"/><rect fill="url(#o8-wood)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o8-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o8-fx" x="190" y="42" width="44" height="54" rx="3"/>
+            <rect class="o8-solid" x="194" y="46" width="17" height="9" rx="2"/><rect class="o8-solid" x="213" y="46" width="17" height="9" rx="2"/>
+            <path class="o8-line" d="M190 70H234"/>
+            <rect class="o8-fx" x="184" y="102" width="56" height="8" rx="1"/>
+          </g>
+          <g class="o8-r" data-room="Quarto Colorido" data-zone="quartos" style="--o8-h:0.32">
+            <rect class="o8-floor" x="250" y="0" width="52" height="114" rx="4"/><rect fill="url(#o8-wood)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o8-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o8-fx" x="256" y="42" width="40" height="18" rx="3"/><rect class="o8-solid" x="259" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o8-fx" x="256" y="66" width="40" height="18" rx="3"/><rect class="o8-solid" x="259" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o8-fx" x="256" y="90" width="40" height="18" rx="3"/><rect class="o8-solid" x="259" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o8-r" data-room="Quarto Azul" data-zone="quartos" style="--o8-h:0.5">
+            <rect class="o8-floor" x="308" y="0" width="52" height="114" rx="4"/><rect fill="url(#o8-wood)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o8-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o8-fx" x="314" y="42" width="40" height="18" rx="3"/><rect class="o8-solid" x="317" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o8-fx" x="314" y="66" width="40" height="18" rx="3"/><rect class="o8-solid" x="317" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o8-fx" x="314" y="90" width="40" height="18" rx="3"/><rect class="o8-solid" x="317" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o8-r" data-room="Sala" data-zone="social" style="--o8-h:1">
+            <rect class="o8-floor" x="180" y="120" width="104" height="120" rx="4"/><rect fill="url(#o8-wood)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o8-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o8-line" x="208" y="160" width="54" height="50" rx="3"/>
+            <path class="o8-fx" d="M186 165a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v53h45a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H189a3 3 0 0 1-3-3Z"/>
+            <rect class="o8-fx" x="222" y="176" width="26" height="18" rx="3"/>
+            <rect class="o8-solid" x="275" y="164" width="4" height="44" rx="1"/>
+            <circle class="o8-fx" cx="271" cy="131" r="6"/><circle class="o8-solid" cx="271" cy="131" r="2"/>
+          </g>
+          <g class="o8-r" data-room="Cozinha" data-zone="social" style="--o8-h:0.64">
+            <rect class="o8-floor" x="290" y="120" width="70" height="120" rx="4"/><rect fill="url(#o8-tile)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o8-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o8-core" fill="url(#o8-core)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o8-fx" x="342" y="150" width="14" height="60" rx="2"/>
+            <circle class="o8-line" cx="349" cy="160" r="3.5"/><circle class="o8-line" cx="349" cy="171" r="3.5"/>
+            <rect class="o8-line" x="344" y="186" width="10" height="14" rx="2"/>
+            <rect class="o8-solid" x="342" y="216" width="14" height="18" rx="2"/>
+            <rect class="o8-fx" x="302" y="184" width="28" height="30" rx="4"/>
+            <rect class="o8-fx" x="295" y="190" width="5" height="8" rx="1.5"/><rect class="o8-fx" x="295" y="201" width="5" height="8" rx="1.5"/>
+            <rect class="o8-fx" x="332" y="190" width="5" height="8" rx="1.5"/><rect class="o8-fx" x="332" y="201" width="5" height="8" rx="1.5"/>
+          </g>
+        </svg>
+        <!-- Rótulos só dos cômodos da zona escolhida (posição calculada a partir do recorte) -->
+        <div class="o8-labels" data-part="rotulos">
+          <span class="o8-lbl" data-for="Sala"><span class="o8-lbl-n text-footnote-medium">Sala</span><span class="o8-lbl-p text-footnote-bold">28%</span></span>
+          <span class="o8-lbl" data-for="Cozinha"><span class="o8-lbl-n text-footnote-medium">Cozinha</span><span class="o8-lbl-p text-footnote-bold">18%</span></span>
+          <span class="o8-lbl" data-for="Quarto do Líder"><span class="o8-lbl-n text-footnote-medium">Líder</span><span class="o8-lbl-p text-footnote-bold">6%</span></span>
+          <span class="o8-lbl" data-for="Quarto Colorido"><span class="o8-lbl-n text-footnote-medium">Colorido</span><span class="o8-lbl-p text-footnote-bold">9%</span></span>
+          <span class="o8-lbl" data-for="Quarto Azul"><span class="o8-lbl-n text-footnote-medium">Azul</span><span class="o8-lbl-p text-footnote-bold">14%</span></span>
+          <span class="o8-lbl" data-for="Academia"><span class="o8-lbl-n text-footnote-medium">Academia</span><span class="o8-lbl-p text-footnote-bold">10%</span></span>
+          <span class="o8-lbl" data-for="Jardim"><span class="o8-lbl-n text-footnote-medium">Jardim</span><span class="o8-lbl-p text-footnote-bold">15%</span></span>
+        </div>
+      </div>
+      <div class="o8-top" data-part="top4">
+        <p class="o8-top-h text-footnote-medium" aria-live="polite">Quem mais fica na área social</p>
+        <ol class="o8-people">
+          <li class="o8-p"><span class="o8-av text-caption-bold">B</span><span class="o8-pn text-footnote-medium">Bia</span><span class="o8-pp text-footnote-bold">52%</span></li>
+          <li class="o8-p is-me"><span class="o8-av text-caption-bold">M</span><span class="o8-pn text-footnote-medium">Marcos</span><span class="o8-pp text-footnote-bold">46%</span></li>
+          <li class="o8-p"><span class="o8-av text-caption-bold">D</span><span class="o8-pn text-footnote-medium">Davi</span><span class="o8-pp text-footnote-bold">44%</span></li>
+          <li class="o8-p"><span class="o8-av text-caption-bold">N</span><span class="o8-pn text-footnote-medium">Nina</span><span class="o8-pp text-footnote-bold">40%</span></li>
+        </ol>
+      </div>
+      <div class="o8-seg-bar" role="tablist" aria-label="Zona da casa" data-part="seletor">
+        <span class="o8-seg text-footnote-bold" role="tab" data-zone="social" aria-selected="true">Social</span>
+        <span class="o8-seg text-footnote-bold" role="tab" data-zone="quartos" aria-selected="false">Quartos</span>
+        <span class="o8-seg text-footnote-bold" role="tab" data-zone="externa" aria-selected="false">Área externa</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="9" tabindex="0">
+  <!-- tese: a casa é lida por zonas e, dentro delas, por cômodo; escolher troca o card inteiro: a planta enquadra só aquela parte, o título diz o quanto o participante vive ali e o top 4 mostra quem mais divide o lugar. (variação sutil da opção 2: o top 4 sobe de peso e a planta recua um passo) -->
+  <p class="opt-label" data-part="label">Opção 9 - Top 4 em destaque</p>
+  <div class="opt-content" data-part="content">
+    <div class="o9-card" data-part="card">
+      <p class="o9-title" data-part="titulo" aria-live="polite"><span class="o9-pct">46%</span><span class="o9-what text-body-md-medium">do tempo na área social</span></p>
+      <div class="o9-stage" data-part="planta" data-stack>
+        <svg class="o9-plan" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta da casa recortada na zona escolhida, com o calor de presença de Marcos">
+          <defs>
+            <radialGradient id="o9-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" class="o9-stop" stop-opacity="1"/>
+              <stop offset="1" class="o9-stop" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Texturas de piso: tábuas (sala e quartos), ladrilho (cozinha e academia), grama (jardim) -->
+            <pattern id="o9-wood" width="24" height="8" patternUnits="userSpaceOnUse"><path class="o9-tex" d="M0 7.5H24M12 0V7.5"/></pattern>
+            <pattern id="o9-tile" width="10" height="10" patternUnits="userSpaceOnUse"><path class="o9-tex" d="M0 0.5H10M0.5 0V10"/></pattern>
+            <pattern id="o9-grass" width="14" height="14" patternUnits="userSpaceOnUse"><path class="o9-tex" d="M3 5l1.5-3 1.5 3M10 12l1.5-3 1.5 3"/></pattern>
+          </defs>
+          <!-- Portas: aberturas nas paredes entre cômodos vizinhos -->
+          <rect class="o9-door" data-rooms="Academia Jardim" x="130" y="70" width="24" height="6"/>
+          <rect class="o9-door" data-rooms="Jardim Sala" x="174" y="150" width="6" height="26"/>
+          <rect class="o9-door" data-rooms="Sala Cozinha" x="284" y="186" width="6" height="24"/>
+          <rect class="o9-door" data-rooms="Quarto do Líder Sala" x="200" y="114" width="20" height="6"/>
+          <rect class="o9-door" data-rooms="Quarto Colorido Sala" x="262" y="114" width="16" height="6"/>
+          <rect class="o9-door" data-rooms="Quarto Azul Cozinha" x="320" y="114" width="16" height="6"/>
+          <g class="o9-r" data-room="Academia" data-zone="externa" style="--o9-h:0.36">
+            <rect class="o9-floor" x="0" y="0" width="174" height="70" rx="4"/><rect fill="url(#o9-tile)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o9-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o9-fx" x="120" y="8" width="16" height="42" rx="3"/><rect class="o9-line" x="124" y="14" width="8" height="30" rx="1"/>
+            <rect class="o9-fx" x="144" y="8" width="16" height="42" rx="3"/><rect class="o9-line" x="148" y="14" width="8" height="30" rx="1"/>
+            <rect class="o9-fx" x="72" y="22" width="38" height="10" rx="3"/>
+            <rect class="o9-line" x="76" y="42" width="34" height="20" rx="2"/>
+            <rect class="o9-fx" x="10" y="52" width="56" height="10" rx="2"/>
+            <circle class="o9-solid" cx="18" cy="57" r="2.5"/><circle class="o9-solid" cx="28" cy="57" r="2.5"/><circle class="o9-solid" cx="38" cy="57" r="2.5"/><circle class="o9-solid" cx="48" cy="57" r="2.5"/><circle class="o9-solid" cx="58" cy="57" r="2.5"/>
+          </g>
+          <g class="o9-r" data-room="Jardim" data-zone="externa" style="--o9-h:0.54">
+            <rect class="o9-floor" x="0" y="76" width="174" height="164" rx="4"/><rect fill="url(#o9-grass)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o9-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o9-fx" x="28" y="168" width="96" height="48" rx="6"/>
+            <path class="o9-line" d="M40 184q6-4 12 0t12 0t12 0M68 200q6-4 12 0t12 0t12 0"/>
+            <rect class="o9-fx" x="40" y="136" width="10" height="24" rx="2"/><rect class="o9-fx" x="56" y="136" width="10" height="24" rx="2"/><rect class="o9-fx" x="72" y="136" width="10" height="24" rx="2"/>
+            <circle class="o9-fx" cx="104" cy="112" r="9"/><circle class="o9-solid" cx="92" cy="104" r="3"/><circle class="o9-solid" cx="116" cy="104" r="3"/><circle class="o9-solid" cx="104" cy="125" r="3"/>
+            <circle class="o9-fx" cx="152" cy="100" r="13"/><circle class="o9-solid" cx="152" cy="100" r="4"/>
+            <circle class="o9-fx" cx="148" cy="160" r="9"/><circle class="o9-solid" cx="148" cy="160" r="3"/>
+            <circle class="o9-fx" cx="152" cy="216" r="15"/><circle class="o9-solid" cx="152" cy="216" r="5"/>
+          </g>
+          <g class="o9-r" data-room="Quarto do Líder" data-zone="quartos" style="--o9-h:0.21">
+            <rect class="o9-floor" x="180" y="0" width="64" height="114" rx="4"/><rect fill="url(#o9-wood)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o9-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o9-fx" x="190" y="42" width="44" height="54" rx="3"/>
+            <rect class="o9-solid" x="194" y="46" width="17" height="9" rx="2"/><rect class="o9-solid" x="213" y="46" width="17" height="9" rx="2"/>
+            <path class="o9-line" d="M190 70H234"/>
+            <rect class="o9-fx" x="184" y="102" width="56" height="8" rx="1"/>
+          </g>
+          <g class="o9-r" data-room="Quarto Colorido" data-zone="quartos" style="--o9-h:0.32">
+            <rect class="o9-floor" x="250" y="0" width="52" height="114" rx="4"/><rect fill="url(#o9-wood)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o9-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o9-fx" x="256" y="42" width="40" height="18" rx="3"/><rect class="o9-solid" x="259" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o9-fx" x="256" y="66" width="40" height="18" rx="3"/><rect class="o9-solid" x="259" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o9-fx" x="256" y="90" width="40" height="18" rx="3"/><rect class="o9-solid" x="259" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o9-r" data-room="Quarto Azul" data-zone="quartos" style="--o9-h:0.5">
+            <rect class="o9-floor" x="308" y="0" width="52" height="114" rx="4"/><rect fill="url(#o9-wood)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o9-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o9-fx" x="314" y="42" width="40" height="18" rx="3"/><rect class="o9-solid" x="317" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o9-fx" x="314" y="66" width="40" height="18" rx="3"/><rect class="o9-solid" x="317" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o9-fx" x="314" y="90" width="40" height="18" rx="3"/><rect class="o9-solid" x="317" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o9-r" data-room="Sala" data-zone="social" style="--o9-h:1">
+            <rect class="o9-floor" x="180" y="120" width="104" height="120" rx="4"/><rect fill="url(#o9-wood)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o9-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o9-line" x="208" y="160" width="54" height="50" rx="3"/>
+            <path class="o9-fx" d="M186 165a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v53h45a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H189a3 3 0 0 1-3-3Z"/>
+            <rect class="o9-fx" x="222" y="176" width="26" height="18" rx="3"/>
+            <rect class="o9-solid" x="275" y="164" width="4" height="44" rx="1"/>
+            <circle class="o9-fx" cx="271" cy="131" r="6"/><circle class="o9-solid" cx="271" cy="131" r="2"/>
+          </g>
+          <g class="o9-r" data-room="Cozinha" data-zone="social" style="--o9-h:0.64">
+            <rect class="o9-floor" x="290" y="120" width="70" height="120" rx="4"/><rect fill="url(#o9-tile)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o9-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o9-core" fill="url(#o9-core)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o9-fx" x="342" y="150" width="14" height="60" rx="2"/>
+            <circle class="o9-line" cx="349" cy="160" r="3.5"/><circle class="o9-line" cx="349" cy="171" r="3.5"/>
+            <rect class="o9-line" x="344" y="186" width="10" height="14" rx="2"/>
+            <rect class="o9-solid" x="342" y="216" width="14" height="18" rx="2"/>
+            <rect class="o9-fx" x="302" y="184" width="28" height="30" rx="4"/>
+            <rect class="o9-fx" x="295" y="190" width="5" height="8" rx="1.5"/><rect class="o9-fx" x="295" y="201" width="5" height="8" rx="1.5"/>
+            <rect class="o9-fx" x="332" y="190" width="5" height="8" rx="1.5"/><rect class="o9-fx" x="332" y="201" width="5" height="8" rx="1.5"/>
+          </g>
+        </svg>
+        <!-- Rótulos só dos cômodos da zona escolhida (posição calculada a partir do recorte) -->
+        <div class="o9-labels" data-part="rotulos">
+          <span class="o9-lbl" data-for="Sala"><span class="o9-lbl-n text-caption-medium">Sala</span><span class="o9-lbl-p text-footnote-bold">28%</span></span>
+          <span class="o9-lbl" data-for="Cozinha"><span class="o9-lbl-n text-caption-medium">Cozinha</span><span class="o9-lbl-p text-footnote-bold">18%</span></span>
+          <span class="o9-lbl" data-for="Quarto do Líder"><span class="o9-lbl-n text-caption-medium">Líder</span><span class="o9-lbl-p text-footnote-bold">6%</span></span>
+          <span class="o9-lbl" data-for="Quarto Colorido"><span class="o9-lbl-n text-caption-medium">Colorido</span><span class="o9-lbl-p text-footnote-bold">9%</span></span>
+          <span class="o9-lbl" data-for="Quarto Azul"><span class="o9-lbl-n text-caption-medium">Azul</span><span class="o9-lbl-p text-footnote-bold">14%</span></span>
+          <span class="o9-lbl" data-for="Academia"><span class="o9-lbl-n text-caption-medium">Academia</span><span class="o9-lbl-p text-footnote-bold">10%</span></span>
+          <span class="o9-lbl" data-for="Jardim"><span class="o9-lbl-n text-caption-medium">Jardim</span><span class="o9-lbl-p text-footnote-bold">15%</span></span>
+        </div>
+      </div>
+      <div class="o9-top" data-part="top4">
+        <p class="o9-top-h text-body-sm-medium" aria-live="polite">Quem mais fica na área social</p>
+        <ol class="o9-people">
+          <li class="o9-p"><span class="o9-av text-body-md-bold">B</span><span class="o9-pp text-body-lg-bold">52%</span><span class="o9-pn text-footnote-medium">Bia</span></li>
+          <li class="o9-p is-me"><span class="o9-av text-body-md-bold">M</span><span class="o9-pp text-body-lg-bold">46%</span><span class="o9-pn text-footnote-medium">Marcos</span></li>
+          <li class="o9-p"><span class="o9-av text-body-md-bold">D</span><span class="o9-pp text-body-lg-bold">44%</span><span class="o9-pn text-footnote-medium">Davi</span></li>
+          <li class="o9-p"><span class="o9-av text-body-md-bold">N</span><span class="o9-pp text-body-lg-bold">40%</span><span class="o9-pn text-footnote-medium">Nina</span></li>
+        </ol>
+      </div>
+      <div class="o9-seg-bar" role="tablist" aria-label="Zona da casa" data-part="seletor">
+        <span class="o9-seg text-footnote-bold" role="tab" data-zone="social" aria-selected="true">Social</span>
+        <span class="o9-seg text-footnote-bold" role="tab" data-zone="quartos" aria-selected="false">Quartos</span>
+        <span class="o9-seg text-footnote-bold" role="tab" data-zone="externa" aria-selected="false">Área externa</span>
+      </div>
+    </div>
+  </div>
+</article>
+<article data-parent="2" class="opt" data-option="10" tabindex="0">
+  <!-- tese: a casa é lida por zonas e, dentro delas, por cômodo; escolher troca o card inteiro: a planta enquadra só aquela parte, o título diz o quanto o participante vive ali e o top 4 mostra quem mais divide o lugar. (variação sutil da opção 2: mais ar entre os grupos, um só rótulo na planta, hierarquia mais calma) -->
+  <p class="opt-label" data-part="label">Opção 10 - Respiro</p>
+  <div class="opt-content" data-part="content">
+    <div class="o10-card" data-part="card">
+      <p class="o10-title" data-part="titulo" aria-live="polite"><span class="o10-pct">46%</span><span class="o10-what text-body-md-medium">do tempo na área social</span></p>
+      <div class="o10-stage" data-part="planta" data-stack>
+        <svg class="o10-plan" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta da casa recortada na zona escolhida, com o calor de presença de Marcos">
+          <defs>
+            <radialGradient id="o10-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" class="o10-stop" stop-opacity="1"/>
+              <stop offset="1" class="o10-stop" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Texturas de piso: tábuas (sala e quartos), ladrilho (cozinha e academia), grama (jardim) -->
+            <pattern id="o10-wood" width="24" height="8" patternUnits="userSpaceOnUse"><path class="o10-tex" d="M0 7.5H24M12 0V7.5"/></pattern>
+            <pattern id="o10-tile" width="10" height="10" patternUnits="userSpaceOnUse"><path class="o10-tex" d="M0 0.5H10M0.5 0V10"/></pattern>
+            <pattern id="o10-grass" width="14" height="14" patternUnits="userSpaceOnUse"><path class="o10-tex" d="M3 5l1.5-3 1.5 3M10 12l1.5-3 1.5 3"/></pattern>
+          </defs>
+          <!-- Portas: aberturas nas paredes entre cômodos vizinhos -->
+          <rect class="o10-door" data-rooms="Academia Jardim" x="130" y="70" width="24" height="6"/>
+          <rect class="o10-door" data-rooms="Jardim Sala" x="174" y="150" width="6" height="26"/>
+          <rect class="o10-door" data-rooms="Sala Cozinha" x="284" y="186" width="6" height="24"/>
+          <rect class="o10-door" data-rooms="Quarto do Líder Sala" x="200" y="114" width="20" height="6"/>
+          <rect class="o10-door" data-rooms="Quarto Colorido Sala" x="262" y="114" width="16" height="6"/>
+          <rect class="o10-door" data-rooms="Quarto Azul Cozinha" x="320" y="114" width="16" height="6"/>
+          <g class="o10-r" data-room="Academia" data-zone="externa" style="--o10-h:0.36">
+            <rect class="o10-floor" x="0" y="0" width="174" height="70" rx="4"/><rect fill="url(#o10-tile)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o10-heat" x="0" y="0" width="174" height="70" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="0" y="0" width="174" height="70" rx="4"/>
+            <rect class="o10-fx" x="120" y="8" width="16" height="42" rx="3"/><rect class="o10-line" x="124" y="14" width="8" height="30" rx="1"/>
+            <rect class="o10-fx" x="144" y="8" width="16" height="42" rx="3"/><rect class="o10-line" x="148" y="14" width="8" height="30" rx="1"/>
+            <rect class="o10-fx" x="72" y="22" width="38" height="10" rx="3"/>
+            <rect class="o10-line" x="76" y="42" width="34" height="20" rx="2"/>
+            <rect class="o10-fx" x="10" y="52" width="56" height="10" rx="2"/>
+            <circle class="o10-solid" cx="18" cy="57" r="2.5"/><circle class="o10-solid" cx="28" cy="57" r="2.5"/><circle class="o10-solid" cx="38" cy="57" r="2.5"/><circle class="o10-solid" cx="48" cy="57" r="2.5"/><circle class="o10-solid" cx="58" cy="57" r="2.5"/>
+          </g>
+          <g class="o10-r" data-room="Jardim" data-zone="externa" style="--o10-h:0.54">
+            <rect class="o10-floor" x="0" y="76" width="174" height="164" rx="4"/><rect fill="url(#o10-grass)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o10-heat" x="0" y="76" width="174" height="164" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="0" y="76" width="174" height="164" rx="4"/>
+            <rect class="o10-fx" x="28" y="168" width="96" height="48" rx="6"/>
+            <path class="o10-line" d="M40 184q6-4 12 0t12 0t12 0M68 200q6-4 12 0t12 0t12 0"/>
+            <rect class="o10-fx" x="40" y="136" width="10" height="24" rx="2"/><rect class="o10-fx" x="56" y="136" width="10" height="24" rx="2"/><rect class="o10-fx" x="72" y="136" width="10" height="24" rx="2"/>
+            <circle class="o10-fx" cx="104" cy="112" r="9"/><circle class="o10-solid" cx="92" cy="104" r="3"/><circle class="o10-solid" cx="116" cy="104" r="3"/><circle class="o10-solid" cx="104" cy="125" r="3"/>
+            <circle class="o10-fx" cx="152" cy="100" r="13"/><circle class="o10-solid" cx="152" cy="100" r="4"/>
+            <circle class="o10-fx" cx="148" cy="160" r="9"/><circle class="o10-solid" cx="148" cy="160" r="3"/>
+            <circle class="o10-fx" cx="152" cy="216" r="15"/><circle class="o10-solid" cx="152" cy="216" r="5"/>
+          </g>
+          <g class="o10-r" data-room="Quarto do Líder" data-zone="quartos" style="--o10-h:0.21">
+            <rect class="o10-floor" x="180" y="0" width="64" height="114" rx="4"/><rect fill="url(#o10-wood)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o10-heat" x="180" y="0" width="64" height="114" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="180" y="0" width="64" height="114" rx="4"/>
+            <rect class="o10-fx" x="190" y="42" width="44" height="54" rx="3"/>
+            <rect class="o10-solid" x="194" y="46" width="17" height="9" rx="2"/><rect class="o10-solid" x="213" y="46" width="17" height="9" rx="2"/>
+            <path class="o10-line" d="M190 70H234"/>
+            <rect class="o10-fx" x="184" y="102" width="56" height="8" rx="1"/>
+          </g>
+          <g class="o10-r" data-room="Quarto Colorido" data-zone="quartos" style="--o10-h:0.32">
+            <rect class="o10-floor" x="250" y="0" width="52" height="114" rx="4"/><rect fill="url(#o10-wood)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o10-heat" x="250" y="0" width="52" height="114" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="250" y="0" width="52" height="114" rx="4"/>
+            <rect class="o10-fx" x="256" y="42" width="40" height="18" rx="3"/><rect class="o10-solid" x="259" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o10-fx" x="256" y="66" width="40" height="18" rx="3"/><rect class="o10-solid" x="259" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o10-fx" x="256" y="90" width="40" height="18" rx="3"/><rect class="o10-solid" x="259" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o10-r" data-room="Quarto Azul" data-zone="quartos" style="--o10-h:0.5">
+            <rect class="o10-floor" x="308" y="0" width="52" height="114" rx="4"/><rect fill="url(#o10-wood)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o10-heat" x="308" y="0" width="52" height="114" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="308" y="0" width="52" height="114" rx="4"/>
+            <rect class="o10-fx" x="314" y="42" width="40" height="18" rx="3"/><rect class="o10-solid" x="317" y="45" width="7" height="12" rx="1.5"/>
+            <rect class="o10-fx" x="314" y="66" width="40" height="18" rx="3"/><rect class="o10-solid" x="317" y="69" width="7" height="12" rx="1.5"/>
+            <rect class="o10-fx" x="314" y="90" width="40" height="18" rx="3"/><rect class="o10-solid" x="317" y="93" width="7" height="12" rx="1.5"/>
+          </g>
+          <g class="o10-r" data-room="Sala" data-zone="social" style="--o10-h:1">
+            <rect class="o10-floor" x="180" y="120" width="104" height="120" rx="4"/><rect fill="url(#o10-wood)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o10-heat" x="180" y="120" width="104" height="120" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="180" y="120" width="104" height="120" rx="4"/>
+            <rect class="o10-line" x="208" y="160" width="54" height="50" rx="3"/>
+            <path class="o10-fx" d="M186 165a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v53h45a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H189a3 3 0 0 1-3-3Z"/>
+            <rect class="o10-fx" x="222" y="176" width="26" height="18" rx="3"/>
+            <rect class="o10-solid" x="275" y="164" width="4" height="44" rx="1"/>
+            <circle class="o10-fx" cx="271" cy="131" r="6"/><circle class="o10-solid" cx="271" cy="131" r="2"/>
+          </g>
+          <g class="o10-r" data-room="Cozinha" data-zone="social" style="--o10-h:0.64">
+            <rect class="o10-floor" x="290" y="120" width="70" height="120" rx="4"/><rect fill="url(#o10-tile)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o10-heat" x="290" y="120" width="70" height="120" rx="4"/><rect class="o10-core" fill="url(#o10-core)" x="290" y="120" width="70" height="120" rx="4"/>
+            <rect class="o10-fx" x="342" y="150" width="14" height="60" rx="2"/>
+            <circle class="o10-line" cx="349" cy="160" r="3.5"/><circle class="o10-line" cx="349" cy="171" r="3.5"/>
+            <rect class="o10-line" x="344" y="186" width="10" height="14" rx="2"/>
+            <rect class="o10-solid" x="342" y="216" width="14" height="18" rx="2"/>
+            <rect class="o10-fx" x="302" y="184" width="28" height="30" rx="4"/>
+            <rect class="o10-fx" x="295" y="190" width="5" height="8" rx="1.5"/><rect class="o10-fx" x="295" y="201" width="5" height="8" rx="1.5"/>
+            <rect class="o10-fx" x="332" y="190" width="5" height="8" rx="1.5"/><rect class="o10-fx" x="332" y="201" width="5" height="8" rx="1.5"/>
+          </g>
+        </svg>
+        <!-- Um só rótulo, só o nome: o cômodo mais quente da zona, ou o cômodo em foco -->
+        <div class="o10-labels" data-part="rotulos">
+          <span class="o10-lbl" data-for="Sala"><span class="o10-lbl-n text-footnote-medium">Sala</span></span>
+          <span class="o10-lbl" data-for="Cozinha"><span class="o10-lbl-n text-footnote-medium">Cozinha</span></span>
+          <span class="o10-lbl" data-for="Quarto do Líder"><span class="o10-lbl-n text-footnote-medium">Líder</span></span>
+          <span class="o10-lbl" data-for="Quarto Colorido"><span class="o10-lbl-n text-footnote-medium">Colorido</span></span>
+          <span class="o10-lbl" data-for="Quarto Azul"><span class="o10-lbl-n text-footnote-medium">Azul</span></span>
+          <span class="o10-lbl" data-for="Academia"><span class="o10-lbl-n text-footnote-medium">Academia</span></span>
+          <span class="o10-lbl" data-for="Jardim"><span class="o10-lbl-n text-footnote-medium">Jardim</span></span>
+        </div>
+      </div>
+      <div class="o10-top" data-part="top4">
+        <p class="o10-top-h text-footnote-medium" aria-live="polite">Quem mais fica na área social</p>
+        <ol class="o10-people">
+          <li class="o10-p"><span class="o10-av text-body-sm-bold">B</span><span class="o10-pn text-footnote-medium">Bia</span><span class="o10-pp text-footnote-medium">52%</span></li>
+          <li class="o10-p is-me"><span class="o10-av text-body-sm-bold">M</span><span class="o10-pn text-footnote-medium">Marcos</span><span class="o10-pp text-footnote-medium">46%</span></li>
+          <li class="o10-p"><span class="o10-av text-body-sm-bold">D</span><span class="o10-pn text-footnote-medium">Davi</span><span class="o10-pp text-footnote-medium">44%</span></li>
+          <li class="o10-p"><span class="o10-av text-body-sm-bold">N</span><span class="o10-pn text-footnote-medium">Nina</span><span class="o10-pp text-footnote-medium">40%</span></li>
+        </ol>
+      </div>
+      <div class="o10-seg-bar" role="tablist" aria-label="Zona da casa" data-part="seletor">
+        <span class="o10-seg text-footnote-bold" role="tab" data-zone="social" aria-selected="true">Social</span>
+        <span class="o10-seg text-footnote-bold" role="tab" data-zone="quartos" aria-selected="false">Quartos</span>
+        <span class="o10-seg text-footnote-bold" role="tab" data-zone="externa" aria-selected="false">Área externa</span>
+      </div>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="1"]');
+  if (!card) return;
+  // Ordem do ← →: um passeio pela casa que começa no cômodo mais quente (a Sala) e anda em volta.
+  const tour = [
+    { room: 'Sala', at: 'na Sala', pct: 28, when: 'Mais tempo à noite', hours: '31h esta semana' },
+    { room: 'Cozinha', at: 'na Cozinha', pct: 18, when: 'Mais tempo no almoço', hours: '20h esta semana' },
+    { room: 'Quarto Azul', at: 'no Quarto Azul', pct: 14, when: 'Mais tempo de madrugada', hours: '16h esta semana' },
+    { room: 'Quarto Colorido', at: 'no Quarto Colorido', pct: 9, when: 'Mais tempo depois da festa', hours: '10h esta semana' },
+    { room: 'Quarto do Líder', at: 'no Quarto do Líder', pct: 6, when: 'Mais tempo à tarde, de visita', hours: '7h esta semana' },
+    { room: 'Academia', at: 'na Academia', pct: 10, when: 'Mais tempo logo cedo', hours: '11h esta semana' },
+    { room: 'Jardim', at: 'no Jardim', pct: 15, when: 'Mais tempo no fim da tarde', hours: '17h esta semana' },
+  ];
+  const ring = card.querySelector('.o1-ring');
+  const pct = card.querySelector('.o1-pct'), name = card.querySelector('.o1-room');
+  const detail = card.querySelector('.o1-detail');
+  const when = card.querySelector('.o1-when'), hours = card.querySelector('.o1-hours');
+  const pad = 6; // anel por fora do cômodo: offset de foco + meia espessura do anel, em unidades da planta
+  let i = 0;
+  const render = () => {
+    const t = tour[i];
+    const floor = card.querySelector(`[data-room="${t.room}"] .o1-floor`);
+    const x = +floor.getAttribute('x'), y = +floor.getAttribute('y'), w = +floor.getAttribute('width'), h = +floor.getAttribute('height');
+    // Como propriedades CSS, para o anel deslizar de um cômodo ao outro.
+    Object.assign(ring.style, { x: `${x - pad}px`, y: `${y - pad}px`, width: `${w + pad * 2}px`, height: `${h + pad * 2}px` });
+    pct.textContent = t.pct + '%';
+    name.textContent = t.at;
+    when.textContent = t.when; hours.textContent = t.hours;
+  };
+  const open = (v) => (v ? detail.setAttribute('data-open', '') : detail.removeAttribute('data-open'));
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    if (e.key === 'ArrowRight' && i < tour.length - 1) { i++; render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && i > 0) { i--; render(); e.preventDefault(); }
+    else if (e.key === 'Enter') { open(!detail.hasAttribute('data-open')); e.preventDefault(); }
+    else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (detail.hasAttribute('data-open')) { open(false); e.preventDefault(); }
+      else if (i > 0) { i = 0; render(); e.preventDefault(); }
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="2"]');
+  if (!card) return;
+  // Zonas: % somada dos cômodos, recorte (x, y, largura, altura) na planta de 360 x 240,
+  // cômodos na ordem da planta (← → segue a posição) e top 4 da zona (% do tempo de cada um ali).
+  const zones = [
+    { id: 'social', name: 'Social', pct: 46, where: 'na área social', box: [180, 120, 180, 120], rooms: ['Sala', 'Cozinha'],
+      top: [['Bia', 52], ['Marcos', 46], ['Davi', 44], ['Nina', 40]] },
+    { id: 'quartos', name: 'Quartos', pct: 29, where: 'nos quartos', box: [180, 0, 180, 114], rooms: ['Quarto do Líder', 'Quarto Colorido', 'Quarto Azul'],
+      top: [['Gil', 38], ['Tati', 35], ['Caio', 31], ['Marcos', 29]] },
+    { id: 'externa', name: 'Área externa', pct: 25, where: 'na área externa', box: [0, 0, 174, 240], rooms: ['Jardim', 'Academia'],
+      top: [['Rafa', 41], ['Lu', 37], ['Marcos', 25], ['Caio', 24]] },
+  ];
+  const rooms = {
+    'Sala': { short: 'Sala', pct: 28, where: 'na Sala', top: [['Bia', 34], ['Marcos', 28], ['Davi', 25], ['Nina', 22]] },
+    'Cozinha': { short: 'Cozinha', pct: 18, where: 'na Cozinha', top: [['Davi', 24], ['Nina', 21], ['Marcos', 18], ['Bia', 16]] },
+    'Quarto do Líder': { short: 'Líder', pct: 6, where: 'no Quarto do Líder', top: [['Gil', 20], ['Tati', 8], ['Marcos', 6], ['Bia', 4]] },
+    'Quarto Colorido': { short: 'Colorido', pct: 9, where: 'no Quarto Colorido', top: [['Gil', 15], ['Lu', 13], ['Nina', 11], ['Rafa', 10]] },
+    'Quarto Azul': { short: 'Azul', pct: 14, where: 'no Quarto Azul', top: [['Tati', 22], ['Caio', 19], ['Gil', 17], ['Marcos', 14]] },
+    'Jardim': { short: 'Jardim', pct: 15, where: 'no Jardim', top: [['Rafa', 23], ['Lu', 21], ['Marcos', 15], ['Caio', 13]] },
+    'Academia': { short: 'Academia', pct: 10, where: 'na Academia', top: [['Rafa', 18], ['Caio', 16], ['Lu', 12], ['Marcos', 10]] },
+  };
+  const svg = card.querySelector('.o2-plan'), stage = card.querySelector('.o2-stage');
+  const pct = card.querySelector('.o2-pct'), what = card.querySelector('.o2-what');
+  const topH = card.querySelector('.o2-top-h'), people = card.querySelectorAll('.o2-p');
+  const bar = card.querySelector('.o2-seg-bar');
+  const boxOf = (room) => { const f = card.querySelector(`.o2-r[data-room="${room}"] .o2-floor`); return ['x', 'y', 'width', 'height'].map((a) => +f.getAttribute(a)); };
+  // Dois níveis: zona (← → troca a zona) e cômodo (Enter entra; ← → anda pelos cômodos da zona; Voltar sobe).
+  let i = 0, j = 0, inRoom = false;
+  const render = () => {
+    const z = zones[i], room = inRoom ? z.rooms[j] : null, r = room && rooms[room];
+    // Recorte com a proporção do palco, centrado na zona ou no cômodo: o que sobra mostra os vizinhos apagados.
+    const aspect = stage.clientWidth / stage.clientHeight, pad = inRoom ? 16 : 12;
+    let [x, y, w, h] = room ? boxOf(room) : z.box; x -= pad; y -= pad; w += pad * 2; h += pad * 2;
+    if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; } else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    const k = stage.clientWidth / w;
+    const lit = new Set(room ? [room] : z.rooms);
+    card.querySelectorAll('.o2-r').forEach((g) => g.toggleAttribute('data-out', !lit.has(g.dataset.room)));
+    card.querySelectorAll('.o2-door').forEach((d) => {
+      const near = Object.keys(rooms).filter((n) => d.dataset.rooms.includes(n));
+      d.toggleAttribute('data-out', !near.every((n) => lit.has(n)));
+    });
+    card.querySelectorAll('.o2-lbl').forEach((l) => {
+      // Rótulos só na visão de zona; na de cômodo o título já diz nome e %.
+      l.hidden = inRoom || !lit.has(l.dataset.for);
+      if (l.hidden) return;
+      const [fx, fy] = boxOf(l.dataset.for);
+      Object.assign(l.style, { left: `${(fx + 6 - x) * k}px`, top: `${(fy + 6 - y) * k}px` });
+    });
+    pct.textContent = (r ? r.pct : z.pct) + '%';
+    what.textContent = 'do tempo ' + (r ? r.where : z.where);
+    topH.textContent = 'Quem mais fica ' + (r ? r.where : z.where);
+    (r ? r.top : z.top).forEach(([name, p], n) => {
+      const li = people[n];
+      li.classList.toggle('is-me', name === 'Marcos');
+      li.querySelector('.o2-av').textContent = name[0];
+      li.querySelector('.o2-pn').textContent = name;
+      li.querySelector('.o2-pp').textContent = p + '%';
+    });
+    // O seletor mostra as zonas, ou os cômodos da zona; o escolhido leva o foco.
+    const items = inRoom ? z.rooms.map((n) => rooms[n].short) : zones.map((zz) => zz.name);
+    const sel = inRoom ? j : i;
+    bar.setAttribute('aria-label', inRoom ? `Cômodos: ${z.name}` : 'Zona da casa');
+    bar.replaceChildren(...items.map((t, n) => {
+      const s = document.createElement('span');
+      s.className = 'o2-seg text-footnote-bold'; s.setAttribute('role', 'tab');
+      s.setAttribute('aria-selected', String(n === sel)); s.textContent = t;
+      return s;
+    }));
+  };
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    const max = inRoom ? zones[i].rooms.length - 1 : zones.length - 1;
+    const pos = inRoom ? j : i;
+    const set = (v) => { if (inRoom) j = v; else i = v; };
+    if (e.key === 'ArrowRight' && pos < max) { set(pos + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && pos > 0) { set(pos - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && !inRoom) { inRoom = true; j = 0; render(); e.preventDefault(); }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (inRoom || i > 0)) {
+      if (inRoom) inRoom = false; else i = 0;
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('[data-option="3"]');
+  if (!root) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  // Ranking order; geometry in the plan's 240 x 168 units [x, y, w, h].
+  const rooms = [
+    { n: 'Sala', pre: 'na', p: 28, t: '3h40', when: 'mais à noite', g: [108, 0, 70, 82] },
+    { n: 'Cozinha', pre: 'na', p: 18, t: '2h21', when: 'mais de manhã', g: [108, 86, 70, 82] },
+    { n: 'Jardim', pre: 'no', p: 15, t: '1h58', when: 'mais à tarde', g: [0, 52, 100, 116] },
+    { n: 'Quarto Azul', pre: 'no', p: 14, t: '1h50', when: 'mais de madrugada', g: [182, 86, 58, 82] },
+    { n: 'Academia', pre: 'na', p: 10, t: '1h19', when: 'mais de manhã', g: [52, 0, 48, 48] },
+    { n: 'Quarto Colorido', pre: 'no', p: 9, t: '1h11', when: 'mais à tarde', g: [182, 0, 58, 82] },
+    { n: 'Quarto do Líder', pre: 'no', p: 6, t: '47min', when: 'mais à noite', g: [0, 0, 48, 48] },
+  ];
+  const max = rooms[0].p, min = rooms[rooms.length - 1].p;
+  const heat = (p) => (0.1 + 0.9 * (p - min) / (max - min)).toFixed(2);
+
+  const svg = root.querySelector('.o3-plan');
+  const rect = (cls, [x, y, w, h]) => {
+    const r = document.createElementNS(NS, 'rect');
+    r.setAttribute('class', cls); r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', w); r.setAttribute('height', h);
+    svg.appendChild(r); return r;
+  };
+  const edges = rooms.map((r) => {
+    rect('o3-floor', r.g);
+    rect('o3-heat', r.g).style.setProperty('--heat', heat(r.p));
+    return null;
+  });
+  rect('o3-pool', [56, 118, 34, 38]);
+  rooms.forEach((r, k) => { edges[k] = rect('o3-edge', r.g); });
+
+  const rail = root.querySelector('.o3-rail');
+  const pills = rooms.map((r) => {
+    const li = document.createElement('li');
+    li.className = 'o3-pill text-footnote-bold';
+    li.setAttribute('aria-label', `${r.n}, ${r.p}%`);
+    li.style.setProperty('--heat', heat(r.p));
+    li.innerHTML = `<span class="o3-dot" aria-hidden="true"></span><span>${r.p}%</span>`;
+    rail.appendChild(li); return li;
+  });
+
+  const big = root.querySelector('.o3-big');
+  const lines = root.querySelector('.o3-lines');
+  let i = 0, open = false;
+  const render = () => {
+    const r = rooms[i];
+    pills.forEach((p, k) => p.setAttribute('aria-current', String(k === i)));
+    edges.forEach((e, k) => e.toggleAttribute('data-on', k === i));
+    if (open) {
+      big.textContent = r.t;
+      lines.innerHTML = `<span>${r.pre} <strong>${r.n}</strong></span><span>esta semana, ${r.when}</span>`;
+    } else {
+      big.textContent = `${r.p}%`;
+      lines.innerHTML = `<span>do tempo</span><span>${r.pre} <strong>${r.n}</strong></span>`;
+    }
+  };
+  root.addEventListener('keydown', (e) => {
+    if (document.activeElement !== root) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const next = i + (e.key === 'ArrowRight' ? 1 : -1);
+      e.preventDefault();
+      if (next < 0 || next >= rooms.length) return;
+      i = next; open = false; render();
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); open = !open; render();
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (open) { open = false; } else if (i > 0) { i = 0; } else { return; }
+      e.preventDefault(); render();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('[data-option="4"]');
+  if (!root) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  // Ranking order; geometry in the plan's 240 x 168 units [x, y, w, h].
+  const rooms = [
+    { n: 'Sala', p: 28, g: [108, 0, 70, 82] },
+    { n: 'Cozinha', p: 18, g: [108, 86, 70, 82] },
+    { n: 'Jardim', p: 15, g: [0, 52, 100, 116] },
+    { n: 'Quarto Azul', p: 14, g: [182, 86, 58, 82] },
+    { n: 'Academia', p: 10, g: [52, 0, 48, 48] },
+    { n: 'Quarto Colorido', p: 9, g: [182, 0, 58, 82] },
+    { n: 'Quarto do Líder', p: 6, g: [0, 0, 48, 48] },
+  ];
+  const max = rooms[0].p, min = rooms[rooms.length - 1].p;
+  const heat = (p) => (0.1 + 0.9 * (p - min) / (max - min)).toFixed(2);
+
+  const svg = root.querySelector('.o4-plan svg');
+  const rect = (cls, [x, y, w, h]) => {
+    const r = document.createElementNS(NS, 'rect');
+    r.setAttribute('class', cls); r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', w); r.setAttribute('height', h);
+    svg.appendChild(r); return r;
+  };
+  rooms.forEach((r) => { rect('o4-floor', r.g); rect('o4-heat', r.g).style.setProperty('--heat', heat(r.p)); });
+  rect('o4-pool', [56, 118, 34, 38]);
+
+  const bars = root.querySelector('.o4-bars');
+  const rows = rooms.map((r) => {
+    const li = document.createElement('li');
+    li.className = 'o4-row';
+    li.style.setProperty('--heat', heat(r.p));
+    li.innerHTML = `<span class="o4-name text-footnote-medium">${r.n}</span><span class="o4-track"><span class="o4-fill" style="--w:${(r.p / max * 100).toFixed(1)}%"></span></span><span class="o4-val text-footnote-bold">${r.p}%</span>`;
+    bars.appendChild(li); return li;
+  });
+
+  const plan = root.querySelector('.o4-plan');
+  const ring = root.querySelector('.o4-ring');
+  const pct = root.querySelector('.o4-pct');
+  const name = root.querySelector('.o4-name-big');
+  const rank = root.querySelector('.o4-rank');
+  const tabs = root.querySelectorAll('.o4-tab');
+  let i = 0, view = 'plan';
+
+  const render = () => {
+    const r = rooms[i];
+    pct.textContent = `${r.p}%`;
+    name.textContent = r.n;
+    rank.textContent = `${i + 1}º de ${rooms.length} cômodos`;
+    plan.hidden = view !== 'plan';
+    bars.hidden = view !== 'bars';
+    tabs.forEach((t) => t.setAttribute('aria-current', String(t.dataset.view === view)));
+    rows.forEach((row, k) => row.setAttribute('aria-current', String(k === i)));
+    // The ring sits around the room, offset by the kit's focus offset; the SVG is drawn 1:1 in px.
+    const s = (svg.getBoundingClientRect().width || 240) / 240;
+    const out = `(var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring))`;
+    const [x, y, w, h] = r.g;
+    ring.style.left = `calc(${x * s}px - ${out})`;
+    ring.style.top = `calc(${y * s}px - ${out})`;
+    ring.style.width = `calc(${w * s}px + 2 * ${out})`;
+    ring.style.height = `calc(${h * s}px + 2 * ${out})`;
+  };
+  root.addEventListener('keydown', (e) => {
+    if (document.activeElement !== root) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const next = i + (e.key === 'ArrowRight' ? 1 : -1);
+      e.preventDefault();
+      if (next < 0 || next >= rooms.length) return;
+      i = next; render();
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); view = view === 'plan' ? 'bars' : 'plan'; render();
+    } else if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (view === 'bars') { view = 'plan'; } else if (i > 0) { i = 0; } else { return; }
+      e.preventDefault(); render();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('[data-option="5"]');
+  if (!root) return;
+  const rows = [...root.querySelectorAll('.o5-row')];
+  const hl = root.querySelector('.hl');
+  let i = 0, open = false;
+  const render = () => {
+    rows.forEach((r, k) => {
+      const on = k === i, isOpen = on && open;
+      r.classList.toggle('is-focus', on);
+      r.classList.toggle('is-open', isOpen);
+      const d = r.querySelector('.o5-detail');
+      d.textContent = isOpen ? d.dataset.text : '';
+    });
+    const room = root.querySelector(`.room[data-room="${rows[i].dataset.room}"]`);
+    hl.setAttribute('d', room.getAttribute('d'));
+  };
+  root.addEventListener('keydown', (e) => {
+    if (e.target !== root) return;
+    const back = e.key === 'Escape' || e.key === 'Backspace';
+    if (e.key === 'ArrowRight') { if (i < rows.length - 1) { i++; open = false; } }
+    else if (e.key === 'ArrowLeft') { if (i > 0) { i--; open = false; } }
+    else if (e.key === 'Enter') { open = true; }
+    else if (back) { if (open) open = false; else if (i > 0) i = 0; else return; }
+    else return;
+    e.preventDefault();
+    render();
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('[data-option="6"]');
+  if (!root) return;
+  // Planta simplificada da casa (vista de cima), mesma geometria em todos os recortes. Os vãos entre cômodos são as paredes.
+  const plan = {
+    jardim: 'M0 22H60V47H92V120H0Z', academia: 'M63 22H92V44H63Z', lider: 'M104 0H168V32H104Z',
+    sala: 'M104 44H150V86H104Z', cozinha: 'M104 89H150V120H104Z', colorido: 'M153 44H200V72H153Z', azul: 'M153 75H200V120H153Z',
+  };
+  const box = { jardim: [0, 22, 92, 98], academia: [63, 22, 29, 22], lider: [104, 0, 64, 32], sala: [104, 44, 46, 42], cozinha: [104, 89, 46, 31], colorido: [153, 44, 47, 28], azul: [153, 75, 47, 45] };
+  const rooms = [
+    { id: 'sala', name: 'Sala', prep: 'na', pct: 28, h: 100, detail: 'mais tempo à noite · 4h30 por dia' },
+    { id: 'cozinha', name: 'Cozinha', prep: 'na', pct: 18, h: 64, detail: 'mais tempo no almoço · 2h50 por dia' },
+    { id: 'jardim', name: 'Jardim', prep: 'no', pct: 15, h: 53, detail: 'mais tempo à tarde · 2h25 por dia' },
+    { id: 'azul', name: 'Quarto Azul', prep: 'no', pct: 14, h: 49, detail: 'mais de madrugada · 2h15 por dia' },
+    { id: 'academia', name: 'Academia', prep: 'na', pct: 10, h: 35, detail: 'mais de manhã · 1h35 por dia' },
+    { id: 'colorido', name: 'Quarto Colorido', prep: 'no', pct: 9, h: 31, detail: 'mais à tarde · 1h25 por dia' },
+    { id: 'lider', name: 'Quarto do Líder', prep: 'no', pct: 6, h: 20, detail: 'mais à noite · 1h por dia' },
+  ];
+  const star = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
+  const crop = (id) => {
+    const [x, y, w, h] = box[id], cx = x + w / 2, cy = y + h / 2, ratio = 72 / 56;
+    let vw = w + 24, vh = h + 24;
+    if (vw / vh < ratio) vw = vh * ratio; else vh = vw / ratio;
+    const others = Object.keys(plan).filter((k) => k !== id).map((k) => `<path class="other" d="${plan[k]}"/>`).join('');
+    return `<svg viewBox="${cx - vw / 2} ${cy - vh / 2} ${vw} ${vh}" aria-hidden="true">${others}<path class="this" d="${plan[id]}"/></svg>`;
+  };
+  const track = root.querySelector('.o6-track');
+  track.innerHTML = rooms.map((r) => `
+    <div class="o6-room" data-part="card-${r.id}" style="--h: ${r.h}%">
+      <span class="o6-crop">${crop(r.id)}<span class="o6-fav" data-part="favorite" role="img" aria-label="Favorito">${star}</span></span>
+      <span class="o6-text">
+        <p class="text-body-lg-bold">${r.pct}%</p>
+        <p class="o6-name text-footnote-medium">${r.name}</p>
+      </span>
+    </div>`).join('');
+  const cards = [...track.children];
+  const f = (k) => root.querySelector(`[data-f="${k}"]`);
+  const detail = root.querySelector('.o6-detail');
+  let i = 0, chosen = -1;
+  const render = () => {
+    cards.forEach((c, k) => { c.classList.toggle('is-focus', k === i); c.classList.toggle('is-chosen', k === chosen); });
+    const r = rooms[i];
+    f('pct').textContent = `${r.pct}%`; f('prep').textContent = r.prep; f('name').textContent = r.name;
+    detail.textContent = chosen >= 0 ? `Favorito: ${rooms[chosen].name}, ${rooms[chosen].detail}` : '';
+    const step = 88 + parseFloat(getComputedStyle(track).columnGap || 0);
+    const view = track.parentElement.clientWidth - 2 * parseFloat(getComputedStyle(track.parentElement).paddingLeft);
+    const max = cards.length * step - (step - 88) - view;
+    track.style.setProperty('--o6-shift', `${Math.max(0, Math.min(max, i * step - (view - 88) / 2))}px`);
+  };
+  root.addEventListener('keydown', (e) => {
+    if (e.target !== root) return;
+    const back = e.key === 'Escape' || e.key === 'Backspace';
+    if (e.key === 'ArrowRight') { if (i < cards.length - 1) i++; }
+    else if (e.key === 'ArrowLeft') { if (i > 0) i--; }
+    else if (e.key === 'Enter') { chosen = i; }
+    else if (back) { if (chosen >= 0) chosen = -1; else if (i > 0) i = 0; else return; }
+    else return;
+    e.preventDefault();
+    render();
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="7"]');
+  if (!card) return;
+  // Zonas: % somada dos cômodos, recorte (x, y, largura, altura) na planta de 360 x 240,
+  // cômodos na ordem da planta (← → segue a posição) e top 4 da zona (% do tempo de cada um ali).
+  const zones = [
+    { id: 'social', name: 'Social', pct: 46, where: 'na área social', box: [180, 120, 180, 120], rooms: ['Sala', 'Cozinha'],
+      top: [['Bia', 52], ['Marcos', 46], ['Davi', 44], ['Nina', 40]] },
+    { id: 'quartos', name: 'Quartos', pct: 29, where: 'nos quartos', box: [180, 0, 180, 114], rooms: ['Quarto do Líder', 'Quarto Colorido', 'Quarto Azul'],
+      top: [['Gil', 38], ['Tati', 35], ['Caio', 31], ['Marcos', 29]] },
+    { id: 'externa', name: 'Área externa', pct: 25, where: 'na área externa', box: [0, 0, 174, 240], rooms: ['Jardim', 'Academia'],
+      top: [['Rafa', 41], ['Lu', 37], ['Marcos', 25], ['Caio', 24]] },
+  ];
+  const rooms = {
+    'Sala': { short: 'Sala', pct: 28, where: 'na Sala', top: [['Bia', 34], ['Marcos', 28], ['Davi', 25], ['Nina', 22]] },
+    'Cozinha': { short: 'Cozinha', pct: 18, where: 'na Cozinha', top: [['Davi', 24], ['Nina', 21], ['Marcos', 18], ['Bia', 16]] },
+    'Quarto do Líder': { short: 'Líder', pct: 6, where: 'no Quarto do Líder', top: [['Gil', 20], ['Tati', 8], ['Marcos', 6], ['Bia', 4]] },
+    'Quarto Colorido': { short: 'Colorido', pct: 9, where: 'no Quarto Colorido', top: [['Gil', 15], ['Lu', 13], ['Nina', 11], ['Rafa', 10]] },
+    'Quarto Azul': { short: 'Azul', pct: 14, where: 'no Quarto Azul', top: [['Tati', 22], ['Caio', 19], ['Gil', 17], ['Marcos', 14]] },
+    'Jardim': { short: 'Jardim', pct: 15, where: 'no Jardim', top: [['Rafa', 23], ['Lu', 21], ['Marcos', 15], ['Caio', 13]] },
+    'Academia': { short: 'Academia', pct: 10, where: 'na Academia', top: [['Rafa', 18], ['Caio', 16], ['Lu', 12], ['Marcos', 10]] },
+  };
+  const svg = card.querySelector('.o7-plan'), stage = card.querySelector('.o7-stage');
+  const pct = card.querySelector('.o7-pct'), what = card.querySelector('.o7-what');
+  const topH = card.querySelector('.o7-top-h'), people = card.querySelectorAll('.o7-p');
+  const bar = card.querySelector('.o7-seg-bar');
+  const boxOf = (room) => { const f = card.querySelector(`.o7-r[data-room="${room}"] .o7-floor`); return ['x', 'y', 'width', 'height'].map((a) => +f.getAttribute(a)); };
+  // Dois níveis: zona (← → troca a zona) e cômodo (Enter entra; ← → anda pelos cômodos da zona; Voltar sobe).
+  let i = 0, j = 0, inRoom = false;
+  const render = () => {
+    const z = zones[i], room = inRoom ? z.rooms[j] : null, r = room && rooms[room];
+    // Recorte com a proporção do palco, centrado na zona ou no cômodo: o que sobra mostra os vizinhos apagados.
+    const aspect = stage.clientWidth / stage.clientHeight, pad = inRoom ? 16 : 12;
+    let [x, y, w, h] = room ? boxOf(room) : z.box; x -= pad; y -= pad; w += pad * 2; h += pad * 2;
+    if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; } else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    const k = stage.clientWidth / w;
+    const lit = new Set(room ? [room] : z.rooms);
+    card.querySelectorAll('.o7-r').forEach((g) => g.toggleAttribute('data-out', !lit.has(g.dataset.room)));
+    card.querySelectorAll('.o7-door').forEach((d) => {
+      const near = Object.keys(rooms).filter((n) => d.dataset.rooms.includes(n));
+      d.toggleAttribute('data-out', !near.every((n) => lit.has(n)));
+    });
+    card.querySelectorAll('.o7-lbl').forEach((l) => {
+      // Rótulos só na visão de zona; na de cômodo o título já diz nome e %.
+      l.hidden = inRoom || !lit.has(l.dataset.for);
+      if (l.hidden) return;
+      const [fx, fy] = boxOf(l.dataset.for);
+      Object.assign(l.style, { left: `${(fx + 6 - x) * k}px`, top: `${(fy + 6 - y) * k}px` });
+    });
+    pct.textContent = (r ? r.pct : z.pct) + '%';
+    what.textContent = 'do tempo ' + (r ? r.where : z.where);
+    topH.textContent = 'Quem mais fica ' + (r ? r.where : z.where);
+    (r ? r.top : z.top).forEach(([name, p], n) => {
+      const li = people[n];
+      li.classList.toggle('is-me', name === 'Marcos');
+      li.querySelector('.o7-av').textContent = name[0];
+      li.querySelector('.o7-pn').textContent = name;
+      li.querySelector('.o7-pp').textContent = p + '%';
+    });
+    // O seletor mostra as zonas, ou os cômodos da zona; o escolhido leva o foco.
+    const items = inRoom ? z.rooms.map((n) => rooms[n].short) : zones.map((zz) => zz.name);
+    const sel = inRoom ? j : i;
+    bar.setAttribute('aria-label', inRoom ? `Cômodos: ${z.name}` : 'Zona da casa');
+    bar.replaceChildren(...items.map((t, n) => {
+      const s = document.createElement('span');
+      s.className = 'o7-seg text-footnote-bold'; s.setAttribute('role', 'tab');
+      s.setAttribute('aria-selected', String(n === sel)); s.textContent = t;
+      return s;
+    }));
+  };
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    const max = inRoom ? zones[i].rooms.length - 1 : zones.length - 1;
+    const pos = inRoom ? j : i;
+    const set = (v) => { if (inRoom) j = v; else i = v; };
+    if (e.key === 'ArrowRight' && pos < max) { set(pos + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && pos > 0) { set(pos - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && !inRoom) { inRoom = true; j = 0; render(); e.preventDefault(); }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (inRoom || i > 0)) {
+      if (inRoom) inRoom = false; else i = 0;
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="8"]');
+  if (!card) return;
+  // Zonas: % somada dos cômodos, recorte (x, y, largura, altura) na planta de 360 x 240,
+  // cômodos na ordem da planta (← → segue a posição) e top 4 da zona (% do tempo de cada um ali).
+  const zones = [
+    { id: 'social', name: 'Social', pct: 46, where: 'na área social', box: [180, 120, 180, 120], rooms: ['Sala', 'Cozinha'],
+      top: [['Bia', 52], ['Marcos', 46], ['Davi', 44], ['Nina', 40]] },
+    { id: 'quartos', name: 'Quartos', pct: 29, where: 'nos quartos', box: [180, 0, 180, 114], rooms: ['Quarto do Líder', 'Quarto Colorido', 'Quarto Azul'],
+      top: [['Gil', 38], ['Tati', 35], ['Caio', 31], ['Marcos', 29]] },
+    { id: 'externa', name: 'Área externa', pct: 25, where: 'na área externa', box: [0, 0, 174, 240], rooms: ['Jardim', 'Academia'],
+      top: [['Rafa', 41], ['Lu', 37], ['Marcos', 25], ['Caio', 24]] },
+  ];
+  const rooms = {
+    'Sala': { short: 'Sala', pct: 28, where: 'na Sala', top: [['Bia', 34], ['Marcos', 28], ['Davi', 25], ['Nina', 22]] },
+    'Cozinha': { short: 'Cozinha', pct: 18, where: 'na Cozinha', top: [['Davi', 24], ['Nina', 21], ['Marcos', 18], ['Bia', 16]] },
+    'Quarto do Líder': { short: 'Líder', pct: 6, where: 'no Quarto do Líder', top: [['Gil', 20], ['Tati', 8], ['Marcos', 6], ['Bia', 4]] },
+    'Quarto Colorido': { short: 'Colorido', pct: 9, where: 'no Quarto Colorido', top: [['Gil', 15], ['Lu', 13], ['Nina', 11], ['Rafa', 10]] },
+    'Quarto Azul': { short: 'Azul', pct: 14, where: 'no Quarto Azul', top: [['Tati', 22], ['Caio', 19], ['Gil', 17], ['Marcos', 14]] },
+    'Jardim': { short: 'Jardim', pct: 15, where: 'no Jardim', top: [['Rafa', 23], ['Lu', 21], ['Marcos', 15], ['Caio', 13]] },
+    'Academia': { short: 'Academia', pct: 10, where: 'na Academia', top: [['Rafa', 18], ['Caio', 16], ['Lu', 12], ['Marcos', 10]] },
+  };
+  const svg = card.querySelector('.o8-plan'), stage = card.querySelector('.o8-stage');
+  const pct = card.querySelector('.o8-pct'), what = card.querySelector('.o8-what');
+  const topH = card.querySelector('.o8-top-h'), people = card.querySelectorAll('.o8-p');
+  const bar = card.querySelector('.o8-seg-bar');
+  const boxOf = (room) => { const f = card.querySelector(`.o8-r[data-room="${room}"] .o8-floor`); return ['x', 'y', 'width', 'height'].map((a) => +f.getAttribute(a)); };
+  // Dois níveis: zona (← → troca a zona) e cômodo (Enter entra; ← → anda pelos cômodos da zona; Voltar sobe).
+  let i = 0, j = 0, inRoom = false;
+  const render = () => {
+    const z = zones[i], room = inRoom ? z.rooms[j] : null, r = room && rooms[room];
+    // Recorte com a proporção do palco, centrado na zona ou no cômodo: o que sobra mostra os vizinhos apagados.
+    const aspect = stage.clientWidth / stage.clientHeight, pad = inRoom ? 16 : 12;
+    let [x, y, w, h] = room ? boxOf(room) : z.box; x -= pad; y -= pad; w += pad * 2; h += pad * 2;
+    if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; } else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    const k = stage.clientWidth / w;
+    const lit = new Set(room ? [room] : z.rooms);
+    card.querySelectorAll('.o8-r').forEach((g) => g.toggleAttribute('data-out', !lit.has(g.dataset.room)));
+    card.querySelectorAll('.o8-door').forEach((d) => {
+      const near = Object.keys(rooms).filter((n) => d.dataset.rooms.includes(n));
+      d.toggleAttribute('data-out', !near.every((n) => lit.has(n)));
+    });
+    card.querySelectorAll('.o8-lbl').forEach((l) => {
+      // Rótulos só na visão de zona; na de cômodo o título já diz nome e %.
+      l.hidden = inRoom || !lit.has(l.dataset.for);
+      if (l.hidden) return;
+      const [fx, fy] = boxOf(l.dataset.for);
+      Object.assign(l.style, { left: `${(fx + 6 - x) * k}px`, top: `${(fy + 6 - y) * k}px` });
+    });
+    pct.textContent = (r ? r.pct : z.pct) + '%';
+    what.textContent = 'do tempo ' + (r ? r.where : z.where);
+    topH.textContent = 'Quem mais fica ' + (r ? r.where : z.where);
+    (r ? r.top : z.top).forEach(([name, p], n) => {
+      const li = people[n];
+      li.classList.toggle('is-me', name === 'Marcos');
+      li.querySelector('.o8-av').textContent = name[0];
+      li.querySelector('.o8-pn').textContent = name;
+      li.querySelector('.o8-pp').textContent = p + '%';
+    });
+    // O seletor mostra as zonas, ou os cômodos da zona; o escolhido leva o foco.
+    const items = inRoom ? z.rooms.map((n) => rooms[n].short) : zones.map((zz) => zz.name);
+    const sel = inRoom ? j : i;
+    bar.setAttribute('aria-label', inRoom ? `Cômodos: ${z.name}` : 'Zona da casa');
+    bar.replaceChildren(...items.map((t, n) => {
+      const s = document.createElement('span');
+      s.className = 'o8-seg text-footnote-bold'; s.setAttribute('role', 'tab');
+      s.setAttribute('aria-selected', String(n === sel)); s.textContent = t;
+      return s;
+    }));
+  };
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    const max = inRoom ? zones[i].rooms.length - 1 : zones.length - 1;
+    const pos = inRoom ? j : i;
+    const set = (v) => { if (inRoom) j = v; else i = v; };
+    if (e.key === 'ArrowRight' && pos < max) { set(pos + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && pos > 0) { set(pos - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && !inRoom) { inRoom = true; j = 0; render(); e.preventDefault(); }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (inRoom || i > 0)) {
+      if (inRoom) inRoom = false; else i = 0;
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="9"]');
+  if (!card) return;
+  // Zonas: % somada dos cômodos, recorte (x, y, largura, altura) na planta de 360 x 240,
+  // cômodos na ordem da planta (← → segue a posição) e top 4 da zona (% do tempo de cada um ali).
+  const zones = [
+    { id: 'social', name: 'Social', pct: 46, where: 'na área social', box: [180, 120, 180, 120], rooms: ['Sala', 'Cozinha'],
+      top: [['Bia', 52], ['Marcos', 46], ['Davi', 44], ['Nina', 40]] },
+    { id: 'quartos', name: 'Quartos', pct: 29, where: 'nos quartos', box: [180, 0, 180, 114], rooms: ['Quarto do Líder', 'Quarto Colorido', 'Quarto Azul'],
+      top: [['Gil', 38], ['Tati', 35], ['Caio', 31], ['Marcos', 29]] },
+    { id: 'externa', name: 'Área externa', pct: 25, where: 'na área externa', box: [0, 0, 174, 240], rooms: ['Jardim', 'Academia'],
+      top: [['Rafa', 41], ['Lu', 37], ['Marcos', 25], ['Caio', 24]] },
+  ];
+  const rooms = {
+    'Sala': { short: 'Sala', pct: 28, where: 'na Sala', top: [['Bia', 34], ['Marcos', 28], ['Davi', 25], ['Nina', 22]] },
+    'Cozinha': { short: 'Cozinha', pct: 18, where: 'na Cozinha', top: [['Davi', 24], ['Nina', 21], ['Marcos', 18], ['Bia', 16]] },
+    'Quarto do Líder': { short: 'Líder', pct: 6, where: 'no Quarto do Líder', top: [['Gil', 20], ['Tati', 8], ['Marcos', 6], ['Bia', 4]] },
+    'Quarto Colorido': { short: 'Colorido', pct: 9, where: 'no Quarto Colorido', top: [['Gil', 15], ['Lu', 13], ['Nina', 11], ['Rafa', 10]] },
+    'Quarto Azul': { short: 'Azul', pct: 14, where: 'no Quarto Azul', top: [['Tati', 22], ['Caio', 19], ['Gil', 17], ['Marcos', 14]] },
+    'Jardim': { short: 'Jardim', pct: 15, where: 'no Jardim', top: [['Rafa', 23], ['Lu', 21], ['Marcos', 15], ['Caio', 13]] },
+    'Academia': { short: 'Academia', pct: 10, where: 'na Academia', top: [['Rafa', 18], ['Caio', 16], ['Lu', 12], ['Marcos', 10]] },
+  };
+  const svg = card.querySelector('.o9-plan'), stage = card.querySelector('.o9-stage');
+  const pct = card.querySelector('.o9-pct'), what = card.querySelector('.o9-what');
+  const topH = card.querySelector('.o9-top-h'), people = card.querySelectorAll('.o9-p');
+  const bar = card.querySelector('.o9-seg-bar');
+  const boxOf = (room) => { const f = card.querySelector(`.o9-r[data-room="${room}"] .o9-floor`); return ['x', 'y', 'width', 'height'].map((a) => +f.getAttribute(a)); };
+  // Dois níveis: zona (← → troca a zona) e cômodo (Enter entra; ← → anda pelos cômodos da zona; Voltar sobe).
+  let i = 0, j = 0, inRoom = false;
+  const render = () => {
+    const z = zones[i], room = inRoom ? z.rooms[j] : null, r = room && rooms[room];
+    // Recorte com a proporção do palco, centrado na zona ou no cômodo: o que sobra mostra os vizinhos apagados.
+    const aspect = stage.clientWidth / stage.clientHeight, pad = inRoom ? 16 : 12;
+    let [x, y, w, h] = room ? boxOf(room) : z.box; x -= pad; y -= pad; w += pad * 2; h += pad * 2;
+    if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; } else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    const k = stage.clientWidth / w;
+    const lit = new Set(room ? [room] : z.rooms);
+    card.querySelectorAll('.o9-r').forEach((g) => g.toggleAttribute('data-out', !lit.has(g.dataset.room)));
+    card.querySelectorAll('.o9-door').forEach((d) => {
+      const near = Object.keys(rooms).filter((n) => d.dataset.rooms.includes(n));
+      d.toggleAttribute('data-out', !near.every((n) => lit.has(n)));
+    });
+    card.querySelectorAll('.o9-lbl').forEach((l) => {
+      // Rótulos só na visão de zona; na de cômodo o título já diz nome e %.
+      l.hidden = inRoom || !lit.has(l.dataset.for);
+      if (l.hidden) return;
+      const [fx, fy] = boxOf(l.dataset.for);
+      Object.assign(l.style, { left: `${(fx + 6 - x) * k}px`, top: `${(fy + 6 - y) * k}px` });
+    });
+    pct.textContent = (r ? r.pct : z.pct) + '%';
+    what.textContent = 'do tempo ' + (r ? r.where : z.where);
+    topH.textContent = 'Quem mais fica ' + (r ? r.where : z.where);
+    (r ? r.top : z.top).forEach(([name, p], n) => {
+      const li = people[n];
+      li.classList.toggle('is-me', name === 'Marcos');
+      li.querySelector('.o9-av').textContent = name[0];
+      li.querySelector('.o9-pn').textContent = name;
+      li.querySelector('.o9-pp').textContent = p + '%';
+    });
+    // O seletor mostra as zonas, ou os cômodos da zona; o escolhido leva o foco.
+    const items = inRoom ? z.rooms.map((n) => rooms[n].short) : zones.map((zz) => zz.name);
+    const sel = inRoom ? j : i;
+    bar.setAttribute('aria-label', inRoom ? `Cômodos: ${z.name}` : 'Zona da casa');
+    bar.replaceChildren(...items.map((t, n) => {
+      const s = document.createElement('span');
+      s.className = 'o9-seg text-footnote-bold'; s.setAttribute('role', 'tab');
+      s.setAttribute('aria-selected', String(n === sel)); s.textContent = t;
+      return s;
+    }));
+  };
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    const max = inRoom ? zones[i].rooms.length - 1 : zones.length - 1;
+    const pos = inRoom ? j : i;
+    const set = (v) => { if (inRoom) j = v; else i = v; };
+    if (e.key === 'ArrowRight' && pos < max) { set(pos + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && pos > 0) { set(pos - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && !inRoom) { inRoom = true; j = 0; render(); e.preventDefault(); }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (inRoom || i > 0)) {
+      if (inRoom) inRoom = false; else i = 0;
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+<script>
+(() => {
+  const card = document.querySelector('[data-option="10"]');
+  if (!card) return;
+  // Zonas: % somada dos cômodos, recorte (x, y, largura, altura) na planta de 360 x 240,
+  // cômodos na ordem da planta (← → segue a posição) e top 4 da zona (% do tempo de cada um ali).
+  const zones = [
+    { id: 'social', name: 'Social', pct: 46, where: 'na área social', box: [180, 120, 180, 120], rooms: ['Sala', 'Cozinha'],
+      top: [['Bia', 52], ['Marcos', 46], ['Davi', 44], ['Nina', 40]] },
+    { id: 'quartos', name: 'Quartos', pct: 29, where: 'nos quartos', box: [180, 0, 180, 114], rooms: ['Quarto do Líder', 'Quarto Colorido', 'Quarto Azul'],
+      top: [['Gil', 38], ['Tati', 35], ['Caio', 31], ['Marcos', 29]] },
+    { id: 'externa', name: 'Área externa', pct: 25, where: 'na área externa', box: [0, 0, 174, 240], rooms: ['Jardim', 'Academia'],
+      top: [['Rafa', 41], ['Lu', 37], ['Marcos', 25], ['Caio', 24]] },
+  ];
+  const rooms = {
+    'Sala': { short: 'Sala', pct: 28, where: 'na Sala', top: [['Bia', 34], ['Marcos', 28], ['Davi', 25], ['Nina', 22]] },
+    'Cozinha': { short: 'Cozinha', pct: 18, where: 'na Cozinha', top: [['Davi', 24], ['Nina', 21], ['Marcos', 18], ['Bia', 16]] },
+    'Quarto do Líder': { short: 'Líder', pct: 6, where: 'no Quarto do Líder', top: [['Gil', 20], ['Tati', 8], ['Marcos', 6], ['Bia', 4]] },
+    'Quarto Colorido': { short: 'Colorido', pct: 9, where: 'no Quarto Colorido', top: [['Gil', 15], ['Lu', 13], ['Nina', 11], ['Rafa', 10]] },
+    'Quarto Azul': { short: 'Azul', pct: 14, where: 'no Quarto Azul', top: [['Tati', 22], ['Caio', 19], ['Gil', 17], ['Marcos', 14]] },
+    'Jardim': { short: 'Jardim', pct: 15, where: 'no Jardim', top: [['Rafa', 23], ['Lu', 21], ['Marcos', 15], ['Caio', 13]] },
+    'Academia': { short: 'Academia', pct: 10, where: 'na Academia', top: [['Rafa', 18], ['Caio', 16], ['Lu', 12], ['Marcos', 10]] },
+  };
+  const svg = card.querySelector('.o10-plan'), stage = card.querySelector('.o10-stage');
+  const pct = card.querySelector('.o10-pct'), what = card.querySelector('.o10-what');
+  const topH = card.querySelector('.o10-top-h'), people = card.querySelectorAll('.o10-p');
+  const bar = card.querySelector('.o10-seg-bar');
+  const boxOf = (room) => { const f = card.querySelector(`.o10-r[data-room="${room}"] .o10-floor`); return ['x', 'y', 'width', 'height'].map((a) => +f.getAttribute(a)); };
+  // Dois níveis: zona (← → troca a zona) e cômodo (Enter entra; ← → anda pelos cômodos da zona; Voltar sobe).
+  let i = 0, j = 0, inRoom = false;
+  const render = () => {
+    const z = zones[i], room = inRoom ? z.rooms[j] : null, r = room && rooms[room];
+    // Recorte com a proporção do palco, centrado na zona ou no cômodo: o que sobra mostra os vizinhos apagados.
+    const aspect = stage.clientWidth / stage.clientHeight, pad = inRoom ? 16 : 12;
+    let [x, y, w, h] = room ? boxOf(room) : z.box; x -= pad; y -= pad; w += pad * 2; h += pad * 2;
+    if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; } else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    const k = stage.clientWidth / w;
+    const lit = new Set(room ? [room] : z.rooms);
+    card.querySelectorAll('.o10-r').forEach((g) => g.toggleAttribute('data-out', !lit.has(g.dataset.room)));
+    card.querySelectorAll('.o10-door').forEach((d) => {
+      const near = Object.keys(rooms).filter((n) => d.dataset.rooms.includes(n));
+      d.toggleAttribute('data-out', !near.every((n) => lit.has(n)));
+    });
+    card.querySelectorAll('.o10-lbl').forEach((l) => {
+      // Um só rótulo, só o nome: na zona, o cômodo mais quente; no cômodo, o que está em foco.
+      const named = room || z.rooms.reduce((a, b) => (rooms[b].pct > rooms[a].pct ? b : a));
+      l.hidden = l.dataset.for !== named;
+      if (l.hidden) return;
+      const [fx, fy] = boxOf(l.dataset.for);
+      Object.assign(l.style, { left: `${(fx + 6 - x) * k}px`, top: `${(fy + 6 - y) * k}px` });
+    });
+    pct.textContent = (r ? r.pct : z.pct) + '%';
+    what.textContent = 'do tempo ' + (r ? r.where : z.where);
+    topH.textContent = 'Quem mais fica ' + (r ? r.where : z.where);
+    (r ? r.top : z.top).forEach(([name, p], n) => {
+      const li = people[n];
+      li.classList.toggle('is-me', name === 'Marcos');
+      li.querySelector('.o10-av').textContent = name[0];
+      li.querySelector('.o10-pn').textContent = name;
+      li.querySelector('.o10-pp').textContent = p + '%';
+    });
+    // O seletor mostra as zonas, ou os cômodos da zona; o escolhido leva o foco.
+    const items = inRoom ? z.rooms.map((n) => rooms[n].short) : zones.map((zz) => zz.name);
+    const sel = inRoom ? j : i;
+    bar.setAttribute('aria-label', inRoom ? `Cômodos: ${z.name}` : 'Zona da casa');
+    bar.replaceChildren(...items.map((t, n) => {
+      const s = document.createElement('span');
+      s.className = 'o10-seg text-footnote-bold'; s.setAttribute('role', 'tab');
+      s.setAttribute('aria-selected', String(n === sel)); s.textContent = t;
+      return s;
+    }));
+  };
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card) return;
+    const max = inRoom ? zones[i].rooms.length - 1 : zones.length - 1;
+    const pos = inRoom ? j : i;
+    const set = (v) => { if (inRoom) j = v; else i = v; };
+    if (e.key === 'ArrowRight' && pos < max) { set(pos + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' && pos > 0) { set(pos - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && !inRoom) { inRoom = true; j = 0; render(); e.preventDefault(); }
+    else if ((e.key === 'Escape' || e.key === 'Backspace') && (inRoom || i > 0)) {
+      if (inRoom) inRoom = false; else i = 0;
+      render(); e.preventDefault();
+    }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

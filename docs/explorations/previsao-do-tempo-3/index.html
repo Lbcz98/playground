@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Previsão do tempo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+/* tune:vars */
+[data-option="1"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --name-size: var(--typography-font-size-md);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --identity-gap: var(--dimension-spacing-core-2xs);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --temp-gap: var(--dimension-spacing-core-2xs);
+  --delta-size: var(--typography-font-size-md);
+  --support-gap: var(--dimension-spacing-core-sm);
+  --support-inner-gap: var(--dimension-spacing-core-3xs);
+  --label-size: var(--typography-font-size-sm);
+  --value-size: var(--typography-font-size-md);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="1"] .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  text-align: left;
+}
+[data-option="1"] .identity { display: flex; flex-direction: column; gap: var(--identity-gap); }
+[data-option="1"] .name { margin: 0; font-size: var(--name-size); color: var(--name-color); text-wrap: balance; }
+[data-option="1"] .reading { display: flex; align-items: baseline; gap: var(--temp-gap); }
+[data-option="1"] .temp { margin: 0; font-size: var(--temp-size); color: var(--temp-color); font-variant-numeric: tabular-nums; }
+[data-option="1"] .delta { margin: 0; font-size: var(--delta-size); color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="1"] .support { display: flex; align-items: flex-start; gap: var(--support-gap); }
+[data-option="1"] .item { display: flex; flex-direction: column; gap: var(--support-inner-gap); }
+[data-option="1"] .label { margin: 0; font-size: var(--label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .value { margin: 0; font-size: var(--value-size); color: var(--value-color); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The kit's focus ring: an inside gradient band, shown only in the focus state. */
+[data-option="1"] .card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ring-w);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+[data-option="1"][data-state="foco"] .card::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  [data-option="1"] .card::after { transition-duration: 0ms; }
+}
+/* tune:vars */
+[data-option="2"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --groups-gap: var(--dimension-spacing-core-sm);
+  --place-size: var(--typography-font-size-sm);
+  --title-size: var(--typography-font-size-base);
+  --title-color: var(--color-semantic-functional-text-primary);
+  --title-gap: var(--dimension-spacing-core-3xs);
+  --anchor-size: var(--typography-font-size-3xl);
+  --anchor-color: var(--color-semantic-functional-text-primary);
+  --anchor-gap: var(--dimension-spacing-core-3xs);
+  --rows-gap: var(--dimension-spacing-core-xs);
+  --row-gap: var(--dimension-spacing-core-3xs);
+  --name-size: var(--typography-font-size-sm);
+  --value-size: var(--typography-font-size-md);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --note-size: var(--typography-font-size-sm);
+  --note-gap: var(--dimension-spacing-core-2xs);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-inset: 0px;
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="2"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--groups-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset); border-radius: var(--radius); background: var(--bg);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"] .card::after {
+  content: ''; position: absolute; inset: var(--ring-inset); border-radius: inherit;
+  padding: var(--ring-width); background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: var(--opacity-semantic-hidden);
+  transition: opacity var(--dur) var(--ease);
+}
+[data-option="2"][data-state="foco"] .card::after { opacity: var(--opacity-semantic-visible); }
+
+[data-option="2"] .title { display: flex; flex-direction: column; gap: var(--title-gap); }
+[data-option="2"] .place { margin: 0; font-size: var(--place-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .verdict { margin: 0; font-size: var(--title-size); color: var(--title-color); text-wrap: balance; }
+
+[data-option="2"] .anchor { display: flex; flex-direction: column; gap: var(--anchor-gap); }
+[data-option="2"] .anchor-label { margin: 0; font-size: var(--place-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .anchor-value { margin: 0; font-size: var(--anchor-size); color: var(--anchor-color); font-variant-numeric: tabular-nums; }
+
+[data-option="2"] .list { display: flex; flex-direction: column; gap: var(--rows-gap); margin: 0; padding: 0; list-style: none; }
+[data-option="2"] .row { display: flex; flex-direction: column; gap: var(--row-gap); }
+[data-option="2"] .row-name { margin: 0; font-size: var(--name-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .row-read { display: flex; align-items: baseline; gap: var(--note-gap); margin: 0; }
+[data-option="2"] .row-value { font-size: var(--value-size); color: var(--value-color); font-variant-numeric: tabular-nums; }
+[data-option="2"] .row-note { font-size: var(--note-size); color: var(--color-semantic-functional-text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="2"] .card::after { transition: none; }
+}
+/* tune:vars */
+[data-option="3"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --sky-opacity: var(--opacity-semantic-visible);
+  --veil-top: var(--opacity-semantic-visible);
+  --veil-base: var(--opacity-semantic-visible);
+  --name-size: var(--typography-font-size-base);
+  --name-color: var(--color-semantic-functional-text-primary);
+  --anchor-scale: 3;
+  --anchor-line: var(--typography-line-height-tight);
+  --anchor-color: var(--color-semantic-functional-text-primary);
+  --sky-gap: var(--dimension-spacing-core-3xl);
+  --group-gap: var(--dimension-spacing-core-sm);
+  --strip-col-gap: var(--dimension-spacing-core-sm);
+  --strip-row-gap: var(--dimension-spacing-core-xs);
+  --label-gap: var(--dimension-spacing-core-3xs);
+  --label-size: var(--typography-font-size-sm);
+  --value-size: var(--typography-font-size-base);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --ring-opacity: var(--opacity-semantic-visible);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="3"] .card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--group-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset); border-radius: var(--radius);
+  background: var(--bg);
+}
+[data-option="3"] .card > * { position: relative; z-index: 1; }
+[data-option="3"] .card > .ambiente { position: absolute; inset: 0; z-index: 0; display: block; border-radius: inherit; pointer-events: none; }
+[data-option="3"] .ambiente > * { position: absolute; inset: 0; display: block; border-radius: inherit; }
+[data-option="3"] .ceu { background: var(--gradient-primary-tarde); transform: scaleY(-1); opacity: var(--sky-opacity); }
+[data-option="3"] .veu-topo { background: var(--gradient-semantic-overlay-bottom); transform: scaleY(-1); opacity: var(--veil-top); }
+[data-option="3"] .veu-base { background: var(--gradient-semantic-overlay-bottom); opacity: var(--veil-base); }
+
+[data-option="3"] .local { margin: 0; display: block; font-size: var(--name-size); color: var(--name-color); text-wrap: balance; }
+[data-option="3"] .respiro { display: block; width: 100%; height: var(--sky-gap); }
+[data-option="3"] .temperatura { margin: 0; display: block; font-size: calc(var(--typography-font-size-3xl) * var(--anchor-scale)); line-height: var(--anchor-line); color: var(--anchor-color); font-variant-numeric: tabular-nums; }
+[data-option="3"] .faixa { margin: 0; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--strip-col-gap); row-gap: var(--strip-row-gap); }
+[data-option="3"] .dado { display: flex; flex-direction: column; gap: var(--label-gap); }
+[data-option="3"] .rotulo { margin: 0; display: block; font-size: var(--label-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .valor { margin: 0; display: block; font-size: var(--value-size); color: var(--value-color); font-variant-numeric: tabular-nums; }
+
+[data-option="3"] .card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 2;
+  padding: var(--ring-w);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+  opacity: 0; transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease);
+}
+[data-option="3"][data-state="foco"] .card::after { opacity: var(--ring-opacity); }
+@media (prefers-reduced-motion: reduce) { [data-option="3"] .card::after { transition-duration: 0ms; } }
+/* tune:vars */
+[data-option="4"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --local-size: var(--typography-font-size-md);
+  --local-lh: var(--typography-line-height-normal);
+  --local-color: var(--color-semantic-functional-text-primary);
+  --atual-size: var(--typography-font-size-3xl);
+  --atual-ls: var(--typography-letter-spacing-tight);
+  --atual-color: var(--color-semantic-functional-text-primary);
+  --gap-name: var(--dimension-spacing-core-2xs);
+  --gap-groups: var(--dimension-spacing-core-sm);
+  --gap-items: var(--dimension-spacing-core-2xs);
+  --gap-label: var(--dimension-spacing-core-3xs);
+  --rotulo-size: var(--typography-font-size-sm);
+  --valor-size: var(--typography-font-size-md);
+  --valor-color: var(--color-semantic-functional-text-primary);
+  --ring: var(--dimension-border-width-semantic-focus-ring);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="4"] .card { position: relative; width: var(--dimension-size-semantic-content-card-width); display: flex; flex-direction: column; gap: var(--gap-groups); padding: var(--inset); border-radius: var(--radius); background: var(--bg); }
+[data-option="4"] .topo { display: flex; flex-direction: column; gap: var(--gap-name); }
+[data-option="4"] .local { margin: 0; font-size: var(--local-size); line-height: var(--local-lh); color: var(--local-color); text-wrap: balance; }
+[data-option="4"] .atual { margin: 0; font-size: var(--atual-size); letter-spacing: var(--atual-ls); color: var(--atual-color); font-variant-numeric: tabular-nums; }
+[data-option="4"] .grupos { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--gap-groups); }
+[data-option="4"] .grupo { margin: 0; display: flex; flex-direction: column; gap: var(--gap-items); }
+[data-option="4"] .dado { display: flex; flex-direction: column; gap: var(--gap-label); }
+[data-option="4"] .rotulo { margin: 0; font-size: var(--rotulo-size); color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .valor { margin: 0; font-size: var(--valor-size); color: var(--valor-color); font-variant-numeric: tabular-nums; }
+[data-option="4"] .unidade { color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: 0; transition: opacity var(--dur) var(--ease); }
+[data-option="4"][data-state="foco"] .card::after { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o número responde "como está agora?" e uma única linha de contexto (a média) diz se é normal; tudo empilha numa coluna, na ordem em que se lê. -->
+  <p class="opt-label" data-part="label">Opção 1 - Número e a forma do dia</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="identity" data-part="identity">
+        <p class="name text-body-sm-bold" data-part="name">São Paulo</p>
+        <div class="reading" data-part="reading">
+          <p class="temp text-heading-3-bold" data-part="temperature">24°</p>
+          <p class="delta text-body-sm-medium" data-part="delta">+3° da média de 21°</p>
+        </div>
+      </div>
+      <div class="support" data-part="support">
+        <div class="item" data-part="feels">
+          <p class="label text-footnote-medium">Sensação</p>
+          <p class="value text-body-sm-medium">26°</p>
+        </div>
+        <div class="item" data-part="wind">
+          <p class="label text-footnote-medium">Vento</p>
+          <p class="value text-body-sm-medium">14 km/h</p>
+        </div>
+        <div class="item" data-part="humidity">
+          <p class="label text-footnote-medium">Umidade</p>
+          <p class="value text-body-sm-medium">68%</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="1">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3F3F3F","base":"#3F3F3F","token":"--color-semantic-functional-background-elevated"},
+      {"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Local","part":"name","controls":[
+      {"id":"name-size","label":"Tamanho","type":"slider","var":"--name-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"},
+      {"id":"identity-gap","label":"Vão até o número","type":"slider","var":"--identity-gap","value":8,"base":8,"min":0,"max":20,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Temperatura","part":"temperature","controls":[
+      {"id":"temp-size","label":"Tamanho","type":"slider","var":"--temp-size","value":28,"base":28,"min":20,"max":48,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"temp-color","label":"Cor","type":"color","var":"--temp-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"},
+      {"id":"temp-gap","label":"Vão até a variação","type":"slider","var":"--temp-gap","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Variação","part":"delta","controls":[
+      {"id":"delta-size","label":"Tamanho","type":"slider","var":"--delta-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"}]},
+    {"name":"Apoio","part":"support","controls":[
+      {"id":"support-gap","label":"Vão entre dados","type":"slider","var":"--support-gap","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"support-inner-gap","label":"Vão rótulo e valor","type":"slider","var":"--support-inner-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"label-size","label":"Tamanho do rótulo","type":"slider","var":"--label-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"value-size","label":"Tamanho do valor","type":"slider","var":"--value-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"value-color","label":"Cor do valor","type":"color","var":"--value-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-w","label":"Largura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]},"base":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article class="opt" data-option="2" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o card abre com uma frase-conclusão ("Parece mais quente do que é") e os números vêm como prova, em lista, cada um com seu nome, valor e comparação em palavras. -->
+  <p class="opt-label" data-part="label">Opção 2 - Título que diz como é lá fora</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="title" data-part="title">
+        <p class="place text-footnote-medium" data-part="place">São Paulo</p>
+        <p class="verdict text-body-md-bold" data-part="verdict">Parece mais quente do que é</p>
+      </div>
+      <div class="anchor" data-part="anchor">
+        <p class="anchor-label text-footnote-medium" data-part="anchor-label">Agora</p>
+        <p class="anchor-value text-heading-3-bold" data-part="current">24°</p>
+      </div>
+      <ul class="list" data-part="list">
+        <li class="row" data-part="feels">
+          <p class="row-name text-footnote-medium">Sensação</p>
+          <p class="row-read"><span class="row-value text-body-sm-bold">26°</span><span class="row-note text-footnote-medium">2° acima do termômetro</span></p>
+        </li>
+        <li class="row" data-part="average">
+          <p class="row-name text-footnote-medium">Média do dia</p>
+          <p class="row-read"><span class="row-value text-body-sm-bold">21°</span><span class="row-note text-footnote-medium">hoje está 3° acima</span></p>
+        </li>
+        <li class="row" data-part="wind">
+          <p class="row-name text-footnote-medium">Vento</p>
+          <p class="row-read"><span class="row-value text-body-sm-bold">14 km/h</span><span class="row-note text-footnote-medium">brisa leve</span></p>
+        </li>
+        <li class="row" data-part="humidity">
+          <p class="row-name text-footnote-medium">Umidade</p>
+          <p class="row-read"><span class="row-value text-body-sm-bold">68%</span><span class="row-note text-footnote-medium">ar úmido</span></p>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <script type="application/json" data-tune="2">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"},
+      {"id":"groups-gap","label":"Espaço entre grupos","type":"slider","var":"--groups-gap","value":16,"base":16,"min":4,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"}]},
+    {"name":"Título","part":"title","controls":[
+      {"id":"place-size","label":"Tamanho do local","type":"slider","var":"--place-size","value":12,"base":12,"min":10,"max":18,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"title-size","label":"Tamanho da frase","type":"slider","var":"--title-size","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"title-color","label":"Cor da frase","type":"color","var":"--title-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"title-gap","label":"Espaço local e frase","type":"slider","var":"--title-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Número atual","part":"anchor","controls":[
+      {"id":"anchor-size","label":"Tamanho do número","type":"slider","var":"--anchor-size","value":28,"base":28,"min":20,"max":56,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+      {"id":"anchor-color","label":"Cor do número","type":"color","var":"--anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"anchor-gap","label":"Espaço rótulo e número","type":"slider","var":"--anchor-gap","value":4,"base":4,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}]},
+    {"name":"Lista","part":"list","controls":[
+      {"id":"rows-gap","label":"Espaço entre linhas","type":"slider","var":"--rows-gap","value":12,"base":12,"min":4,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"row-gap","label":"Espaço nome e valor","type":"slider","var":"--row-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"name-size","label":"Tamanho do nome","type":"slider","var":"--name-size","value":12,"base":12,"min":10,"max":18,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"value-size","label":"Tamanho do valor","type":"slider","var":"--value-size","value":14,"base":14,"min":12,"max":24,"step":1,"unit":"px","token":"--typography-font-size-md"},
+      {"id":"value-color","label":"Cor do valor","type":"color","var":"--value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"note-size","label":"Tamanho da comparação","type":"slider","var":"--note-size","value":12,"base":12,"min":10,"max":18,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"note-gap","label":"Espaço valor e comparação","type":"slider","var":"--note-gap","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"min":1,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+      {"id":"ring-inset","label":"Distância da borda","type":"slider","var":"--ring-inset","value":0,"base":0,"min":-8,"max":8,"step":1,"unit":"px"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Entrada do anel","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article class="opt" data-option="3" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o clima aparece como ambiente de ponta a ponta no card e o texto fica só nas faixas mais calmas, de modo que se sente o tempo antes de ler o número. -->
+  <p class="opt-label" data-part="label">Opção 3 - O ambiente como fundo</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-surface="content-card" data-part="card">
+      <div class="ambiente" data-part="ambiente" data-stack aria-hidden="true">
+        <span class="ceu"></span>
+        <span class="veu-topo"></span>
+        <span class="veu-base"></span>
+      </div>
+      <p class="local text-body-md-bold" data-part="local">São Paulo</p>
+      <div class="respiro" data-part="respiro" aria-hidden="true"></div>
+      <p class="temperatura text-heading-3-bold" data-part="temperatura" aria-label="24 graus">24°</p>
+      <div class="faixa" data-part="faixa">
+        <div class="dado" data-part="sensacao"><p class="rotulo text-footnote-medium">Sensação</p><p class="valor text-body-md-medium">26°</p></div>
+        <div class="dado" data-part="media"><p class="rotulo text-footnote-medium">Média do dia</p><p class="valor text-body-md-medium">21°</p></div>
+        <div class="dado" data-part="vento"><p class="rotulo text-footnote-medium">Vento</p><p class="valor text-body-md-medium">14 km/h</p></div>
+        <div class="dado" data-part="umidade"><p class="rotulo text-footnote-medium">Umidade</p><p class="valor text-body-md-medium">68%</p></div>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="3">
+  {"states":["repouso","foco"],"folders":[
+    {"name":"Superfície","part":"card","controls":[
+      {"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+      {"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":2,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+      {"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}]},
+    {"name":"Ambiente","part":"ambiente","controls":[
+      {"id":"sky-opacity","label":"Céu","type":"slider","var":"--sky-opacity","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"},
+      {"id":"veil-top","label":"Véu do topo","type":"slider","var":"--veil-top","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"},
+      {"id":"veil-base","label":"Véu da base","type":"slider","var":"--veil-base","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"}]},
+    {"name":"Local","part":"local","controls":[
+      {"id":"name-size","label":"Tamanho","type":"slider","var":"--name-size","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"name-color","label":"Cor","type":"color","var":"--name-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Temperatura","part":"temperatura","controls":[
+      {"id":"anchor-scale","label":"Escala","type":"slider","var":"--anchor-scale","value":3,"base":3,"min":1,"max":4,"step":0.1,"unit":""},
+      {"id":"anchor-line","label":"Altura de linha","type":"slider","var":"--anchor-line","value":1.1,"base":1.1,"min":0.8,"max":1.5,"step":0.05,"unit":"","token":"--typography-line-height-tight"},
+      {"id":"anchor-color","label":"Cor","type":"color","var":"--anchor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+      {"id":"sky-gap","label":"Faixa de céu","type":"slider","var":"--sky-gap","value":48,"base":48,"min":0,"max":96,"step":4,"unit":"px","token":"--dimension-spacing-core-3xl"}]},
+    {"name":"Faixa","part":"faixa","controls":[
+      {"id":"group-gap","label":"Vão entre grupos","type":"slider","var":"--group-gap","value":16,"base":16,"min":4,"max":32,"step":2,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"strip-col-gap","label":"Vão entre colunas","type":"slider","var":"--strip-col-gap","value":16,"base":16,"min":4,"max":32,"step":2,"unit":"px","token":"--dimension-spacing-core-sm"},
+      {"id":"strip-row-gap","label":"Vão entre linhas","type":"slider","var":"--strip-row-gap","value":12,"base":12,"min":4,"max":32,"step":2,"unit":"px","token":"--dimension-spacing-core-xs"},
+      {"id":"label-gap","label":"Rótulo até valor","type":"slider","var":"--label-gap","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+      {"id":"label-size","label":"Tamanho do rótulo","type":"slider","var":"--label-size","value":12,"base":12,"min":12,"max":18,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+      {"id":"value-size","label":"Tamanho do valor","type":"slider","var":"--value-size","value":16,"base":16,"min":12,"max":24,"step":1,"unit":"px","token":"--typography-font-size-base"},
+      {"id":"value-color","label":"Cor do valor","type":"color","var":"--value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}]},
+    {"name":"Foco","part":"card","controls":[
+      {"id":"ring-w","label":"Largura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+      {"id":"ring-opacity","label":"Opacidade do anel","type":"slider","var":"--ring-opacity","value":1,"base":1,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-visible"}]},
+    {"name":"Movimento","controls":[
+      {"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}]}]}
+  </script>
+</article>
+<article class="opt" data-option="4" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o número âncora fica sozinho no alto, e os outros cinco dados se agrupam em pares por proximidade (calor: sensação e média; ar: vento e umidade), sem linhas nem caixas. -->
+  <p class="opt-label" data-part="label">Opção 4 - Quatro dados em grupos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="topo" data-part="topo">
+        <p class="local text-body-sm-bold" data-part="local">São Paulo</p>
+        <p class="atual text-heading-3-bold" data-part="atual">24°</p>
+      </div>
+      <div class="grupos" data-part="grupos">
+        <dl class="grupo" data-part="grupo-calor">
+          <div class="dado" data-part="sensacao"><dt class="rotulo text-footnote-medium" data-part="rotulo">Sensação</dt><dd class="valor text-body-sm-bold" data-part="valor">26°</dd></div>
+          <div class="dado" data-part="media"><dt class="rotulo text-footnote-medium" data-part="rotulo">Média do dia</dt><dd class="valor text-body-sm-bold" data-part="valor">21°</dd></div>
+        </dl>
+        <dl class="grupo" data-part="grupo-ar">
+          <div class="dado" data-part="vento"><dt class="rotulo text-footnote-medium" data-part="rotulo">Vento</dt><dd class="valor text-body-sm-bold" data-part="valor">14 <span class="unidade text-body-sm-medium">km/h</span></dd></div>
+          <div class="dado" data-part="umidade"><dt class="rotulo text-footnote-medium" data-part="rotulo">Umidade</dt><dd class="valor text-body-sm-bold" data-part="valor">68%</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <script type="application/json" data-tune="4">{"states":["repouso","foco"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Respiro","type":"slider","var":"--inset","value":32,"base":32,"min":16,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Local","part":"local","controls":[
+{"id":"local-size","label":"Tamanho","type":"slider","var":"--local-size","value":14,"base":14,"min":12,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"local-lh","label":"Altura da linha","type":"slider","var":"--local-lh","value":1.2,"base":1.2,"min":1,"max":1.6,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"local-color","label":"Cor","type":"color","var":"--local-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Temperatura atual","part":"atual","controls":[
+{"id":"atual-size","label":"Tamanho","type":"slider","var":"--atual-size","value":28,"base":28,"min":20,"max":40,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+{"id":"atual-ls","label":"Espaço entre letras","type":"slider","var":"--atual-ls","value":-0.01,"base":-0.01,"min":-0.05,"max":0.05,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"atual-color","label":"Cor","type":"color","var":"--atual-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"},
+{"id":"gap-name","label":"Vão do local ao número","type":"slider","var":"--gap-name","value":8,"base":8,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"}
+]},
+{"name":"Grupos","part":"grupos","controls":[
+{"id":"gap-groups","label":"Vão entre grupos","type":"slider","var":"--gap-groups","value":16,"base":16,"min":8,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"gap-items","label":"Vão dentro do grupo","type":"slider","var":"--gap-items","value":8,"base":8,"min":0,"max":16,"step":1,"unit":"px","token":"--dimension-spacing-core-2xs"},
+{"id":"gap-label","label":"Vão do rótulo ao valor","type":"slider","var":"--gap-label","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Rótulos","part":"rotulo","controls":[
+{"id":"rotulo-size","label":"Tamanho","type":"slider","var":"--rotulo-size","value":12,"base":12,"min":12,"max":16,"step":1,"unit":"px","token":"--typography-font-size-sm"}
+]},
+{"name":"Valores","part":"valor","controls":[
+{"id":"valor-size","label":"Tamanho","type":"slider","var":"--valor-size","value":14,"base":14,"min":14,"max":20,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"valor-color","label":"Cor","type":"color","var":"--valor-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring","label":"Espessura do anel","type":"slider","var":"--ring","value":4,"base":4,"min":2,"max":8,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="1"]')
+  // The card only takes focus: the state follows the DOM focus. Arrows, Enter and Back change nothing; up/down leave to the screen.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="2"]')
+  // Só visual: o foco do card acende o anel; nenhuma tecla muda o conteúdo (↑/↓ passam para a tela).
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="3"]')
+  // Só visual: o card recebe foco e mostra o anel; ←/→, Enter e Voltar não mudam o conteúdo, ↑/↓ passam para a tela.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="4"]')
+  // Só visual: o card recebe foco e mostra o anel; as teclas não mudam o conteúdo, e ↑/↓ passam para a tela.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+</body>
+</html>

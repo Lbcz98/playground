@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TODO: the exploration's name, e.g. "Ícone de alerta — 3 opções". The visible H1 stays "Explorações". -->
+<title>Previsão do tempo</title>
+<!-- The kit's real tokens and face. Served by the live server; the relative link covers opening the file directly. Never retype their values. -->
+<link rel="stylesheet" href="/__explore/tokens.css">
+<link rel="stylesheet" href="../../../src/styles/global.css">
+<link rel="stylesheet" href="/__explore/inter.css">
+<style>
+/* ---------------------------------------------------------------------------
+ * Page chrome: fixed by the designer's Figma export (1280 x 720) and Figma frame 7139:1917 (card).
+ * Do not change the --explore-* values or the rules under "Chrome".
+ * Design tokens: the linked tokens.css defines them (--color-semantic-*, --dimension-spacing-core-*,
+ * --dimension-radius-core-*, --typography-*) and the .text-* classes give the type styles.
+ * Use them with var(); never redeclare them here. All of them, by CSS name: web/protos/generated/explore-tokens.md.
+ * ------------------------------------------------------------------------- */
+:root {
+  --explore-container-max: 992px; --explore-margin: 24px; --explore-gap: 16px; --explore-panel-w: 288px; --explore-card-min-w: 320px;
+  --explore-page-bg: #181818; --explore-title: #eeeeee; --explore-label: #888888;
+  --explore-tile-bg: #232323; --explore-tile-radius: 12px; --explore-tile-min-h: 234px; --explore-tile-pad: 16px; --explore-tile-gap: 16px; --explore-tile-label: #cccccc;
+  --explore-toggle-border: #3f3a3a; --explore-toggle-idle-hover: rgba(255, 255, 255, 0.08); --explore-toggle-active: #5a5a5a; --explore-toggle-icon-active: #cccccc;
+  --explore-btn-fill-from: #3c3c3c; --explore-btn-fill-to: #2f2f2f; --explore-btn-stroke-from: #6a6a6a; --explore-btn-stroke-to: #484848;
+  --explore-font: "SF Pro", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+}
+
+/* Chrome */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--explore-page-bg); color: var(--explore-title); font-family: var(--explore-font); -webkit-font-smoothing: antialiased; }
+.explore-page { min-height: 100vh; padding: var(--explore-margin); }
+/* The live panel (fixed, right, 288 px) floats over the page: the container never moves when it opens. */
+.explore-container { width: 100%; max-width: var(--explore-container-max); margin-inline: auto; display: flex; flex-direction: column; gap: var(--explore-gap); }
+.explore-header { display: flex; align-items: center; justify-content: space-between; gap: var(--explore-gap); min-height: 32px; }
+.explore-header h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: normal; color: var(--explore-title); white-space: nowrap; }
+.explore-actions { display: flex; align-items: center; gap: 12px; }
+/* Filled by the live server (comment buttons); the server sets data-live. Hidden otherwise. */
+#explore-actions { display: none; }
+#explore-actions[data-live] { display: flex; align-items: center; padding-left: 12px; border-left: 1px solid var(--explore-toggle-border); }
+.explore-items { display: grid; gap: var(--explore-gap); align-content: start; align-items: start; } /* a card hugs its option: a tall neighbour in the row does not stretch it */
+.explore-items[data-view="grid"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--explore-card-min-w)), 1fr)); }
+.explore-items[data-view="list"] { grid-template-columns: minmax(0, 1fr); }
+.opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--explore-tile-gap); min-height: var(--explore-tile-min-h);
+  padding: var(--explore-tile-pad); background: var(--explore-tile-bg); border-radius: var(--explore-tile-radius);
+}
+/* A batch of variations or of more options: its title runs across all columns. */
+.opt-group { grid-column: 1 / -1; margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-label); }
+/* Discarded on the live page: hidden, never deleted; the live page can show them again, dimmed. */
+.opt[data-discarded] { display: none; }
+.explore-items[data-show-discarded] .opt[data-discarded] { display: flex; opacity: .45; }
+/* A tunable copy made ahead of /tune looks just like its parent: hidden, with its title, until the designer tunes it. */
+.explore-items > .opt[data-pretuned], .opt-group:has(+ .opt[data-pretuned]) { display: none; }
+/* Keyboard: Tab moves from card to card, and the card with this ring is the one the arrow keys drive. An option cannot remove it. */
+.opt:focus-visible { outline: 2px solid var(--explore-tile-label) !important; outline-offset: 2px; }
+.opt-label { margin: 0; width: 100%; min-height: 24px; display: flex; align-items: center; font-size: 14px; font-weight: 500; line-height: normal; color: var(--explore-tile-label); }
+/* No background, border or padding of its own: the component sits on the card, centered. The card hugs it: taller than the minimum, the card grows. */
+.opt-content { flex: 1 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; }
+/* The component keeps its own size (fixed or hugging its content) in grid and list alike: never fill the card. */
+.opt-content > * { flex: none; max-width: 100%; }
+.view-toggle { display: flex; gap: 4px; align-items: center; height: 32px; padding: 2px; border: 1px solid transparent; border-radius: 10px;
+  /* Same material as the live comment buttons: gradient fill, gradient stroke (border-box layer). */
+  background: linear-gradient(180deg, var(--explore-btn-fill-from) 0%, var(--explore-btn-fill-to) 100%) padding-box, linear-gradient(180deg, var(--explore-btn-stroke-from) 0%, var(--explore-btn-stroke-to) 100%) border-box; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--explore-label); cursor: pointer; }
+.view-toggle button[aria-pressed="true"] { background: var(--explore-toggle-active); color: var(--explore-toggle-icon-active); }
+/* States (same as the live comment buttons): hover lifts, pressed sinks; the idle button also gets a faint fill on hover. */
+.view-toggle button { transition: filter 120ms ease-out, transform 120ms cubic-bezier(.2, .8, .2, 1), background-color 120ms ease-out; }
+@media (hover: hover) {
+  .view-toggle button:hover { filter: brightness(1.18); }
+  .view-toggle button[aria-pressed="false"]:hover { background-color: var(--explore-toggle-idle-hover); }
+}
+.view-toggle button:active { filter: brightness(.88); transform: scale(.97); transition-duration: 60ms; }
+.view-toggle button:focus-visible { outline: 2px solid var(--explore-tile-label); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .view-toggle button { transition: none; } .view-toggle button:active { transform: none; } }
+.view-toggle svg { width: 16px; height: 16px; }
+
+/* Options: styles for what goes inside the cards */
+[data-option="1"] .wx-card { position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm); width: var(--dimension-size-semantic-content-card-width); padding: var(--dimension-spacing-semantic-card-inset-expanded); border-radius: var(--dimension-radius-semantic-content-card); background: var(--color-semantic-functional-background-elevated); color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .wx-now { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="1"] .wx-place { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="1"] .wx-reading { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="1"] .wx-temp { color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+[data-option="1"] .wx-delta { color: var(--color-semantic-functional-text-muted); font-variant-numeric: tabular-nums; }
+[data-option="1"] .wx-support { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; margin: 0; padding: 0; }
+[data-option="1"] .wx-fact { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0; }
+[data-option="1"] .wx-fact dt { color: var(--color-semantic-functional-text-muted); }
+[data-option="1"] .wx-fact dd { margin: 0; color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The kit's focus ring on the card when the remote (Tab here) is on it. */
+[data-option="1"]:focus-visible .wx-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; }
+[data-option="2"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="2"] .card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; display: none;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="2"]:focus .card::after { display: block; }
+
+[data-option="2"] .head { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .place { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .verdict { margin: 0; color: var(--color-semantic-functional-text-primary); text-wrap: balance; }
+
+[data-option="2"] .now { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .now-value { font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .now-note { color: var(--color-semantic-functional-text-muted); }
+
+[data-option="2"] .proof { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .proof-row { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="2"] .proof-name { color: var(--color-semantic-functional-text-muted); }
+[data-option="2"] .proof-line { display: flex; align-items: baseline; gap: var(--dimension-spacing-core-2xs); }
+[data-option="2"] .proof-value { font-variant-numeric: tabular-nums; color: var(--color-semantic-functional-text-primary); }
+[data-option="2"] .proof-words { color: var(--color-semantic-functional-text-muted); text-wrap: pretty; }
+[data-option="3"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  /* Ambient: the kit's tarde gradient is the sky; the kit's card scrim darkens the bottom band where the four data sit. */
+  background: var(--gradient-semantic-card-scrim) bottom / 100% 62% no-repeat, var(--gradient-primary-tarde) top / 100% calc(100% - var(--dimension-border-width-semantic-focus-ring)) no-repeat var(--color-core-neutral-charcoal);
+  color: var(--color-semantic-functional-text-primary);
+}
+[data-option="3"] .sky { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); padding-block-end: var(--dimension-spacing-core-4xl); color: var(--color-core-neutral-charcoal); }
+[data-option="3"] .place { display: block; margin: 0; text-wrap: balance; }
+[data-option="3"] .now { display: block; margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="3"] .band { display: grid; grid-template-columns: 1fr 1fr; gap: var(--dimension-spacing-core-sm) var(--dimension-spacing-core-xs); margin: 0; }
+[data-option="3"] .fact { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); margin: 0; }
+[data-option="3"] .fact dt { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="3"] .fact dd { margin: 0; color: var(--color-semantic-functional-text-primary); font-variant-numeric: tabular-nums; }
+/* Focus: the kit's ring, drawn when the card has the DOM focus. */
+[data-option="3"] .card::after { content: none; }
+[data-option="3"]:focus-visible .card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="4"] .card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--dimension-spacing-core-sm);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--dimension-spacing-semantic-card-inset-expanded);
+  border-radius: var(--dimension-radius-semantic-content-card);
+  background: var(--color-semantic-functional-background-elevated);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Focus state, drawn: the kit ring, an inside gradient band. */
+[data-option="4"] .card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+[data-option="4"] .place { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .place-name { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .now { margin: 0; font-variant-numeric: tabular-nums; }
+[data-option="4"] .group { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-2xs); width: 100%; }
+[data-option="4"] .group-name { margin: 0; color: var(--color-semantic-functional-text-primary); }
+[data-option="4"] .pairs { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--dimension-spacing-core-xs); }
+[data-option="4"] .pair { display: flex; flex-direction: column; gap: var(--dimension-spacing-core-3xs); }
+[data-option="4"] .pair-label { margin: 0; color: var(--color-semantic-functional-text-muted); }
+[data-option="4"] .pair-value { margin: 0; font-variant-numeric: tabular-nums; }
+/* tune:vars */
+[data-option="6"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-gap: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --head-gap: var(--dimension-spacing-core-3xs);
+  --place-size: var(--typography-font-size-md);
+  --place-weight: var(--typography-font-weight-medium);
+  --place-lh: var(--typography-line-height-normal);
+  --place-ls: var(--typography-letter-spacing-tight);
+  --place-opacity: var(--opacity-semantic-visible);
+  --verdict-size: var(--typography-font-size-lg);
+  --verdict-weight: var(--typography-font-weight-bold);
+  --verdict-lh: var(--typography-line-height-normal);
+  --verdict-ls: var(--typography-letter-spacing-tight);
+  --verdict-color: var(--color-semantic-functional-text-primary);
+  --now-gap: var(--dimension-spacing-core-2xs);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-weight: var(--typography-font-weight-bold);
+  --temp-lh: var(--typography-line-height-normal);
+  --temp-ls: var(--typography-letter-spacing-tight);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --note-size: var(--typography-font-size-sm);
+  --note-weight: var(--typography-font-weight-medium);
+  --note-lh: var(--typography-line-height-normal);
+  --note-ls: var(--typography-letter-spacing-tight);
+  --note-opacity: var(--opacity-semantic-visible);
+  --proof-gap: var(--dimension-spacing-core-2xs);
+  --row-gap: var(--dimension-spacing-core-3xs);
+  --line-gap: var(--dimension-spacing-core-2xs);
+  --rname-size: var(--typography-font-size-sm);
+  --rname-weight: var(--typography-font-weight-medium);
+  --rname-lh: var(--typography-line-height-normal);
+  --rname-ls: var(--typography-letter-spacing-tight);
+  --rname-opacity: var(--opacity-semantic-visible);
+  --rvalue-size: var(--typography-font-size-base);
+  --rvalue-weight: var(--typography-font-weight-medium);
+  --rvalue-lh: var(--typography-line-height-normal);
+  --rvalue-ls: var(--typography-letter-spacing-tight);
+  --rvalue-color: var(--color-semantic-functional-text-primary);
+  --rwords-size: var(--typography-font-size-sm);
+  --rwords-weight: var(--typography-font-weight-medium);
+  --rwords-lh: var(--typography-line-height-normal);
+  --rwords-ls: var(--typography-letter-spacing-tight);
+  --rwords-opacity: var(--opacity-semantic-visible);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: 0px;
+  --grow: 1;
+  --glow-blur: 24px;
+  --glow-opacity: 0;
+  --glow-color: var(--color-semantic-focus-glow);
+  --ring-dur: 150ms;
+  --ring-ease: cubic-bezier(0.2, 0, 0, 1);
+  --scale-dur: 150ms;
+  --scale-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="6"] .card {
+  position: relative; isolation: isolate; display: flex; flex-direction: column; gap: var(--card-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--color-semantic-functional-text-primary);
+  transform: scale(1);
+  transition-property: transform;
+  transition-duration: var(--scale-dur);
+  transition-timing-function: var(--scale-ease);
+}
+[data-option="6"] .card::after {
+  content: ''; position: absolute; inset: calc(var(--ring-offset) * -1); border-radius: inherit;
+  padding: var(--ring-width);
+  background: var(--gradient-semantic-focus-ring);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+  opacity: var(--opacity-semantic-hidden);
+  transition-property: opacity;
+  transition-duration: var(--ring-dur);
+  transition-timing-function: var(--ring-ease);
+}
+[data-option="6"] .card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: var(--glow-color); filter: blur(var(--glow-blur));
+  opacity: var(--opacity-semantic-hidden);
+  transition-property: opacity;
+  transition-duration: var(--ring-dur);
+  transition-timing-function: var(--ring-ease);
+}
+[data-option="6"][data-state="foco"] .card { transform: scale(var(--grow)); }
+[data-option="6"][data-state="foco"] .card::after { opacity: var(--opacity-semantic-visible); }
+[data-option="6"][data-state="foco"] .card::before { opacity: var(--glow-opacity); }
+
+[data-option="6"] .head { display: flex; flex-direction: column; gap: var(--head-gap); }
+[data-option="6"] .place { margin: 0; color: var(--color-semantic-functional-text-muted); opacity: var(--place-opacity); }
+[data-option="6"] .verdict { margin: 0; color: var(--verdict-color); text-wrap: balance; }
+
+[data-option="6"] .now { display: flex; align-items: baseline; gap: var(--now-gap); }
+[data-option="6"] .now-value { font-variant-numeric: tabular-nums; color: var(--temp-color); }
+[data-option="6"] .now-note { color: var(--color-semantic-functional-text-muted); opacity: var(--note-opacity); }
+
+[data-option="6"] .proof { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--proof-gap); }
+[data-option="6"] .proof-row { display: flex; flex-direction: column; gap: var(--row-gap); }
+[data-option="6"] .proof-name { color: var(--color-semantic-functional-text-muted); opacity: var(--rname-opacity); }
+[data-option="6"] .proof-line { display: flex; align-items: baseline; gap: var(--line-gap); }
+[data-option="6"] .proof-value { font-variant-numeric: tabular-nums; color: var(--rvalue-color); }
+[data-option="6"] .proof-words { color: var(--color-semantic-functional-text-muted); text-wrap: pretty; opacity: var(--rwords-opacity); }
+
+[data-option="6"] .place { font-size: var(--place-size); font-weight: var(--place-weight); line-height: var(--place-lh); letter-spacing: var(--place-ls);  }
+[data-option="6"] .verdict { font-size: var(--verdict-size); font-weight: var(--verdict-weight); line-height: var(--verdict-lh); letter-spacing: var(--verdict-ls);  }
+[data-option="6"] .now-value { font-size: var(--temp-size); font-weight: var(--temp-weight); line-height: var(--temp-lh); letter-spacing: var(--temp-ls);  }
+[data-option="6"] .now-note { font-size: var(--note-size); font-weight: var(--note-weight); line-height: var(--note-lh); letter-spacing: var(--note-ls);  }
+[data-option="6"] .proof-name { font-size: var(--rname-size); font-weight: var(--rname-weight); line-height: var(--rname-lh); letter-spacing: var(--rname-ls);  }
+[data-option="6"] .proof-value { font-size: var(--rvalue-size); font-weight: var(--rvalue-weight); line-height: var(--rvalue-lh); letter-spacing: var(--rvalue-ls);  }
+[data-option="6"] .proof-words { font-size: var(--rwords-size); font-weight: var(--rwords-weight); line-height: var(--rwords-lh); letter-spacing: var(--rwords-ls);  }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-option="6"] .card, [data-option="6"][data-state="foco"] .card { transform: none; transition-property: none; }
+}
+/* tune:vars */
+[data-option="8"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-gap: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --head-gap: var(--dimension-spacing-core-3xs);
+  --place-size: var(--typography-font-size-md);
+  --place-lh: var(--typography-line-height-normal);
+  --place-ls: var(--typography-letter-spacing-tight);
+  --now-size: var(--typography-font-size-3xl);
+  --now-lh: var(--typography-line-height-normal);
+  --now-ls: var(--typography-letter-spacing-tight);
+  --now-weight: var(--typography-font-weight-bold);
+  --now-color: var(--color-semantic-functional-text-primary);
+  --gt-size: var(--typography-font-size-md);
+  --gt-lh: var(--typography-line-height-normal);
+  --gt-ls: var(--typography-letter-spacing-tight);
+  --gt-weight: var(--typography-font-weight-bold);
+  --gt-color: var(--color-semantic-functional-text-primary);
+  --heat-gap: var(--dimension-spacing-core-2xs);
+  --air-gap: var(--dimension-spacing-core-2xs);
+  --pairs-gap: var(--dimension-spacing-core-xs);
+  --pair-gap: var(--dimension-spacing-core-3xs);
+  --pl-size: var(--typography-font-size-sm);
+  --pl-lh: var(--typography-line-height-normal);
+  --pl-ls: var(--typography-letter-spacing-tight);
+  --pv-size: var(--typography-font-size-md);
+  --pv-lh: var(--typography-line-height-normal);
+  --pv-ls: var(--typography-letter-spacing-tight);
+  --pv-weight: var(--typography-font-weight-bold);
+  --pv-color: var(--color-semantic-functional-text-primary);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: 0px;
+  --ring-from: var(--color-semantic-focus-outline);
+  --ring-to: var(--color-semantic-focus-glow);
+  --ring-stop: 30%;
+  --ring-angle: 180deg;
+  --grow: 1;
+  --glow-color: var(--color-semantic-focus-glow);
+  --glow-opacity: var(--opacity-semantic-focus-glow);
+  --glow-blur: 0px;
+  --glow-spread: 0px;
+  --focus-in-dur: 150ms;
+  --focus-in-ease: cubic-bezier(0.2, 0, 0, 1);
+  --focus-out-dur: 150ms;
+  --focus-out-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+[data-option="8"] .card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--card-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--color-semantic-functional-text-primary);
+}
+/* Focus ring: the kit ring, an inside gradient band. Its opacity and the card's grow/glow are what the state changes. */
+[data-option="8"] .card::after {
+  content: ''; position: absolute; inset: calc(var(--ring-offset) * -1);
+  border-radius: calc(var(--radius) + var(--ring-offset));
+  padding: var(--ring-width);
+  background: linear-gradient(var(--ring-angle), var(--ring-from) var(--ring-stop), var(--ring-to) 100%);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none;
+}
+
+/* States on one attribute. foco = the card in focus (what the original draws); repouso = the same card without focus. */
+[data-option="8"][data-state="foco"] .card {
+  transform: scale(var(--grow));
+  box-shadow: 0 0 var(--glow-blur) var(--glow-spread) color-mix(in srgb, var(--glow-color) calc(var(--glow-opacity) * 100%), transparent);
+  transition-property: transform, box-shadow;
+  transition-duration: var(--focus-in-dur);
+  transition-timing-function: var(--focus-in-ease);
+}
+[data-option="8"][data-state="foco"] .card::after {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: var(--focus-in-dur);
+  transition-timing-function: var(--focus-in-ease);
+}
+[data-option="8"][data-state="repouso"] .card {
+  transform: scale(1);
+  box-shadow: 0 0 0 0 transparent;
+  transition-property: transform, box-shadow;
+  transition-duration: var(--focus-out-dur);
+  transition-timing-function: var(--focus-out-ease);
+}
+[data-option="8"][data-state="repouso"] .card::after {
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: var(--focus-out-dur);
+  transition-timing-function: var(--focus-out-ease);
+}
+/* Reduced motion: no scale, the state crosses with opacity; the ring stays. */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="8"][data-state] .card { transform: none; transition-property: box-shadow; }
+}
+
+[data-option="8"] .place { display: flex; flex-direction: column; gap: var(--head-gap); }
+[data-option="8"] .place-name { margin: 0; color: var(--color-semantic-functional-text-muted); font-size: var(--place-size); line-height: var(--place-lh); letter-spacing: var(--place-ls); }
+[data-option="8"] .now { margin: 0; font-variant-numeric: tabular-nums; color: var(--now-color); font-size: var(--now-size); font-weight: var(--now-weight); line-height: var(--now-lh); letter-spacing: var(--now-ls); }
+[data-option="8"] .group { display: flex; flex-direction: column; width: 100%; }
+[data-option="8"] .group-heat { gap: var(--heat-gap); }
+[data-option="8"] .group-air { gap: var(--air-gap); }
+[data-option="8"] .group-name { margin: 0; color: var(--gt-color); font-size: var(--gt-size); font-weight: var(--gt-weight); line-height: var(--gt-lh); letter-spacing: var(--gt-ls); }
+[data-option="8"] .pairs { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--pairs-gap); }
+[data-option="8"] .pair { display: flex; flex-direction: column; gap: var(--pair-gap); }
+[data-option="8"] .pair-label { margin: 0; color: var(--color-semantic-functional-text-muted); font-size: var(--pl-size); line-height: var(--pl-lh); letter-spacing: var(--pl-ls); }
+[data-option="8"] .pair-value { margin: 0; font-variant-numeric: tabular-nums; color: var(--pv-color); font-size: var(--pv-size); font-weight: var(--pv-weight); line-height: var(--pv-lh); letter-spacing: var(--pv-ls); }
+/* tune:vars */
+[data-option="5"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --block-space: var(--dimension-spacing-core-sm);
+  --bg: var(--color-semantic-functional-background-elevated);
+  --place-size: var(--typography-font-size-md);
+  --place-weight: var(--typography-font-weight-bold);
+  --place-lh: var(--typography-line-height-normal);
+  --place-ls: var(--typography-letter-spacing-tight);
+  --place-color: var(--color-semantic-functional-text-primary);
+  --now-space: var(--dimension-spacing-core-3xs);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-weight: var(--typography-font-weight-bold);
+  --temp-lh: var(--typography-line-height-normal);
+  --temp-ls: var(--typography-letter-spacing-tight);
+  --temp-color: var(--color-semantic-functional-text-primary);
+  --reading-space: var(--dimension-spacing-core-2xs);
+  --delta-size: var(--typography-font-size-md);
+  --delta-weight: var(--typography-font-weight-medium);
+  --delta-lh: var(--typography-line-height-normal);
+  --delta-ls: var(--typography-letter-spacing-tight);
+  --support-justify: space-between;
+  --support-space: 0px;
+  --fact-space: var(--dimension-spacing-core-3xs);
+  --label-size: var(--typography-font-size-sm);
+  --label-weight: var(--typography-font-weight-medium);
+  --label-lh: var(--typography-line-height-normal);
+  --label-ls: var(--typography-letter-spacing-tight);
+  --value-size: var(--typography-font-size-md);
+  --value-weight: var(--typography-font-weight-medium);
+  --value-lh: var(--typography-line-height-normal);
+  --value-ls: var(--typography-letter-spacing-tight);
+  --value-color: var(--color-semantic-functional-text-primary);
+  --ring-width: var(--dimension-border-width-semantic-focus-ring);
+  --ring-inset: 0px;
+  --ring-opacity: var(--opacity-semantic-visible);
+  --grow: 1;
+  --glow-opacity: 0;
+  --glow-blur: 24px;
+  --glow-spread: 0px;
+  --glow-color: var(--color-semantic-focus-glow);
+  --dur-ring: 120ms;
+  --ease-ring: cubic-bezier(0.2, 0, 0, 1);
+  --dur-grow: 150ms;
+  --ease-grow: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+[data-option="5"] .wx-card { position: relative; display: flex; flex-direction: column; gap: var(--block-space); width: var(--dimension-size-semantic-content-card-width); padding: var(--inset); border-radius: var(--radius); background: var(--bg); color: var(--color-semantic-functional-text-primary); transform: scale(1); transition-property: transform; transition-duration: var(--dur-grow); transition-timing-function: var(--ease-grow); }
+[data-option="5"] .wx-now { display: flex; flex-direction: column; gap: var(--now-space); }
+[data-option="5"] .wx-place { margin: 0; color: var(--place-color); font-size: var(--place-size); font-weight: var(--place-weight); line-height: var(--place-lh); letter-spacing: var(--place-ls); }
+[data-option="5"] .wx-reading { display: flex; align-items: baseline; gap: var(--reading-space); }
+[data-option="5"] .wx-temp { color: var(--temp-color); font-size: var(--temp-size); font-weight: var(--temp-weight); line-height: var(--temp-lh); letter-spacing: var(--temp-ls); font-variant-numeric: tabular-nums; }
+[data-option="5"] .wx-delta { color: var(--color-semantic-functional-text-muted); font-size: var(--delta-size); font-weight: var(--delta-weight); line-height: var(--delta-lh); letter-spacing: var(--delta-ls); font-variant-numeric: tabular-nums; }
+[data-option="5"] .wx-support { display: grid; grid-template-columns: repeat(3, auto); justify-content: var(--support-justify); column-gap: var(--support-space); margin: 0; padding: 0; }
+[data-option="5"] .wx-fact { display: flex; flex-direction: column; gap: var(--fact-space); margin: 0; }
+[data-option="5"] .wx-fact dt { color: var(--color-semantic-functional-text-muted); font-size: var(--label-size); font-weight: var(--label-weight); line-height: var(--label-lh); letter-spacing: var(--label-ls); }
+[data-option="5"] .wx-fact dd { margin: 0; color: var(--value-color); font-size: var(--value-size); font-weight: var(--value-weight); line-height: var(--value-lh); letter-spacing: var(--value-ls); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Focus: the kit's ring on the card, drawn from data-state; the glow is off until a dial turns it on. */
+[data-option="5"] .wx-card::after { content: ''; position: absolute; inset: var(--ring-inset); border-radius: inherit; padding: var(--ring-width); background: var(--gradient-semantic-focus-ring); mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0); pointer-events: none; opacity: 0; transition-property: opacity; transition-duration: var(--dur-ring); transition-timing-function: var(--ease-ring); }
+[data-option="5"] .wx-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 var(--glow-blur) var(--glow-spread) var(--glow-color); pointer-events: none; opacity: 0; transition-property: opacity; transition-duration: var(--dur-ring); transition-timing-function: var(--ease-ring); }
+[data-option="5"][data-state="foco"] .wx-card { transform: scale(var(--grow)); }
+[data-option="5"][data-state="foco"] .wx-card::after { opacity: var(--ring-opacity); }
+[data-option="5"][data-state="foco"] .wx-card::before { opacity: var(--glow-opacity); }
+/* Reduced motion: no scaling, the ring and glow still fade in. */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="5"] .wx-card { transition-property: none; }
+  [data-option="5"][data-state="foco"] .wx-card { transform: scale(1); }
+}
+/* tune:vars */
+[data-option="7"] {
+  --radius: var(--dimension-radius-semantic-content-card);
+  --inset: var(--dimension-spacing-semantic-card-inset-expanded);
+  --card-gap: var(--dimension-spacing-core-sm);
+  --sky-from: var(--color-semantic-theme-tarde-dark);
+  --sky-to: var(--color-semantic-theme-tarde-light);
+  --sky-stop: 30%;
+  --card-base: var(--color-core-neutral-charcoal);
+  --scrim-h: 62%;
+  --sky-gap: var(--dimension-spacing-core-3xs);
+  --sky-pad-end: var(--dimension-spacing-core-4xl);
+  --place-size: var(--typography-font-size-md);
+  --place-lh: var(--typography-line-height-normal);
+  --place-ls: var(--typography-letter-spacing-tight);
+  --place-weight: 700;
+  --place-ink: var(--color-core-neutral-charcoal);
+  --temp-size: var(--typography-font-size-3xl);
+  --temp-lh: var(--typography-line-height-normal);
+  --temp-ls: var(--typography-letter-spacing-tight);
+  --temp-weight: 700;
+  --temp-ink: var(--color-core-neutral-charcoal);
+  --band-cols: 2;
+  --band-row-gap: var(--dimension-spacing-core-sm);
+  --band-col-gap: var(--dimension-spacing-core-xs);
+  --fact-gap: var(--dimension-spacing-core-3xs);
+  --label-size: var(--typography-font-size-sm);
+  --label-lh: var(--typography-line-height-normal);
+  --label-ls: var(--typography-letter-spacing-tight);
+  --label-weight: 500;
+  --value-size: var(--typography-font-size-md);
+  --value-lh: var(--typography-line-height-normal);
+  --value-ls: var(--typography-letter-spacing-tight);
+  --value-weight: 700;
+  --value-ink: var(--color-semantic-functional-text-primary);
+  --ring-w: var(--dimension-border-width-semantic-focus-ring);
+  --ring-offset: 0px;
+  --ring-from: var(--color-semantic-theme-noite-dark);
+  --ring-to: var(--color-semantic-theme-noite-light);
+  --ring-stop: 30%;
+  --grow: 1;
+  --glow-blur: 0px;
+  --glow-spread: 0px;
+  --glow-color: var(--color-semantic-focus-glow);
+  --glow-opacity: var(--opacity-semantic-focus-glow);
+  --dur: 150ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+/* /tune:vars */
+
+/* Option 7: the weather card with the ambient sky, every value on a dial. States on [data-state]: repouso, foco. */
+[data-option="7"] .card {
+  position: relative; display: flex; flex-direction: column; gap: var(--card-gap);
+  width: var(--dimension-size-semantic-content-card-width);
+  padding: var(--inset);
+  border-radius: var(--radius);
+  /* Ambient: the sky gradient is built from two dials; the kit's card scrim darkens the bottom band where the four data sit. */
+  background: var(--gradient-semantic-card-scrim) bottom / 100% var(--scrim-h) no-repeat, linear-gradient(180deg, var(--sky-from) var(--sky-stop), var(--sky-to) 100%) top / 100% calc(100% - var(--ring-w)) no-repeat var(--card-base);
+  color: var(--color-semantic-functional-text-primary);
+  transition-property: transform;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
+}
+[data-option="7"] .sky { display: flex; flex-direction: column; gap: var(--sky-gap); padding-block-end: var(--sky-pad-end); }
+[data-option="7"] .place { display: block; margin: 0; text-wrap: balance; color: var(--place-ink); font-size: var(--place-size); line-height: var(--place-lh); letter-spacing: var(--place-ls); font-weight: var(--place-weight); }
+[data-option="7"] .now { display: block; margin: 0; font-variant-numeric: tabular-nums; color: var(--temp-ink); font-size: var(--temp-size); line-height: var(--temp-lh); letter-spacing: var(--temp-ls); font-weight: var(--temp-weight); }
+[data-option="7"] .band { display: grid; grid-template-columns: repeat(var(--band-cols), 1fr); gap: var(--band-row-gap) var(--band-col-gap); margin: 0; }
+[data-option="7"] .fact { display: flex; flex-direction: column; gap: var(--fact-gap); margin: 0; }
+[data-option="7"] .fact dt { margin: 0; color: var(--color-semantic-functional-text-muted); font-size: var(--label-size); line-height: var(--label-lh); letter-spacing: var(--label-ls); font-weight: var(--label-weight); }
+[data-option="7"] .fact dd { margin: 0; color: var(--value-ink); font-variant-numeric: tabular-nums; font-size: var(--value-size); line-height: var(--value-lh); letter-spacing: var(--value-ls); font-weight: var(--value-weight); }
+/* Focus (state "foco"): the kit's ring fades in over the card, the card grows, the glow lights up. Rest draws none of it. */
+[data-option="7"] .card::after {
+  content: ''; position: absolute; inset: calc(var(--ring-offset) * -1); border-radius: calc(var(--radius) + var(--ring-offset)); padding: var(--ring-w);
+  background: linear-gradient(180deg, var(--ring-from) var(--ring-stop), var(--ring-to) 100%);
+  mask: linear-gradient(var(--color-semantic-focus-outline) 0 0) content-box exclude, linear-gradient(var(--color-semantic-focus-outline) 0 0);
+  pointer-events: none; opacity: 0;
+  transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease);
+}
+[data-option="7"] .card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  box-shadow: 0 0 var(--glow-blur) var(--glow-spread) var(--glow-color);
+  transition-property: opacity; transition-duration: var(--dur); transition-timing-function: var(--ease);
+}
+[data-option="7"][data-state="foco"] .card { transform: scale(var(--grow)); }
+[data-option="7"][data-state="foco"] .card::after { opacity: 1; }
+[data-option="7"][data-state="foco"] .card::before { opacity: var(--glow-opacity); }
+/* Reduced motion: no scale; the ring and glow keep fading in (opacity only). */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="7"] .card { transition-property: none; }
+  [data-option="7"][data-state="foco"] .card { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="explore-page">
+  <div class="explore-container">
+    <header class="explore-header">
+      <h1>Explorações</h1>
+      <div class="explore-actions">
+        <!-- Shown only with two or more options. Icons: ProIcons "grid" and "bullet-list" (Iconify); they take currentColor (#888 idle, #ccc selected). -->
+        <div class="view-toggle" role="group" aria-label="Visualização" hidden>
+          <button type="button" data-view="grid" aria-pressed="true" aria-label="Grade" title="Grade"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect width="6.5" height="6.5" x="3.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="13.75" rx="2"/><rect width="6.5" height="6.5" x="3.75" y="3.75" rx="2"/><rect width="6.5" height="6.5" x="13.75" y="3.75" rx="2"/></g></svg></button>
+          <button type="button" data-view="list" aria-pressed="false" aria-label="Lista" title="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none"><circle cx="4.443" cy="5.081" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 5.08h11.765"/><circle cx="4.443" cy="12" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 12h11.765"/><circle cx="4.443" cy="18.919" r="1.331" fill="currentColor"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.123 18.92h11.765"/></g></svg></button>
+        </div>
+        <!-- Filled by the live server (comment buttons). Leave empty. -->
+        <div id="explore-actions"></div>
+      </div>
+    </header>
+
+    <main class="explore-items" data-view="grid">
+<article class="opt" data-option="1" tabindex="0">
+  <!-- tese: o número responde "como está agora?" e uma única linha de contexto (a média) diz se é normal; tudo empilha numa coluna, na ordem em que se lê. -->
+  <p class="opt-label" data-part="label">Opção 1 - Número e a forma do dia</p>
+  <div class="opt-content" data-part="content">
+    <div class="wx-card" data-part="card">
+      <div class="wx-now" data-part="agora">
+        <p class="wx-place text-body-sm-bold" data-part="local">São Paulo</p>
+        <div class="wx-reading">
+          <span class="wx-temp text-heading-3-bold" data-part="temperatura-atual">24°</span>
+          <span class="wx-delta text-body-sm-medium" data-part="media">+3° da média de 21°</span>
+        </div>
+      </div>
+      <dl class="wx-support" data-part="apoio">
+        <div class="wx-fact" data-part="sensacao"><dt class="text-footnote-medium">Sensação</dt><dd class="text-body-sm-medium">26°</dd></div>
+        <div class="wx-fact" data-part="vento"><dt class="text-footnote-medium">Vento</dt><dd class="text-body-sm-medium">14 km/h</dd></div>
+        <div class="wx-fact" data-part="umidade"><dt class="text-footnote-medium">Umidade</dt><dd class="text-body-sm-medium">68%</dd></div>
+      </dl>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="2" tabindex="0">
+  <!-- tese: o card abre com uma frase-conclusão e os números vêm como prova, em lista, cada um com nome, valor e comparação em palavras. -->
+  <p class="opt-label" data-part="label">Opção 2 - Título que diz como é lá fora</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="head" data-part="head">
+        <p class="place text-body-sm-medium" data-part="place">São Paulo</p>
+        <p class="verdict text-body-lg-bold" data-part="verdict">Mais quente do que parece</p>
+      </div>
+      <div class="now" data-part="now">
+        <span class="now-value text-heading-3-bold" data-part="temperature">24°</span>
+        <span class="now-note text-footnote-medium" data-part="now-note">agora</span>
+      </div>
+      <ul class="proof" data-part="proof">
+        <li class="proof-row" data-part="feels-like">
+          <span class="proof-name text-footnote-medium">Sensação térmica</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium">26°</span>
+            <span class="proof-words text-footnote-medium">2° acima do real</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="average">
+          <span class="proof-name text-footnote-medium">Média do dia</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium">21°</span>
+            <span class="proof-words text-footnote-medium">hoje 3° acima do normal</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="wind">
+          <span class="proof-name text-footnote-medium">Vento</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium">14 km/h</span>
+            <span class="proof-words text-footnote-medium">brisa fraca, não alivia</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="humidity">
+          <span class="proof-name text-footnote-medium">Umidade</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium">68%</span>
+            <span class="proof-words text-footnote-medium">ar abafado</span>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="3" tabindex="0">
+  <!-- tese: o clima aparece como ambiente de ponta a ponta no card e o texto fica só nas faixas mais calmas, de modo que se sente o tempo antes de ler o número. -->
+  <p class="opt-label" data-part="label">Opção 3 - O ambiente como fundo</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card" data-surface="own">
+      <div class="sky" data-part="sky">
+        <p class="place text-body-sm-bold" data-part="place">São Paulo</p>
+        <p class="now text-heading-3-bold" data-part="temperature">24°</p>
+      </div>
+      <dl class="band" data-part="band">
+        <div class="fact" data-part="feels-like"><dt class="text-footnote-medium">Sensação</dt><dd class="text-body-sm-bold">26°</dd></div>
+        <div class="fact" data-part="average"><dt class="text-footnote-medium">Média do dia</dt><dd class="text-body-sm-bold">21°</dd></div>
+        <div class="fact" data-part="wind"><dt class="text-footnote-medium">Vento</dt><dd class="text-body-sm-bold">14 km/h</dd></div>
+        <div class="fact" data-part="humidity"><dt class="text-footnote-medium">Umidade</dt><dd class="text-body-sm-bold">68%</dd></div>
+      </dl>
+    </div>
+  </div>
+</article>
+<article class="opt" data-option="4">
+  <!-- tese: o número âncora fica sozinho no alto, e os outros cinco dados se agrupam em pares por proximidade (calor: sensação e média; ar: vento e umidade), sem linhas nem caixas. -->
+  <p class="opt-label" data-part="label">Opção 4 - Quatro dados em grupos</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="place" data-part="anchor-group">
+        <p class="place-name text-body-sm-bold" data-part="place">São Paulo</p>
+        <p class="now text-heading-3-bold" data-part="temperature">24°</p>
+      </div>
+      <div class="group" data-part="group-heat">
+        <p class="group-name text-body-sm-bold" data-part="group-title">Calor</p>
+        <div class="pairs">
+          <div class="pair" data-part="feels-like">
+            <p class="pair-label text-footnote-medium">Sensação</p>
+            <p class="pair-value text-body-sm-bold">26°</p>
+          </div>
+          <div class="pair" data-part="average">
+            <p class="pair-label text-footnote-medium">Média do dia</p>
+            <p class="pair-value text-body-sm-bold">21°</p>
+          </div>
+        </div>
+      </div>
+      <div class="group" data-part="group-air">
+        <p class="group-name text-body-sm-bold" data-part="group-title">Ar</p>
+        <div class="pairs">
+          <div class="pair" data-part="wind">
+            <p class="pair-label text-footnote-medium">Vento</p>
+            <p class="pair-value text-body-sm-bold">14 km/h</p>
+          </div>
+          <div class="pair" data-part="humidity">
+            <p class="pair-label text-footnote-medium">Umidade</p>
+            <p class="pair-value text-body-sm-bold">68%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 2</h2>
+<article data-parent="2" data-pretuned class="opt" data-option="6" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o card abre com uma frase-conclusão e os números vêm como prova, em lista, cada um com nome, valor e comparação em palavras. -->
+  <p class="opt-label" data-part="label">Opção 6 - Ajuste da 2</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="head" data-part="head">
+        <p class="place text-body-sm-medium" data-part="place">São Paulo</p>
+        <p class="verdict text-body-lg-bold" data-part="verdict">Mais quente do que parece</p>
+      </div>
+      <div class="now" data-part="now">
+        <span class="now-value text-heading-3-bold" data-part="temperature">24°</span>
+        <span class="now-note text-footnote-medium" data-part="now-note">agora</span>
+      </div>
+      <ul class="proof" data-part="proof">
+        <li class="proof-row" data-part="feels-like">
+          <span class="proof-name text-footnote-medium" data-part="row-name">Sensação térmica</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium" data-part="row-value">26°</span>
+            <span class="proof-words text-footnote-medium" data-part="row-words">2° acima do real</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="average">
+          <span class="proof-name text-footnote-medium" data-part="row-name">Média do dia</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium" data-part="row-value">21°</span>
+            <span class="proof-words text-footnote-medium" data-part="row-words">hoje 3° acima do normal</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="wind">
+          <span class="proof-name text-footnote-medium" data-part="row-name">Vento</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium" data-part="row-value">14 km/h</span>
+            <span class="proof-words text-footnote-medium" data-part="row-words">brisa fraca, não alivia</span>
+          </span>
+        </li>
+        <li class="proof-row" data-part="humidity">
+          <span class="proof-name text-footnote-medium" data-part="row-name">Umidade</span>
+          <span class="proof-line">
+            <span class="proof-value text-body-md-medium" data-part="row-value">68%</span>
+            <span class="proof-words text-footnote-medium" data-part="row-words">ar abafado</span>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <script type="application/json" data-tune="6">{"states":["repouso","foco"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"token":"--dimension-radius-semantic-content-card","min":0,"max":64,"step":1,"unit":"px"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"token":"--dimension-spacing-semantic-card-inset-expanded","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"card-gap","label":"Espaço entre blocos","type":"slider","var":"--card-gap","value":16,"base":16,"token":"--dimension-spacing-core-sm","min":0,"max":40,"step":1,"unit":"px"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3F3F3F","base":"#3F3F3F","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Cabeçalho","part":"head","controls":[
+{"id":"head-gap","label":"Espaço local e frase","type":"slider","var":"--head-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Local","part":"place","controls":[
+{"id":"place-size","label":"Tamanho","type":"slider","var":"--place-size","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"place-weight","label":"Peso","type":"slider","var":"--place-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100,"unit":""},
+{"id":"place-lh","label":"Altura da linha","type":"slider","var":"--place-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"place-ls","label":"Espaço entre letras","type":"slider","var":"--place-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"place-opacity","label":"Opacidade","type":"slider","var":"--place-opacity","value":1,"base":1,"token":"--opacity-semantic-visible","min":0,"max":1,"step":0.05,"unit":""}
+]},
+{"name":"Frase-conclusão","part":"verdict","controls":[
+{"id":"verdict-size","label":"Tamanho","type":"slider","var":"--verdict-size","value":18,"base":18,"token":"--typography-font-size-lg","min":12,"max":32,"step":1,"unit":"px"},
+{"id":"verdict-weight","label":"Peso","type":"slider","var":"--verdict-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100,"unit":""},
+{"id":"verdict-lh","label":"Altura da linha","type":"slider","var":"--verdict-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"verdict-ls","label":"Espaço entre letras","type":"slider","var":"--verdict-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"verdict-color","label":"Cor","type":"color","var":"--verdict-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Linha da temperatura","part":"now","controls":[
+{"id":"now-gap","label":"Espaço número e nota","type":"slider","var":"--now-gap","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Temperatura","part":"temperature","controls":[
+{"id":"temp-size","label":"Tamanho","type":"slider","var":"--temp-size","value":28,"base":28,"token":"--typography-font-size-3xl","min":20,"max":64,"step":1,"unit":"px"},
+{"id":"temp-weight","label":"Peso","type":"slider","var":"--temp-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":400,"max":800,"step":100,"unit":""},
+{"id":"temp-lh","label":"Altura da linha","type":"slider","var":"--temp-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"temp-ls","label":"Espaço entre letras","type":"slider","var":"--temp-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"temp-color","label":"Cor","type":"color","var":"--temp-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Nota \"agora\"","part":"now-note","controls":[
+{"id":"note-size","label":"Tamanho","type":"slider","var":"--note-size","value":12,"base":12,"token":"--typography-font-size-sm","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"note-weight","label":"Peso","type":"slider","var":"--note-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100,"unit":""},
+{"id":"note-lh","label":"Altura da linha","type":"slider","var":"--note-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"note-ls","label":"Espaço entre letras","type":"slider","var":"--note-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"note-opacity","label":"Opacidade","type":"slider","var":"--note-opacity","value":1,"base":1,"token":"--opacity-semantic-visible","min":0,"max":1,"step":0.05,"unit":""}
+]},
+{"name":"Lista","part":"proof","controls":[
+{"id":"proof-gap","label":"Espaço entre linhas","type":"slider","var":"--proof-gap","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":32,"step":1,"unit":"px"},
+{"id":"row-gap","label":"Espaço nome e valor","type":"slider","var":"--row-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"},
+{"id":"line-gap","label":"Espaço valor e comparação","type":"slider","var":"--line-gap","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Nome do dado","part":"row-name","controls":[
+{"id":"rname-size","label":"Tamanho","type":"slider","var":"--rname-size","value":12,"base":12,"token":"--typography-font-size-sm","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"rname-weight","label":"Peso","type":"slider","var":"--rname-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100,"unit":""},
+{"id":"rname-lh","label":"Altura da linha","type":"slider","var":"--rname-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"rname-ls","label":"Espaço entre letras","type":"slider","var":"--rname-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"rname-opacity","label":"Opacidade","type":"slider","var":"--rname-opacity","value":1,"base":1,"token":"--opacity-semantic-visible","min":0,"max":1,"step":0.05,"unit":""}
+]},
+{"name":"Valor do dado","part":"row-value","controls":[
+{"id":"rvalue-size","label":"Tamanho","type":"slider","var":"--rvalue-size","value":16,"base":16,"token":"--typography-font-size-base","min":10,"max":32,"step":1,"unit":"px"},
+{"id":"rvalue-weight","label":"Peso","type":"slider","var":"--rvalue-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100,"unit":""},
+{"id":"rvalue-lh","label":"Altura da linha","type":"slider","var":"--rvalue-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"rvalue-ls","label":"Espaço entre letras","type":"slider","var":"--rvalue-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"rvalue-color","label":"Cor","type":"color","var":"--rvalue-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Comparação em palavras","part":"row-words","controls":[
+{"id":"rwords-size","label":"Tamanho","type":"slider","var":"--rwords-size","value":12,"base":12,"token":"--typography-font-size-sm","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"rwords-weight","label":"Peso","type":"slider","var":"--rwords-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":400,"max":800,"step":100,"unit":""},
+{"id":"rwords-lh","label":"Altura da linha","type":"slider","var":"--rwords-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.6,"step":0.05,"unit":""},
+{"id":"rwords-ls","label":"Espaço entre letras","type":"slider","var":"--rwords-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"rwords-opacity","label":"Opacidade","type":"slider","var":"--rwords-opacity","value":1,"base":1,"token":"--opacity-semantic-visible","min":0,"max":1,"step":0.05,"unit":""}
+]},
+{"name":"Foco","controls":[
+{"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"token":"--dimension-border-width-semantic-focus-ring","min":0,"max":12,"step":1,"unit":"px"},
+{"id":"ring-offset","label":"Afastamento do anel","type":"slider","var":"--ring-offset","value":0,"min":-8,"max":12,"step":1,"unit":"px"},
+{"id":"grow","label":"Crescimento do card","type":"slider","var":"--grow","value":1,"min":1,"max":1.12,"step":0.005,"unit":""},
+{"id":"glow-blur","label":"Desfoque do brilho","type":"slider","var":"--glow-blur","value":24,"min":0,"max":64,"step":1,"unit":"px"},
+{"id":"glow-opacity","label":"Opacidade do brilho","type":"slider","var":"--glow-opacity","value":0,"min":0,"max":1,"step":0.05,"unit":""},
+{"id":"glow-color","label":"Cor do brilho","type":"color","var":"--glow-color","value":"#35C7F3","base":"#35C7F3","token":"--color-semantic-focus-glow"}
+]},
+{"name":"Movimento","controls":[
+{"id":"ring-motion","label":"Anel e brilho do foco","type":"easing","durVar":"--ring-dur","easeVar":"--ring-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}},
+{"id":"scale-motion","label":"Escala do card","type":"easing","durVar":"--scale-dur","easeVar":"--scale-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 4</h2>
+<article data-parent="4" data-pretuned class="opt" data-option="8" data-tuned data-state="foco" tabindex="0">
+  <!-- tese: o número âncora fica sozinho no alto, e os outros cinco dados se agrupam em pares por proximidade (calor: sensação e média; ar: vento e umidade), sem linhas nem caixas. -->
+  <script type="application/json" data-tune="8">{"states":["foco","repouso"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"token":"--dimension-radius-semantic-content-card","min":0,"max":64,"step":1,"unit":"px"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"token":"--dimension-spacing-semantic-card-inset-expanded","min":8,"max":48,"step":1,"unit":"px"},
+{"id":"card-gap","label":"Espaço entre blocos","type":"slider","var":"--card-gap","value":16,"base":16,"token":"--dimension-spacing-core-sm","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3F3F3F","base":"#3F3F3F","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Local e temperatura","part":"anchor-group","controls":[
+{"id":"head-gap","label":"Espaço entre nome e número","type":"slider","var":"--head-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Nome do local","part":"place","controls":[
+{"id":"place-size","label":"Tamanho","type":"slider","var":"--place-size","value":14,"base":14,"token":"--typography-font-size-md","min":8,"max":64,"step":1,"unit":"px"},
+{"id":"place-lh","label":"Altura da linha","type":"slider","var":"--place-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.8,"step":0.05,"unit":""},
+{"id":"place-ls","label":"Espaço entre letras","type":"slider","var":"--place-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"}
+]},
+{"name":"Temperatura atual","part":"temperature","controls":[
+{"id":"now-size","label":"Tamanho","type":"slider","var":"--now-size","value":28,"base":28,"token":"--typography-font-size-3xl","min":8,"max":64,"step":1,"unit":"px"},
+{"id":"now-lh","label":"Altura da linha","type":"slider","var":"--now-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.8,"step":0.05,"unit":""},
+{"id":"now-ls","label":"Espaço entre letras","type":"slider","var":"--now-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"now-weight","label":"Peso","type":"slider","var":"--now-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":300,"max":900,"step":100,"unit":""},
+{"id":"now-color","label":"Cor","type":"color","var":"--now-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Título do grupo","part":"group-title","controls":[
+{"id":"gt-size","label":"Tamanho","type":"slider","var":"--gt-size","value":14,"base":14,"token":"--typography-font-size-md","min":8,"max":64,"step":1,"unit":"px"},
+{"id":"gt-lh","label":"Altura da linha","type":"slider","var":"--gt-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.8,"step":0.05,"unit":""},
+{"id":"gt-ls","label":"Espaço entre letras","type":"slider","var":"--gt-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"gt-weight","label":"Peso","type":"slider","var":"--gt-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":300,"max":900,"step":100,"unit":""},
+{"id":"gt-color","label":"Cor","type":"color","var":"--gt-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Grupo calor","part":"group-heat","controls":[
+{"id":"heat-gap","label":"Espaço entre título e dados","type":"slider","var":"--heat-gap","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":32,"step":1,"unit":"px"}
+]},
+{"name":"Grupo ar","part":"group-air","controls":[
+{"id":"air-gap","label":"Espaço entre título e dados","type":"slider","var":"--air-gap","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":32,"step":1,"unit":"px"}
+]},
+{"name":"Par de dados","part":"pairs","controls":[
+{"id":"pairs-gap","label":"Espaço entre colunas","type":"slider","var":"--pairs-gap","value":12,"base":12,"token":"--dimension-spacing-core-xs","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"pair-gap","label":"Espaço entre rótulo e valor","type":"slider","var":"--pair-gap","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Rótulo do dado","part":"pair-label","controls":[
+{"id":"pl-size","label":"Tamanho","type":"slider","var":"--pl-size","value":12,"base":12,"token":"--typography-font-size-sm","min":8,"max":64,"step":1,"unit":"px"},
+{"id":"pl-lh","label":"Altura da linha","type":"slider","var":"--pl-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.8,"step":0.05,"unit":""},
+{"id":"pl-ls","label":"Espaço entre letras","type":"slider","var":"--pl-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"}
+]},
+{"name":"Valor do dado","part":"pair-value","controls":[
+{"id":"pv-size","label":"Tamanho","type":"slider","var":"--pv-size","value":14,"base":14,"token":"--typography-font-size-md","min":8,"max":64,"step":1,"unit":"px"},
+{"id":"pv-lh","label":"Altura da linha","type":"slider","var":"--pv-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":0.9,"max":1.8,"step":0.05,"unit":""},
+{"id":"pv-ls","label":"Espaço entre letras","type":"slider","var":"--pv-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"pv-weight","label":"Peso","type":"slider","var":"--pv-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":300,"max":900,"step":100,"unit":""},
+{"id":"pv-color","label":"Cor","type":"color","var":"--pv-color","value":"#EEEEEE","base":"#EEEEEE","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"token":"--dimension-border-width-semantic-focus-ring","min":0,"max":12,"step":1,"unit":"px"},
+{"id":"ring-offset","label":"Distância do anel","type":"slider","var":"--ring-offset","value":0,"min":0,"max":16,"step":1,"unit":"px"},
+{"id":"ring-from","label":"Cor do anel (início)","type":"color","var":"--ring-from","value":"#414FFD","base":"#414FFD","token":"--color-semantic-focus-outline"},
+{"id":"ring-to","label":"Cor do anel (fim)","type":"color","var":"--ring-to","value":"#35C7F3","base":"#35C7F3","token":"--color-semantic-focus-glow"},
+{"id":"ring-stop","label":"Onde começa a mudar de cor","type":"slider","var":"--ring-stop","value":30,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"ring-angle","label":"Ângulo do anel","type":"slider","var":"--ring-angle","value":180,"min":0,"max":360,"step":5,"unit":"deg"},
+{"id":"grow","label":"Crescimento no foco","type":"slider","var":"--grow","value":1,"min":1,"max":1.15,"step":0.01,"unit":""},
+{"id":"glow-color","label":"Cor do brilho","type":"color","var":"--glow-color","value":"#35C7F3","base":"#35C7F3","token":"--color-semantic-focus-glow"},
+{"id":"glow-opacity","label":"Opacidade do brilho","type":"slider","var":"--glow-opacity","value":0.6,"base":0.6,"token":"--opacity-semantic-focus-glow","min":0,"max":1,"step":0.05,"unit":""},
+{"id":"glow-blur","label":"Desfoque do brilho","type":"slider","var":"--glow-blur","value":0,"min":0,"max":64,"step":1,"unit":"px"},
+{"id":"glow-spread","label":"Espalhamento do brilho","type":"slider","var":"--glow-spread","value":0,"min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Movimento","controls":[
+{"id":"focus-in","label":"Ao ganhar foco","type":"easing","durVar":"--focus-in-dur","easeVar":"--focus-in-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}},
+{"id":"focus-out","label":"Ao perder foco","type":"easing","durVar":"--focus-out-dur","easeVar":"--focus-out-ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+  <p class="opt-label" data-part="label">Opção 8 - Ajuste da 4</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card">
+      <div class="place" data-part="anchor-group">
+        <p class="place-name text-body-sm-bold" data-part="place">São Paulo</p>
+        <p class="now text-heading-3-bold" data-part="temperature">24°</p>
+      </div>
+      <div class="group group-heat" data-part="group-heat">
+        <p class="group-name text-body-sm-bold" data-part="group-title">Calor</p>
+        <div class="pairs" data-part="pairs">
+          <div class="pair" data-part="feels-like">
+            <p class="pair-label text-footnote-medium" data-part="pair-label">Sensação</p>
+            <p class="pair-value text-body-sm-bold" data-part="pair-value">26°</p>
+          </div>
+          <div class="pair" data-part="average">
+            <p class="pair-label text-footnote-medium" data-part="pair-label">Média do dia</p>
+            <p class="pair-value text-body-sm-bold" data-part="pair-value">21°</p>
+          </div>
+        </div>
+      </div>
+      <div class="group group-air" data-part="group-air">
+        <p class="group-name text-body-sm-bold" data-part="group-title">Ar</p>
+        <div class="pairs" data-part="pairs">
+          <div class="pair" data-part="wind">
+            <p class="pair-label text-footnote-medium" data-part="pair-label">Vento</p>
+            <p class="pair-value text-body-sm-bold" data-part="pair-value">14 km/h</p>
+          </div>
+          <div class="pair" data-part="humidity">
+            <p class="pair-label text-footnote-medium" data-part="pair-label">Umidade</p>
+            <p class="pair-value text-body-sm-bold" data-part="pair-value">68%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 1</h2>
+<article data-parent="1" data-pretuned class="opt" data-option="5" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o número responde "como está agora?" e uma única linha de contexto (a média) diz se é normal; tudo empilha numa coluna, na ordem em que se lê. -->
+  <script type="application/json" data-tune="5">{"states":["repouso","foco"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"token":"--dimension-radius-semantic-content-card","min":0,"max":64,"step":1,"unit":"px"},
+{"id":"inset","label":"Respiro interno","type":"slider","var":"--inset","value":32,"base":32,"token":"--dimension-spacing-semantic-card-inset-expanded","min":8,"max":48,"step":1,"unit":"px"},
+{"id":"block-gap","label":"Espaço entre agora e apoio","type":"slider","var":"--block-space","value":16,"base":16,"token":"--dimension-spacing-core-sm","min":0,"max":48,"step":1,"unit":"px"},
+{"id":"bg","label":"Fundo","type":"color","var":"--bg","value":"#3f3f3f","base":"#3f3f3f","token":"--color-semantic-functional-background-elevated"}
+]},
+{"name":"Local","part":"local","controls":[
+{"id":"place-size","label":"Tamanho","type":"slider","var":"--place-size","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":28,"step":1,"unit":"px"},
+{"id":"place-weight","label":"Peso","type":"slider","var":"--place-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":300,"max":900,"step":100,"unit":""},
+{"id":"place-lh","label":"Altura da linha","type":"slider","var":"--place-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05,"unit":""},
+{"id":"place-ls","label":"Espaço entre letras","type":"slider","var":"--place-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"place-color","label":"Cor","type":"color","var":"--place-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Agora","part":"agora","controls":[
+{"id":"now-gap","label":"Espaço local e leitura","type":"slider","var":"--now-space","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Temperatura atual","part":"temperatura-atual","controls":[
+{"id":"temp-size","label":"Tamanho","type":"slider","var":"--temp-size","value":28,"base":28,"token":"--typography-font-size-3xl","min":10,"max":64,"step":1,"unit":"px"},
+{"id":"temp-weight","label":"Peso","type":"slider","var":"--temp-weight","value":700,"base":700,"token":"--typography-font-weight-bold","min":300,"max":900,"step":100,"unit":""},
+{"id":"temp-lh","label":"Altura da linha","type":"slider","var":"--temp-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05,"unit":""},
+{"id":"temp-ls","label":"Espaço entre letras","type":"slider","var":"--temp-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"temp-color","label":"Cor","type":"color","var":"--temp-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Média","part":"media","controls":[
+{"id":"reading-gap","label":"Espaço até a temperatura","type":"slider","var":"--reading-space","value":8,"base":8,"token":"--dimension-spacing-core-2xs","min":0,"max":32,"step":1,"unit":"px"},
+{"id":"delta-size","label":"Tamanho","type":"slider","var":"--delta-size","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":28,"step":1,"unit":"px"},
+{"id":"delta-weight","label":"Peso","type":"slider","var":"--delta-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":300,"max":900,"step":100,"unit":""},
+{"id":"delta-lh","label":"Altura da linha","type":"slider","var":"--delta-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05,"unit":""},
+{"id":"delta-ls","label":"Espaço entre letras","type":"slider","var":"--delta-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"}
+]},
+{"name":"Apoio","part":"apoio","controls":[
+{"id":"support-justify","label":"Distribuição","type":"select","var":"--support-justify","value":"space-between","options":["space-between","space-around","space-evenly","start","center"]},
+{"id":"support-gap","label":"Espaço entre colunas","type":"slider","var":"--support-space","value":0,"min":0,"max":48,"step":1,"unit":"px"},
+{"id":"fact-gap","label":"Espaço rótulo e valor","type":"slider","var":"--fact-space","value":4,"base":4,"token":"--dimension-spacing-core-3xs","min":0,"max":24,"step":1,"unit":"px"}
+]},
+{"name":"Rótulos do apoio","part":"rotulo","controls":[
+{"id":"label-size","label":"Tamanho","type":"slider","var":"--label-size","value":12,"base":12,"token":"--typography-font-size-sm","min":10,"max":24,"step":1,"unit":"px"},
+{"id":"label-weight","label":"Peso","type":"slider","var":"--label-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":300,"max":900,"step":100,"unit":""},
+{"id":"label-lh","label":"Altura da linha","type":"slider","var":"--label-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05,"unit":""},
+{"id":"label-ls","label":"Espaço entre letras","type":"slider","var":"--label-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"}
+]},
+{"name":"Valores do apoio","part":"valor","controls":[
+{"id":"value-size","label":"Tamanho","type":"slider","var":"--value-size","value":14,"base":14,"token":"--typography-font-size-md","min":10,"max":28,"step":1,"unit":"px"},
+{"id":"value-weight","label":"Peso","type":"slider","var":"--value-weight","value":500,"base":500,"token":"--typography-font-weight-medium","min":300,"max":900,"step":100,"unit":""},
+{"id":"value-lh","label":"Altura da linha","type":"slider","var":"--value-lh","value":1.2,"base":1.2,"token":"--typography-line-height-normal","min":1,"max":1.6,"step":0.05,"unit":""},
+{"id":"value-ls","label":"Espaço entre letras","type":"slider","var":"--value-ls","value":-0.01,"base":-0.01,"token":"--typography-letter-spacing-tight","min":-0.05,"max":0.1,"step":0.005,"unit":"em"},
+{"id":"value-color","label":"Cor","type":"color","var":"--value-color","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Foco","part":"card","controls":[
+{"id":"ring-width","label":"Espessura do anel","type":"slider","var":"--ring-width","value":4,"base":4,"token":"--dimension-border-width-semantic-focus-ring","min":0,"max":12,"step":1,"unit":"px"},
+{"id":"ring-inset","label":"Recuo do anel","type":"slider","var":"--ring-inset","value":0,"min":-12,"max":16,"step":1,"unit":"px"},
+{"id":"ring-opacity","label":"Opacidade do anel","type":"slider","var":"--ring-opacity","value":1,"base":1,"token":"--opacity-semantic-visible","min":0,"max":1,"step":0.05,"unit":""},
+{"id":"grow","label":"Crescimento do card","type":"slider","var":"--grow","value":1,"min":1,"max":1.15,"step":0.005,"unit":""},
+{"id":"glow-opacity","label":"Opacidade do brilho","type":"slider","var":"--glow-opacity","value":0,"min":0,"max":1,"step":0.05,"unit":""},
+{"id":"glow-blur","label":"Desfoque do brilho","type":"slider","var":"--glow-blur","value":24,"min":0,"max":80,"step":1,"unit":"px"},
+{"id":"glow-spread","label":"Expansão do brilho","type":"slider","var":"--glow-spread","value":0,"min":-8,"max":24,"step":1,"unit":"px"},
+{"id":"glow-color","label":"Cor do brilho","type":"color","var":"--glow-color","value":"#35c7f3","base":"#35c7f3","token":"--color-semantic-focus-glow"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move-ring","label":"Anel e brilho do foco","type":"easing","durVar":"--dur-ring","easeVar":"--ease-ring","value":{"duration":0.12,"ease":[0.2,0,0,1]}},
+{"id":"move-grow","label":"Crescimento do foco","type":"easing","durVar":"--dur-grow","easeVar":"--ease-grow","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+  <p class="opt-label" data-part="label">Opção 5 - Ajuste da 1</p>
+  <div class="opt-content" data-part="content">
+    <div class="wx-card" data-part="card">
+      <div class="wx-now" data-part="agora">
+        <p class="wx-place text-body-sm-bold" data-part="local">São Paulo</p>
+        <div class="wx-reading">
+          <span class="wx-temp text-heading-3-bold" data-part="temperatura-atual">24°</span>
+          <span class="wx-delta text-body-sm-medium" data-part="media">+3° da média de 21°</span>
+        </div>
+      </div>
+      <dl class="wx-support" data-part="apoio">
+        <div class="wx-fact" data-part="sensacao"><dt class="text-footnote-medium" data-part="rotulo">Sensação</dt><dd class="text-body-sm-medium" data-part="valor">26°</dd></div>
+        <div class="wx-fact" data-part="vento"><dt class="text-footnote-medium" data-part="rotulo">Vento</dt><dd class="text-body-sm-medium" data-part="valor">14 km/h</dd></div>
+        <div class="wx-fact" data-part="umidade"><dt class="text-footnote-medium" data-part="rotulo">Umidade</dt><dd class="text-body-sm-medium" data-part="valor">68%</dd></div>
+      </dl>
+    </div>
+  </div>
+</article>
+    <h2 class="opt-group">Ajuste da Opção 3</h2>
+<article data-parent="3" data-pretuned class="opt" data-option="7" data-tuned data-state="repouso" tabindex="0">
+  <!-- tese: o clima aparece como ambiente de ponta a ponta no card e o texto fica só nas faixas mais calmas, de modo que se sente o tempo antes de ler o número. -->
+  <script type="application/json" data-tune="7">{"states":["repouso","foco"],"folders":[
+{"name":"Superfície","part":"card","controls":[
+{"id":"radius","label":"Raio","type":"slider","var":"--radius","value":40,"base":40,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-radius-semantic-content-card"},
+{"id":"inset","label":"Margem interna","type":"slider","var":"--inset","value":32,"base":32,"min":0,"max":64,"step":1,"unit":"px","token":"--dimension-spacing-semantic-card-inset-expanded"},
+{"id":"card-gap","label":"Espaço entre céu e faixa","type":"slider","var":"--card-gap","value":16,"base":16,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"sky-from","label":"Céu, cor de cima","type":"color","var":"--sky-from","value":"#ed6001","base":"#ed6001","token":"--color-semantic-theme-tarde-dark"},
+{"id":"sky-to","label":"Céu, cor de baixo","type":"color","var":"--sky-to","value":"#e7c300","base":"#e7c300","token":"--color-semantic-theme-tarde-light"},
+{"id":"sky-stop","label":"Céu, onde a cor de cima termina","type":"slider","var":"--sky-stop","value":30,"base":30,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"card-base","label":"Fundo de base","type":"color","var":"--card-base","value":"#17161b","base":"#17161b","token":"--color-core-neutral-charcoal"},
+{"id":"scrim-h","label":"Altura do véu","type":"slider","var":"--scrim-h","value":62,"base":62,"min":0,"max":100,"step":1,"unit":"%"}
+]},
+{"name":"Céu","part":"sky","controls":[
+{"id":"sky-gap","label":"Espaço entre local e temperatura","type":"slider","var":"--sky-gap","value":4,"base":4,"min":0,"max":32,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"},
+{"id":"sky-pad-end","label":"Respiro abaixo","type":"slider","var":"--sky-pad-end","value":64,"base":64,"min":0,"max":128,"step":1,"unit":"px","token":"--dimension-spacing-core-4xl"}
+]},
+{"name":"Local","part":"place","controls":[
+{"id":"place-size","label":"Tamanho","type":"slider","var":"--place-size","value":14,"base":14,"min":8,"max":120,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"place-lh","label":"Altura da linha","type":"slider","var":"--place-lh","value":1.2,"base":1.2,"min":0.8,"max":2,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"place-ls","label":"Espaço entre letras","type":"slider","var":"--place-ls","value":-0.01,"base":-0.01,"min":-0.1,"max":0.2,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"place-weight","label":"Peso","type":"select","var":"--place-weight","options":["400","500","700","800"],"value":"700"},
+{"id":"place-ink","label":"Cor","type":"color","var":"--place-ink","value":"#17161b","base":"#17161b","token":"--color-core-neutral-charcoal"}
+]},
+{"name":"Temperatura","part":"temperature","controls":[
+{"id":"temp-size","label":"Tamanho","type":"slider","var":"--temp-size","value":28,"base":28,"min":8,"max":120,"step":1,"unit":"px","token":"--typography-font-size-3xl"},
+{"id":"temp-lh","label":"Altura da linha","type":"slider","var":"--temp-lh","value":1.2,"base":1.2,"min":0.8,"max":2,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"temp-ls","label":"Espaço entre letras","type":"slider","var":"--temp-ls","value":-0.01,"base":-0.01,"min":-0.1,"max":0.2,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"temp-weight","label":"Peso","type":"select","var":"--temp-weight","options":["400","500","700","800"],"value":"700"},
+{"id":"temp-ink","label":"Cor","type":"color","var":"--temp-ink","value":"#17161b","base":"#17161b","token":"--color-core-neutral-charcoal"}
+]},
+{"name":"Faixa","part":"band","controls":[
+{"id":"band-cols","label":"Colunas","type":"select","var":"--band-cols","options":["1","2","4"],"value":"2"},
+{"id":"band-row-gap","label":"Espaço entre linhas","type":"slider","var":"--band-row-gap","value":16,"base":16,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-core-sm"},
+{"id":"band-col-gap","label":"Espaço entre colunas","type":"slider","var":"--band-col-gap","value":12,"base":12,"min":0,"max":48,"step":1,"unit":"px","token":"--dimension-spacing-core-xs"},
+{"id":"fact-gap","label":"Espaço entre rótulo e valor","type":"slider","var":"--fact-gap","value":4,"base":4,"min":0,"max":24,"step":1,"unit":"px","token":"--dimension-spacing-core-3xs"}
+]},
+{"name":"Rótulos","part":"fact-label","controls":[
+{"id":"label-size","label":"Tamanho","type":"slider","var":"--label-size","value":12,"base":12,"min":8,"max":120,"step":1,"unit":"px","token":"--typography-font-size-sm"},
+{"id":"label-lh","label":"Altura da linha","type":"slider","var":"--label-lh","value":1.2,"base":1.2,"min":0.8,"max":2,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"label-ls","label":"Espaço entre letras","type":"slider","var":"--label-ls","value":-0.01,"base":-0.01,"min":-0.1,"max":0.2,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"label-weight","label":"Peso","type":"select","var":"--label-weight","options":["400","500","700","800"],"value":"500"}
+]},
+{"name":"Valores","part":"fact-value","controls":[
+{"id":"value-size","label":"Tamanho","type":"slider","var":"--value-size","value":14,"base":14,"min":8,"max":120,"step":1,"unit":"px","token":"--typography-font-size-md"},
+{"id":"value-lh","label":"Altura da linha","type":"slider","var":"--value-lh","value":1.2,"base":1.2,"min":0.8,"max":2,"step":0.05,"unit":"","token":"--typography-line-height-normal"},
+{"id":"value-ls","label":"Espaço entre letras","type":"slider","var":"--value-ls","value":-0.01,"base":-0.01,"min":-0.1,"max":0.2,"step":0.005,"unit":"em","token":"--typography-letter-spacing-tight"},
+{"id":"value-weight","label":"Peso","type":"select","var":"--value-weight","options":["400","500","700","800"],"value":"700"},
+{"id":"value-ink","label":"Cor","type":"color","var":"--value-ink","value":"#eeeeee","base":"#eeeeee","token":"--color-semantic-functional-text-primary"}
+]},
+{"name":"Foco","controls":[
+{"id":"ring-w","label":"Espessura do anel","type":"slider","var":"--ring-w","value":4,"base":4,"min":0,"max":12,"step":1,"unit":"px","token":"--dimension-border-width-semantic-focus-ring"},
+{"id":"ring-offset","label":"Afastamento do anel","type":"slider","var":"--ring-offset","value":0,"base":0,"min":-8,"max":16,"step":1,"unit":"px"},
+{"id":"ring-from","label":"Anel, cor de cima","type":"color","var":"--ring-from","value":"#414ffd","base":"#414ffd","token":"--color-semantic-theme-noite-dark"},
+{"id":"ring-to","label":"Anel, cor de baixo","type":"color","var":"--ring-to","value":"#35c7f3","base":"#35c7f3","token":"--color-semantic-theme-noite-light"},
+{"id":"ring-stop","label":"Anel, onde a cor de cima termina","type":"slider","var":"--ring-stop","value":30,"base":30,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"grow","label":"Crescimento do card","type":"slider","var":"--grow","value":1,"base":1,"min":1,"max":1.2,"step":0.01,"unit":""},
+{"id":"glow-blur","label":"Brilho, desfoque","type":"slider","var":"--glow-blur","value":0,"base":0,"min":0,"max":64,"step":1,"unit":"px"},
+{"id":"glow-spread","label":"Brilho, espalhamento","type":"slider","var":"--glow-spread","value":0,"base":0,"min":0,"max":24,"step":1,"unit":"px"},
+{"id":"glow-color","label":"Brilho, cor","type":"color","var":"--glow-color","value":"#35c7f3","base":"#35c7f3","token":"--color-semantic-focus-glow"},
+{"id":"glow-opacity","label":"Brilho, opacidade","type":"slider","var":"--glow-opacity","value":0.6,"base":0.6,"min":0,"max":1,"step":0.05,"unit":"","token":"--opacity-semantic-focus-glow"}
+]},
+{"name":"Movimento","controls":[
+{"id":"move","label":"Transição do foco","type":"easing","durVar":"--dur","easeVar":"--ease","value":{"duration":0.15,"ease":[0.2,0,0,1]}}
+]}
+]}</script>
+  <p class="opt-label" data-part="label">Opção 7 - Ajuste da 3</p>
+  <div class="opt-content" data-part="content">
+    <div class="card" data-part="card" data-surface="own">
+      <div class="sky" data-part="sky">
+        <p class="place text-body-sm-bold" data-part="place">São Paulo</p>
+        <p class="now text-heading-3-bold" data-part="temperature">24°</p>
+      </div>
+      <dl class="band" data-part="band">
+        <div class="fact" data-part="feels-like"><dt class="text-footnote-medium" data-part="fact-label">Sensação</dt><dd class="text-body-sm-bold" data-part="fact-value">26°</dd></div>
+        <div class="fact" data-part="average"><dt class="text-footnote-medium" data-part="fact-label">Média do dia</dt><dd class="text-body-sm-bold" data-part="fact-value">21°</dd></div>
+        <div class="fact" data-part="wind"><dt class="text-footnote-medium" data-part="fact-label">Vento</dt><dd class="text-body-sm-bold" data-part="fact-value">14 km/h</dd></div>
+        <div class="fact" data-part="humidity"><dt class="text-footnote-medium" data-part="fact-label">Umidade</dt><dd class="text-body-sm-bold" data-part="fact-value">68%</dd></div>
+      </dl>
+    </div>
+  </div>
+</article>
+    </main>
+  </div>
+</div>
+<script>
+// View toggle: grid (default) or list, remembered per page. Works without the live server.
+(() => {
+  const items = document.querySelector('.explore-items'), toggle = document.querySelector('.view-toggle');
+  const key = 'explore-view:' + location.pathname;
+  const set = (v) => {
+    items.dataset.view = v;
+    toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  // Each card is a named group, so a screen reader says which option the focus is on.
+  items.querySelectorAll('.opt').forEach((o) => { o.setAttribute('role', 'group'); o.setAttribute('aria-label', o.querySelector('.opt-label')?.textContent.trim() ?? ''); });
+  toggle.hidden = items.querySelectorAll('.opt').length < 2;
+  toggle.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) set(b.dataset.view); });
+  try { const v = localStorage.getItem(key); if (v === 'grid' || v === 'list') set(v); } catch {}
+})();
+</script>
+
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="6"]')
+  if (!root) return
+  const set = (s) => { root.dataset.state = s }
+  root.addEventListener('focus', () => set('foco'))
+  root.addEventListener('blur', () => set('repouso'))
+  if (document.activeElement === root) set('foco')
+})()
+</script>
+
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="5"]')
+  if (!root) return
+  // The brief has a single control: the card takes focus. No key changes the content; ↑/↓ and the rest pass to the screen.
+  root.addEventListener('focus', () => { root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+<script>
+// The card only receives focus (arrows, Enter and Back change nothing; up/down leave to the screen): the focus moves the state.
+(() => {
+  const root = document.querySelector('.opt[data-option="7"]')
+  root.addEventListener('focus', () => { if (root.matches(':focus-visible')) root.dataset.state = 'foco' })
+  root.addEventListener('blur', () => { root.dataset.state = 'repouso' })
+})()
+</script>
+</body>
+</html>

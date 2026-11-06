@@ -2125,6 +2125,746 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
   display: block;
 }
 /* /@explore 8 */
+/* @explore 9 */
+/* tune:vars */
+[data-option="9"] {
+  --tip-in-dur: 350ms;
+  --tip-in-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --grow-dur: 300ms;
+  --grow-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --pop-dur: 600ms;
+  --pop-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --pop-x: 1.07;
+  --pop-y: 0.95;
+  --dot-sx: 1.05;
+  --dot-sy: 1.18;
+  --exit-travel: 10px;
+  --grow-d: 0.3;
+  --pill-ratio: 0.32;
+  --tip-out-dur: 200ms;
+  --tip-out-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --tip-travel: 8px;
+  --tip-blur: 2px;
+  --loop-hold: 2000ms;
+  --loop-gap: 400ms;
+  --dot-dur: 280ms;
+  --dot-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --pill-delay: 140ms;
+  --dot-out-delay: 80ms;
+  --text-travel: 4px;
+  --text-dur: 100ms;
+  --text-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --morph-dur: 400ms;
+  --morph-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --morph-delay: 0ms;
+  --morph-text-dur: 200ms;
+  --morph-text-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --morph-radius: var(--dimension-radius-semantic-pill);
+  --morph-veil: 0.2;
+  --morph-dot-delay: 0ms;
+  --pill-w: 103px;
+  --pill-h: 33px;
+  --squash-dur: 400ms;
+  --squash-ease: cubic-bezier(0.42, 0, 0.58, 1);
+  --stretch-x: 0.94;
+  --stretch-y: 1.12;
+  --squash-x: 1.12;
+  --squash-y: 0.88;
+  --squash-peak: 35;
+  --squash-land: 80;
+  --squash-ox: 50%;
+  --squash-oy: 50%;
+  --dot-morph-dur: 80ms;
+  --dot-morph-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --morph-start: 80ms;
+  --morph-handoff: 60ms;
+}
+/* /tune:vars */
+
+[data-option="9"] .o9-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-semantic-functional-background-primary);
+  padding-top: var(--dimension-spacing-core-3xl);
+  padding-bottom: var(--dimension-spacing-core-xl);
+  padding-left: var(--dimension-spacing-core-xl);
+  padding-right: var(--dimension-spacing-core-xl);
+  box-sizing: border-box;
+}
+
+/* Barra */
+[data-option="9"] .o9-menu { display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+[data-option="9"] .o9-left { min-width: 0; display: flex; flex-direction: row; align-items: center; }
+[data-option="9"] .o9-right { min-width: 0; display: flex; flex-direction: row; align-items: center; margin-left: var(--dimension-spacing-core-xl); }
+[data-option="9"] .o9-left > * + * { margin-left: var(--dimension-spacing-core-3xs); }
+[data-option="9"] .o9-right > * + * { margin-left: var(--dimension-spacing-core-3xs); }
+
+/* Geometria fixa do Login (88 x 88). Tudo é medido do centro da forma, sem medir nada em JS:
+   cx0, cy0: centro da pílula em repouso (centrada no botão, a 4px do ponto);
+   cx1, cy1: centro do selo, no canto superior direito da caixa do avatar (como o selo do kit: top 0, right 0 do conteúdo do botão, que tem o tamanho do avatar). */
+[data-option="9"] .o9-login-wrap {
+  position: relative;
+  display: block;
+  --o9-cx0: calc(var(--dimension-size-semantic-round-button) / 2);
+  --o9-cy0: calc(var(--dimension-size-semantic-round-button) - (var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 - var(--dimension-spacing-core-2xs) - var(--dimension-spacing-core-2xs) - var(--dimension-spacing-core-3xs) - var(--pill-h) / 2);
+  --o9-cx1: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-avatar)) / 2 - var(--dimension-size-semantic-round-button-badge) / 2);
+  --o9-cy1: calc((var(--dimension-size-semantic-round-button) - var(--dimension-size-semantic-avatar)) / 2 + var(--dimension-size-semantic-round-button-badge) / 2);
+  /* início do deslocamento da pílula: o atraso do morph mais o tempo para o círculo sair antes */
+  --o9-start: calc(var(--morph-delay) + var(--morph-start));
+}
+
+/* Caminho da pílula: um ponto sem tamanho, no centro dela. Fica acima do botão (z-index), como o selo real do kit, para a forma em trânsito passar por cima do avatar. Leva a subida, o fade e o deslocamento até o selo (transform e opacity). */
+[data-option="9"] .o9-pillpath {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(var(--o9-cx0), calc(var(--o9-cy0) + var(--tip-travel)));
+  filter: blur(var(--tip-blur));
+  transition-property: opacity, transform, filter;
+  transition-duration: var(--tip-out-dur);
+  transition-timing-function: var(--tip-out-ease);
+  transition-delay: 0ms;
+}
+/* Pílula: caixa de tamanho fixo em px, centrada no caminho. Distorção (esticar e comprimir) é transform scale em keyframes, com a origem escolhida. */
+[data-option="9"] .o9-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: var(--pill-w);
+  height: var(--pill-h);
+  white-space: nowrap;
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  color: var(--color-semantic-functional-text-primary);
+  font-size: var(--typography-font-size-md);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-tight);
+  line-height: var(--typography-line-height-normal);
+  transform: translate(-50%, -50%);
+  transform-origin: var(--squash-ox) var(--squash-oy);
+}
+[data-option="9"] .o9-dot {
+  position: absolute;
+  bottom: calc((var(--dimension-size-semantic-round-button) + var(--dimension-size-semantic-round-button-circle)) / 2 + var(--dimension-spacing-core-2xs));
+  left: 50%;
+  width: var(--dimension-spacing-core-2xs);
+  height: var(--dimension-spacing-core-2xs);
+  border-radius: 50%;
+  background-color: var(--color-semantic-functional-background-elevated);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, var(--tip-travel));
+  filter: blur(var(--tip-blur));
+  transition-property: opacity, transform, filter;
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+/* Véu claro por cima do fundo (um degrau a mais): uma camada branca com opacidade, no lugar de color-mix. */
+[data-option="9"] .o9-tooltip::before,
+[data-option="9"] .o9-dot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background-color: var(--color-opacity-light-100);
+}
+[data-option="9"] .o9-tooltip::before { opacity: var(--morph-veil); }
+[data-option="9"] .o9-dot::before { opacity: 0.2; }
+[data-option="9"] .o9-tip-text {
+  position: relative;
+  display: inline-block;
+  transform: translateY(var(--text-travel));
+  transition-property: transform;
+  transition-duration: var(--tip-out-dur);
+  transition-timing-function: var(--tip-out-ease);
+  transition-delay: 0ms;
+}
+
+/* Entrada (foco à direita, ciclo ligado): primeiro o círculo, depois a pílula e o texto com ela. Saída: a pílula some primeiro, o círculo depois. */
+[data-option="9"][data-state="programa"][data-tip="on"] .o9-pillpath,
+[data-option="9"][data-state="bug"][data-tip="on"] .o9-pillpath {
+  opacity: 1;
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  filter: blur(0px);
+  transition-duration: var(--tip-in-dur);
+  transition-timing-function: var(--tip-in-ease);
+  transition-delay: var(--pill-delay);
+}
+[data-option="9"][data-state="programa"][data-tip="on"] .o9-dot,
+[data-option="9"][data-state="bug"][data-tip="on"] .o9-dot {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  filter: blur(0px);
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: 0ms;
+}
+/* Orquestração da entrada: 1) círculo pequeno, 2) cresce até a pílula (--g de 0 a 1, transform da caixa), 3) ao chegar a 90% do crescimento o texto aparece num fade curto, 4) ao fechar a forma a caixa dá um pico de escala e volta (squash, --qx e --qy). Saída: o texto some primeiro e a caixa volta a círculo. */
+@property --g { syntax: '<number>'; inherits: true; initial-value: 1; }
+@property --qx { syntax: '<number>'; inherits: true; initial-value: 1; }
+@property --ey { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --qy { syntax: '<number>'; inherits: true; initial-value: 1; }
+[data-option="9"][data-state="programa"] .o9-tooltip,
+[data-option="9"][data-state="bug"] .o9-tooltip {
+  --sy: calc(var(--grow-d) + (1 - var(--grow-d)) * var(--g));
+  --sx: calc(var(--grow-d) * var(--pill-ratio) + (1 - var(--grow-d) * var(--pill-ratio)) * var(--g));
+  transform: translate(-50%, calc(-50% + var(--ey))) scale(calc(var(--sx) * var(--qx)), calc(var(--sy) * var(--qy)));
+  border-radius: calc(var(--pill-h) / 2 * var(--sy) / var(--sx)) / calc(var(--pill-h) / 2);
+}
+[data-option="9"][data-state="programa"][data-tip="on"] .o9-tooltip,
+[data-option="9"][data-state="bug"][data-tip="on"] .o9-tooltip {
+  animation:
+    o9-crescer var(--grow-dur) var(--grow-ease) var(--pill-delay) backwards,
+    o9-squash var(--pop-dur) var(--pop-ease) var(--pill-delay) backwards;
+}
+[data-option="9"][data-state="programa"][data-tip="off"] .o9-tooltip,
+[data-option="9"][data-state="bug"][data-tip="off"] .o9-tooltip {
+  animation: o9-encolher var(--tip-out-dur) var(--tip-out-ease) forwards;
+}
+/* Círculo pequeno: sobe esticado e assenta com squash, no mesmo compasso da entrada da pílula (a pílula nasce no pico do esticar, pelo atraso dela). */
+[data-option="9"][data-state="programa"][data-tip="on"] .o9-dot,
+[data-option="9"][data-state="bug"][data-tip="on"] .o9-dot {
+  animation: o9-dot-sobe var(--dot-dur) var(--dot-ease) backwards;
+}
+@keyframes o9-dot-sobe {
+  0% { opacity: 0; filter: blur(var(--tip-blur)); transform: translate(-50%, var(--tip-travel)) scale(1, 1); }
+  55% { opacity: 1; filter: blur(0px); transform: translate(-50%, 0) scale(var(--dot-sx), var(--dot-sy)); }
+  100% { opacity: 1; filter: blur(0px); transform: translate(-50%, 0) scale(1, 1); }
+}
+@keyframes o9-crescer { from { --g: 0; } to { --g: 1; } }
+@keyframes o9-encolher { from { --g: 1; --ey: 0px; } to { --g: 0; --ey: var(--exit-travel); } }
+@keyframes o9-squash {
+  0% { --qx: 1; --qy: 1; }
+  60% { --qx: var(--pop-x); --qy: var(--pop-y); }
+  100% { --qx: 1; --qy: 1; }
+}
+[data-option="9"][data-state="programa"] .o9-tip-text,
+[data-option="9"][data-state="bug"] .o9-tip-text {
+  transform: none;
+  transition: none;
+}
+[data-option="9"][data-state="programa"][data-tip="on"] .o9-tip-text,
+[data-option="9"][data-state="bug"][data-tip="on"] .o9-tip-text {
+  animation: o9-texto-entra var(--text-dur) var(--text-ease) calc(var(--pill-delay) + var(--grow-dur) * 0.9) backwards;
+}
+[data-option="9"][data-state="programa"][data-tip="off"] .o9-tip-text,
+[data-option="9"][data-state="bug"][data-tip="off"] .o9-tip-text {
+  animation: o9-texto-sai var(--text-dur) var(--text-ease) forwards;
+}
+@keyframes o9-texto-entra { from { opacity: 0; transform: translateY(var(--text-travel)); } to { opacity: 1; transform: translateY(0); } }
+@keyframes o9-texto-sai { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(var(--text-travel)); } }
+
+/* Ao voltar para a direita o ciclo recomeça escondido: tudo volta ao lugar de repouso de uma vez (data-snap, tirado quando a pílula entra de novo). */
+[data-option="9"][data-snap][data-state][data-tip] .o9-pillpath,
+[data-option="9"][data-snap][data-state][data-tip] .o9-tooltip,
+[data-option="9"][data-snap][data-state][data-tip] .o9-tip-text,
+[data-option="9"][data-snap][data-state][data-tip] .o9-dot { transition: none; animation: none; }
+
+/* Morph (foco à esquerda com a pílula na tela). O centro anda do repouso ao selo numa reta (transform do caminho, mesma curva do tamanho),
+   a caixa encolhe até 10 x 10 (width e height em px, raio e cor do selo) e a distorção rola por cima em três keyframes encadeados:
+   esticar até o pico, comprimir na chegada, assentar em 1. Termina em scale(1), então pousa exatamente na caixa do selo.
+   Ao fim (morph + atraso) a pílula some e o selo real aparece no mesmo instante, os dois com transição de 1ms. */
+[data-option="9"][data-state="login"][data-tip="on"] .o9-pillpath,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-pillpath,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-pillpath {
+  opacity: 0;
+  transform: translate(var(--o9-cx1), var(--o9-cy1));
+  filter: blur(0px);
+  transition:
+    transform var(--morph-dur) var(--morph-ease) var(--o9-start),
+    opacity 1ms linear calc(var(--morph-dur) + var(--o9-start));
+}
+[data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip {
+  width: var(--dimension-size-semantic-round-button-badge);
+  height: var(--dimension-size-semantic-round-button-badge);
+  background-color: var(--color-semantic-functional-round-button-badge);
+  border-radius: var(--morph-radius);
+  transition:
+    width var(--morph-dur) var(--morph-ease) var(--o9-start),
+    height var(--morph-dur) var(--morph-ease) var(--o9-start),
+    background-color var(--morph-dur) var(--morph-ease) var(--o9-start),
+    border-radius var(--morph-dur) var(--morph-ease) var(--o9-start);
+  animation-name: o9-esticar, o9-comprimir, o9-assentar;
+  animation-duration:
+    calc(var(--squash-dur) * var(--squash-peak) / 100),
+    calc(var(--squash-dur) * (var(--squash-land) - var(--squash-peak)) / 100),
+    calc(var(--squash-dur) * (100 - var(--squash-land)) / 100);
+  animation-delay:
+    var(--o9-start),
+    calc(var(--o9-start) + var(--squash-dur) * var(--squash-peak) / 100),
+    calc(var(--o9-start) + var(--squash-dur) * var(--squash-land) / 100);
+  animation-timing-function: var(--squash-ease);
+  animation-fill-mode: forwards;
+}
+@keyframes o9-esticar {
+  from { transform: translate(-50%, -50%) scale(1, 1); }
+  to { transform: translate(-50%, -50%) scale(var(--stretch-x), var(--stretch-y)); }
+}
+@keyframes o9-comprimir {
+  from { transform: translate(-50%, -50%) scale(var(--stretch-x), var(--stretch-y)); }
+  to { transform: translate(-50%, -50%) scale(var(--squash-x), var(--squash-y)); }
+}
+@keyframes o9-assentar {
+  from { transform: translate(-50%, -50%) scale(var(--squash-x), var(--squash-y)); }
+  to { transform: translate(-50%, -50%) scale(1, 1); }
+}
+[data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip::before,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip::before,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip::before {
+  opacity: 0;
+  transition: opacity var(--morph-dur) var(--morph-ease) var(--o9-start);
+}
+[data-option="9"][data-state="login"][data-tip="on"] .o9-tip-text,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-tip-text,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-tip-text {
+  opacity: 0;
+  transform: translateY(0);
+  transition: opacity var(--morph-text-dur) var(--morph-text-ease) var(--o9-start);
+}
+[data-option="9"][data-state="login"][data-tip="on"] .o9-dot,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-dot,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-morph-dur);
+  transition-timing-function: var(--dot-morph-ease);
+  transition-delay: var(--morph-dot-delay);
+}
+
+/* Selo do botão de perfil (destino do morph), no canto superior direito da caixa do avatar, como no kit. Escondido com o foco à direita. */
+[data-option="9"] .o9-content { position: relative; display: grid; place-items: center; }
+[data-option="9"] .o9-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--dimension-size-semantic-round-button-badge);
+  height: var(--dimension-size-semantic-round-button-badge);
+  border-radius: var(--dimension-radius-semantic-pill);
+  background-color: var(--color-semantic-functional-round-button-badge);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-option="9"][data-state="login"][data-tip="on"] .o9-badge,
+[data-option="9"][data-state="agenda"][data-tip="on"] .o9-badge,
+[data-option="9"][data-state="misc"][data-tip="on"] .o9-badge {
+  opacity: 1;
+  transition: opacity 1ms linear calc(var(--morph-dur) + var(--o9-start) - var(--morph-handoff));
+}
+[data-option="9"][data-state="login"][data-tip="off"] .o9-badge,
+[data-option="9"][data-state="agenda"][data-tip="off"] .o9-badge,
+[data-option="9"][data-state="misc"][data-tip="off"] .o9-badge {
+  opacity: 1;
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+
+/* Botão redondo (alvo de 88 × 88) */
+[data-option="9"] .o9-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--dimension-size-semantic-round-button);
+  height: var(--dimension-size-semantic-round-button);
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+[data-option="9"] .o9-circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--dimension-size-semantic-round-button-circle);
+  height: var(--dimension-size-semantic-round-button-circle);
+  border-radius: 50%;
+  background: var(--color-semantic-functional-background-translucent);
+}
+[data-option="9"] .o9-circle::after {
+  content: '';
+  position: absolute;
+  top: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  right: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  bottom: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  left: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  border-radius: 50%;
+  padding: var(--dimension-border-width-semantic-focus-ring);
+  background: linear-gradient(135deg, var(--color-semantic-focus-outline) 30%, var(--color-semantic-focus-glow) 100%);
+  -webkit-mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  mask:
+    linear-gradient(var(--color-opacity-light-100) 0 0) content-box,
+    linear-gradient(var(--color-opacity-light-100) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+}
+[data-option="9"][data-state="programa"] [data-button="program"] .o9-circle,
+[data-option="9"][data-state="login"] [data-button="login"] .o9-circle,
+[data-option="9"][data-state="agenda"] [data-button="schedule"] .o9-circle,
+[data-option="9"][data-state="misc"] [data-button="misc"] .o9-circle {
+  background: var(--color-semantic-functional-background-elevated);
+}
+[data-option="9"][data-state="programa"] [data-button="program"] .o9-circle::after,
+[data-option="9"][data-state="login"] [data-button="login"] .o9-circle::after,
+[data-option="9"][data-state="agenda"] [data-button="schedule"] .o9-circle::after,
+[data-option="9"][data-state="misc"] [data-button="misc"] .o9-circle::after {
+  opacity: 1;
+}
+[data-option="9"] .o9-avatar { display: block; width: var(--dimension-size-semantic-avatar); height: var(--dimension-size-semantic-avatar); border-radius: 50%; background: var(--color-semantic-functional-background-elevated); }
+[data-option="9"] .o9-logo { display: block; width: var(--dimension-size-semantic-program-logo); height: var(--dimension-size-semantic-program-logo); border-radius: 50%; background: var(--color-semantic-functional-background-elevated); }
+[data-option="9"] .o9-icon-xl { display: block; width: var(--dimension-size-semantic-icon-xl); height: var(--dimension-size-semantic-icon-xl); object-fit: contain; }
+[data-option="9"] .o9-icon-2xl { display: block; width: var(--dimension-size-semantic-icon-2xl); height: var(--dimension-size-semantic-icon-2xl); object-fit: contain; }
+
+/* Textos da barra */
+[data-option="9"] .o9-misc-wrap { min-width: 0; display: flex; flex-direction: row; align-items: center; }
+[data-option="9"] .o9-misc-text {
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--dimension-spacing-core-3xs);
+  min-width: 0;
+}
+[data-option="9"] .o9-misc-text > * + * { margin-top: var(--dimension-spacing-core-3xs); }
+[data-option="9"] .o9-program-wrap { min-width: 0; display: flex; flex-direction: row; align-items: center; }
+[data-option="9"] .o9-program-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-left: var(--dimension-spacing-core-xs);
+  padding-right: var(--dimension-spacing-core-xs);
+  padding-top: var(--dimension-spacing-core-2xs);
+  padding-bottom: var(--dimension-spacing-core-2xs);
+  min-width: 0;
+  text-align: end;
+}
+[data-option="9"] .o9-title {
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-bold);
+  opacity: var(--opacity-semantic-title);
+}
+[data-option="9"] .o9-subtitle {
+  font-size: var(--typography-font-size-base);
+  color: var(--color-semantic-functional-text-subtle);
+}
+[data-option="9"] .o9-bug { display: grid; place-items: center; flex-shrink: 0; width: var(--dimension-size-semantic-channel-bug); height: var(--dimension-size-semantic-channel-bug); border: none; padding: 0; background: transparent; cursor: default; border-radius: 50%; }
+[data-option="9"] .o9-bug-circle { display: block; width: var(--dimension-size-semantic-channel-bug); height: var(--dimension-size-semantic-channel-bug); border-radius: 50%; background: var(--color-semantic-functional-background-translucent); }
+[data-option="9"] .o9-truncate { display: block; text-wrap: balance; }
+[data-option="9"] .o9-program-text > * + * { margin-top: var(--dimension-spacing-core-3xs); }
+/* Movimento reduzido: tudo troca só por opacidade (sem subida, sem desfoque, sem morph nem distorção; o selo aparece com fade).
+   Vale com prefers-reduced-motion e com data-reduced no artigo ou num ancestral (o Chrome 68 não tem a media query). */
+@media (prefers-reduced-motion: reduce) {
+  [data-option="9"] .o9-pillpath {
+    transform: translate(var(--o9-cx0), var(--o9-cy0));
+    filter: blur(0px);
+    transition-property: opacity;
+  }
+  [data-option="9"] .o9-dot {
+    transform: translate(-50%, 0);
+    filter: blur(0px);
+    transition-property: opacity;
+  }
+  [data-option="9"] .o9-tip-text {
+    transform: none;
+    transition-property: none;
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-pillpath {
+    transform: translate(var(--o9-cx0), var(--o9-cy0));
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip {
+    width: var(--pill-w);
+    height: var(--pill-h);
+    background-color: var(--color-semantic-functional-background-elevated);
+    border-radius: var(--dimension-radius-semantic-pill);
+    transition: none;
+    animation: none;
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip::before {
+    opacity: var(--morph-veil);
+    transition: none;
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-tip-text {
+    opacity: 1;
+    transition: none;
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-dot {
+    transition-duration: var(--dot-dur);
+    transition-timing-function: var(--dot-ease);
+    transition-delay: var(--dot-out-delay);
+  }
+  [data-option="9"][data-state="login"][data-tip="on"] .o9-badge {
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-pillpath {
+    transform: translate(var(--o9-cx0), var(--o9-cy0));
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip {
+    width: var(--pill-w);
+    height: var(--pill-h);
+    background-color: var(--color-semantic-functional-background-elevated);
+    border-radius: var(--dimension-radius-semantic-pill);
+    transition: none;
+    animation: none;
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip::before {
+    opacity: var(--morph-veil);
+    transition: none;
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tip-text {
+    opacity: 1;
+    transition: none;
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-dot {
+    transition-duration: var(--dot-dur);
+    transition-timing-function: var(--dot-ease);
+    transition-delay: var(--dot-out-delay);
+  }
+  [data-option="9"][data-state="agenda"][data-tip="on"] .o9-badge {
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-pillpath {
+    transform: translate(var(--o9-cx0), var(--o9-cy0));
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip {
+    width: var(--pill-w);
+    height: var(--pill-h);
+    background-color: var(--color-semantic-functional-background-elevated);
+    border-radius: var(--dimension-radius-semantic-pill);
+    transition: none;
+    animation: none;
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip::before {
+    opacity: var(--morph-veil);
+    transition: none;
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-tip-text {
+    opacity: 1;
+    transition: none;
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-dot {
+    transition-duration: var(--dot-dur);
+    transition-timing-function: var(--dot-ease);
+    transition-delay: var(--dot-out-delay);
+  }
+  [data-option="9"][data-state="misc"][data-tip="on"] .o9-badge {
+    transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+  }
+}
+[data-option="9"][data-reduced] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  filter: blur(0px);
+  transition-property: opacity;
+}
+[data-option="9"][data-reduced] .o9-dot {
+  transform: translate(-50%, 0);
+  filter: blur(0px);
+  transition-property: opacity;
+}
+[data-option="9"][data-reduced] .o9-tip-text {
+  transform: none;
+  transition-property: none;
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-option="9"][data-reduced][data-state="login"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-option="9"][data-reduced][data-state="agenda"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-option="9"][data-reduced][data-state="misc"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  filter: blur(0px);
+  transition-property: opacity;
+}
+[data-reduced] [data-option="9"] .o9-dot {
+  transform: translate(-50%, 0);
+  filter: blur(0px);
+  transition-property: opacity;
+}
+[data-reduced] [data-option="9"] .o9-tip-text {
+  transform: none;
+  transition-property: none;
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-reduced] [data-option="9"][data-state="login"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-reduced] [data-option="9"][data-state="agenda"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-pillpath {
+  transform: translate(var(--o9-cx0), var(--o9-cy0));
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip {
+  width: var(--pill-w);
+  height: var(--pill-h);
+  background-color: var(--color-semantic-functional-background-elevated);
+  border-radius: var(--dimension-radius-semantic-pill);
+  transition: none;
+  animation: none;
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-tooltip::before {
+  opacity: var(--morph-veil);
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-tip-text {
+  opacity: 1;
+  transition: none;
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-dot {
+  transition-duration: var(--dot-dur);
+  transition-timing-function: var(--dot-ease);
+  transition-delay: var(--dot-out-delay);
+}
+[data-reduced] [data-option="9"][data-state="misc"][data-tip="on"] .o9-badge {
+  transition: opacity var(--tip-out-dur) var(--tip-out-ease);
+}
+/* /@explore 9 */
 </style>
 </head>
 <body>
@@ -2660,6 +3400,113 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
     </div>
   </div>
 </article>
+    <h2 class="opt-group">Ajuste da Opção 7</h2>
+<article data-parent="7" class="opt" data-option="9" data-tuned data-state="programa" data-tip="off" tabindex="0">
+  <!-- tese: mais respiro na pílula (cópia ajustável da 7): padding lateral um passo acima, o resto igual à 4; estados em data-state, ciclo do tooltip em data-tip -->
+  <p class="opt-label" data-part="label">Opção 9 - Ajuste da 7</p>
+  <div class="opt-content" data-part="content">
+    <div class="o9-stage" data-part="stage" data-surface="own" data-stack>
+      <nav class="o9-menu" data-part="main-menu" aria-label="Navegação principal">
+
+        <div class="o9-left" data-part="left-cluster">
+          <div class="o9-login-wrap" data-part="login-wrap">
+            <div class="o9-pillpath" data-part="tooltip-path"><div class="o9-tooltip text-body-sm-medium" data-part="tooltip" role="tooltip"><span class="o9-tip-text" data-part="tooltip-text">Faça o login</span></div></div>
+            <div class="o9-dot" data-part="dot" aria-hidden="true"></div>
+            <button type="button" class="o9-btn" data-button="login" data-part="login-btn" aria-label="Login">
+              <div class="o9-circle" data-part="login-circle">
+                <span class="o9-content" data-part="avatar-box">
+                  <span class="o9-avatar" data-part="avatar"></span>
+                  <span class="o9-badge" data-part="badge" aria-hidden="true"></span>
+                </span>
+              </div>
+            </button>
+          </div>
+
+          <button type="button" class="o9-btn" data-button="schedule" data-part="schedule-btn" aria-label="Programação">
+            <div class="o9-circle" data-part="schedule-circle">
+              <img src="data:image/png;base64,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" class="o9-icon-xl" alt="" aria-hidden="true" data-part="schedule-icon">
+            </div>
+          </button>
+
+          <div class="o9-misc-wrap" data-part="misc-group">
+            <button type="button" class="o9-btn" data-button="misc" data-part="misc-btn" aria-label="Interatividades">
+              <div class="o9-circle" data-part="misc-circle">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAALhElEQVR4nOxca3RU1RXe+96ZBBGIRh5iSqAJqYGKunS0prC0XQXF8FTwgSi+WlGXlcVLaMElPywVlSWly7Y+FrSxgLwE5BmkDUtRWBSBKkWQVwghBCPlEZY1M/ee7T73lZnJDJmZO8HJZD5gzt1zzj33nO/us/c++95BgTRcQYE0XCFNoEukCXSJNIEukSbQJdIEukSaQJdIE+gSaQJdwgMpBirrcK3f432Nj4oB8b+o03Tvbac+hCYCQorB9+F1S7i435Z5gjUexZePA76uhSZA6i1hgXcioSxBliSgg+Zv1R+aCCm3hIEwi4hY85g8kl8gc0ltoYmQegQKpgwVMEhENEqV/zQVkopAKu3UUVMzJ/Gse5BCa70fVS7AWZKS6GEsXwJHA2UZj6X3b+laRCCelHcBSf+Ld+DJ7WGvB0kCWgaqdnXXfUSi0NQcqUm42nP2+Gi8F/Ro+/Ft7rKEz7vfPF92TDWe1q3ZiRyM2oloW7qOFUTvSOotTeZC6Z1xe/ne0LZJ40S0dl1vZV0rRFLMZWg4Ahjpz8pdRLOiH6fXr04kge/y+RfY+G1nbRwdE3mluaNJoxIUiKYjMsbDFMKj4donzxLmQYIil59UHcUq5QTgPv2Wbv8HKH80mm5wSHk1F2MgDmgbfzichFhqGFFhqXD9eLRw5ySNBno6tv+IQ46DYGoeBJb8/SPa+ryh0ISgNde35XW6gK+nhF5flgKUv4c7L2k0EPt+6qdN+UM1TZSxLv4AHAVwjNlg/lh3qT6MpV6U396n+9sr4L1aoKjNQFEDO46fbswZaV5fES/7a5zrOQUR28BHMu889lm485LKC+PgI4dpQ/ciXRdlPP7udhwnlxGb8pORzvOvye+PKj2pEdwDPspUjLCFmE0ETR73yfNpa2E99/WO2vmqdfJmhfYh/FCtSBNiXQ9ML66xXbnXM+zIqohjhiQEvVd4jebxLWYLeLvpBWGdit/eh8Oqvglsp63Nv4sEzWINuTEw7mukPKUgvqR48A0sPlwX2J/+fv4U9r6/53YZ3K6S6RnnHXGk7FJjTeq9MK0oyIMMXcPhRysCv69bnddLQeVPzMZtjp0HY9U1LCPWYxWvzTHeEYeCEg3SFvqFyPf6D30eTfjU7JIJvpV5/RRF+ReT0MYM8yzNAoucmGT0C9Kfzbj76F8hTjQrAv3L83+GilLKNLSxDb2EYSED5AAPEFU9Hz6l3n0oLhIvO4Gfn6chHJv+hDWhNw+8G0+iM4+CvR/UsHyG5Wqe7BYOw1bc1A4PBp5LK/IKNPKs5Ha9DFKkoU9M6WePfWvGqMM7IEZcFgJ311IHVcAEQvo1ix1jOHUfhxazb8rCJfYX9EYfr5Zd+wce+OTwRi/uslK96CvAR8u/hRjQ5ATuvqBzcgBf4MN2tjd0Lh6tjLCfo7FJfbKw1K7T3r1+BIe8S7k+059GEzfGKwNMU+87+DLEgCYjcM95KtCJVvJhL+dKFHLlGGXe0r/SO0uZzsQaQbF/yY9+yctPBtetzGDbghN8xyrTeVXTc/HBwxcgSjTJVm4X2zl2b3t5WL3kllJaGSFMPtzIvF2e+u9zVLrjDLWT1/GO+fKfQOrDCEEJCHBkESI3Wq9k6egdEcNUE0/g9rM0XBO0msfTWidzO8maaJUJkQeiQlt2VVFreT3PA/uXkQ5vWXtmO41v7qEpRI6injVxOMSAhG7ldvyPBnAkv0Yem0GstQMAJ3i1vJ7r+n56pnGdQfJaagZOEnVwB1fk1u846m1cTLKgwQGhogGZq/T7C29G4eFHAxp4FKgF74G9MtBOmA0sO0tXZQg6wIedAncANiLtEFzVA84ekI0zZL1W0qOYl+J6Y8JWiOIQEKOs+LUcfPxglVFXckNfQWI1XzAnuD2cVEgpTtgSVnUxj21UJ92yWbqwbJcth5aJqCf43eenKV9e3zPuiw3sqXeZy1QJWbaxyZDh7WbPSxc0jynNadgec3go8xNC4LYauo4n9bBuZE2k4TdLPUKZyHpNgT9C/WznOI7CRan7MMvukuW+kdqx7b0lbhvIpLWt80C2xw/ZnPN5xkjgGhpjGxBzWYjQMvH1Q8q+ou6/6IiHVf8Va4Rad5Yz21fb6922cbHIqgKV9jxZ41bJZywR2q+MmsBdRN7zNTCQTxrOvQyrI8gBP2uAeRHHwIOlIUEyUJPW8+cjXMzE8Z/69bd7LeMTxpuzNcdl5/eillU4as9bVcREoRs0DeX6Nka9oIvM4jpF806IyolsPk0P8XBf4ZM6xZB3u5zliUEdMVeOVXvzxlGc71tRn1mmgB1NVHKV+sRnORAlLmkDP6imXqWnaQff6RJWsk6m7UHHBiWR3GXjKepmaIyv1VZeEadCnqlA1DLgSogBEZfw+mp6gJfnAo6LMhHrgwjHBiSZzDa4D39Rjs/sPEPSvPz55iKhwl3cbCxXd442DuSeFkEMCLuE11fRW1zzK9eb18spI7445Fp8HkJA87tnCvXKp/lJ5QxufY15lm1DnVZgxYFHlKf3dIcY0IDAtadIZiOmBtyi5lRyIC/+w2R9nJkBJYOy8bxD0es92xC2+huvqFGRbKmiQDE+vWcjxEvgqioayUZxVYBPDz/Y5lIPUMJfzRyZgycMEpkr8Xrvt/lh/WOhRLAJXKQ+s/tBiBGOE3m/inK5438INiaCsN5ASxlC5OZSTzCONevAqkp6ytAWVjQm6XHOwrwkX9sIcCDHFV/msxAHHA1cWUkruBhl3Q+otzFBdxSaaz3buOU11TB2fF80ngmLeX2t+VINqupP8Tc7j0EcMDRw+Qn6Od+xUQ1DBWwklGg+9bztuye7E3xQUk1Xyjmjcm6sTMaifDQaJ3lGP/JjaQVt46P+kQ201TIF6tlhrLq3C94djgx6tU97UNSJvOxv4L3uWri4s9H3E3HZMbqW46VTDbwSWK6eIuwAmnE9H8wYk4uzg8hbdo8KFRX72IIW2iEOt98AtVeMwFlbtUgEKpzNGGFmOdDK+KKZ9aAQOYXqeVm/sLiK2gcxUVHenx1KIVipLSvbUgytv1lukBuJQO50MDkXgUCbkcpyhu6DaUFMCA/Wp6oCSCQcCccqFkYkkNt1sZOXLankaGd8EBNZvk+YtAPOO9ZBz1DwIZpTNDI8gYI6yjvDmVdoSSVrYtuF5VRsEyFTYagpQ3nZnpAxIsnXe6GeRNBhcFgC+Y50sNPkoenzVJd5NQe99YrPf3KEySriZXyo/sc6ipW1gbDvJyp8RzTjzhA5jxBbisx/e4YSgjO3n2RWmETcFJDiKgW/b244AvHNI/Ql91gA4QL71C8PP9EdCyACaNaAPIOkWduORmrjYYN6ksOjAoNpaT+FGS+1BBkV6AyXwKWIcwjkm1EhY0uTcuM0aDGygKBXhuOBhzvbxEt9nNmrtSEPq+4pWA9QBS7huShg3RVo92oV9u6PAuUUrEcIevc6HijTCrGWvXWp6eLByq8BtAiZYCu4hPFQieOYFznaucO2ERBiM1JVRgHvgUugffDqF7SZhUENTIcs0TQhYU1LM61nLdw1tQf2A5dwUvqs0tODblRgSRG+b8b1/G8GJAAOgc/1xN18pyZACwBrYNlzPXAzJABBbyZMLsT5XCyE1MZpDSHmp2+R0ODVjik98DG+RXH/cieZwZp3kZfzQI48XMd/NsK+GzOlEJ9iGzGWD+sgdXCGPcetU3viPkggIr5cxB5qMVf2YyK3Q3MHQqXOD80m/xj3QIKBjTXghzA49wBv9RBeZtcVy6+Mvn8QnGPHOM/rgdeeLcCof/sRCxolMBBz91Mxa+Qw1tvRPLj2kITg8Z1h0ragDpu9GbCiqYizEROBgZhzgNqqArKRIFsokAXfIzgZ4mfivhY++Oq3N+JZuIyIm8A0TKT//0CXSBPoEmkCXSJNoEukCXSJNIEukSbQJb4DAAD//3va4RsAAAAGSURBVAMA8IUJ1x6PWJwAAAAASUVORK5CYII=" class="o9-icon-2xl" alt="" aria-hidden="true" data-part="misc-icon">
+              </div>
+            </button>
+            <div class="o9-misc-text" data-part="misc-text">
+              <span class="text-body-lg-bold o9-title o9-truncate" data-part="misc-title">Previsão do tempo</span>
+              <span class="text-body-md-medium o9-subtitle o9-truncate" data-part="misc-subtitle">São Paulo, SP</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="o9-right" data-part="right-cluster">
+          <div class="o9-program-wrap" data-part="program-group">
+            <div class="o9-program-text" data-part="program-text">
+              <span class="text-body-lg-bold o9-title o9-truncate" data-part="program-title">Copa do Mundo: Equador x Argentina</span>
+              <span class="text-body-md-medium o9-subtitle o9-truncate" data-part="program-subtitle">A seguir Central da Copa</span>
+            </div>
+            <button type="button" class="o9-btn" data-button="program" data-part="program-btn" aria-label="Agora em exibição">
+              <div class="o9-circle" data-part="program-circle">
+                <span class="o9-logo" data-part="logo"></span>
+              </div>
+            </button>
+          </div>
+
+          <button type="button" class="o9-bug" data-button="bug" data-part="bug-btn" aria-label="Conteúdo interativo">
+            <span class="o9-bug-circle" data-part="bug-circle"></span>
+          </button>
+        </div>
+
+      </nav>
+    </div>
+  </div>
+  <script type="application/json" data-tune="9">{"states":["programa","bug","login","agenda","misc"],"folders":[
+{"name":"Movimento do tooltip","part":"tooltip","controls":[
+{"id":"tip-in","label":"Entrada da pílula","type":"easing","durVar":"--tip-in-dur","easeVar":"--tip-in-ease","value":{"duration":0.35,"ease":[0.25,0.1,0.25,1]}},
+{"id":"grow","label":"Crescer: círculo até pílula","type":"easing","durVar":"--grow-dur","easeVar":"--grow-ease","value":{"duration":0.3,"ease":[0.25,0.1,0.25,1]}},
+{"id":"pop","label":"Squash junto do crescimento","type":"easing","durVar":"--pop-dur","easeVar":"--pop-ease","value":{"duration":0.6,"ease":[0.25,0.1,0.25,1]}},
+{"id":"pop-x","label":"Squash: largura no pico","type":"slider","var":"--pop-x","value":1.07,"min":1,"max":1.3,"step":0.01},
+{"id":"pop-y","label":"Squash: altura no pico","type":"slider","var":"--pop-y","value":0.95,"min":0.7,"max":1,"step":0.01},
+{"id":"dot-sx","label":"Círculo: largura no esticar","type":"slider","var":"--dot-sx","value":1.05,"min":0.5,"max":1.5,"step":0.01},
+{"id":"dot-sy","label":"Círculo: altura no esticar","type":"slider","var":"--dot-sy","value":1.18,"min":0.5,"max":1.8,"step":0.01},
+{"id":"exit-travel","label":"Descida da pílula na saída","type":"slider","var":"--exit-travel","value":10,"min":0,"max":32,"step":1,"unit":"px"},
+{"id":"grow-d","label":"Tamanho inicial do círculo (× altura da pílula)","type":"slider","var":"--grow-d","value":0.3,"min":0.05,"max":1,"step":0.01},
+{"id":"pill-ratio","label":"Altura ÷ largura da pílula (acompanha Largura/Altura)","type":"slider","var":"--pill-ratio","value":0.32,"min":0.1,"max":1,"step":0.01},
+{"id":"tip-out","label":"Saída da pílula","type":"easing","durVar":"--tip-out-dur","easeVar":"--tip-out-ease","value":{"duration":0.2,"ease":[0.25,0.1,0.25,1]}},
+{"id":"tip-travel","label":"Subida da pílula","type":"slider","var":"--tip-travel","value":8,"min":0,"max":24,"step":1,"unit":"px"},
+{"id":"tip-blur","label":"Desfoque na entrada e saída","type":"slider","var":"--tip-blur","value":2,"min":0,"max":8,"step":1,"unit":"px"},
+{"id":"loop-hold","label":"Tempo visível no ciclo","type":"slider","var":"--loop-hold","value":2000,"min":200,"max":30000,"step":100,"unit":"ms"},
+{"id":"loop-gap","label":"Pausa escondido no ciclo","type":"slider","var":"--loop-gap","value":400,"min":100,"max":5000,"step":100,"unit":"ms"},
+{"id":"dot-move","label":"Círculo: entrada e saída","type":"easing","durVar":"--dot-dur","easeVar":"--dot-ease","value":{"duration":0.28,"ease":[0.25,0.1,0.25,1]}},
+{"id":"pill-delay","label":"Atraso da pílula após o círculo","type":"slider","var":"--pill-delay","value":140,"min":0,"max":600,"step":10,"unit":"ms"},
+{"id":"dot-out-delay","label":"Atraso do círculo na saída","type":"slider","var":"--dot-out-delay","value":80,"min":0,"max":600,"step":10,"unit":"ms"},
+{"id":"text-travel","label":"Subida do texto","type":"slider","var":"--text-travel","value":4,"min":0,"max":16,"step":1,"unit":"px"},
+{"id":"text-move","label":"Texto: entrada","type":"easing","durVar":"--text-dur","easeVar":"--text-ease","value":{"duration":0.1,"ease":[0.25,0.1,0.25,1]}},
+{"id":"morph-move","label":"Morph: pílula até o selo","type":"easing","durVar":"--morph-dur","easeVar":"--morph-ease","value":{"duration":0.4,"ease":[0.25,0.1,0.25,1]}},
+{"id":"morph-delay","label":"Morph: atraso para começar","type":"slider","var":"--morph-delay","value":0,"min":0,"max":400,"step":10,"unit":"ms"},
+{"id":"morph-text","label":"Morph: texto some","type":"easing","durVar":"--morph-text-dur","easeVar":"--morph-text-ease","value":{"duration":0.2,"ease":[0.25,0.1,0.25,1]}},
+{"id":"morph-radius","label":"Morph: raio da forma","type":"slider","var":"--morph-radius","value":100,"base":100,"min":0,"max":100,"step":1,"unit":"px","token":"--dimension-radius-semantic-pill"},
+{"id":"morph-veil","label":"Véu claro da pílula (some no morph)","type":"slider","var":"--morph-veil","value":0.2,"min":0,"max":0.5,"step":0.01},
+{"id":"morph-dot-delay","label":"Morph: atraso do círculo na saída","type":"slider","var":"--morph-dot-delay","value":0,"min":0,"max":400,"step":10,"unit":"ms"},
+{"id":"pill-w","label":"Largura fixa da pílula","type":"slider","var":"--pill-w","value":103,"min":60,"max":200,"step":1,"unit":"px"},
+{"id":"pill-h","label":"Altura fixa da pílula","type":"slider","var":"--pill-h","value":33,"min":20,"max":60,"step":1,"unit":"px"},
+{"id":"morph-squash","label":"Distorção: duração e easing","type":"easing","durVar":"--squash-dur","easeVar":"--squash-ease","value":{"duration":0.4,"ease":[0.42,0,0.58,1]}},
+{"id":"stretch-x","label":"Esticar: largura no pico","type":"slider","var":"--stretch-x","value":0.94,"min":0.5,"max":1.5,"step":0.01},
+{"id":"stretch-y","label":"Esticar: altura no pico","type":"slider","var":"--stretch-y","value":1.12,"min":0.5,"max":1.5,"step":0.01},
+{"id":"squash-x","label":"Comprimir: largura na chegada","type":"slider","var":"--squash-x","value":1.12,"min":0.5,"max":1.5,"step":0.01},
+{"id":"squash-y","label":"Comprimir: altura na chegada","type":"slider","var":"--squash-y","value":0.88,"min":0.5,"max":1.5,"step":0.01},
+{"id":"squash-peak","label":"Pico do esticar (% do morph)","type":"slider","var":"--squash-peak","value":35,"min":5,"max":60,"step":1},
+{"id":"squash-land","label":"Começo da compressão na chegada (% do morph)","type":"slider","var":"--squash-land","value":80,"min":60,"max":95,"step":1},
+{"id":"squash-ox","label":"Origem da distorção: horizontal","type":"slider","var":"--squash-ox","value":50,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"squash-oy","label":"Origem da distorção: vertical","type":"slider","var":"--squash-oy","value":50,"min":0,"max":100,"step":1,"unit":"%"},
+{"id":"dot-morph","label":"Morph: saída do círculo (duração e easing)","type":"easing","durVar":"--dot-morph-dur","easeVar":"--dot-morph-ease","value":{"duration":0.08,"ease":[0.25,0.1,0.25,1]}},
+{"id":"morph-start","label":"Morph: início do deslocamento após o círculo","type":"slider","var":"--morph-start","value":80,"min":0,"max":400,"step":10,"unit":"ms"},
+{"id":"morph-handoff","label":"Morph: selo aparece antes da pílula sumir","type":"slider","var":"--morph-handoff","value":60,"min":0,"max":200,"step":10,"unit":"ms"}
+]}
+]}</script>
+</article>
     </main>
   </div>
 </div>
@@ -3065,5 +3912,56 @@ body { background: var(--explore-page-bg); color: var(--explore-title); font-fam
 })()
 </script>
 <!-- /@explore 8 -->
+<!-- @explore 9 -->
+<script>
+(() => {
+  const root = document.querySelector('.opt[data-option="9"]')
+  const ORDER = ['login', 'agenda', 'misc', 'programa', 'bug']
+  const RIGHT = new Set(['programa', 'bug'])
+  const ms = (name, fallback) => {
+    const v = parseFloat(getComputedStyle(root).getPropertyValue(name))
+    return Number.isFinite(v) ? v : fallback
+  }
+  let timer = 0
+
+  // Ciclo de comparação: o tooltip entra, fica visível, sai, espera e entra de novo, enquanto o foco está à direita.
+  function show() {
+    delete root.dataset.snap
+    root.dataset.tip = 'on'
+    timer = setTimeout(hide, ms('--loop-hold', 2000))
+  }
+  function hide() {
+    root.dataset.tip = 'off'
+    timer = setTimeout(show, ms('--loop-gap', 400))
+  }
+  function restart() {
+    clearTimeout(timer)
+    root.dataset.tip = 'off'
+    timer = setTimeout(show, 60)
+  }
+
+  // Quem muda o foco (as setas ou o simulador) só troca data-state. O morph é todo CSS (veja data-state e data-tip no CSS):
+  // o JS só para o ciclo quando o foco vai para a esquerda (a pílula fica como estava) e o reinicia quando volta para a direita.
+  let before = root.dataset.state
+  new MutationObserver(() => {
+    const now = root.dataset.state
+    if (RIGHT.has(now) && !RIGHT.has(before)) { root.dataset.snap = ''; restart() }
+    else if (!RIGHT.has(now) && RIGHT.has(before)) clearTimeout(timer)
+    before = now
+  }).observe(root, { attributes: true, attributeFilter: ['data-state'] })
+
+  root.addEventListener('keydown', (e) => {
+    const i = ORDER.indexOf(root.dataset.state)
+    if (e.key === 'ArrowLeft') root.dataset.state = ORDER[Math.max(0, i - 1)]
+    else if (e.key === 'ArrowRight') root.dataset.state = ORDER[Math.min(ORDER.length - 1, i + 1)]
+    else if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Backspace') { /* Enter no Login abre o trilho de conta; Voltar sai: nada novo no tooltip */ }
+    else return
+    e.preventDefault()
+  })
+
+  restart()
+})()
+</script>
+<!-- /@explore 9 -->
 </body>
 </html>
