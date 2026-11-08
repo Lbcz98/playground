@@ -29,6 +29,8 @@ eval/results/
 .checks-corpus-cli
 web/node_modules
 web/.next
+# the TV build (npm run build:tv), kept apart from .next
+web/.next-tv
 web/next-env.d.ts
 web/tsconfig.tsbuildinfo
 .storybook-mcp.log
