@@ -62,14 +62,56 @@ export function isSpringSpec(value: unknown): value is SpringSpec {
  * creeping in are folded into the settle, so nothing jumps at the end.
  */
 export function springToCss(spec: SpringSpec): string {
+  const points = sampleSpring(spec, SAMPLES)
+  return `linear(${points.map((y) => Number(y.toFixed(4)).toString()).join(', ')})`
+}
+
+/** The spring's progress at `samples + 1` evenly spaced moments of its duration, rescaled to end at exactly 1. */
+function sampleSpring(spec: SpringSpec, samples: number): number[] {
   const total = durationSeconds(spec.duration)
   if (total === null) throw new Error(`spring: duration ${JSON.stringify(spec.duration)} is not like "800ms"`)
   const end = springAt(total, spec)
-  const points: string[] = []
-  for (let i = 0; i <= SAMPLES; i++) {
-    const p = i / SAMPLES
-    const y = i === SAMPLES ? 1 : springAt(p * total, spec) / end
-    points.push(Number(y.toFixed(4)).toString())
+  return Array.from({ length: samples + 1 }, (_, i) => (i === samples ? 1 : springAt((i / samples) * total, spec) / end))
+}
+
+/**
+ * The same curve as the closest `cubic-bezier()`, for engines without `linear()` easing (Chrome < 113,
+ * Safari < 17.2). Least squares over the sampled curve, by coordinate descent; deterministic, so the token
+ * build stays reproducible. The system spring fits within 0.01 of its progress at every moment.
+ */
+export function springToCubicBezier(spec: SpringSpec): string {
+  const n = 100
+  const target = sampleSpring(spec, n)
+  const bezier = (a: number, b: number, t: number) => 3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t
+  const progressAt = ([x1, y1, x2, y2]: number[], x: number): number => {
+    let lo = 0
+    let hi = 1
+    for (let i = 0; i < 30; i++) {
+      const t = (lo + hi) / 2
+      if (bezier(x1, x2, t) < x) lo = t
+      else hi = t
+    }
+    return bezier(y1, y2, (lo + hi) / 2)
   }
-  return `linear(${points.join(', ')})`
+  const error = (p: number[]) => target.reduce((sum, y, i) => sum + (progressAt(p, i / n) - y) ** 2, 0)
+  let best = [0.3, 0.3, 0.3, 1]
+  let bestError = error(best)
+  // x1 and x2 must stay in [0, 1] for a valid cubic-bezier; y1 and y2 are free.
+  const clamp = (v: number, i: number) => (i % 2 === 0 ? Math.min(1, Math.max(0, v)) : v)
+  for (let step = 0.1; step > 1e-5; ) {
+    let improved = false
+    for (let i = 0; i < 4; i++) {
+      for (const delta of [step, -step]) {
+        const next = best.map((v, j) => (j === i ? clamp(v + delta, j) : v))
+        const e = error(next)
+        if (e < bestError) {
+          best = next
+          bestError = e
+          improved = true
+        }
+      }
+    }
+    if (!improved) step /= 2
+  }
+  return `cubic-bezier(${best.map((v) => Number(v.toFixed(3))).join(', ')})`
 }

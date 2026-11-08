@@ -78,13 +78,18 @@ export function resolveBoxProps<P extends BoxProps>({
   children,
   ...rest
 }: P) {
-  const inline = paddingX ?? padding
-  const block = paddingY ?? padding
+  const inlineStep = paddingX ?? padding
+  const blockStep = paddingY ?? padding
+  const inline = inlineStep ? spacing(inlineStep) : 0
+  const block = blockStep ? spacing(blockStep) : 0
+  // Physical sides, not padding-inline/-block (Chrome 87): the TV floor is Chrome 68, and the kit is left-to-right.
   const style: CSSProperties = {
     boxSizing: 'border-box',
     margin: 0,
-    paddingInline: inline ? spacing(inline) : 0,
-    paddingBlock: block ? spacing(block) : 0,
+    paddingTop: block,
+    paddingRight: inline,
+    paddingBottom: block,
+    paddingLeft: inline,
     backgroundColor: background ? surface(background) : undefined,
     border: border
       ? `${token('--dimension-border-width-semantic-card')} solid ${borderColor(border)}`

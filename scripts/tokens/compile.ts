@@ -16,8 +16,8 @@
  */
 
 import { frameSpec } from '../../src/design-system/primitives'
-import { alphaPercent, isAlpha } from '../../src/shared/design-system/color-alpha'
-import { isSpringSpec, springToCss } from '../../src/shared/design-system/spring'
+import { alphaPercent, isAlpha, rgbaWithAlpha } from '../../src/shared/design-system/color-alpha'
+import { isSpringSpec, springToCss, springToCubicBezier } from '../../src/shared/design-system/spring'
 
 /** Paths are relative to the project root. */
 export const TOKENS_SOURCE = 'tokens/tokens.json'
@@ -31,6 +31,14 @@ interface CompiledTokens {
   css: string
   ts: string
   names: string
+}
+
+/** Values restated for engines that cannot read the main ones, each list redefining its custom properties under `@supports not`. */
+interface Fallbacks {
+  /** Alpha variants as `rgba()`, for engines without `color-mix()` (Chrome < 111, Safari < 16.2). */
+  colorMix: Array<{ name: string; value: string }>
+  /** Springs as `cubic-bezier()`, for engines without `linear()` easing (Chrome < 113, Safari < 17.2). */
+  easing: Array<{ name: string; value: string }>
 }
 
 /**
@@ -232,8 +240,20 @@ export function compileTokens(root: unknown): CompiledTokens {
     return hint.alpha
   }
 
+  /** A colour token as its literal hex and the alpha its alias chain applies, or null when it ends in no hex. */
+  const resolveColor = (t: Token, hops = 0): { hex: string; alpha: number } | null => {
+    if (hops > byPath.size) return null
+    const match = typeof t.value === 'string' ? ALIAS.exec(t.value) : null
+    const own = alphaOf(t) ?? 1
+    if (!match) return typeof t.value === 'string' && HEX_COLOR.test(t.value) ? { hex: t.value, alpha: own } : null
+    const base = byPath.get(match[1])
+    const resolved = base ? resolveColor(base, hops + 1) : null
+    return resolved ? { hex: resolved.hex, alpha: resolved.alpha * own } : null
+  }
+
   const vars: Array<{ token: Token; name: string; value: string }> = []
   const classes: Array<{ token: Token; name: string; declarations: string[] }> = []
+  const fallbacks: Fallbacks = { colorMix: [], easing: [] }
   const seen = new Map<string, string>()
   const claim = (name: string, path: string[]): void => {
     const owner = seen.get(name)
@@ -264,6 +284,9 @@ export function compileTokens(root: unknown): CompiledTokens {
     const alpha = alphaOf(t)
     if (alpha === undefined) {
       vars.push({ token: t, name, value: alias ?? literal(t.type, t.value, t.path) })
+      if (!alias && t.type === 'spring' && isSpringSpec(t.value)) {
+        fallbacks.easing.push({ name, value: springToCubicBezier(t.value) })
+      }
       continue
     }
     if (!alias) {
@@ -276,10 +299,13 @@ export function compileTokens(root: unknown): CompiledTokens {
     // A perceptual space (oklab, the color-mix default elsewhere) is for mixing
     // two colours, and would round-trip the channels for nothing.
     vars.push({ token: t, name, value: `color-mix(in srgb, ${alias} ${alphaPercent(alpha)}%, transparent)` })
+    const resolved = resolveColor(t)
+    const rgba = resolved && rgbaWithAlpha(resolved.hex, resolved.alpha)
+    if (rgba) fallbacks.colorMix.push({ name, value: rgba })
   }
 
   return {
-    css: renderCss(vars, classes),
+    css: renderCss(vars, classes, fallbacks),
     ts: renderTs(vars.map((v) => v.name), classes.map((c) => c.name)),
     names: renderNames(vars),
   }
@@ -310,6 +336,7 @@ function sectionOf(path: string[]): string {
 function renderCss(
   vars: Array<{ token: Token; name: string; value: string }>,
   classes: Array<{ token: Token; name: string; declarations: string[] }>,
+  fallbacks: Fallbacks,
 ): string {
   const lines = [
     '/*',
@@ -331,6 +358,26 @@ function renderCss(
     lines.push(`  ${name}: ${value};`)
   }
   lines.push('}')
+
+  // A custom property takes any value at parse time, so an engine without color-mix() or linear() would keep the
+  // value above and drop every declaration that uses it. These blocks restate those tokens where that happens;
+  // engines that have both never apply them.
+  const restate = (condition: string, about: string, list: Array<{ name: string; value: string }>) => {
+    if (!list.length) return
+    lines.push('', comment(about), `@supports not (${condition}) {`, '  :root {')
+    for (const { name, value } of list) lines.push(`    ${name}: ${value};`)
+    lines.push('  }', '}')
+  }
+  restate(
+    'color: color-mix(in srgb, red, red)',
+    'Engines without color-mix() (Chrome < 111, Safari < 16.2): each alpha variant as rgba(), the same colour.',
+    fallbacks.colorMix,
+  )
+  restate(
+    'transition-timing-function: linear(0, 1)',
+    'Engines without linear() easing (Chrome < 113, Safari < 17.2): each spring as its closest cubic-bezier().',
+    fallbacks.easing,
+  )
 
   if (classes.length) {
     lines.push('', comment('===== Typography · Utility Classes ====='))

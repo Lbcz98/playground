@@ -48,6 +48,7 @@ export function Stack({
   ...boxProps
 }: StackProps): ReactNode {
   const { as, style, rest } = resolveBoxProps(boxProps)
+  const spaced = gap !== undefined && gap !== 'none'
   return createElement(as, {
     ...rest,
     style: {
@@ -59,5 +60,8 @@ export function Stack({
       alignItems: FLEX_ALIGN[align],
       justifyContent: FLEX_JUSTIFY[justify],
     },
+    // Read by the flex-gap fallback in primitives.css (engines without flex `gap`, Chrome < 84).
+    'data-stack': spaced ? direction : undefined,
+    'data-stack-gap': spaced ? gap : undefined,
   })
 }

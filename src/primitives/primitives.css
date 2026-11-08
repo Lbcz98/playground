@@ -70,9 +70,10 @@
  * loop, so the ring settles onto a colour and leaves it again rather than
  * sliding through at a constant rate.
  *
- * A browser without relative colour syntax drops these keyframes and keeps the
- * static gradient the component paints underneath — the correct fallback, which
- * is also what `prefers-reduced-motion` and the visual-regression freeze get.
+ * A browser without relative colour syntax keeps the static gradient the
+ * component paints underneath (the `@supports` below turns the cycle off there) —
+ * the correct fallback, which is also what `prefers-reduced-motion` and the
+ * visual-regression freeze get.
  */
 @keyframes sfs-focus-cycle {
   0%,
@@ -158,6 +159,13 @@
   transition-timing-function: var(--motion-semantic-easing);
 }
 
+/* Without flex gap (`no-flexgap`, Chrome < 84) a gap is drawn as a margin (below, ui-kit.css), so margin springs too. */
+.no-flexgap .sfs-motion,
+.no-flexgap .sfs-motion * {
+  transition-property: width, height, min-width, min-height, padding, gap, margin, background-color, border-color,
+    border-radius, color, opacity, box-shadow, transform, outline-color;
+}
+
 /* The focus ring arrives on the same spring instead of popping in. */
 @keyframes sfs-focus-in {
   from {
@@ -173,6 +181,18 @@
 .sfs-focus-cycle {
   animation: sfs-focus-cycle var(--motion-semantic-focus-cycle-duration) var(--motion-semantic-focus-cycle-easing)
     infinite;
+}
+
+/*
+ * The keyframes above hold var(), so no engine drops them while parsing: one without relative colour (Chrome < 119,
+ * Safari < 18) only finds out when it computes them, and paints `background-image: none` for as long as the cycle
+ * runs, which erases the ring and its glow. There the cycle stays off and the static gradient underneath shows.
+ */
+@supports not (color: oklch(from red l c h)) {
+  .sfs-focus-cycle,
+  .sfs-focus-glow-cycle {
+    animation: none;
+  }
 }
 
 /*
@@ -236,6 +256,25 @@
 }
 
 .sfs-focusable:focus-visible:has([data-focus-ring]) {
+  outline: none;
+}
+
+/*
+ * The same two rules where `:focus-visible` (Chrome 86) or `:has()` (Chrome 105) is missing and drops them
+ * (`no-focus-visible`, `no-has`: classes the app's early script sets on <html>). A TV has no pointer, so every
+ * focus is a keyboard focus; a control draws its <FocusRing> exactly when its `data-state` is `focus`.
+ */
+.no-focus-visible .sfs-focusable:focus {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}
+
+/* Separate rules: a selector an engine cannot read drops the whole rule it is in. */
+.no-focus-visible .sfs-focusable:focus[data-state='focus'] {
+  outline: none;
+}
+
+.no-has .sfs-focusable:focus-visible[data-state='focus'] {
   outline: none;
 }
 
@@ -351,4 +390,43 @@
 [data-card-body] > :has(> [data-flush-row]) + :has(> [data-flush-row]) > [data-flush-row] {
   /* The body's gap (BODY_GAP in TableCell.tsx). */
   margin-top: calc(-1 * var(--dimension-spacing-semantic-table-row-gap));
+}
+
+/* An engine without `:has()` (Chrome < 105) drops the whole rule above; the sibling case again, on its own. */
+[data-card-body] > [data-flush-row] + [data-flush-row] {
+  margin-top: calc(-1 * var(--dimension-spacing-semantic-table-row-gap));
+}
+
+/*
+ * Flex gap where it is missing (Chrome < 84 reads `gap` for grid only): `no-flexgap`, set on <html> by the app's
+ * early script. A Stack's gap becomes a margin on every child after the first, along its direction, at its step
+ * (`data-stack`, `data-stack-gap`). `!important` because Box and Text zero their own margin inline. The kit's own
+ * flex containers do the same at the end of ui-kit.css.
+ */
+.no-flexgap [data-stack='column'][data-stack-gap='3xs'] > * + * { margin-top: var(--dimension-spacing-core-3xs) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='3xs'] > * + * { margin-left: var(--dimension-spacing-core-3xs) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='2xs'] > * + * { margin-top: var(--dimension-spacing-core-2xs) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='2xs'] > * + * { margin-left: var(--dimension-spacing-core-2xs) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='xs'] > * + * { margin-top: var(--dimension-spacing-core-xs) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='xs'] > * + * { margin-left: var(--dimension-spacing-core-xs) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='sm'] > * + * { margin-top: var(--dimension-spacing-core-sm) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='sm'] > * + * { margin-left: var(--dimension-spacing-core-sm) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='lg'] > * + * { margin-top: var(--dimension-spacing-core-lg) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='lg'] > * + * { margin-left: var(--dimension-spacing-core-lg) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='xl'] > * + * { margin-top: var(--dimension-spacing-core-xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='xl'] > * + * { margin-left: var(--dimension-spacing-core-xl) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='2xl'] > * + * { margin-top: var(--dimension-spacing-core-2xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='2xl'] > * + * { margin-left: var(--dimension-spacing-core-2xl) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='3xl'] > * + * { margin-top: var(--dimension-spacing-core-3xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='3xl'] > * + * { margin-left: var(--dimension-spacing-core-3xl) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='4xl'] > * + * { margin-top: var(--dimension-spacing-core-4xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='4xl'] > * + * { margin-left: var(--dimension-spacing-core-4xl) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='5xl'] > * + * { margin-top: var(--dimension-spacing-core-5xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='5xl'] > * + * { margin-left: var(--dimension-spacing-core-5xl) !important; }
+.no-flexgap [data-stack='column'][data-stack-gap='6xl'] > * + * { margin-top: var(--dimension-spacing-core-6xl) !important; }
+.no-flexgap [data-stack='row'][data-stack-gap='6xl'] > * + * { margin-left: var(--dimension-spacing-core-6xl) !important; }
+
+/* The flush rows cancel the body's gap; without flex gap there is no gap to cancel, so they sit at 0. */
+.no-flexgap [data-card-body] > [data-flush-row] + [data-flush-row] {
+  margin-top: 0 !important;
 }
