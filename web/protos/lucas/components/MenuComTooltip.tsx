@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { MainMenu } from '@/ui-kit/MainMenu'
 import { BUG_GLOBO_SRC } from '../dados-bug-globo'
 import { AVATAR_ANONIMO } from '../dados-avatar-anonimo'
+import { estiloUnico } from './estiloUnico'
 import { abreTooltip, entrouTooltip, faseTooltip, irParaEsquerda, tooltipJaEntrou } from './tooltipLogin'
 
 // Opção 9 (ajuste da 7, com a entrada círculo→pílula, squash, texto aos 90% e saída com descida) de docs/explorations/tooltip-perfil-login/index.html: valores finais lidos do CSS da opção, como estão.
@@ -150,6 +151,8 @@ ${reduzido('.mpt-raiz')}
 }
 ${reduzido('.mpt-raiz[data-reduced]')}
 `
+// Uma folha por página, posta ao carregar o módulo: no JSX ela entrava de novo a cada troca de foco (ver estiloUnico).
+estiloUnico('menu-com-tooltip', CSS)
 
 export interface MenuComTooltipProps {
   focusedItem?: 'login' | 'schedule' | 'miscellaneous' | 'program' | 'channel-bug' | null
@@ -217,7 +220,6 @@ export function MenuComTooltip({ focusedItem = 'channel-bug', programTitle, prog
       data-prep={morfa && estado === 'programa' ? '' : undefined}
       data-reduced={reduzido ? '' : undefined}
     >
-      <style>{CSS}</style>
       <MainMenu
         focusedItem={focusedItem}
         miscellaneousTitle="Previsão do tempo"

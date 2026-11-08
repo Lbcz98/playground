@@ -17,7 +17,7 @@ export default function HomeLogin() {
           <InteractivityMenu align="start">
             <InteractivityButton interactionState="default" overline="Conta Globo" overlineSize="title" title="Entre ou cadastre-se" />
           </InteractivityMenu>
-          <MenuComPerfilAnimado focusedItem="login" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
+          <MenuComPerfilAnimado key="menu" focusedItem="login" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>
       </Stack>
     </Screen>

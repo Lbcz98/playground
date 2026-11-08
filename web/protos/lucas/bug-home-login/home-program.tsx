@@ -13,7 +13,10 @@ export default function HomeProgram() {
     <Screen model="home" level={1} video={<VideoAoVivo src={STREAM_URL} />}>
       {/* o menu não ancora sozinho na borda de baixo; o Stack empurra o menu para o fim do quadro */}
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
-        <MenuComPerfilAnimado focusedItem="program" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
+        {/* O mesmo Stack interno das Homes com trilha: o menu fica no mesmo lugar da árvore, o React o atualiza em vez de recriá-lo, e a troca de foco anda na mola (recriado, ele pulava e custava ~40 ms de estilo no Chrome 68). */}
+        <Stack direction="column" justify="end" align="stretch" gap="sm">
+          <MenuComPerfilAnimado key="menu" focusedItem="program" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
+        </Stack>
       </Stack>
     </Screen>
   )
