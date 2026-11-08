@@ -2,10 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Box, Stack } from '@/primitives'
 import { BugAnimado } from './BugAnimado'
 import { CardLoginRepouso } from './CardLoginRepouso'
+import { estiloUnico } from './estiloUnico'
 
 const ALVO = 'login-saindo'
 const KEYFRAMES = 'login-saindo-fade'
 const DURACAO_MS = 800 // espelha --motion-semantic-duration (800ms): os dois valores andam juntos
+// Os keyframes entram uma vez por página, ao carregar o módulo, e não no meio da troca de tela (ver estiloUnico).
+estiloUnico('login-saindo', `@keyframes ${KEYFRAMES} { from { opacity: 1; } to { opacity: 0; } }`)
 
 /**
  * @proposal
@@ -20,18 +23,9 @@ export function LoginSaindo(): ReactNode {
   useEffect(() => {
     const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const alvo = document.getElementById(ALVO)
-    let tag: HTMLStyleElement | null = null
-    if (alvo && !reduzido) {
-      tag = document.createElement('style')
-      tag.textContent = `@keyframes ${KEYFRAMES} { from { opacity: 1; } to { opacity: 0; } }`
-      document.head.appendChild(tag)
-      alvo.style.animation = `${KEYFRAMES} var(--motion-semantic-duration) ease-out both`
-    }
+    if (alvo && !reduzido) alvo.style.animation = `${KEYFRAMES} var(--motion-semantic-duration) ease-out both`
     const espera = window.setTimeout(() => setFase('bug'), reduzido ? 0 : DURACAO_MS)
-    return () => {
-      window.clearTimeout(espera)
-      tag?.remove()
-    }
+    return () => window.clearTimeout(espera)
   }, [])
 
   if (fase === 'fade') {

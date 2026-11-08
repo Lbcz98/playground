@@ -37,7 +37,10 @@ const RING_WIDTH = token('--dimension-border-width-semantic-focus-ring')
 
 const shapeBox: CSSProperties = {
   position: 'absolute',
-  inset: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
   pointerEvents: 'none',
   overflow: 'hidden',
 }
@@ -45,14 +48,20 @@ const shapeBox: CSSProperties = {
 /** Figma's Area: the inset fill with its fade, over the whole shape — nothing coloured under it. */
 const fill: CSSProperties = {
   position: 'absolute',
-  inset: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
   backgroundColor: token('--color-semantic-focus-inset'),
   backgroundImage: `linear-gradient(0deg, ${token('--color-semantic-focus-inset-fade')} 0%, transparent 100%)`,
 }
 
 const glow: CSSProperties = {
   position: 'absolute',
-  inset: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
   opacity: token('--opacity-semantic-focus-glow'),
   backgroundImage:
     `radial-gradient(ellipse at 50% 100%, ${token('--color-semantic-focus-glow')} 0%, ` +
@@ -62,7 +71,10 @@ const glow: CSSProperties = {
 /** Figma's Ring: the gradient as an inside stroke — a band `RING_WIDTH` wide, masked out of the middle. */
 const band: CSSProperties = {
   position: 'absolute',
-  inset: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
   padding: RING_WIDTH,
   boxSizing: 'border-box',
   backgroundImage: token('--gradient-semantic-focus-ring'),

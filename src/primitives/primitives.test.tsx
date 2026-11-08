@@ -107,8 +107,11 @@ describe('<Box> and <Stack>', () => {
         x
       </Box>,
     )
-    expect(out).toContain('padding-inline:var(--dimension-spacing-core-lg)')
-    expect(out).toContain('padding-block:var(--dimension-spacing-core-xs)')
+    // Physical sides (padding-inline/-block need Chrome 87; the TV floor is Chrome 68).
+    expect(out).toContain(
+      'padding-top:var(--dimension-spacing-core-xs);padding-right:var(--dimension-spacing-core-lg);' +
+        'padding-bottom:var(--dimension-spacing-core-xs);padding-left:var(--dimension-spacing-core-lg)',
+    )
     expect(out).toContain('background-color:var(--color-semantic-functional-background-elevated)')
     expect(out).toContain(
       'border:var(--dimension-border-width-semantic-card) solid var(--color-semantic-functional-border-subtle)',

@@ -30,6 +30,10 @@
   overflow: hidden;
   width: var(--dimension-size-semantic-round-button-circle);
   height: var(--dimension-size-semantic-round-button-circle);
+  /* Centred by its own margins too: Chrome 68 lays the button's single grid column at the start, so `place-items`
+     left the circle at the left edge (8 pixels off the button's centre, and off the ring, badge and any motion drawn on
+     the button). In engines that centre the column it changes nothing. */
+  margin: auto;
   border-radius: var(--dimension-radius-semantic-pill);
 }
 
@@ -234,7 +238,8 @@
   width: var(--_alert-bug-halo);
   height: var(--_alert-bug-halo);
   border-radius: var(--dimension-radius-semantic-pill);
-  transform: translate3d(-50%, -50%, 0);
+  /* Half the box in length, not -50%: Chrome 68 keeps an animated % translate on the main thread (a restyle a frame). */
+  transform: translate3d(calc(var(--_alert-bug-halo) / -2), calc(var(--_alert-bug-halo) / -2), 0);
 }
 
 .sfs-alert-bug-halo-grow {
@@ -351,9 +356,10 @@
   from { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
+/* The halo's centring in length, not -50%: Chrome 68 keeps an animated % translate on the main thread. */
 @keyframes sfs-alert-bug-in-halo {
-  from { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-from-scale)); }
-  to { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
+  from { opacity: 0; transform: translate3d(calc(var(--_alert-bug-halo) / -2), calc(var(--_alert-bug-halo) / -2), 0) scale(var(--_alert-bug-from-scale)); }
+  to { opacity: 1; transform: translate3d(calc(var(--_alert-bug-halo) / -2), calc(var(--_alert-bug-halo) / -2), 0) scale(1); }
 }
 @keyframes sfs-alert-bug-grow {
   from { transform: scale(var(--_alert-bug-halo-from)) translateZ(0); }
@@ -367,9 +373,10 @@
   from { opacity: 1; transform: translate3d(0, 0, 0); }
   to { opacity: 0; transform: translate3d(0, var(--_alert-bug-text-rise), 0); }
 }
+/* Same length centring as sfs-alert-bug-in-halo (Chrome 68 keeps an animated % translate on the main thread). */
 @keyframes sfs-alert-bug-out-halo {
-  from { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
-  to { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--_alert-bug-out-scale)); }
+  from { opacity: 1; transform: translate3d(calc(var(--_alert-bug-halo) / -2), calc(var(--_alert-bug-halo) / -2), 0) scale(1); }
+  to { opacity: 0; transform: translate3d(calc(var(--_alert-bug-halo) / -2), calc(var(--_alert-bug-halo) / -2), 0) scale(var(--_alert-bug-out-scale)); }
 }
 @keyframes sfs-alert-bug-fade-in {
   from { opacity: 0; }
@@ -1644,4 +1651,136 @@ a:focus-visible > .sfs-link-surface:has([data-focus-ring]) {
 
 .sfs-technical-sheet-card-row dd {
   margin-inline-start: var(--dimension-spacing-core-3xs);
+}
+
+/*
+ * Older engines (the TV floor: Chrome 68, Safari 16). Everything below is scoped to a class the app's early
+ * script sets on <html> only where a feature is missing, so engines that have it never apply any of it.
+ *
+ * `no-focus-visible` (Chrome < 86): the link-surface outline above, on `:focus` — a TV has no pointer, so every
+ * focus is a keyboard focus. What `:has()` decides above cannot be said without it (Chrome < 105): the anchor
+ * keeps the browser's own focus outline next to its surface's, and a resting card whose footer holds a
+ * WideButton is dimmed like any other resting card.
+ */
+.no-focus-visible a:focus > .sfs-link-surface {
+  outline: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  outline-offset: var(--dimension-spacing-semantic-focus-offset);
+}
+
+.no-focus-visible a:focus > .sfs-link-surface[data-state='focus'] {
+  outline: none;
+}
+
+/*
+ * `no-flexgap` (Chrome < 84 reads `gap` for grid only): each flex container's gap becomes a margin on its in-flow
+ * children after the first, along its direction, at the same step. Layers, the focus ring and the resting border
+ * are placed absolutely, out of the flow, so they are skipped. `!important` because Box and Text zero their own
+ * margin inline. The margin springs like the gap did (primitives.css).
+ */
+.no-flexgap .sfs-wide-button-content > * + *,
+.no-flexgap .sfs-interactivity-button-header > * + *,
+.no-flexgap .sfs-interactivity-button-advertising > * + *,
+.no-flexgap .sfs-interactivity-menu-rail > * + *,
+.no-flexgap .sfs-table-cell > * + *,
+.no-flexgap .sfs-table-cell-group > * + *,
+.no-flexgap .sfs-table-cell-stats > * + *,
+.no-flexgap .sfs-content-card-match > * + *,
+.no-flexgap .sfs-content-card-side > * + *,
+.no-flexgap .sfs-content-card-partner > * + *,
+.no-flexgap .sfs-content-card-subtitle > * + *,
+.no-flexgap .sfs-content-card-ad > * + *,
+.no-flexgap .sfs-content-card-stats > * + *,
+.no-flexgap .sfs-content-card-footer > * + *,
+.no-flexgap .sfs-about-detail-card-details > * + * {
+  margin-left: var(--dimension-spacing-core-2xs) !important;
+}
+
+.no-flexgap .sfs-table-cell[data-type='athlete'] .sfs-table-cell-group > * + * {
+  margin-left: var(--dimension-spacing-core-3xs) !important;
+}
+
+.no-flexgap .sfs-about-detail-card-header > * + * {
+  margin-left: var(--dimension-spacing-core-xs) !important;
+}
+
+.no-flexgap .sfs-content-card-heading > * + *,
+.no-flexgap .sfs-screen-anchor > * + * {
+  margin-left: var(--dimension-spacing-core-sm) !important;
+}
+
+.no-flexgap .sfs-notification-pill > :not([data-focus-ring]):not(.sfs-resting-border) ~ :not([data-focus-ring]):not(.sfs-resting-border) {
+  margin-left: var(--dimension-spacing-core-xs) !important;
+}
+
+/* The label's icon sits before its text, which no selector reaches; the icon shows only in focus, not mini (the 2xs gap). */
+.no-flexgap .sfs-label-video-icon {
+  margin-right: var(--dimension-spacing-core-2xs) !important;
+}
+
+.no-flexgap .sfs-interactivity-button-body > * + *,
+.no-flexgap .sfs-content-card-text > * + *,
+.no-flexgap .sfs-main-menu-text > * + *,
+.no-flexgap .sfs-main-menu-lines > * + *,
+.no-flexgap .sfs-main-menu-program > * + *,
+.no-flexgap .sfs-technical-sheet-card-list > * + * {
+  margin-top: var(--dimension-spacing-core-3xs) !important;
+}
+
+.no-flexgap .sfs-content-card[data-image] .sfs-content-card-text > * + *,
+.no-flexgap .sfs-content-card-qr-intro > * + *,
+.no-flexgap .sfs-content-card-header > * + * {
+  margin-top: var(--dimension-spacing-core-2xs) !important;
+}
+
+.no-flexgap .sfs-content-card-body > * + * {
+  margin-top: var(--dimension-spacing-semantic-table-row-gap) !important;
+}
+
+.no-flexgap .sfs-technical-sheet-card > :not([data-focus-ring]):not(.sfs-resting-border) ~ :not([data-focus-ring]):not(.sfs-resting-border) {
+  margin-top: var(--dimension-spacing-core-xs) !important;
+}
+
+.no-flexgap .sfs-screen > :not(.sfs-screen-layer) ~ :not(.sfs-screen-layer) {
+  margin-top: var(--dimension-spacing-core-sm) !important;
+}
+
+.no-flexgap .sfs-content-card-zones > * + * {
+  margin-top: var(--_gap) !important;
+}
+
+/* The footer keeps its pin to the card's bottom edge (with the gap it also kept at least the gap above it). */
+.no-flexgap .sfs-content-card-zones > .sfs-content-card-footer {
+  margin-top: auto !important;
+}
+
+.no-flexgap .sfs-content-card[data-image] .sfs-content-card-zones > * + .sfs-content-card-footer {
+  margin-top: var(--_gap) !important;
+}
+
+/* A footer's WideButton spans the footer, so it always wraps under the caption: the gap is above it, not beside. */
+.no-flexgap .sfs-content-card-footer > * + .sfs-wide-button {
+  margin-top: var(--dimension-spacing-core-2xs) !important;
+  margin-left: 0 !important;
+}
+
+/*
+ * `no-round-outline` (Chrome < 94 and Safari < 16.4 draw an outline square, ignoring border-radius): the bug's
+ * focus outline as a ring of its own, at the same width, offset and colour, following the pill.
+ */
+.no-round-outline .sfs-main-menu-bug[data-focused] {
+  position: relative;
+  outline: none;
+}
+
+.no-round-outline .sfs-main-menu-bug[data-focused]::after {
+  content: '';
+  position: absolute;
+  top: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  right: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  bottom: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  left: calc(-1 * (var(--dimension-spacing-semantic-focus-offset) + var(--dimension-border-width-semantic-focus-ring)));
+  box-sizing: border-box;
+  border: var(--dimension-border-width-semantic-focus-ring) solid var(--color-semantic-focus-outline);
+  border-radius: var(--dimension-radius-semantic-pill);
+  pointer-events: none;
 }

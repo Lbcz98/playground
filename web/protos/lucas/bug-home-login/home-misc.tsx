@@ -17,7 +17,7 @@ export default function HomeMisc() {
           <InteractivityMenu align="start">
             <InteractivityButton interactionState="default" title="Previsão do tempo" />
           </InteractivityMenu>
-          <MenuComPerfilAnimado focusedItem="miscellaneous" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
+          <MenuComPerfilAnimado key="menu" focusedItem="miscellaneous" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>
       </Stack>
     </Screen>

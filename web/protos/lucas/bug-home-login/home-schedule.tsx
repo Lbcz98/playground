@@ -21,7 +21,7 @@ export default function HomeSchedule() {
             <InteractivityButton interactionState="default" overline="21:30" title="Quem Ama Cuida" />
             <InteractivityButton interactionState="default" overline="22:40" title="Chef de Alto Nível - 2ª temporada" />
           </InteractivityMenu>
-          <MenuComPerfilAnimado focusedItem="schedule" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
+          <MenuComPerfilAnimado key="menu" focusedItem="schedule" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>
       </Stack>
     </Screen>

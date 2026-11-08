@@ -34,3 +34,16 @@ export function hexWithAlpha(hex: string, alpha: number): string | null {
   const byte = Math.round((alphaPercent(alpha) * own) / 100)
   return `#${digits.slice(0, 6)}${byte.toString(16).padStart(2, '0')}`.toUpperCase()
 }
+
+/**
+ * The same colour as `rgba()`, unrounded — what `color-mix(in srgb, <hex> <alpha>, transparent)` computes. The CSS
+ * compiler writes it for engines without `color-mix()`; null when `hex` is not a hex colour.
+ */
+export function rgbaWithAlpha(hex: string, alpha: number): string | null {
+  if (!HEX.test(hex)) return null
+  let digits = hex.slice(1)
+  if (digits.length <= 4) digits = [...digits].map((c) => c + c).join('')
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(digits.slice(i, i + 2), 16))
+  const own = digits.length === 8 ? parseInt(digits.slice(6), 16) / 255 : 1
+  return `rgba(${r}, ${g}, ${b}, ${Number((alpha * own).toFixed(4))})`
+}

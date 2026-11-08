@@ -3,6 +3,7 @@ import { useFlowNotice } from '@/ui-kit/flowNotice'
 import { MainMenu } from '@/ui-kit/MainMenu'
 import { BUG_GLOBO_SRC } from '../dados-bug-globo'
 import { AVATAR_ANONIMO } from '../dados-avatar-anonimo'
+import { estiloUnico } from './estiloUnico'
 
 /** Opção 11 de docs/explorations/motion-botao-de-perfil/index.html (Reflexo e duas ondas juntos), sobre o botão Login do MainMenu. Só CSS no motion; o React só põe os três elementos dentro do botão. */
 // Sem aspas, ">", "&" nem "<" no texto do CSS: o React os escapa no servidor e o cliente discorda (erro de hidratação).
@@ -22,6 +23,9 @@ const CSS = `
   --o11-wave-lag: 150ms;
   --o11-cycle-dur: 8500ms; /* 1510 ms de efeito + pausa até 8500 ms */
   --o11-cycle-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* A largura da faixa em px (40% da chapa). O Chrome 68 não leva ao compositor uma animação de translate em %: ela
+     rodava na thread principal, recalculando o estilo da página 50 vezes por segundo durante toda a Home. Em px, não. */
+  --o11-band-px: calc((var(--o11-avatar) + var(--o11-rim) * 2) * var(--o11-band-w) / 100);
 }
 .mpa [data-focus-item=login] .sfs-round-button-circle .sfs-round-button-content { z-index: 2; }
 .mpa .o11-ext { display: contents; }
@@ -46,8 +50,8 @@ const CSS = `
   background-color: var(--color-opacity-light-50);
   -webkit-filter: blur(var(--o11-band-soft)); filter: blur(var(--o11-band-soft));
   opacity: 0;
-  -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
-  transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg));
+  -webkit-transform: translateX(calc(var(--o11-band-px) * -1.6)) rotate(calc(var(--o11-band-tilt) * 1deg));
+  transform: translateX(calc(var(--o11-band-px) * -1.6)) rotate(calc(var(--o11-band-tilt) * 1deg));
   will-change: transform, opacity;
   -webkit-animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) var(--o11-delay, 600ms) infinite both;
   animation: o11-sweep var(--o11-cycle-dur) var(--o11-cycle-ease) var(--o11-delay, 600ms) infinite both;
@@ -74,18 +78,18 @@ const CSS = `
   -webkit-animation-delay: calc(var(--o11-delay, 600ms) + var(--o11-wave-lag)); animation-delay: calc(var(--o11-delay, 600ms) + var(--o11-wave-lag));
 }
 @-webkit-keyframes o11-sweep {
-  0%   { opacity: 0; -webkit-transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  0%   { opacity: 0; -webkit-transform: translateX(calc(var(--o11-band-px) * -1.6)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
   3% { opacity: var(--o11-band-opacity); }
   10% { opacity: var(--o11-band-opacity); }
-  12% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
-  100% { opacity: 0; -webkit-transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  12% { opacity: 0; -webkit-transform: translateX(calc(var(--o11-band-px) * 4.2)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  100% { opacity: 0; -webkit-transform: translateX(calc(var(--o11-band-px) * 4.2)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
 }
 @keyframes o11-sweep {
-  0%   { opacity: 0; transform: translateX(-160%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  0%   { opacity: 0; transform: translateX(calc(var(--o11-band-px) * -1.6)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
   3% { opacity: var(--o11-band-opacity); }
   10% { opacity: var(--o11-band-opacity); }
-  12% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
-  100% { opacity: 0; transform: translateX(420%) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  12% { opacity: 0; transform: translateX(calc(var(--o11-band-px) * 4.2)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
+  100% { opacity: 0; transform: translateX(calc(var(--o11-band-px) * 4.2)) rotate(calc(var(--o11-band-tilt) * 1deg)); }
 }
 @-webkit-keyframes o11-wave {
   0%   { opacity: 0; -webkit-transform: scale(1); }
@@ -112,6 +116,8 @@ const CSS = `
   .mpa .o11-wave { -webkit-animation-name: o11-fade; animation-name: o11-fade; }
 }
 `
+// Uma folha por página, posta ao carregar o módulo: no JSX ela entrava de novo a cada troca de foco (ver estiloUnico).
+estiloUnico('menu-com-perfil-animado', CSS)
 
 /**
  * A fase do motion é uma só para o fluxo todo. Uma animação CSS recomeça do zero quando seu elemento é recriado, e cada
@@ -177,7 +183,6 @@ export function MenuComPerfilAnimado({ focusedItem = 'channel-bug', programTitle
 
   return (
     <div ref={raiz} className="mpa">
-      <style>{CSS}</style>
       <MainMenu
         focusedItem={focusedItem}
         miscellaneousTitle="Previsão do tempo"

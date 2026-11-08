@@ -1,0 +1,996 @@
+<title>Chrome 68 TV Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: course page. Left topic sidebar, reading column with live demos, right "On this page" index. Dark-first. */
+:root{
+  --bg:#0b1013; --panel:#121a1f; --panel2:#0e1519; --line:#233038; --fg:#e4ecef; --muted:#8a9ca6; --faint:#5f7380;
+  --accent:#3ddc97; --accent-ink:#04180f; --accent-soft:rgba(61,220,151,.14);
+  --m-fg:#4fe0a2; --m-bg:rgba(61,220,151,.14);
+  --k-fg:#7db4ff; --k-bg:rgba(100,160,255,.15);
+  --u-fg:#ffbf6b; --u-bg:rgba(255,185,90,.16);
+  --n-fg:#c9a7ff; --n-bg:rgba(190,150,255,.15);
+  --bad:#ff7a7a; --bad-bg:rgba(255,110,110,.14);
+  --code:#0a1014; --demo-obj:#3ddc97; --demo-obj2:#ffb35c;
+  --font:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'Geist Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f3f6f7; --panel:#ffffff; --panel2:#eaf0f2; --line:#d3dde2; --fg:#10191d; --muted:#53666f; --faint:#7d8f98;
+  --accent:#0a9a68; --accent-ink:#ffffff; --accent-soft:rgba(10,154,104,.12);
+  --m-fg:#0a6d49; --m-bg:rgba(10,154,104,.13); --k-fg:#1d5fb8; --k-bg:rgba(40,110,210,.12);
+  --u-fg:#8a5200; --u-bg:rgba(220,140,20,.16); --n-fg:#6d3fb3; --n-bg:rgba(120,70,200,.12);
+  --bad:#b42323; --bad-bg:rgba(200,50,50,.1); --code:#eef3f5; --demo-obj:#0a9a68; --demo-obj2:#d9801a; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f3f6f7; --panel:#ffffff; --panel2:#eaf0f2; --line:#d3dde2; --fg:#10191d; --muted:#53666f; --faint:#7d8f98;
+  --accent:#0a9a68; --accent-ink:#ffffff; --accent-soft:rgba(10,154,104,.12);
+  --m-fg:#0a6d49; --m-bg:rgba(10,154,104,.13); --k-fg:#1d5fb8; --k-bg:rgba(40,110,210,.12);
+  --u-fg:#8a5200; --u-bg:rgba(220,140,20,.16); --n-fg:#6d3fb3; --n-bg:rgba(120,70,200,.12);
+  --bad:#b42323; --bad-bg:rgba(200,50,50,.1); --code:#eef3f5; --demo-obj:#0a9a68; --demo-obj2:#d9801a; color-scheme:light}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16.5px;line-height:1.65;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+a{color:inherit}
+h1,h2,h3{text-wrap:balance;line-height:1.2;letter-spacing:-.01em}
+h1{font-size:2.35rem;margin:.3rem 0 1rem;font-weight:650}
+h2{font-size:1.45rem;margin:3rem 0 .8rem;font-weight:620;scroll-margin-top:84px}
+h3{font-size:1.05rem;margin:1.6rem 0 .4rem}
+p{margin:.7rem 0;max-width:68ch}
+ul,ol{padding-left:1.2rem;max-width:68ch}
+li{margin:.35rem 0}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);padding:.1em .38em;border-radius:5px;overflow-wrap:anywhere}
+.lead{font-size:1.18rem;color:var(--fg);max-width:62ch}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+/* claim labels */
+tm,tk,tu,tn,ts{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.06em;padding:.08rem .45rem;border-radius:4px;vertical-align:.08em;margin-right:.35rem;line-height:1.5;white-space:nowrap}
+tm{background:var(--m-bg);color:var(--m-fg)} tm::before{content:"MEASURED"}
+tk{background:var(--k-bg);color:var(--k-fg)} tk::before{content:"KNOWN"}
+tu{background:var(--u-bg);color:var(--u-fg)} tu::before{content:"UNVERIFIED"}
+tn{background:var(--n-bg);color:var(--n-fg)} tn::before{content:"NOISY"}
+ts{background:var(--panel2);color:var(--muted);border:1px solid var(--line)} ts::before{content:"SIMULATED"}
+
+/* shell */
+.shell{display:grid;grid-template-columns:270px minmax(0,1fr) 230px;gap:40px;max-width:1360px;margin:0 auto;align-items:start}
+.side{position:sticky;top:env(safe-area-inset-top,0px);max-height:100vh;overflow:auto;padding:28px 0 40px;font-size:.92rem}
+.brand{font-weight:650;font-size:1.05rem;margin-bottom:.15rem}
+.brand span{color:var(--accent)}
+.sub{color:var(--muted);font-size:.82rem;margin-bottom:1.4rem}
+.mod{margin-bottom:1.1rem}
+.mod .ml{font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.mod .mt{font-weight:600;margin:.1rem 0 .3rem}
+.mod a{display:block;padding:.28rem .6rem;border-radius:7px;text-decoration:none;color:var(--muted);border-left:2px solid transparent}
+.mod a:hover{color:var(--fg);background:var(--panel)}
+.mod a.on{color:var(--fg);background:var(--panel);border-left-color:var(--fg);font-weight:550}
+.main{min-width:0;padding:36px 0 80px}
+.crumb{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.toc{position:sticky;top:env(safe-area-inset-top,0px);padding:34px 0;font-size:.86rem}
+.toc .th{font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:.6rem}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:.22rem 0 .22rem .8rem;border-left:1px solid var(--line)}
+.toc a:hover{color:var(--fg)}
+.toc a.on{color:var(--fg);border-left-color:var(--fg)}
+.top{display:none}
+.scrim{display:none}
+.pager{display:flex;gap:12px;margin-top:3.5rem;flex-wrap:wrap}
+.pager a{flex:1 1 220px;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:.8rem 1rem;text-decoration:none}
+.pager a:hover{border-color:var(--faint)}
+.pager small{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.pager .nx{text-align:right}
+
+@media (max-width:1180px){.shell{grid-template-columns:250px minmax(0,1fr);gap:32px}.toc{display:none}}
+@media (max-width:900px){
+  .shell{display:block}
+  .top{display:flex;position:sticky;top:env(safe-area-inset-top,0px);z-index:40;align-items:center;gap:12px;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 0;margin:0 0}
+  .top button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:.4rem .7rem;font:inherit;font-size:.9rem;cursor:pointer}
+  .top .tt{font-weight:600;font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .side{position:fixed;z-index:70;left:0;top:0;bottom:0;width:min(300px,86vw);max-height:none;background:var(--bg);border-right:1px solid var(--line);padding:calc(24px + env(safe-area-inset-top,0px)) 20px 40px max(20px,env(safe-area-inset-left,0px));transform:translateX(-102%);transition:transform .25s ease}
+  body.open .side{transform:none}
+  body.open .scrim{display:block;position:fixed;inset:0;z-index:65;background:rgba(0,0,0,.5)}
+  h1{font-size:1.9rem}
+  .main{padding-top:22px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.side{transition:none}}
+
+/* content blocks */
+.callout{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:.85rem 1rem;margin:1.1rem 0;max-width:70ch}
+.callout.warn{border-color:var(--u-fg)}
+.callout.bad{border-color:var(--bad)}
+.callout p{margin:.3rem 0}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:1rem 0;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:620px}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:.65rem .8rem;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:0}
+td.num,th.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+pre{position:relative;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:1rem 1rem;margin:1rem 0;overflow-x:auto;font-family:var(--mono);font-size:.82rem;line-height:1.6;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+.cp{position:absolute;top:8px;right:8px;background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:6px;font:inherit;font-family:var(--mono);font-size:.68rem;padding:.2rem .5rem;cursor:pointer}
+.cp:hover{color:var(--fg)}
+.rules{list-style:none;padding:0;counter-reset:r;display:grid;gap:10px;max-width:none}
+.rules li{counter-increment:r;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:.75rem 1rem .75rem 3rem;position:relative;margin:0}
+.rules li::before{content:counter(r);position:absolute;left:1rem;top:.75rem;font-family:var(--mono);font-size:.8rem;color:var(--faint)}
+.rules b{display:block;font-weight:600}
+.rules span.d{display:block;color:var(--muted);font-size:.92rem}
+
+/* demo shell */
+.demo{border:1px solid var(--line);background:var(--panel);border-radius:14px;margin:1.3rem 0;overflow:hidden}
+.demo .stage{position:relative;padding:44px 18px 22px;min-height:180px;background:var(--panel2);display:flex;flex-direction:column;gap:14px;justify-content:center}
+.chip{position:absolute;top:10px;left:12px;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;padding:.12rem .55rem;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel)}
+.demo .read{font-family:var(--mono);font-size:.78rem;line-height:1.55;color:var(--muted);padding:.8rem 1rem;border-top:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code)}
+.demo .read b{color:var(--fg);font-weight:500}
+.ctl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;padding:.85rem 1rem;border-top:1px solid var(--line)}
+.ctl label{display:flex;align-items:center;gap:.6rem;font-size:.85rem;color:var(--muted);min-width:0}
+.ctl label output{font-family:var(--mono);font-size:.8rem;color:var(--fg);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--accent);width:150px;max-width:38vw}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button,.btn,.fchip{font:inherit;font-size:.84rem;background:transparent;color:var(--muted);border:0;padding:.38rem .8rem;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.btn{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.btn:hover{color:var(--fg)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.two,.three{grid-template-columns:1fr}}
+.lane{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:.6rem .8rem;min-width:0}
+.lane .lh{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:.6rem;letter-spacing:.03em}
+.lane .lh em{font-style:normal;color:var(--fg)}
+.track{height:100px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.obj{background:var(--demo-obj);border-radius:8px;width:var(--w,48px);height:var(--w,48px);flex:none}
+.obj2{background:var(--demo-obj2)}
+
+@keyframes d-pct{from{transform:translateX(-160%)}to{transform:translateX(160%)}}
+@keyframes d-px{from{transform:translateX(calc(var(--w) * -1.6))}to{transform:translateX(calc(var(--w) * 1.6))}}
+.a-pct{animation:d-pct var(--dur,1.6s) ease-in-out infinite alternate;animation-play-state:var(--ps,running)}
+.a-px{animation:d-px var(--dur,1.6s) ease-in-out infinite alternate;animation-play-state:var(--ps,running)}
+@media (prefers-reduced-motion:reduce){.a-pct,.a-px{animation-duration:6s}}
+
+.gp{display:flex;border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:84px;align-items:flex-start}
+.gp>i{display:block;width:34px;height:34px;border-radius:6px;background:var(--demo-obj);flex:none}
+.gp>i:nth-child(2n){background:var(--demo-obj2)}
+.gp.col{flex-direction:column}
+
+/* bars */
+.brow{display:grid;grid-template-columns:minmax(96px,190px) minmax(0,1fr) auto;gap:.7rem;align-items:center;font-size:.86rem;margin:.3rem 0}
+.brow .bl{color:var(--muted)}
+.btrack{height:22px;background:var(--panel);border:1px solid var(--line);border-radius:6px;position:relative;overflow:hidden}
+.bfill{position:absolute;left:0;top:0;bottom:0;background:var(--demo-obj);border-radius:0 5px 5px 0;transition:width .5s ease}
+.bfill.hi{background:var(--demo-obj2);opacity:.45}
+.bfill.hot{background:var(--demo-obj2)}
+.brow .bv{font-family:var(--mono);font-size:.8rem;min-width:4.6em;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.brow{grid-template-columns:1fr auto}.brow .btrack{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:reduce){.bfill{transition:none}}
+
+/* column chart */
+.cols{display:flex;align-items:flex-end;gap:6px;height:190px;border-bottom:1px solid var(--faint);position:relative;margin:1.2rem 0 0;padding:0 2px}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}
+.col .cb{width:100%;max-width:46px;background:var(--demo-obj);border-radius:5px 5px 0 0;transition:height .5s ease;position:relative}
+.col .cb.hot{background:var(--demo-obj2)}
+.col .cv{font-family:var(--mono);font-size:.7rem;margin-bottom:3px;color:var(--fg)}
+.cl{display:flex;gap:6px;padding:4px 2px 0}
+.cl span{flex:1;text-align:center;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.tline{position:absolute;left:0;right:0;border-top:1px dashed var(--u-fg);pointer-events:none}
+.tline span{position:absolute;right:0;top:-1.25em;font-family:var(--mono);font-size:.66rem;color:var(--u-fg);background:var(--panel2);padding:0 .3rem}
+.band{position:absolute;left:0;right:0;background:var(--bad-bg);border-top:1px solid var(--bad);border-bottom:1px solid var(--bad);pointer-events:none}
+.band span{position:absolute;left:4px;top:2px;font-family:var(--mono);font-size:.64rem;color:var(--bad)}
+
+/* spring svg */
+.plot{width:100%;height:auto;max-height:260px}
+.plot text{fill:var(--muted);font-family:var(--mono);font-size:9px}
+.plot .ax{stroke:var(--faint);stroke-width:1;fill:none}
+.plot .gr{stroke:var(--line);stroke-width:1;fill:none}
+.plot .c1{stroke:var(--demo-obj);stroke-width:2.4;fill:none}
+.plot .c2{stroke:var(--demo-obj2);stroke-width:2;fill:none;stroke-dasharray:5 3}
+.plot .c3{stroke:var(--bad);stroke-width:1.4;fill:none}
+.sl{height:44px;position:relative;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.sl .obj{position:absolute;left:0;top:7px;--w:28px;transition-property:transform;transition-duration:var(--d,800ms)}
+
+/* filters */
+.fbar{display:flex;flex-wrap:wrap;gap:8px;margin:1rem 0 .4rem;align-items:center}
+.fchip{border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;background:var(--panel)}
+.fchip[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.fchip small{font-family:var(--mono);opacity:.7;margin-left:.3rem}
+.pill{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:.08rem .5rem;border-radius:999px;white-space:nowrap;letter-spacing:.03em}
+.s-no{background:var(--bad-bg);color:var(--bad)}
+.s-high{background:var(--u-bg);color:var(--u-fg)}
+.s-watch{background:var(--k-bg);color:var(--k-fg)}
+.s-ok{background:var(--m-bg);color:var(--m-fg)}
+.s-unk{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+.ck{list-style:none;padding:0;max-width:none;display:grid;gap:8px}
+.ck li{margin:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:.65rem .9rem;display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;align-items:start}
+.ck input{margin-top:.35rem;accent-color:var(--accent);width:1.05rem;height:1.05rem}
+.ck .why{grid-column:2;color:var(--muted);font-size:.88rem}
+.ck li.done .tx{text-decoration:line-through;color:var(--faint)}
+.empty{color:var(--muted);padding:1rem;border:1px dashed var(--line);border-radius:10px}
+.cmd{margin:.3rem 0}
+article[hidden]{display:none}
+</style>
+
+<div class="top">
+  <button id="menuBtn" aria-label="Open topics">Topics</button>
+  <div class="tt" id="topTitle">Chrome 68 TV Guide</div>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell">
+<nav class="side" id="side" aria-label="Topics">
+  <div class="brand">Chrome 68 <span>TV</span> Guide</div>
+  <div class="sub">What the Globo DTV overlays learned on a real TV in a real Chrome 68 engine.</div>
+  <div id="nav"></div>
+</nav>
+
+<main class="main" id="main">
+<div class="crumb" id="crumb"></div>
+
+<!-- ============ OVERVIEW ============ -->
+<article data-page="overview">
+<h1>Design for a Chrome 68 TV</h1>
+<p class="lead">Real viewers watch on TV browsers about as old as Chrome 68, on a weak chip, with a remote. This guide says what that engine can and cannot draw, which effects make it stutter, and how to design around both.</p>
+
+<h2 id="read">How to read this guide</h2>
+<p>Every claim carries one label. We never upgrade a label.</p>
+<div class="tw"><table>
+<tr><td><tm></tm></td><td>We measured it on the TV. The number is next to it.</td></tr>
+<tr><td><tk></tk></td><td>Documented browser behaviour. We did not measure it here.</td></tr>
+<tr><td><tu></tu></td><td>We suspect it. Do not treat it as fact.</td></tr>
+<tr><td><tn></tn></td><td>The number came from an A/B run that was noisy. Read it as a hint.</td></tr>
+<tr><td><ts></ts></td><td>A demo that fakes a behaviour so you can see the rule.</td></tr>
+</table></div>
+<div class="callout warn"><p><b>About the demos.</b> They run in your browser, which is much newer and faster than the TV. They show the rule. They cannot reproduce TV timings. The timings on this page come from the TV.</p></div>
+
+<h2 id="rules10">The ten rules in one screen</h2>
+<ol class="rules">
+<li><b>Animate only <code>transform</code> and <code>opacity</code>, and give them pixel values.</b><span class="d"><tm></tm>Same animation: 181 style passes with a percent translate, 0 with pixels.</span></li>
+<li><b>Never put a percent translate inside keyframes.</b><span class="d"><tm></tm>Centre with margins, anchors, or <code>calc()</code> that resolves to pixels.</span></li>
+<li><b>Centre with <code>margin: auto</code> as well as <code>place-items</code>.</b><span class="d"><tm></tm>Chrome 68 drew a round button circle 8 px left of centre. <tu></tu>The root cause is not known.</span></li>
+<li><b>Give every <code>linear()</code> spring a <code>cubic-bezier</code> fallback.</b><span class="d"><tk></tk><code>linear()</code> starts in Chrome 113.</span></li>
+<li><b>Do not use <code>color-mix</code>, relative colour, <code>:has()</code>, <code>:focus-visible</code>, <code>inset</code>, logical properties or flex <code>gap</code> without a fallback.</b><span class="d"><tk></tk>Use the project fallbacks.</span></li>
+<li><b>Run few infinite animations at once.</b><span class="d"><tm></tm>A trace of the idle home shows four loops running. <tu></tu>Their exact cost was not isolated.</span></li>
+<li><b>Keep the same element in the same place in the React tree between states.</b><span class="d"><tm></tm>Otherwise about 130 elements are thrown away and rebuilt on every key.</span></li>
+<li><b>Never render a <code>&lt;style&gt;</code> inside JSX.</b><span class="d"><tu></tu>The fix was applied on reasoning. Its own effect was not separated from noise.</span></li>
+<li><b>Judge feel on a production build, never on the dev server.</b><span class="d"><tm></tm>First screen 11 s in dev, 3 to 5 s in production.</span></li>
+<li><b>Run one browser at a time on the TV.</b><span class="d"><tm></tm>A background WebView of about 180 MB led to low-memory kills and a renderer crash.</span></li>
+</ol>
+
+<h2 id="where">Where the work lives</h2>
+<p>All of this is uncommitted on branch <code>tv/chrome68-and-perf</code>. Files worth opening:</p>
+<div class="tw"><table>
+<tr><th>File</th><th>What it does</th></tr>
+<tr><td><code>web/app/early-script.ts</code></td><td>Polyfills, feature classes (<code>no-flexgap</code>, <code>no-focus-visible</code>, <code>no-round-outline</code>), TV mode, arrow-key navigation.</td></tr>
+<tr><td><code>web/next.config.mjs</code>, <code>web/postcss-legacy.js</code>, <code>web/postcss.config.js</code></td><td>Build target for Chrome 68 and the CSS fallbacks.</td></tr>
+<tr><td><code>web/app/[designer]/[screen]/FlowPlayer.tsx</code></td><td>Switches flow states in one render.</td></tr>
+<tr><td><code>src/ui-kit/ui-kit.css</code>, <code>src/primitives/*</code>, <code>src/styles/global.css</code></td><td>Kit styles with fallbacks (halo in px, focus ring, margins for gap).</td></tr>
+<tr><td><code>src/shared/design-system/spring.ts</code>, <code>scripts/tokens/compile.ts</code></td><td>The spring as <code>linear()</code> and the generated <code>rgba()</code> fallbacks.</td></tr>
+<tr><td><code>web/protos/lucas/components/MenuComPerfilAnimado.tsx</code>, <code>MenuComTooltip.tsx</code>, <code>estiloUnico.ts</code></td><td>Profile light sweep in px, tooltip morph (still percent), one-time style install.</td></tr>
+</table></div>
+</article>
+
+<!-- ============ RIG ============ -->
+<article data-page="rig">
+<h1>The test rig</h1>
+<p class="lead">We compared two engines on one weak TV. Chrome 68 is the test of record, because real users run TV browsers equal to it at 1280×720.</p>
+
+<h2 id="tv">The TV and the two engines</h2>
+<div class="tw"><table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>TV</td><td>Philips 50PUG7406/78, Android TV 11, MediaTek, GPU Mali-G52, 4 cores</td></tr>
+<tr><td>Memory</td><td>1.4 GB total, about 550 to 600 MB free. 32-bit ARM (armeabi-v7a). Panel 1920×1080.</td></tr>
+<tr><td>Engine A (test of record)</td><td>Chromium 68.0.3440, official snapshot build 561736 "ContentShell", package <code>org.chromium.content_shell_apk</code>. Its user agent says "Chrome/99.77.34.5". That is a placeholder. The engine really is 68.</td></tr>
+<tr><td>Engine B</td><td>The TV's Android WebView, Chrome 156. Modern, so it hides Chrome 68 problems.</td></tr>
+<tr><td>App</td><td>"Localhost Shell": a WebView plus a launcher for Chrome 68. Its first list row switches the engine. It finds the Mac's dev servers.</td></tr>
+</table></div>
+<p><tm></tm> All hardware facts above were read from the TV.</p>
+
+<h2 id="tvmode">TV mode: 1280×720 and fullscreen</h2>
+<p>Add <code>?tv=1</code> to the URL. The viewport meta tag becomes <code>width=1280</code>, so the stage draws at 1280×720 and scale 1.</p>
+<ul>
+<li><tm></tm>Before fullscreen, Chrome 68 reports 1280×668. The URL bar takes 52 px.</li>
+<li><tm></tm>On the first key press the page asks for fullscreen (the prefixed <code>webkit</code> API in Chrome 68).</li>
+<li><tm></tm>In fullscreen, ContentShell forces the layout to 960 wide. The stage then draws at scale 0.75. The pixels on screen are the same. It is not a 1280 layout.</li>
+</ul>
+
+<h2 id="harness">The harness: tvperf.mjs</h2>
+<p>A Node script drives the page over the DevTools protocol and reports, for every key press:</p>
+<ul>
+<li>milliseconds until the new flow state is in the DOM;</li>
+<li>frames drawn in the next 1.2 s (about 72 means smooth at 60 fps);</li>
+<li>the longest gap between frames;</li>
+<li>long tasks (main-thread blocks over 50 ms).</li>
+</ul>
+<p><code>--trace</code> records a Chrome trace. <code>traceinfo.mjs</code> reads it and splits main-thread time per key into script, style, layout, paint, commit and GC, and names the biggest style pass and its element count. <code>--css</code> injects rules to A/B a suspect. <code>--adb</code> sends real remote keys.</p>
+
+<h2 id="lessons">Lessons about the rig itself</h2>
+<ul>
+<li><tn></tn><tm></tm>Run each variant at least twice. Two identical WebView runs gave 22 and 43 janky frames. Baseline-to-baseline noise was as large as many effects we tried to see.</li>
+<li><tm></tm>Reading <code>innerText</code> inside a probe forces layout and fakes stalls. An early report of "1 to 4 s on first visits" was this artefact. Real screen changes appear 40 to 170 ms after the key.</li>
+<li><tm></tm>Keys sent over DevTools do not count as user activity for Android. The harness sends <code>KEYCODE_WAKEUP</code> every minute.</li>
+<li><tm></tm>Hanging DevTools calls need timeouts. Two runs in our notes timed out after 360 s.</li>
+</ul>
+</article>
+
+<!-- ============ LACKS ============ -->
+<article data-page="lacks">
+<h1>What Chrome 68 does not support</h1>
+<p class="lead">Each missing feature has a fallback in the project. All fallbacks are additive, so modern browsers render exactly as before. A few things have no fallback and simply cannot be done.</p>
+
+<h2 id="build">First problem: the page did not start</h2>
+<p><tm></tm>Next 16 builds for Chrome 111 by default. In that build, 56 of 83 JavaScript chunks did not parse in Chrome 68. The page stayed white on "Carregando tela…".</p>
+<p><tm></tm><code>npm run build:tv</code> sets <code>BROWSERSLIST="chrome &gt;= 68, safari &gt;= 16"</code> and writes to <code>.next-tv</code>. All 85 chunks then parse as ES2019.</p>
+
+<h2 id="table">Feature by feature</h2>
+<p>Version numbers are Chrome versions. <tk></tk> applies to the version. The last column says what we did.</p>
+<div class="fbar" id="featFilter"></div>
+<div class="tw"><table id="featTable"></table></div>
+
+<h2 id="nodo">What cannot be done</h2>
+<div class="callout bad">
+<p><b>The colour-cycling focus ring.</b> <tk></tk>It needs relative colour, <code>oklch(from …)</code>, which starts in Chrome 119. <tm></tm>In Chrome 68 the keyframes erased the ring, so the cycle is off and a static ring shows. This also changes Chrome 111 to 118 and Safari 16.4 to 17. Design a static ring first. Treat the cycle as a bonus for new browsers.</p>
+</div>
+<p><tk></tk><code>:has()</code> has no full fallback. Two cases stay degraded: a resting card whose footer holds a WideButton stays dimmed, and a <code>&lt;Link&gt;</code> around a kit surface keeps the browser's own outline.</p>
+
+<h2 id="gapdemo">Demo: flex gap and its fallback</h2>
+<p>Chrome 68 ignores <code>gap</code> on flex containers. The early script puts <code>no-flexgap</code> on the <code>html</code> element. Children then get margins per direction and step. <tm></tm>The margins spring like gap did.</p>
+<div class="demo">
+  <div class="stage">
+    <span class="chip">Your browser supports flex gap</span>
+    <div class="three">
+      <div><div class="small muted" style="margin-bottom:6px">Modern: <code>gap</code></div><div class="gp" id="g1"><i></i><i></i><i></i><i></i></div></div>
+      <div><div class="small muted" style="margin-bottom:6px"><ts></ts>Chrome 68, no fallback</div><div class="gp" id="g2"><i></i><i></i><i></i><i></i></div></div>
+      <div><div class="small muted" style="margin-bottom:6px">Chrome 68 with margins</div><div class="gp" id="g3"><i></i><i></i><i></i><i></i></div></div>
+    </div>
+  </div>
+  <div class="read" id="gread"></div>
+  <div class="ctl">
+    <div class="seg" id="gdir"><button aria-pressed="true" data-v="row">Row</button><button aria-pressed="false" data-v="col">Column</button></div>
+    <label>Gap <input type="range" id="gsize" min="0" max="40" value="16"><output id="gout">16px</output></label>
+  </div>
+</div>
+<p class="small muted">Middle pane is faked: your browser does support gap, so we removed it to show what Chrome 68 would draw.</p>
+
+<h2 id="springdemo">Demo: the 800 ms spring and its fallback curve</h2>
+<p>The kit's one easing is a spring (damping 15, stiffness 56) written as <code>linear()</code> with 41 sampled points. Chrome 68 does not know <code>linear()</code>. The fallback is <code>cubic-bezier(0.216, 0.118, 0.232, 0.979)</code>.</p>
+<div class="demo">
+  <div class="stage">
+    <span class="chip" id="schip">…</span>
+    <svg class="plot" id="splot" viewBox="0 0 340 200" role="img" aria-label="Two easing curves from 0 to 1 over 800 milliseconds"></svg>
+    <div class="sl"><div class="obj" id="so1"></div></div>
+    <div class="sl"><div class="obj obj2" id="so2"></div></div>
+  </div>
+  <div class="read" id="sread"></div>
+  <div class="ctl">
+    <button class="btn pri" id="splay">Replay</button>
+    <label>Speed <input type="range" id="sspeed" min="1" max="10" value="10"><output id="sspo">1×</output></label>
+    <div class="seg" id="sdiff"><button aria-pressed="false" data-v="0">Hide difference</button><button aria-pressed="true" data-v="1">Show difference ×20</button></div>
+  </div>
+</div>
+<p class="small muted">Green solid is the spring. Orange dashed is the fallback. Red is the gap between them, magnified 20 times. We computed the gap in your browser from the real 41 points. It is not a TV measurement.</p>
+
+<h2 id="center">A centring bug without a known cause</h2>
+<p><tm></tm><code>place-items: center</code> did not centre the kit's round-button circle horizontally in Chrome 68. The circle sat 8 px left of the button centre. The ripple and the tooltip are anchored to the true centre, so they looked shifted. Adding <code>margin: auto</code> on <code>.sfs-round-button-circle</code> fixed it.</p>
+<p><tu></tu>Root cause unknown. The button's grid track reported <code>none</code> in Chrome 68 and <code>88px</code> in modern Chrome. Rule for designers: never trust <code>place-items</code> alone for a single grid child. Add <code>margin: auto</code>.</p>
+<pre data-copy><code>.sfs-round-button-circle {
+  place-items: center;
+  margin: auto; /* Chrome 68 needs this */
+}</code></pre>
+</article>
+
+<!-- ============ PLATFORM ============ -->
+<article data-page="platform">
+<h1>Beyond CSS: keys, Back, memory, video</h1>
+<p class="lead">Several problems on the TV had nothing to do with styling. They still change what a designer can promise.</p>
+
+<h2 id="keys">Arrow keys and focus</h2>
+<p><tm></tm>Chrome 68 has no spatial navigation. Arrow keys only scroll the page, so link lists were unreachable.</p>
+<p>TV mode now moves focus to the nearest link or control in the arrow's direction. Flows read the keys themselves and are left alone. Design implication: any new list of links works with the arrows. A custom widget must handle its own keys.</p>
+
+<h2 id="back">The Back button</h2>
+<p><tm></tm>The remote's Back becomes <code>history.back()</code> on Android. It left the flow.</p>
+<p>TV mode keeps one history entry in front of the flow. Each Back pops it and is turned into the flow's Back. At the <code>hidden</code> state, or when Back changes nothing, the next Back leaves. Design implication: tell developers what Back does on every screen.</p>
+
+<h2 id="fullscreen">Fullscreen and viewport</h2>
+<p><tm></tm>The first key press asks for fullscreen. In fullscreen ContentShell lays the page out at 960 wide and the stage draws at scale 0.75. <tu></tu>We have not checked whether real Chrome 68 TV browsers do the same. Do not design around a 960 layout. Design for the 1280×720 stage.</p>
+
+<h2 id="clock">The clock</h2>
+<p><tm></tm>The TV clock is UTC. "On now" programme logic gives different answers than on the Mac. The TV's time zone is set in Settings, Device Preferences, Date and time.</p>
+
+<h2 id="video">Video</h2>
+<ul>
+<li><tm></tm>This open-source Chromium 68 build has no H.264 or AAC. <code>MediaSource.isTypeSupported</code> is false for H.264 and true for VP9 in WebM. It has no native HLS.</li>
+<li><tm></tm>hls.js 1.5.17 starts on Chrome 68 (<code>isSupported</code> true, playlist and first segment fetched) but never plays. The Globo stream cannot play in the test build. The modern WebView plays it.</li>
+<li><tk></tk>Real Chrome 68 TVs have H.264. Broadcast video on a real TV is drawn on a separate hardware plane. So an empty background does not make our test lighter than reality. The screens look emptier.</li>
+<li>Option: use a VP9/WebM background clip in the test build.</li>
+<li><tm></tm>The Android WebView shows a grey play-icon poster before the first frame. The app fixes it with <code>getDefaultVideoPoster</code>.</li>
+<li><tm></tm>The Globo stream URL has an expiring token. An expired one returns HTTP 403.</li>
+</ul>
+
+<h2 id="mem">Memory</h2>
+<div class="tw"><table>
+<tr><th>Item</th><th class="num">Value</th><th>Label</th></tr>
+<tr><td>Chrome 68 page process (RSS)</td><td class="num">about 110 to 130 MB</td><td><tm></tm></td></tr>
+<tr><td>Privileged and sandbox processes</td><td class="num">80 to 180 MB</td><td><tm></tm></td></tr>
+<tr><td>JS heap on the flow</td><td class="num">about 10 MB</td><td><tm></tm></td></tr>
+<tr><td>WebView left in background</td><td class="num">about 180 MB</td><td><tm></tm></td></tr>
+</table></div>
+<p><tm></tm>The background WebView pushed the TV into low-memory kills. The WebView sandbox process was killed and Chrome 68's renderer crashed (SIGSEGV) at the same moment. Run one browser at a time. The harness force-stops both engines before each run.</p>
+<p><tu></tu>The TV sometimes returned to its launcher in the middle of a run. We did not find the cause.</p>
+
+<h2 id="net">Network setup</h2>
+<ul>
+<li><tm></tm>Next's dev server blocks hot reload from non-localhost origins. The page hung on "Carregando tela…". The fix is <code>allowedDevOrigins: ['192.168.*.*']</code> in <code>next.config.mjs</code>.</li>
+<li><tm></tm>The TV's IP and the Mac's IP changed several times. Reserve both in the router.</li>
+</ul>
+</article>
+
+<!-- ============ MOTION ============ -->
+<article data-page="motion">
+<h1>Motion and animation rules</h1>
+<p class="lead">The most important page. One rule alone, no percent translates in keyframes, removed a restyle of the whole page on every frame.</p>
+
+<h2 id="pct">Percent versus pixel translate</h2>
+<p>An animation can run on the compositor (the graphics side, off the busy main thread) or on the main thread. On the main thread the page is restyled every frame.</p>
+<p><tm></tm>In Chrome 68, a CSS animation with a percent translate in its keyframes (<code>translateX(-160%)</code>, <code>translate3d(-50%,-50%,0)</code>) is not run on the compositor. The page restyled about 180 times in 3 s and spent about 70 ms of main-thread style time while it ran.</p>
+<p><tm></tm>The same animation with pixel values, or with <code>calc(var(--x) * 1.6)</code> that resolves to pixels, showed 0 style passes. Isolated test pages: percent 181, px 0, calc-px 1.</p>
+<div class="demo">
+  <div class="stage">
+    <span class="chip">Looks identical in modern browsers</span>
+    <div class="two">
+      <div class="lane"><div class="lh"><em>Percent</em> keyframes. TV: 181 style passes</div><div class="track"><div class="obj a-pct" id="mp"></div></div></div>
+      <div class="lane"><div class="lh"><em>Pixel</em> keyframes. TV: 0 style passes</div><div class="track"><div class="obj a-px" id="mx"></div></div></div>
+    </div>
+  </div>
+  <div class="read" id="mread"></div>
+  <div class="ctl">
+    <label>Box size <input type="range" id="msize" min="24" max="80" value="48"><output id="mso">48px</output></label>
+    <label>Cycle <input type="range" id="mdur" min="4" max="30" value="16"><output id="mdo">1.6s</output></label>
+    <button class="btn" id="mplay" aria-pressed="true">Pause</button>
+  </div>
+</div>
+<p class="small muted">Both lanes move the same here. The difference exists only in how Chrome 68 schedules the work. Your browser cannot show that.</p>
+<div class="demo">
+  <div class="stage" style="padding-top:44px"><span class="chip">Style passes in 3 s, isolated page on the TV</span><div id="mbars"></div></div>
+</div>
+<pre data-copy><code>/* Wrong in Chrome 68: restyles the page every frame */
+@keyframes sweep { from { transform: translateX(-160%) } to { transform: translateX(160%) } }
+
+/* Right: resolves to pixels, stays on the compositor */
+.band { --o11-band-px: 120px; }
+@keyframes sweep { from { transform: translateX(calc(var(--o11-band-px) * -1.6)) }
+                   to   { transform: translateX(calc(var(--o11-band-px) *  1.6)) } }</code></pre>
+<p>Fixes applied: the profile-button light sweep in <code>MenuComPerfilAnimado.tsx</code> uses <code>--o11-band-px</code>. The kit's badge halo (<code>sfs-alert-bug-in-halo</code>, <code>-out-halo</code>, <code>.sfs-alert-bug-halo</code>) uses <code>calc(var(--_alert-bug-halo) / -2)</code>.</p>
+<div class="callout warn"><p><tu></tu><b>Not fixed, not measured.</b> <code>MenuComTooltip.tsx</code> keyframes <code>mpt-crescer</code>, <code>mpt-encolher</code>, <code>mpt-dot-sobe</code>, <code>mpt-esticar</code>, <code>mpt-comprimir</code> and <code>mpt-assentar</code> use <code>translate(-50%, -50%)</code> in percent. The tooltip morph very likely runs on the main thread in Chrome 68. This is the next thing to test.</p></div>
+
+<h2 id="fine">What stayed on the compositor in Chrome 68</h2>
+<p><tm></tm>All of these were fine, with 0 extra style passes in the isolated test:</p>
+<ul>
+<li>custom properties inside keyframes (<code>var(--x)</code> in scale and opacity);</li>
+<li><code>cubic-bezier</code> timing and <code>fill-mode: both</code>;</li>
+<li><code>filter: blur(12px)</code> on the animated band;</li>
+<li><code>clip-path: circle()</code>, and <code>overflow: hidden</code> with <code>border-radius</code>;</li>
+<li><code>will-change: transform, opacity</code>;</li>
+<li>multi-stop keyframes with opacity.</li>
+</ul>
+
+<h2 id="never">What can never be on the compositor</h2>
+<p><tk></tk>In any Chromium, animating <code>width</code>, <code>height</code>, <code>padding</code>, <code>border-radius</code>, <code>filter</code> or <code>background-image</code> runs on the main thread. We did not isolate this on the TV.</p>
+<div class="callout"><p><b>A decision to keep, knowingly.</b> The kit's one 800 ms spring is applied on purpose to width, height and padding on focus expansion. That is the project motion law. So it will always cost main-thread style and layout in Chrome 68. <tk></tk>Do not try to "fix" it. Just do not stack more main-thread work on top at the same moment.</p></div>
+
+<h2 id="loops">Infinite animations</h2>
+<p><tm></tm>A trace of the idle home screen shows these running forever:</p>
+<ul>
+<li>the profile effect: two <code>o11-wave</code> scale and opacity loops and the <code>o11-sweep</code> band, an 8.5 s cycle;</li>
+<li>the focus ring <code>background-image</code> colour cycle and the focus glow cycle. On modern engines both run on the main thread, because they animate a background image;</li>
+<li>the AlertBug halo spin.</li>
+</ul>
+<p>In Chrome 68 the ring cycle is off (see the fallbacks). <tu></tu>We call these the biggest standing load. That is a reading of the trace. We did not turn them off one by one and measure.</p>
+<p>Design rule: count the loops on a screen. Keep that count small, and prefer loops that animate only transform and opacity in pixels.</p>
+</article>
+
+<!-- ============ COST ============ -->
+<article data-page="cost">
+<h1>Cost of effects, measured</h1>
+<p class="lead">Some ideas are slow in a test page but make no difference on the real page. This page keeps both facts side by side, so nobody spends time on the wrong fix.</p>
+
+<h2 id="chart">Pick a measurement</h2>
+<div class="demo">
+  <div class="stage" style="padding-top:44px">
+    <span class="chip" id="cchip">…</span>
+    <div id="cbars"></div>
+  </div>
+  <div class="read" id="cread"></div>
+  <div class="ctl"><div class="seg" id="cseg"></div></div>
+</div>
+<p class="small muted">Numbers come from the TV in Chrome 68. The chart only draws them.</p>
+
+<h2 id="trans">Each transitioned property costs style time</h2>
+<p><tm></tm>Isolated page, 70 boxes with 2 children each, a class toggled. Median style time per pass: no transition 7.9 ms, one property 19.5 ms, the kit's 14-property list 49.8 ms. The 14 properties are width, height, min-width, min-height, padding, gap, background-color, border-color, border-radius, color, opacity, box-shadow, transform and outline-color, on <code>.sfs-motion, .sfs-motion *</code>.</p>
+<p><tm></tm><tn></tn>On the real page, cutting the descendant list to 4 properties changed little: janky frames went from 18 to 15 over 7 keys, within noise. Treat this as a cost to avoid adding to. It is not a proven big win.</p>
+
+<h2 id="vars">Tokens (<code>var()</code>) cost about 3 times a literal</h2>
+<p><tm></tm>Isolated: 104 elements × 25 declarations took 34 ms with <code>var(--token)</code> and 10 to 12 ms with literals. The 288 root custom properties alone, and inline custom properties, had no effect.</p>
+<p><tm></tm><tn></tn>But a PostCSS step that replaced constant tokens with literals (it removed about 75% of <code>var()</code> in the kit CSS) did not improve the real page. Jank was 22 and 29 against 18 to 20 for the baseline. We dropped it. <b>Do not spend effort removing tokens.</b></p>
+
+<h2 id="nothing">Things that changed nothing</h2>
+<ul>
+<li><tm></tm>Own compositor layers (<code>will-change: transform</code> on cards and buttons): same frames, same long tasks, same memory. Janky frames: 15 and 20 with layers, 19 without (one other no-layer run returned no data). Page process memory stayed near 127 MB.</li>
+<li><tm></tm><tn></tn>In the modern WebView, switching off <code>mix-blend-mode: luminosity</code>, <code>filter</code>, masks and clip-path, video, transitions or animations, one at a time, gave no clear win over baseline noise. Do not blame blend modes or blur without a trace.</li>
+<li><tu></tu>A whole-screen <code>transform: scale()</code> on the stage and full-screen gradients over video exist in the design. We have no isolated measurement. TV mode keeps the stage at scale 1.</li>
+</ul>
+
+<h2 id="calc">Demo: what a long block does to frames</h2>
+<p><tk></tk>At 60 fps a frame lasts about 16.7 ms. A main-thread block of that length or more drops frames. The harness looks at 1.2 s after each key, which is about 72 frames when nothing blocks.</p>
+<div class="demo">
+  <div class="stage"><span class="chip">Arithmetic, not a measurement</span><div id="fcalc"></div></div>
+  <div class="ctl"><label>Main-thread block <input type="range" id="fblock" min="0" max="250" value="90"><output id="fbo">90ms</output></label></div>
+</div>
+</article>
+
+<!-- ============ ELEMENTS ============ -->
+<article data-page="elements">
+<h1>Element by element</h1>
+<p class="lead">What each kit element draws, how it behaves in Chrome 68, and how risky it is. "Risk" is our reading of the evidence, not a score from the TV.</p>
+<h2 id="etable">The table</h2>
+<div class="fbar" id="elFilter"></div>
+<div class="tw"><table id="elTable"></table></div>
+</article>
+
+<!-- ============ STRUCTURE ============ -->
+<article data-page="structure">
+<h1>React structure on a slow CPU</h1>
+<p class="lead">On this TV, how the screen is built in React matters as much as the CSS. Three changes removed most of the stalls on menu moves.</p>
+
+<h2 id="menu">The menu was rebuilt on every key</h2>
+<p><tm></tm>A trace with invalidation tracking showed it. Moving focus between <code>home-program</code> and <code>home-misc</code> threw away and rebuilt the whole menu: about 130 elements added and removed per key. Its spring popped instead of animating.</p>
+<p>Cause: the two screens put the menu at different places in the React tree. React saw a different element and replaced it.</p>
+<p>Fix: all five home states share one wrapper <code>Stack</code> and <code>key="menu"</code>. <b>Design rule:</b> if an element lives across two states, place it at the same spot in both. Then it updates, and the spring runs.</p>
+
+<h2 id="style">A style element in JSX</h2>
+<p><tm></tm>A <code>&lt;style&gt;</code> element inside JSX was re-inserted on every focus change. The page re-reads the sheet and restyles everything. It is now installed once per page (<code>estiloUnico.ts</code>).</p>
+<p><tu></tu>We applied this on reasoning and on a trace of repeated style recalculations. Its isolated effect was not separated from noise in the A/B. Call it plausible.</p>
+
+<h2 id="player">One render per state change</h2>
+<p><tm></tm>The flow player went through a "loading" render, with a status label in and out of the page, on every key, even for states already loaded. It now switches in one render. <tu></tu>The effect was not isolated.</p>
+
+<h2 id="frames">Before and after, per key</h2>
+<p><tm></tm>Chrome 68, flow <code>bug-home-login</code>, keys 400 ms apart. Before the fixes, every key showed a 50 to 110 ms main-thread block. After: menu moves show none (63 to 72 of about 72 frames). Only mounting a new screen costs 50 to 90 ms. Entering the home costs 85 to 90 ms. The first time in the rail costs about 60 to 75 ms. The longest frame gap was 37 to 134 ms, and the worst, 134 ms, is the first key.</p>
+<div class="demo">
+  <div class="stage" style="padding-top:44px">
+    <span class="chip" id="fchip">…</span>
+    <div class="cols" id="fcols"></div>
+    <div class="cl" id="flabels"></div>
+  </div>
+  <div class="read" id="fread"></div>
+  <div class="ctl">
+    <div class="seg" id="fmetric"></div>
+    <div class="seg" id="frun"></div>
+  </div>
+</div>
+<p class="small muted">Keys: enter, then left ×3, up, down, right (and right ×2 in run B). Hover or tap a bar for the state change. The "before" band shows the earlier 50 to 110 ms range. We did not keep per-key raw "before" numbers in the notes folder. Run A and run B are the same build measured twice. They differ by a few frames and 5 janky frames, which is the noise level.</p>
+<h3>Per key trace, Chrome 68, after the fixes</h3>
+<p><tm></tm>Main-thread work per key: 30 to 55 ms style, 15 to 40 ms script, 10 to 30 ms layout. The biggest style pass took 25 to 43 ms over 87 to 146 elements. A typical state change appears in the DOM 40 to 170 ms after the key.</p>
+<h3>The noise we had to live with</h3>
+<p><tn></tn>An earlier baseline pair, same build: key "left home-bug to home-program" gave 32 frames and a 149 ms long task in one run, 24 frames and 212 ms in the next. That is why single A/B runs on this page are labelled noisy.</p>
+</article>
+
+<!-- ============ DEVPROD ============ -->
+<article data-page="devprod">
+<h1>Dev versus production build</h1>
+<p class="lead">The dev server is for editing. It feels slower than the product ever will. Judge feel only on a production build.</p>
+<h2 id="dp-chart">First screen, WebView on the TV</h2>
+<p><tm></tm>First screen of <code>bug-home-login</code>. Dark bar is the low end of the range, light bar the high end. These numbers come from different runs and builds. Compare the size of the gap, not the decimals.</p>
+<div class="demo"><div class="stage" style="padding-top:44px"><span class="chip">Seconds to first screen</span><div id="dpbars"></div></div></div>
+<div class="tw"><table>
+<tr><th></th><th>Dev (port 3000)</th><th>Production (<code>next start</code>)</th></tr>
+<tr><td>First screen</td><td>about 11 s</td><td>3 to 5 s</td></tr>
+<tr><td>JS shell</td><td>13.9 MB raw (about 3.2 MB gzip), unminified, about 47% inline source maps</td><td>6 files, 0.58 MB</td></tr>
+<tr><td>Lazy chunks</td><td>61 chunks, about 33.7 MB raw (about 18.5 MB gzip)</td><td>0.56 MB transferred in total</td></tr>
+<tr><td>Load event</td><td>7.8 s</td><td>1.0 to 2.0 s</td></tr>
+<tr><td>Caching</td><td><code>Cache-Control: no-store</code></td><td>assets <code>immutable</code> for a year</td></tr>
+</table></div>
+<p><tm></tm>With the WebView cache switched on (the app had it off), production took 3.1 to 3.8 s. The Chrome 68 TV build was ready in about 3.6 to 4.3 s.</p>
+<p><tm></tm>A production <code>next build</code> also type-checks. Dev does not. It exposed a real broken import.</p>
+</article>
+
+<!-- ============ MEASURE ============ -->
+<article data-page="measure">
+<h1>How to measure</h1>
+<p class="lead">Run the Chrome 68 copy, drive it with the harness, and read frames, gaps and long tasks. Never judge from one run.</p>
+
+<h2 id="serve">Serve the Chrome 68 build</h2>
+<p>On the Mac. A dev server on 3000 and <code>npm start</code> on 3001 stay separate.</p>
+<pre data-copy><code>cd /Users/lucas/playground/web &amp;&amp; npm run tv</code></pre>
+<p>This builds the Chrome 68 copy into <code>.next-tv</code> and serves port 3002. On the TV, open Localhost Shell. The first row picks the engine (Chrome 68 by default). Pick :3002.</p>
+
+<h2 id="run">Measure a flow</h2>
+<pre data-copy><code>node tvperf.mjs --engine cs --url 'http://&lt;mac-ip&gt;:3002/lucas/bug-home-login?tv=1' --keys enter,left,left,left,up,down,right --gap 400</code></pre>
+<div class="tw"><table>
+<tr><th>Flag</th><th>Use</th></tr>
+<tr><td><code>--trace f.json</code></td><td>Record a Chrome trace. Then run <code>node traceinfo.mjs f.json</code>.</td></tr>
+<tr><td><code>--css '&lt;rules&gt;'</code></td><td>Inject rules to A/B a suspect.</td></tr>
+<tr><td><code>--adb</code></td><td>Send real remote keys.</td></tr>
+<tr><td><code>--engine wv</code></td><td>Use the modern WebView instead.</td></tr>
+</table></div>
+<p><b>Healthy target on this TV:</b> about 72 frames in the 1.2 s after a key, longest frame gap under about 80 ms, 0 long tasks on focus moves.</p>
+<div class="callout"><p>Mounting a new screen is allowed to cost more. After the fixes it took 50 to 90 ms.</p></div>
+
+<h2 id="protocol">A test protocol</h2>
+<ol>
+<li>Use a production build.</li>
+<li>Close every other browser on the TV. Run one engine.</li>
+<li>Run the same keys at least twice per variant.</li>
+<li>If two identical runs differ as much as your variants, the result is noise. Say so.</li>
+<li>Do not read <code>innerText</code> or other layout-forcing properties in a probe.</li>
+<li>For a suspect, trace it and look at style passes per key, not just frames.</li>
+<li>Keep the Mac and TV IPs reserved in the router.</li>
+</ol>
+<h3>Reading a trace</h3>
+<p><code>traceinfo.mjs</code> prints per key the main-thread self time by category (script, style, layout, paint, commit, GC) and the biggest style pass with its element count. A high style number with a high element count points to a restyle that touched much of the page, such as a percent-translate loop or a rebuilt subtree.</p>
+</article>
+
+<!-- ============ CHECKLIST ============ -->
+<article data-page="checklist">
+<h1>Checklists: can do, with care, cannot</h1>
+<p class="lead">Filter by severity. Tick items as you review a design. Ticks live only on this page and reset on reload.</p>
+<h2 id="cl-list">Review list</h2>
+<div class="fbar" id="ckFilter"></div>
+<ul class="ck" id="ckList"></ul>
+<p class="small muted" id="ckNote"></p>
+<h2 id="cl-map">How the filter maps to the three lists</h2>
+<div class="tw"><table>
+<tr><th>List</th><th>Severity chips</th></tr>
+<tr><td>Can't do</td><td><span class="pill s-no">Can't do</span></td></tr>
+<tr><td>Do with care</td><td><span class="pill s-high">High cost</span> <span class="pill s-watch">Watch</span></td></tr>
+<tr><td>Can do</td><td><span class="pill s-ok">Fine</span></td></tr>
+</table></div>
+</article>
+
+<!-- ============ OPEN ============ -->
+<article data-page="open">
+<h1>Open items and sources</h1>
+<p class="lead">What we still do not know. Nothing here is hidden behind a label upgrade.</p>
+<h2 id="open-list">Open items</h2>
+<ul>
+<li><tu></tu><b>Tooltip morph.</b> Percent translates in <code>MenuComTooltip.tsx</code> keyframes are unmeasured. Test them next.</li>
+<li><tu></tu><b>Per-page style install and one-render switch.</b> Their separate effects were not isolated from noise.</li>
+<li><tm></tm><b>Video.</b> The Chromium 68 build cannot play the Globo stream. A VP9/WebM background clip is an option.</li>
+<li><tm></tm><b>Fullscreen</b> lays the page out at 960 wide and scales 0.75.</li>
+<li><tm></tm><b>The TV clock is UTC.</b> "On now" logic differs from the Mac.</li>
+<li><tu></tu><b>Launcher returns.</b> We do not know why the TV sometimes went back to its launcher mid-run.</li>
+<li><tu></tu><b><code>place-items</code> root cause.</b> The fix (<code>margin: auto</code>) works. The reason is unverified.</li>
+<li><tk></tk><b>The 800 ms spring</b> on width, height and padding will stay a main-thread cost. This is a design decision.</li>
+<li><tu></tu><b>Full-screen scale and gradients over video.</b> No isolated measurement.</li>
+</ul>
+<h2 id="sources">Sources in the project root</h2>
+<p>All paths are in <code>/Users/lucas/playground</code>.</p>
+<ul>
+<li><code>CHEATSHEET.md</code>: commands and learnings.</li>
+<li><code>tvperf.mjs</code>, <code>traceinfo.mjs</code>, <code>profinfo.mjs</code>: the harness and trace readers.</li>
+<li><code>ab.sh</code>, <code>ab68.sh</code>, <code>ab68b.sh</code>: the A/B scripts.</li>
+<li><code>traces/*.txt</code>: raw run output. The frame charts on this page come from <code>fix1.txt</code> and <code>fix6.txt</code>.</li>
+<li><code>backup/UNDO.md</code>: how to undo everything on the TV.</li>
+</ul>
+</article>
+
+<div class="pager" id="pager"></div>
+</main>
+
+<aside class="toc" id="toc" aria-label="On this page"><div class="th">On this page</div><div id="tocList"></div></aside>
+</div>
+
+<script>
+const PAGES=[
+ {id:'overview',t:'Overview',m:0},{id:'rig',t:'The test rig',m:0},
+ {id:'lacks',t:'What Chrome 68 lacks',m:1},{id:'platform',t:'Keys, Back, memory, video',m:1},
+ {id:'motion',t:'Motion rules',m:2},{id:'cost',t:'Cost of effects',m:2},{id:'elements',t:'Element by element',m:2},{id:'structure',t:'React structure',m:2},
+ {id:'devprod',t:'Dev versus production',m:3},{id:'measure',t:'How to measure',m:3},
+ {id:'checklist',t:'Checklists',m:4},{id:'open',t:'Open items and sources',m:4}
+];
+const MODS=['Start here','What Chrome 68 lacks','Motion and cost','Build and test','Reference'];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const TAG={M:'<tm></tm>',K:'<tk></tk>',U:'<tu></tu>',N:'<tn></tn>'};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ---------- shell ---------- */
+(function nav(){
+  let h='';
+  MODS.forEach((m,i)=>{
+    h+='<div class="mod"><div class="ml">Module 0'+(i+1)+'</div><div class="mt">'+m+'</div>';
+    PAGES.filter(p=>p.m===i).forEach(p=>{h+='<a href="#'+p.id+'" data-id="'+p.id+'">'+p.t+'</a>'});
+    h+='</div>';
+  });
+  $('#nav').innerHTML=h;
+})();
+function openMenu(o){document.body.classList.toggle('open',o)}
+$('#menuBtn').onclick=()=>openMenu(true);
+$('#scrim').onclick=()=>openMenu(false);
+let curIdx=0,heads=[];
+function show(){
+  const id=(location.hash||'').slice(1);
+  let idx=PAGES.findIndex(p=>p.id===id); if(idx<0) idx=0;
+  curIdx=idx; const p=PAGES[idx];
+  $$('article').forEach(a=>a.hidden=a.dataset.page!==p.id);
+  $$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===p.id));
+  $('#crumb').textContent='Module 0'+(p.m+1)+' · '+MODS[p.m];
+  $('#topTitle').textContent=p.t;
+  const art=$('article[data-page="'+p.id+'"]');
+  heads=[...art.querySelectorAll('h2[id]')];
+  $('#tocList').innerHTML=heads.map(h=>'<a href="#'+p.id+'" data-h="'+h.id+'">'+h.textContent+'</a>').join('');
+  $$('#tocList a').forEach(a=>a.onclick=e=>{e.preventDefault();document.getElementById(a.dataset.h).scrollIntoView({behavior:'smooth'})});
+  const pv=PAGES[idx-1], nx=PAGES[idx+1];
+  $('#pager').innerHTML=(pv?'<a href="#'+pv.id+'"><small>Previous</small>'+pv.t+'</a>':'')+(nx?'<a class="nx" href="#'+nx.id+'"><small>Next</small>'+nx.t+'</a>':'');
+  openMenu(false); window.scrollTo(0,0); spy();
+  document.documentElement.lang='en';
+  if(window.onPageShow) window.onPageShow(p.id);
+}
+function spy(){
+  let cur=null; heads.forEach(h=>{if(h.getBoundingClientRect().top<140) cur=h.id});
+  $$('#tocList a').forEach(a=>a.classList.toggle('on',a.dataset.h===cur));
+}
+addEventListener('hashchange',show); addEventListener('scroll',spy,{passive:true});
+
+/* copy buttons */
+$$('pre[data-copy]').forEach(pre=>{
+  const b=document.createElement('button'); b.className='cp'; b.textContent='Copy'; pre.appendChild(b);
+  b.onclick=()=>{
+    const txt=pre.querySelector('code').textContent;
+    const done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1400)};
+    const fb=()=>{const r=document.createRange();r.selectNodeContents(pre.querySelector('code'));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected'};
+    try{navigator.clipboard.writeText(txt).then(done,fb)}catch(e){fb()}
+  };
+});
+
+/* ---------- helpers ---------- */
+function seg(el,opts,cur,fn){
+  el.innerHTML=opts.map(o=>'<button aria-pressed="'+(o[0]===cur)+'" data-v="'+o[0]+'">'+o[1]+'</button>').join('');
+  el.onclick=e=>{const b=e.target.closest('button'); if(!b) return; [...el.children].forEach(c=>c.setAttribute('aria-pressed',c===b)); fn(b.dataset.v)};
+}
+function bars(el,items,max,fmt){
+  el.innerHTML=items.map(i=>{
+    const w=v=>Math.max(v/max*100,v>0?1.2:0)+'%';
+    const hi=i.hi!=null?'<div class="bfill hi" style="width:'+w(i.hi)+'"></div>':'';
+    const lo=i.lo!=null?i.lo:i.v;
+    return '<div class="brow"><div class="bl">'+i.l+'</div><div class="btrack">'+hi+'<div class="bfill'+(i.hot?' hot':'')+'" style="width:'+w(lo)+'"></div></div><div class="bv">'+(i.txt||fmt(i.v))+'</div></div>';
+  }).join('');
+}
+
+/* ---------- demo: percent vs px ---------- */
+(function(){
+  const sz=$('#msize'),du=$('#mdur'),pl=$('#mplay');
+  let run=true;
+  function upd(){
+    const w=+sz.value,d=(+du.value/10).toFixed(1);
+    [$('#mp'),$('#mx')].forEach(e=>{e.style.setProperty('--w',w+'px');e.style.setProperty('--dur',d+'s');e.style.setProperty('--ps',run?'running':'paused')});
+    $('#mso').textContent=w+'px';$('#mdo').textContent=d+'s';
+    $('#mread').innerHTML='<b>Percent</b>  translateX(-160%) → translateX(160%)   = '+Math.round(-1.6*w)+'px → '+Math.round(1.6*w)+'px at '+w+'px wide\n<b>Pixel</b>    translateX(calc(var(--w) * -1.6)) → calc(var(--w) * 1.6)   with --w: '+w+'px';
+  }
+  sz.oninput=upd;du.oninput=upd;
+  pl.onclick=()=>{run=!run;pl.textContent=run?'Pause':'Play';pl.setAttribute('aria-pressed',run);upd()};
+  upd();
+  bars($('#mbars'),[{l:'Percent translate',v:181,hot:1},{l:'Pixel translate',v:0},{l:'calc() resolving to px',v:1}],200,v=>v+' passes');
+})();
+
+/* ---------- demo: flex gap ---------- */
+(function(){
+  let dir='row'; const gs=$('#gsize');
+  const g1=$('#g1'),g2=$('#g2'),g3=$('#g3');
+  function upd(){
+    const g=+gs.value,col=dir==='col';
+    $('#gout').textContent=g+'px';
+    [g1,g2,g3].forEach(e=>{e.classList.toggle('col',col)});
+    g1.style.gap=g+'px'; g2.style.gap='0'; g3.style.gap='0';
+    [...g3.children].forEach((c,i)=>{c.style.marginLeft=(!col&&i)?g+'px':'0';c.style.marginTop=(col&&i)?g+'px':'0'});
+    const sup=window.CSS&&CSS.supports&&CSS.supports('gap','1px');
+    $('#gread').innerHTML='<b>Modern</b>        display:flex; flex-direction:'+(col?'column':'row')+'; gap:'+g+'px\n<b>Chrome 68</b>    gap ignored → items touch\n<b>Fallback</b>     html.no-flexgap .item + .item { '+(col?'margin-top':'margin-left')+':'+g+'px }';
+    $('#g1').closest('.stage').querySelector('.chip').textContent=sup?'Your browser supports flex gap':'Your browser ignores flex gap (like Chrome 68)';
+  }
+  gs.oninput=upd; seg($('#gdir'),[['row','Row'],['col','Column']],'row',v=>{dir=v;upd()}); upd();
+})();
+</script>
+<script>
+/* ---------- demo: spring vs cubic-bezier ---------- */
+(function(){
+  const LIN=[0,0.0103,0.0374,0.0765,0.1236,0.1758,0.2307,0.2866,0.3422,0.3964,0.4486,0.4982,0.545,0.5889,0.6296,0.6674,0.7021,0.7339,0.763,0.7894,0.8135,0.8352,0.8549,0.8726,0.8885,0.9028,0.9157,0.9272,0.9374,0.9466,0.9548,0.9621,0.9686,0.9743,0.9794,0.984,0.988,0.9916,0.9947,0.9975,1];
+  const LS='linear('+LIN.join(', ')+')', BZ=[0.216,0.118,0.232,0.979], BS='cubic-bezier(0.216, 0.118, 0.232, 0.979)';
+  const lin=x=>{const p=x*(LIN.length-1),i=Math.min(Math.floor(p),LIN.length-2);return LIN[i]+(LIN[i+1]-LIN[i])*(p-i)};
+  function bez(x){
+    const cx=3*BZ[0],bx=3*(BZ[2]-BZ[0])-cx,ax=1-cx-bx,cy=3*BZ[1],by=3*(BZ[3]-BZ[1])-cy,ay=1-cy-by;
+    let lo=0,hi=1,t=x; for(let k=0;k<40;k++){t=(lo+hi)/2;const v=((ax*t+bx)*t+cx)*t; if(v<x)lo=t;else hi=t}
+    return ((ay*t+by)*t+cy)*t;
+  }
+  let maxd=0,at=0; for(let i=0;i<=400;i++){const x=i/400,d=Math.abs(lin(x)-bez(x)); if(d>maxd){maxd=d;at=x}}
+  const sup=window.CSS&&CSS.supports&&CSS.supports('transition-timing-function',LS);
+  $('#schip').textContent=sup?'Your browser supports linear()':'Your browser does not support linear() (like Chrome 68)';
+  let showDiff=true;
+  function draw(){
+    const X=x=>40+x*280,Y=y=>170-y*140; let s='';
+    [0,.5,1].forEach(v=>{s+='<line class="gr" x1="40" x2="320" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text x="34" y="'+(Y(v)+3)+'" text-anchor="end">'+v+'</text>'});
+    [0,200,400,600,800].forEach(ms=>{s+='<text x="'+X(ms/800)+'" y="186" text-anchor="middle">'+ms+'</text>'});
+    s+='<text x="320" y="198" text-anchor="end">ms</text><path class="ax" d="M40 '+Y(0)+'H320M40 '+Y(0)+'V'+Y(1)+'"/>';
+    const pts=f=>Array.from({length:101},(_,i)=>{const x=i/100;return (i?'L':'M')+X(x).toFixed(1)+' '+Y(f(x)).toFixed(1)}).join('');
+    s+='<path class="c1" d="'+pts(lin)+'"/><path class="c2" d="'+pts(bez)+'"/>';
+    if(showDiff) s+='<path class="c3" d="'+pts(x=>Math.min(1.2,Math.abs(lin(x)-bez(x))*20))+'"/><text x="'+(X(.5)+4)+'" y="'+(Y(.1)-2)+'">difference ×20</text>';
+    $('#splot').innerHTML=s;
+    $('#sread').innerHTML='<b>Spring</b>   '+(LS.length>90?LS.slice(0,90)+'… (41 points)':LS)+'\n<b>Fallback</b> '+BS+'\n<b>Largest gap</b> '+maxd.toFixed(3)+' of the 0 to 1 range, at '+Math.round(at*800)+' ms (computed in your browser)';
+  }
+  const o1=$('#so1'),o2=$('#so2'),spd=$('#sspeed');
+  function play(){
+    const d=Math.round(800/(+spd.value/10));
+    $('#sspo').textContent=(spd.value/10)+'×';
+    const dist=o1.parentNode.clientWidth-28-14;
+    [o1,o2].forEach(o=>{o.style.transition='none';o.style.transform='translateX(0)'});
+    o1.style.setProperty('--d',d+'ms');o2.style.setProperty('--d',d+'ms');
+    void o1.offsetWidth;
+    o1.style.transitionTimingFunction=sup?LS:BS; o2.style.transitionTimingFunction=BS;
+    [o1,o2].forEach(o=>{o.style.transition='';o.style.transform='translateX('+dist+'px)'});
+  }
+  $('#splay').onclick=play; spd.oninput=()=>{$('#sspo').textContent=(spd.value/10)+'×'};
+  seg($('#sdiff'),[['0','Hide difference'],['1','Show difference ×20']],'1',v=>{showDiff=v==='1';draw()});
+  draw();
+  window.playSpring=play;
+})();
+
+/* ---------- cost chart ---------- */
+(function(){
+  const DS={
+    style:{n:'Style time per pass',chip:'70 boxes, class toggled, median ms',max:55,fmt:v=>v+' ms',tag:'M',items:[{l:'No transition',v:7.9},{l:'1 property',v:19.5},{l:'Kit list: 14 properties',v:49.8,hot:1}],note:'Isolated page on the TV. Cost grows with every transitioned property.'},
+    vars:{n:'var() versus literal',chip:'104 elements × 25 declarations, ms',max:40,fmt:v=>v+' ms',tag:'M',items:[{l:'Literal values',v:11,lo:10,hi:12,txt:'10 to 12 ms'},{l:'var(--token) references',v:34,hot:1}],note:'Isolated page. About 3 times slower. On the real page, removing tokens did not help.'},
+    real:{n:'Real page: 14 → 4 properties',chip:'Janky frames over 7 keys, lower is better',max:25,fmt:v=>v,tag:'MN',items:[{l:'Kit list on * descendants',v:18},{l:'Cut to 4 properties',v:15}],note:'Within noise. Treat as hint only.'},
+    lit:{n:'Real page: tokens inlined',chip:'Janky frames, lower is better',max:32,fmt:v=>v,tag:'MN',items:[{l:'Baseline (18 to 20)',v:19,lo:18,hi:20,txt:'18 to 20'},{l:'Inlined run 1',v:22},{l:'Inlined run 2',v:29,hot:1}],note:'Not better than baseline, so the inliner was dropped.'},
+    layers:{n:'Own layers (will-change)',chip:'Janky frames per run, lower is better',max:25,fmt:v=>v,tag:'MN',items:[{l:'Without layers',v:19},{l:'With layers, run 1',v:15},{l:'With layers, run 2',v:20}],note:'No clear change in frames, long tasks or memory. The first no-layer run returned no data, so only one valid baseline exists.'}
+  };
+  const keys=Object.keys(DS); let cur='style';
+  function draw(){
+    const d=DS[cur]; $('#cchip').textContent=d.chip;
+    bars($('#cbars'),d.items,d.max,d.fmt);
+    $('#cread').innerHTML=d.tag.split('').map(t=>TAG[t]).join('')+d.note;
+  }
+  seg($('#cseg'),keys.map(k=>[k,DS[k].n]),cur,v=>{cur=v;draw()}); draw();
+  const fb=$('#fblock'); function f(){
+    const b=+fb.value,lost=Math.floor(b/16.7); $('#fbo').textContent=b+'ms';
+    $('#fcalc').innerHTML='<div class="brow"><div class="bl">Frames in 1.2 s</div><div class="btrack"><div class="bfill" style="width:'+((72-lost)/72*100)+'%"></div></div><div class="bv">about '+(72-lost)+' of 72</div></div><p class="small muted" style="margin:.4rem 0 0">A block of '+b+' ms is about '+lost+' frames at 60 fps. '+(b>=50?'Over 50 ms the harness counts it as a long task.':'Under 50 ms it is not a long task.')+'</p>';
+  }
+  fb.oninput=f; f();
+})();
+
+/* ---------- frames chart ---------- */
+(function(){
+  const KEYS=['enter','←','←','←','↑','↓','→','→','→'];
+  const STATES=['bug → home-bug','home-bug → home-program','home-program → home-misc','home-misc → home-schedule','home-schedule → schedule-0','schedule-0 → home-schedule','home-schedule → home-misc','home-misc → home-program','home-program → home-bug'];
+  const RUN={
+    A:{n:'Run A (7 keys)',frames:[51,67,65,49,67,64,57],gap:[88,36,52,78,53,57,38],lt:[87,0,0,73,0,52,0]},
+    B:{n:'Run B (9 keys)',frames:[51,67,64,48,64,63,56,68,71],gap:[86,39,47,80,66,67,47,37,30],lt:[89,0,0,76,62,60,0,0,0]}
+  };
+  const MET={frames:{n:'Frames in 1.2 s',max:80,tl:72,tlt:'smooth: 72',u:''},gap:{n:'Longest gap (ms)',max:140,tl:80,tlt:'target: under 80',u:' ms'},lt:{n:'Long task (ms)',max:140,band:[50,110],tl:0,u:' ms'}};
+  let met='frames',run='B';
+  function draw(){
+    const r=RUN[run],m=MET[met],vals=r[met],H=190-26;
+    $('#fchip').textContent=m.n+', '+r.n;
+    let h=vals.map((v,i)=>'<div class="col" title="'+STATES[i]+'"><div class="cv">'+v+'</div><div class="cb'+((met==='frames'?v<60:met==='gap'?v>=80:v>0)?' hot':'')+'" style="height:'+(v/m.max*H)+'px"></div></div>').join('');
+    if(m.tl) h+='<div class="tline" style="bottom:'+(m.tl/m.max*H)+'px"><span>'+m.tlt+'</span></div>';
+    if(m.band) h+='<div class="band" style="bottom:'+(m.band[0]/m.max*H)+'px;height:'+((m.band[1]-m.band[0])/m.max*H)+'px"><span>before: 50 to 110 ms on every key</span></div>';
+    $('#fcols').innerHTML=h;
+    $('#flabels').innerHTML=vals.map((_,i)=>'<span>'+KEYS[i]+'</span>').join('');
+    const sum=a=>a.reduce((x,y)=>x+y,0);
+    $('#fread').innerHTML='<b>'+r.n+'</b>  keys with a long task: '+r.lt.filter(x=>x>0).length+' of '+r.lt.length+'   lowest frame count: '+Math.min(...r.frames)+'   worst gap: '+Math.max(...r.gap)+' ms\nMeasured on Chrome 68, from traces/'+(run==='A'?'fix1':'fix6')+'.txt. The orange bars are the keys that mount a new screen or miss the target.';
+  }
+  seg($('#fmetric'),Object.keys(MET).map(k=>[k,MET[k].n]),met,v=>{met=v;draw()});
+  seg($('#frun'),[['A','Run A'],['B','Run B']],run,v=>{run=v;draw()});
+  draw();
+})();
+
+/* ---------- dev vs prod ---------- */
+bars($('#dpbars'),[
+  {l:'Dev server (:3000)',v:11,hot:1,txt:'about 11 s'},
+  {l:'Production, cache off',v:5,lo:3,hi:5,txt:'3 to 5 s'},
+  {l:'Production, cache on',v:3.8,lo:3.1,hi:3.8,txt:'3.1 to 3.8 s'},
+  {l:'Chrome 68 TV build',v:4.3,lo:3.6,hi:4.3,txt:'3.6 to 4.3 s'}
+],12,v=>v+' s');
+
+/* ---------- feature table ---------- */
+(function(){
+  const F=[
+   ['JS','Optional chaining <code>?.</code> and <code>??</code> (80), <code>??=</code> (85), class static blocks (94)','K','Transpiled by the build:tv browserslist. All 85 chunks parse as ES2019.'],
+   ['JS','<code>globalThis</code> (71), <code>Object.fromEntries</code> (73), <code>Array.prototype.flat/flatMap</code> (69), <code>Array/String.prototype.at</code> (92), <code>structuredClone</code> (98)','K','Polyfills in a guarded inline head script (<code>early-script.ts</code>). <code>structuredClone</code> handles plain data only.'],
+   ['CSS','<code>inset</code> (87), <code>padding/margin-inline</code> and <code>-block</code> (87), <code>-start/-end</code> longhands (69)','K','PostCSS emits physical sides before the logical ones. Kit inline styles use physical properties. Without it, <tm></tm> the video and overlay layers collapsed to 0×0.'],
+   ['CSS','Flex <code>gap</code> (84)','K','<code>no-flexgap</code> class on <code>html</code>. Children get margins per direction and step. See the demo.'],
+   ['CSS','<code>color-mix()</code> (111)','K','Generated tokens get <code>rgba()</code> fallbacks under <code>@supports not</code>.'],
+   ['CSS','<code>linear()</code> easing (113)','K','The 800 ms spring falls back to <code>cubic-bezier(0.216, 0.118, 0.232, 0.979)</code>. See the demo.'],
+   ['CSS','<code>:focus-visible</code> (86)','K','<code>:focus</code> stand-ins under <code>no-focus-visible</code>. A TV has no pointer.'],
+   ['CSS','<code>:has()</code> (105)','K','Flush-row rule rewritten without it. Still degraded: a resting card with a WideButton footer stays dimmed, and a <code>&lt;Link&gt;</code> around a kit surface keeps the browser outline.'],
+   ['CSS','Relative colour <code>oklch(from …)</code> (119)','K','Cannot be done. Focus ring and glow cycle keyframes erased the ring, so the cycle is off and a static ring shows. This also changes Chrome 111 to 118 and Safari 16.4 to 17.'],
+   ['CSS','<code>text-wrap</code> (114)','K','Ignored. Do not rely on balanced lines.'],
+   ['CSS','Round outlines (square before 94)','K','A <code>no-round-outline</code> class draws the channel bug ring as a round pseudo-element.'],
+   ['CSS','Two-position gradient stops <code>linear-gradient(black 0 0)</code> (72)','K','Write them as two stops.'],
+   ['CSS','Centring with <code>place-items</code> on one grid child','M','Circle sat 8 px left. Add <code>margin: auto</code>. Cause <tu></tu>unverified.']
+  ];
+  let area='All';
+  function draw(){
+    const rows=F.filter(r=>area==='All'||r[0]===area);
+    $('#featTable').innerHTML='<tr><th>Area</th><th>Feature (Chrome version)</th><th>Label</th><th>What we did</th></tr>'+rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+TAG[r[2]]+'</td><td>'+r[3]+'</td></tr>').join('');
+  }
+  seg($('#featFilter'),[['All','All'],['JS','JavaScript'],['CSS','CSS']],area,v=>{area=v;draw()}); draw();
+})();
+
+/* ---------- element table ---------- */
+(function(){
+  const R={no:["Can't do",'s-no'],high:['High','s-high'],watch:['Watch','s-watch'],ok:['Fine','s-ok'],unk:['No finding','s-unk']};
+  const E=[
+   ['FocusRing','Masked gradient band. Animated colour cycle through relative colour.','The cycle is not possible. A static ring shows.','no','K','Design the static ring first. The cycle is a bonus for new browsers.'],
+   ['RestingBorder','No specific finding recorded.','—','unk','U','Test it when you change it.'],
+   ['InteractivityButton / InteractivityMenu','Translucent card, poster image, scrim, <code>mix-blend-mode: luminosity</code> overline, 14-property spring list.','Works. Style cost grows with the property list: 7.9 ms (none) to 49.8 ms (14) in the isolated test.','watch','M','Do not add transitioned properties to <code>*</code> descendants. Blend mode cost is <tu></tu>unproven either way.'],
+   ['RoundButton / MainMenu','Grid centring of the round circle.','Circle drew 8 px left. <code>margin: auto</code> fixed it.','watch','M','Always add <code>margin: auto</code> when centring a lone grid child.'],
+   ['MainMenu profile effect','Blurred band in a circle <code>clip-path</code>. Waves through scale and opacity. Sweep now in px.','Compositor after the px fix. Three infinite loops, 8.5 s cycle.','ok','M','Keep pixel values. Count the loops.'],
+   ['AlertBug','Halo spin with a masked 7-stop gradient, <code>will-change</code>. Infinite.','Halo translate fixed with <code>calc()</code> in px.','watch','M','One more infinite loop on the screen. Keep it in mind with the profile effect.'],
+   ['Notification','Blur on text and logo when entering and leaving. <code>text-shadow</code>.','No measurement.','watch','U','<tk></tk>Animating <code>filter</code> stays on the main thread in any Chromium. Prefer opacity.'],
+   ['MenuComTooltip','Morph. Keyframes with <code>translate(-50%, -50%)</code> in percent. Squash and stretch scale keyframes.','Very likely main thread in Chrome 68.','high','U','Convert to px or anchor with margins, then measure. Next test.'],
+   ['Screen layers','Scrim plus 3 full-screen gradients over video.','No isolated measurement.','watch','U','Limit the number of full-screen layers.'],
+   ['Text (Inter Variable)','7 woff2 subsets, <code>font-display: swap</code>.','No cost measured.','unk','U','Keep the subsets list short.'],
+   ['Inline SVG icons','Data URLs.','No finding.','unk','U','—'],
+   ['Stylesheets installed per mount','A <code>&lt;style&gt;</code> in JSX re-inserted on every focus change.','Now installed once per page (<code>estiloUnico.ts</code>).','ok','U','Never render a style element in JSX. The effect of the fix was not isolated.'],
+   ['HLS video layer','hls.js on Globo stream.','The test build has no H.264 and cannot play it.','no','M','Test video overlays knowing the test build is emptier than a real TV.']
+  ];
+  let f='all';
+  function draw(){
+    const rows=E.filter(r=>f==='all'||r[3]===f);
+    $('#elTable').innerHTML='<tr><th>Element</th><th>What it uses</th><th>In Chrome 68</th><th>Risk</th><th>Label</th><th>Advice</th></tr>'+rows.map(r=>'<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td><span class="pill '+R[r[3]][1]+'">'+R[r[3]][0]+'</span></td><td>'+TAG[r[4]]+'</td><td>'+r[5]+'</td></tr>').join('');
+  }
+  seg($('#elFilter'),[['all','All'],['no',"Can't do"],['high','High'],['watch','Watch'],['ok','Fine'],['unk','No finding']],f,v=>{f=v;draw()}); draw();
+})();
+
+/* ---------- checklist ---------- */
+(function(){
+  const L=[
+   ['no','Animated colour-cycling focus ring through relative colour','K','Starts in Chrome 119. Static ring only.'],
+   ['no','Rely on <code>:has()</code> for state','K','Starts in Chrome 105. Two cases stay degraded.'],
+   ['no','Play H.264 or HLS in the Chromium 68 test build','M','<code>isTypeSupported</code> is false for H.264. hls.js starts and never plays.'],
+   ['no','Rely on <code>text-wrap</code> to balance lines','K','Ignored before Chrome 114.'],
+   ['no','Use a <code>linear()</code> easing with no fallback','K','Starts in Chrome 113. Add a <code>cubic-bezier</code>.'],
+   ['high','Percent translate inside keyframes','M','181 style passes in 3 s against 0 with pixels.'],
+   ['high','Many infinite animations on one screen','M','The idle home trace shows four loops. Their cost was not isolated.'],
+   ['high','Move an element to a different place in the React tree between states','M','About 130 elements rebuilt on every key. The spring popped.'],
+   ['high','Judge feel on the dev server','M','First screen about 11 s against 3 to 5 s in production.'],
+   ['high','Keep two browsers open on the TV','M','A background WebView of about 180 MB led to low-memory kills and a crash.'],
+   ['high','Tooltip morph with percent translates','U','Very likely main thread in Chrome 68. Unmeasured.'],
+   ['watch','Add transitioned properties to <code>*</code> descendants','M','7.9 ms to 49.8 ms isolated. On the real page the change was within noise.'],
+   ['watch','Render a <code>&lt;style&gt;</code> element in JSX','U','Re-inserted on every focus change. The fix is plausible but not isolated.'],
+   ['watch','Animate width, height or padding','K','Always main thread. The 800 ms focus spring does it on purpose.'],
+   ['watch','Blur, blend modes, masks, clip-path as a speed suspect','M','Switching each off in the WebView gave no clear win over noise (noisy). Trace before you blame.'],
+   ['watch','Full-screen gradients over video, whole-screen scale','U','No isolated measurement.'],
+   ['watch','Centre a lone grid child with <code>place-items</code> only','M','8 px off in Chrome 68. Add <code>margin: auto</code>.'],
+   ['watch','Trust the 1280 layout in fullscreen','M','ContentShell lays out at 960 and the stage draws at 0.75.'],
+   ['ok','Animate <code>transform</code> and <code>opacity</code> with pixel values','M','0 style passes.'],
+   ['ok','Custom properties inside keyframes (scale, opacity)','M','Stayed on the compositor.'],
+   ['ok','<code>cubic-bezier</code> timing and <code>fill-mode: both</code>','M','Fine.'],
+   ['ok','<code>filter: blur(12px)</code> on a band that only translates','M','Fine in the isolated test.'],
+   ['ok','<code>clip-path: circle()</code>, and <code>overflow: hidden</code> with <code>border-radius</code>','M','Fine.'],
+   ['ok','<code>will-change: transform, opacity</code>','M','Works. Extra layers gave no gain.'],
+   ['ok','Multi-stop keyframes with opacity','M','Fine.'],
+   ['ok','Keep tokens (<code>var()</code>) in the kit CSS','M','Inlining them did not improve the real page.'],
+   ['ok','Move focus between menu items','M','After the fixes: 63 to 72 of about 72 frames, no long task.']
+  ];
+  const R={no:["Can't do",'s-no'],high:['High cost','s-high'],watch:['Watch','s-watch'],ok:['Fine','s-ok']};
+  let f='all'; const done=new Set();
+  function draw(){
+    const rows=L.map((r,i)=>[r,i]).filter(x=>f==='all'||x[0][0]===f);
+    $('#ckList').innerHTML=rows.map(([r,i])=>'<li class="'+(done.has(i)?'done':'')+'"><input type="checkbox" id="ck'+i+'" data-i="'+i+'"'+(done.has(i)?' checked':'')+'><label for="ck'+i+'" class="tx"><span class="pill '+R[r[0]][1]+'">'+R[r[0]][0]+'</span> '+r[1]+'</label><div class="why">'+TAG[r[2]]+r[3]+'</div></li>').join('')||'<li class="empty">Nothing at this severity.</li>';
+    $('#ckNote').textContent=done.size+' of '+L.length+' ticked.';
+  }
+  $('#ckList').onchange=e=>{const i=+e.target.dataset.i; e.target.checked?done.add(i):done.delete(i); e.target.closest('li').classList.toggle('done',e.target.checked); $('#ckNote').textContent=done.size+' of '+L.length+' ticked.'};
+  const cnt=k=>L.filter(r=>r[0]===k).length;
+  seg($('#ckFilter'),[['all','All ('+L.length+')'],['no',"Can't do ("+cnt('no')+')'],['high','High cost ('+cnt('high')+')'],['watch','Watch ('+cnt('watch')+')'],['ok','Fine ('+cnt('ok')+')']],f,v=>{f=v;draw()});
+  draw();
+})();
+
+/* pause infinite demos on hidden pages; replay the spring when its page opens */
+window.onPageShow=function(id){
+  const run=id==='motion'?'running':'paused';
+  [$('#mp'),$('#mx')].forEach(e=>{if(e&&$('#mplay').getAttribute('aria-pressed')==='true')e.style.setProperty('--ps',run)});
+  if(id==='lacks'&&window.playSpring) setTimeout(window.playSpring,300);
+};
+show();
+</script>

@@ -45,7 +45,9 @@
     "../src/design-system",
     "../src/styles",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".next-tv/types/**/*.ts",
+    ".next-tv/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

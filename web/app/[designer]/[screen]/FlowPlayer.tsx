@@ -5,6 +5,7 @@ import { BACK_CONTROL, HIDDEN_STATE, NOTICE_IDLE, noticeOnState, noticeOnTimer, 
 import { FlowNoticeContext } from '@/ui-kit/flowNotice'
 import { Screen } from '@/ui-kit/Screen'
 import { Stage } from '../../Stage'
+import { isTvMode } from '../../tv'
 
 /** `hidden` needs no file (standards/flow.md): level 0, the video alone. A `hidden.tsx` in the folder replaces this. */
 const Hidden = (): ReactNode => <Screen model="alert" level={0} />
@@ -70,6 +71,8 @@ export function Flow({ flow, state }: FlowSource) {
     let requested: string[] = []
     let requestId = 0
     const files = new Map<string, Promise<Result>>()
+    /** The states whose file has arrived, so a key press can switch without waiting a microtask. */
+    const loaded = new Map<string, Result>()
     setView({ phase: 'loading' })
     setNotice(NOTICE_IDLE)
     setNoticeLayer({ mounted: false })
@@ -117,7 +120,7 @@ export function Flow({ flow, state }: FlowSource) {
     }
 
     const load = (name: string, refresh = false): Promise<Result> => {
-      if (refresh) files.delete(name)
+      if (refresh) { files.delete(name); loaded.delete(name) }
       const previous = files.get(name)
       if (previous) return previous
       const result = state(name).then(
@@ -127,12 +130,26 @@ export function Flow({ flow, state }: FlowSource) {
           : { ok: false, error },
       )
       files.set(name, result)
+      void result.then((r) => { if (files.get(name) === result) loaded.set(name, r) })
       return result
     }
 
     const request = (next: string[], refresh = false) => {
       const name = next[next.length - 1]
       requested = next
+      // Already loaded (every state is prefetched when the flow opens): go straight to it in one render. Passing through
+      // `loading` re-rendered the whole screen and put the status label in and out of the page on every key, which
+      // cost the TV (Chrome 68) a second render per key press.
+      const ready = refresh ? undefined : loaded.get(name)
+      if (ready?.ok) {
+        ++requestId
+        pending = false
+        failed = false
+        trail = next
+        setView({ shown: ready.value, name, phase: 'ready' })
+        landed(name)
+        return
+      }
       pending = true
       failed = false
       const id = ++requestId
@@ -210,6 +227,33 @@ export function Flow({ flow, state }: FlowSource) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [press])
+
+  // On the TV the remote's Back never reaches the page: Chrome 68 and the Android WebView turn it into history.back(),
+  // which left the flow. In TV mode one history entry stands in front of the flow and each Back that pops it is the
+  // flow's Back (then the entry is put back). At `hidden` (level 0), or when a Back changed nothing (the start state
+  // has no Back), the next Back leaves the flow, as it would leave the app on a TV.
+  const shownName = useRef(view.name)
+  shownName.current = view.name
+  const backFrom = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    backFrom.current = undefined
+  }, [view.name])
+  useEffect(() => {
+    if (!isTvMode()) return
+    const arm = () => window.history.pushState({ ...window.history.state, tvBack: true }, '')
+    arm()
+    const onPop = () => {
+      if (shownName.current === HIDDEN_STATE || backFrom.current === shownName.current) {
+        window.history.back()
+        return
+      }
+      backFrom.current = shownName.current
+      press('back')
+      arm()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [press])
 
   return (
