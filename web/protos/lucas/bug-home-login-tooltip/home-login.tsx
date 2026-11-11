@@ -2,6 +2,7 @@ import { Stack } from '@/primitives'
 import { InteractivityButton } from '@/ui-kit/InteractivityButton'
 import { InteractivityMenu } from '@/ui-kit/InteractivityMenu'
 import { Screen } from '@/ui-kit/Screen'
+import { MarcasSso } from '../components/MarcasSso'
 import { MenuComTooltip } from '../components/MenuComTooltip'
 import { VideoAoVivo } from '../components/VideoAoVivo'
 import { programaAgora, STREAM_URL } from '../dados-menu-perfil'
@@ -16,6 +17,7 @@ export default function HomeLogin() {
         <Stack direction="column" justify="end" align="stretch" gap="sm">
           <InteractivityMenu align="start">
             <InteractivityButton interactionState="default" overline="Conta Globo" overlineSize="title" title="Entre ou cadastre-se" />
+            <InteractivityButton interactionState="default" title="Continuar como Clara" thumbnail={<MarcasSso />} />
           </InteractivityMenu>
           <MenuComTooltip focusedItem="login" programTitle={noAr} programSubtitle={`A seguir ${seguinte}`} />
         </Stack>

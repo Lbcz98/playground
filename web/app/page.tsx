@@ -20,6 +20,14 @@ export default function Index() {
           </ul>
         </section>
       ))}
+      <section>
+        <h2>Diagnóstico</h2>
+        <ul>
+          <li>
+            <a href="/video-test.html">Teste de vídeo (Chrome 68)</a>
+          </li>
+        </ul>
+      </section>
     </main>
   )
 }

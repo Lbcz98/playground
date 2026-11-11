@@ -1,6 +1,7 @@
 export default {
   start: 'bug',
-  // Sem notificação: o tooltip "Faça o login" aparece na primeira Home e fica até o foco ir para um botão da esquerda; nesse momento o selo entra no botão de perfil e fica até o login (bug-logado).
+  // O aviso de login: 20 s depois da primeira Home, a notificação fica 10 s e não volta. O tooltip entra 1 s depois da Home, reaparece em cada botão redondo da direita e encolhe na esquerda. O menu entra da direita para a esquerda (120 ms, 10 px, desfoque 2 px, opacidade 0 a 1, 650 ms). Sem selo no perfil e sem morph.
+  notice: { state: 'aviso-login', startOn: 'home-bug', after: 20, during: 10, cancelOn: 'logado-program' },
   transitions: [
     { from: 'bug', key: 'enter', to: 'home-bug' },
     { from: 'home-bug', key: 'left', to: 'home-program' },
@@ -13,11 +14,16 @@ export default {
     { from: 'home-login', key: 'right', to: 'home-schedule' },
     { from: 'home-login', key: 'up', to: 'login-trilha' },
     { from: 'login-trilha', key: 'down', to: 'home-login' },
+    { from: 'login-trilha', key: 'right', to: 'login-sso' },
     { from: 'login-trilha', key: 'enter', to: 'login-voltar' },
+    { from: 'login-sso', key: 'left', to: 'login-trilha' },
+    { from: 'login-sso', key: 'down', to: 'home-login' },
+    { from: 'login-sso', key: 'enter', to: 'boas-vindas' },
     { from: 'login-voltar', key: 'up', to: 'login-card' },
     { from: 'login-card', key: 'down', to: 'login-voltar' },
-    // Enter cruza níveis aqui (3 para 0 e, na linha de baixo, 0 para 1); vem do pedido do designer: "o enter no card simula o login sendo realizado ... recomece a animação do bug, mas ao pressionar enter, a home 'logada' é apresentada".
-    { from: 'login-card', key: 'enter', to: 'bug-logado' },
+    // Enter no QR ou no SSO abre as boas-vindas. Não é nível 3: o cartão sobe e, 4 s depois, o Enter (o próprio cartão) abre a Home logada.
+    { from: 'login-card', key: 'enter', to: 'boas-vindas' },
+    { from: 'boas-vindas', key: 'enter', to: 'logado-program' },
     { from: 'bug-logado', key: 'enter', to: 'logado-program' },
     { from: 'logado-bug', key: 'left', to: 'logado-program' },
     { from: 'logado-program', key: 'right', to: 'logado-bug' },
@@ -41,10 +47,19 @@ export default {
     { from: 'schedule-4', key: 'left', to: 'schedule-3' },
     { from: 'schedule-4', key: 'down', to: 'home-schedule' },
     { from: 'schedule-4', key: 'enter', to: 'schedule-detalhe-4' },
-    // Miscellaneous: o card Previsão do tempo abre o mesmo card de QR do botão de perfil.
+    // Miscellaneous: Enter na Previsão do tempo abre as duas opções. Login mostra o QR com a mensagem de cima; SSO vai às boas-vindas. O botão de login abre o QR sem essa mensagem.
     { from: 'home-misc', key: 'up', to: 'misc-trilha' },
     { from: 'misc-trilha', key: 'down', to: 'home-misc' },
-    { from: 'misc-trilha', key: 'enter', to: 'login-voltar' },
+    { from: 'misc-trilha', key: 'enter', to: 'misc-login' },
+    { from: 'misc-login', key: 'down', to: 'misc-trilha' },
+    { from: 'misc-login', key: 'right', to: 'misc-sso' },
+    { from: 'misc-login', key: 'enter', to: 'misc-voltar' },
+    { from: 'misc-sso', key: 'left', to: 'misc-login' },
+    { from: 'misc-sso', key: 'down', to: 'misc-trilha' },
+    { from: 'misc-sso', key: 'enter', to: 'boas-vindas' },
+    { from: 'misc-voltar', key: 'up', to: 'misc-card' },
+    { from: 'misc-card', key: 'down', to: 'misc-voltar' },
+    { from: 'misc-card', key: 'enter', to: 'boas-vindas' },
     { from: 'home-bug', key: 'back', to: 'hidden' },
     { from: 'home-program', key: 'back', to: 'home-bug' },
     { from: 'home-misc', key: 'back', to: 'home-bug' },
