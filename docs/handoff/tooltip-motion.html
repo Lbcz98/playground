@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Handoff do tooltip de login: um círculo que cresce até a pílula, um segundo depois que a home aparece.">
+<title>O movimento do tooltip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#101010; --stage:#121212; --panel:#151515; --raise:#1c1c1c;
+  --line:#232323; --line-2:#323232;
+  --fg:#ededed; --fg-2:#c2c2c2; --muted:#8b8b8b; --dim:#5c5c5c;
+  --accent:#f6d365; --accent-2:#c99a3a; --accent-ink:#1d1605; --accent-text:#f6d365;
+  --ok:#5fd38d; --ok-bg:rgba(95,211,141,.12);
+  --bad:#ff7b72; --bad-bg:rgba(255,123,114,.12);
+  --part:#f0b44c; --part-bg:rgba(240,180,76,.14);
+  --t-c:#6a6a6a; --t-s:#9ecbff; --t-n:#f6d365;
+  --sans:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme='dark']){
+  --bg:#fafaf8; --stage:#f5f4f1; --panel:#ffffff; --raise:#efeeea;
+  --line:#e6e4df; --line-2:#d3d1cb;
+  --fg:#191815; --fg-2:#3c3b37; --muted:#6c6b66; --dim:#a6a49e;
+  --accent:#f5c945; --accent-2:#dba52a; --accent-ink:#1d1603; --accent-text:#8a6400;
+  --ok:#1f8a4c; --ok-bg:rgba(31,138,76,.1);
+  --bad:#c4372d; --bad-bg:rgba(196,55,45,.09);
+  --part:#a86a00; --part-bg:rgba(168,106,0,.1);
+  --t-c:#8f8d87; --t-s:#0b5fbf; --t-n:#946500;
+  color-scheme:light;
+}}
+:root[data-theme='light']{
+  --bg:#fafaf8; --stage:#f5f4f1; --panel:#ffffff; --raise:#efeeea;
+  --line:#e6e4df; --line-2:#d3d1cb;
+  --fg:#191815; --fg-2:#3c3b37; --muted:#6c6b66; --dim:#a6a49e;
+  --accent:#f5c945; --accent-2:#dba52a; --accent-ink:#1d1603; --accent-text:#8a6400;
+  --ok:#1f8a4c; --ok-bg:rgba(31,138,76,.1);
+  --bad:#c4372d; --bad-bg:rgba(196,55,45,.09);
+  --part:#a86a00; --part-bg:rgba(168,106,0,.1);
+  --t-c:#8f8d87; --t-s:#0b5fbf; --t-n:#946500;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 var(--sans);-webkit-font-smoothing:antialiased;margin:0}
+body::before{content:'';position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.app{display:grid;grid-template-columns:268px minmax(0,1fr) 232px;gap:0 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:100vh}
+.side{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow-y:auto;padding-block:28px 40px;scrollbar-width:thin}
+.sim{display:grid;gap:10px;padding-bottom:20px}
+.sim-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.seg{display:inline-flex;gap:2px;padding:4px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);max-width:100%;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:999px;color:var(--muted);cursor:pointer;font-size:14px;white-space:nowrap;transition:background .15s,color .15s}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed='true']{background:var(--raise);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line-2)}
+.seg-sm button{padding:3px 10px;font-size:12.5px}
+.sim .seg{width:100%;flex-wrap:nowrap}
+.sim .seg button{flex:1}
+.mod{margin-top:28px}
+.mod-n{font-size:12.5px;color:var(--dim)}
+.mod-t{font-size:15.5px;font-weight:500;color:var(--fg);margin:2px 0 10px}
+.nav-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.nav-list a{display:block;text-decoration:none;color:var(--muted);padding:7px 12px;margin-left:-12px;border-radius:8px;font-size:15px;transition:color .15s,background .15s}
+.nav-list a:hover{color:var(--fg)}
+.nav-list a[aria-current='page']{color:var(--fg);background:var(--raise)}
+.main{min-width:0;padding-block:88px 120px}
+.page{max-width:700px;margin:0 auto}
+.crumb{font-size:13px;color:var(--dim);margin-bottom:10px}
+h1{font-size:26px;font-weight:500;letter-spacing:-.01em;margin:0 0 22px;text-wrap:balance}
+h2{font-size:18px;font-weight:500;margin:64px 0 12px;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 72px);text-wrap:balance}
+h3{font-size:15.5px;font-weight:500;margin:32px 0 8px}
+.page p{color:var(--fg-2);margin:0 0 16px;max-width:66ch}
+.page p strong{color:var(--fg);font-weight:500}
+code{font-family:var(--mono);font-size:.86em}
+.page p code,.page li code,td code,.note code{background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--fg)}
+.note{font-size:14px;color:var(--muted);border-left:2px solid var(--line-2);padding:2px 0 2px 14px;margin:18px 0}
+.code{margin:20px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.code figcaption{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--line);font:500 11.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.code pre{margin:0;padding:14px 16px;overflow-x:auto;font:13px/1.65 var(--mono);color:var(--fg-2)}
+.copy{border:1px solid var(--line-2);background:transparent;border-radius:6px;padding:2px 9px;font:500 11.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--muted);cursor:pointer;white-space:nowrap}
+.copy:hover{color:var(--fg)}
+.t-c{color:var(--t-c)} .t-s{color:var(--t-s)} .t-n{color:var(--t-n)}
+.tbl{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-weight:500;text-align:left;color:var(--muted);font-size:12px;letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--line);color:var(--fg-2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.v{white-space:nowrap}
+.hl{background:color-mix(in oklab,var(--accent) 6%,transparent)}
+th.hl{color:var(--accent-text)}
+.mark{display:inline-block;padding:1px 9px;border-radius:999px;font:500 12px/1.7 var(--mono)}
+.yes{color:var(--ok);background:var(--ok-bg)} .no{color:var(--bad);background:var(--bad-bg)} .part{color:var(--part);background:var(--part-bg)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:8px}
+.count{font-size:13px;color:var(--dim)}
+.demo{margin:28px 0 12px;border:1px solid var(--line);border-radius:16px;background:var(--stage);overflow:hidden}
+.stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:26px;padding:60px 20px 26px}
+.verdict{position:absolute;top:14px;left:14px;display:inline-flex;align-items:center;gap:7px;font:500 12px var(--mono);padding:3px 10px;border-radius:999px;max-width:calc(100% - 120px)}
+.verdict::before{content:'';flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+.verdict.ok{color:var(--ok);background:var(--ok-bg)} .verdict.bad{color:var(--bad);background:var(--bad-bg)}
+.sim-tag{position:absolute;top:16px;right:16px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.viz{display:grid;place-items:center;width:100%;min-height:200px}
+.pill{font:13px/1.6 var(--mono);color:var(--fg);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 12px;white-space:pre;max-width:100%;overflow-x:auto}
+.status{font-size:13.5px;color:var(--muted);text-align:center;max-width:52ch;min-height:1.5em}
+.status b{font-weight:500;color:var(--fg)}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 36px;padding:18px 22px 20px;border-top:1px solid var(--line);background:var(--panel)}
+.ctl{display:grid;gap:6px;font-size:14px;color:var(--fg-2)}
+.ctl-row{display:flex;justify-content:space-between;gap:12px}
+.ctl output{font:13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.ctl-wide{grid-column:1/-1}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line-2);background:var(--raise);color:var(--fg);border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tog{border:1px solid var(--line-2);background:transparent;color:var(--muted);border-radius:999px;padding:4px 12px;font:12.5px var(--mono);cursor:pointer}
+.tog[aria-pressed='true']{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.persp{display:grid;place-items:center}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%}
+.pane{position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;padding:52px 12px 18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0}
+.pane .verdict{top:12px;left:12px;max-width:calc(100% - 24px)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(to right,var(--fg) 0 var(--p,50%),var(--line-2) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--fg);margin-top:-7px;border:4px solid var(--panel);box-shadow:0 0 0 1px var(--line-2)}
+input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--line-2)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--fg)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--fg);border:4px solid var(--panel)}
+.log{width:100%;font:12.5px/1.55 var(--mono);border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;text-align:left}
+.log-row{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(0,1.25fr);gap:12px;padding:8px 12px;border-top:1px solid var(--line)}
+.log-row:first-child{border-top:0}
+.log-row .tm{color:var(--dim);font-variant-numeric:tabular-nums}
+.log-row .cd{color:var(--fg);overflow-wrap:anywhere}
+.log-row .rs{color:var(--fg-2);overflow-wrap:anywhere}
+.k-ok .rs{color:var(--ok)} .k-bad .rs{color:var(--bad)} .k-warn .rs{color:var(--part)} .k-skip .cd,.k-skip .rs{color:var(--dim)}
+.log-empty{padding:14px 12px;color:var(--dim)}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:80px}
+.pager a{display:grid;gap:2px;text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:14px 16px;transition:border-color .15s}
+.pager a:hover{border-color:var(--line-2)}
+.pager .dir{font-size:12.5px;color:var(--dim)}
+.pager .nm{font-size:15px;color:var(--fg)}
+.pager .next{text-align:right;grid-column:2}
+.src{display:grid;gap:10px;padding:0;list-style:none}
+.src li{display:grid;gap:2px;border-bottom:1px solid var(--line);padding-bottom:10px;color:var(--muted);font-size:14px}
+.src a{color:var(--fg);text-decoration-color:var(--line-2);text-underline-offset:3px}
+.toc{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow-y:auto;padding-block:40px}
+.toc-h{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg);margin-bottom:18px}
+.toc-h svg{width:16px;height:16px;stroke:var(--muted)}
+.toc ul{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li button{display:block;width:100%;text-align:left;background:none;border:0;padding:6px 0 6px 18px;margin-left:-1px;border-left:2px solid transparent;color:var(--muted);font-size:14.5px;cursor:pointer;line-height:1.4}
+.toc li button:hover{color:var(--fg)}
+.toc li button.on{color:var(--fg);border-left-color:var(--fg)}
+.topbar{display:none}
+.scrim{display:none}
+@media (max-width:1180px){.app{grid-template-columns:256px minmax(0,1fr)}.toc{display:none}}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .topbar{display:flex;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;align-items:center;justify-content:space-between;gap:12px;padding-block:12px;background:var(--bg);border-bottom:1px solid var(--line);margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .topbar .tt{font-size:14.5px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar .tgt{font:500 12px var(--mono);color:var(--accent-text);white-space:nowrap}
+  .side{position:fixed;z-index:50;top:0;left:0;bottom:0;width:min(300px,86vw);height:auto;background:var(--bg);border-right:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 24px) 20px 40px max(20px,env(safe-area-inset-left,0px));transform:translateX(-102%);transition:transform .25s ease}
+  .side.open{transform:none}
+  .scrim{display:block;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .main{padding-block:32px 80px}
+}
+@media (max-width:560px){
+  .split{grid-template-columns:1fr}
+  .log-row{grid-template-columns:48px minmax(0,1fr)}
+  .log-row .rs{grid-column:2}
+  .pager{grid-template-columns:1fr}
+  .pager .next{grid-column:1}
+  .stage{padding-inline:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .side,.seg button,.scrim{transition:none}
+}
+
+
+/* Objeto da demo. Os números são os do protótipo, escritos por extenso para a página não depender do kit. */
+.stage.film{padding:48px 16px 20px;gap:16px}
+.stage.film video{width:100%;height:auto;border-radius:10px;background:#000;display:block}
+.proto-still{position:relative;display:block;width:100%;padding:0;border:0;border-radius:10px;overflow:hidden;background:#000;cursor:pointer}
+.proto-still img{display:block;width:100%;height:auto}
+.proto-play{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.28);color:var(--bg)}
+.proto-play svg{width:68px;height:68px;padding:18px;border-radius:50%;background:var(--fg);box-sizing:border-box}
+.proto-shell{position:fixed;inset:0;z-index:80}
+.proto-shell[hidden]{display:none}
+.proto-dim{position:absolute;inset:0;background:rgba(0,0,0,.68);opacity:0;transition:opacity .52s cubic-bezier(0.25, 0.1, 0.25, 1)}
+.proto-shell[data-open] .proto-dim{opacity:1}
+.proto-stage{position:fixed;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.proto-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .2s}
+.proto-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;opacity:0}
+.proto-x{position:absolute;top:14px;right:14px;z-index:3;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#111;font:500 22px/1 var(--sans);cursor:pointer}
+.demo .viz{display:block;min-height:0}
+.pane-k{position:absolute;top:14px;left:14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.curve{width:100%;max-width:280px;height:auto;display:block}
+.curve .axis{stroke:var(--line-2);stroke-width:1}
+.curve .ease{fill:none;stroke:var(--accent);stroke-width:2}
+.curve .guide{stroke:var(--muted);stroke-dasharray:2 3}
+.curve .head{fill:var(--accent)}
+.curve text{fill:var(--muted);font:11px var(--mono)}
+.layers{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.layers span{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+
+.rig{position:relative;width:200px;height:176px;margin:0 auto}
+.rig.tip > .mpt-raiz{position:absolute;left:56px;bottom:0;width:88px;height:88px}
+.tip .mpt-raiz{
+  --tip-in-dur:350ms; --tip-in-ease:cubic-bezier(0.25, 0.1, 0.25, 1);
+  --tip-out-dur:200ms; --tip-out-ease:cubic-bezier(0.25, 0.1, 0.25, 1);
+  --tip-travel:8px; --tip-blur:2px;
+  --dot-dur:280ms; --dot-ease:cubic-bezier(0.25, 0.1, 0.25, 1); --dot-sx:1.05; --dot-sy:1.18;
+  --pill-delay:140ms; --dot-out-delay:80ms;
+  --text-travel:4px; --text-dur:100ms; --text-ease:cubic-bezier(0.25, 0.1, 0.25, 1);
+  --pill-w:124px; --pill-h:33px; --pill-ratio:0.266;
+  --grow-dur:300ms; --grow-ease:cubic-bezier(0.25, 0.1, 0.25, 1); --grow-d:0.3;
+  --pop-dur:600ms; --pop-ease:cubic-bezier(0.25, 0.1, 0.25, 1); --pop-x:1.07; --pop-y:0.95; --exit-travel:10px;
+  --squash-ox:50%; --squash-oy:50%;
+  --rb:88px; --rc:72px; --s8:8px; --s4:4px;
+}
+.tip .mpt-ancora{
+  position:absolute;left:0;bottom:0;z-index:1;width:var(--rb);height:var(--rb);
+  --o9-cx0:calc(var(--rb) / 2);
+  --o9-cy0:calc(var(--rb) - (var(--rb) + var(--rc)) / 2 - var(--s8) - var(--s8) - var(--s4) - var(--pill-h) / 2);
+}
+.tip .btn{
+  width:var(--rc);height:var(--rc);margin:8px auto 0;border-radius:50%;background:#2a2a2a;
+  display:flex;align-items:center;justify-content:center;
+}
+.tip .mpt-pillpath{
+  position:absolute;left:0;top:0;z-index:1;width:0;height:0;pointer-events:none;opacity:0;
+  transform:translate(var(--o9-cx0), calc(var(--o9-cy0) + var(--tip-travel)));
+  filter:blur(var(--tip-blur));
+  transition-property:opacity, transform, filter;
+  transition-duration:var(--tip-out-dur);transition-timing-function:var(--tip-out-ease);transition-delay:0ms;
+}
+.tip .mpt-tooltip{
+  position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;overflow:hidden;width:var(--pill-w);height:var(--pill-h);white-space:nowrap;
+  background-color:#3F3F3F;border-radius:16.5px;color:#fff;
+  font-family:var(--sans);font-size:14px;font-weight:500;letter-spacing:-0.01em;line-height:1.2;
+  transform:translate(-50%, -50%);transform-origin:var(--squash-ox) var(--squash-oy);
+}
+.tip .mpt-dot{
+  position:absolute;
+  bottom:calc((var(--rb) + var(--rc)) / 2 + var(--s8));
+  left:50%;width:var(--s8);height:var(--s8);border-radius:50%;background-color:#3F3F3F;pointer-events:none;
+  opacity:0;transform:translate(-50%, var(--tip-travel));filter:blur(var(--tip-blur));
+  transition-property:opacity, transform, filter;
+  transition-duration:var(--dot-dur);transition-timing-function:var(--dot-ease);transition-delay:var(--dot-out-delay);
+}
+.tip .mpt-veu-pilula,.tip .mpt-veu-ponto{position:absolute;top:0;right:0;bottom:0;left:0;border-radius:inherit;background-color:#fff}
+.tip .mpt-veu-pilula,.tip .mpt-veu-ponto{opacity:0.2}
+.tip .mpt-tip-text{position:relative;display:inline-block;transform:translateY(var(--text-travel))}
+.tip .mpt-raiz[data-state=programa][data-tip=on] .mpt-pillpath{
+  opacity:1;transform:translate(var(--o9-cx0), var(--o9-cy0));filter:blur(0px);
+  transition-duration:var(--tip-in-dur);transition-timing-function:var(--tip-in-ease);transition-delay:var(--pill-delay);
+}
+.tip .mpt-raiz[data-state=programa][data-tip=on] .mpt-dot{
+  opacity:1;transform:translate(-50%, 0);filter:blur(0px);
+  transition:none;
+  animation:mpt-dot-sobe var(--dot-dur) var(--dot-ease) both;
+}
+.tip .mpt-raiz[data-state=programa] .mpt-tip-text{transform:none}
+.tip .mpt-squash{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0}
+.tip .mpt-raiz[data-state=programa][data-tip=on] .mpt-tooltip{animation:mpt-crescer var(--grow-dur) var(--grow-ease) var(--pill-delay) backwards}
+.tip .mpt-raiz[data-state=programa][data-tip=on] .mpt-squash{animation:mpt-pico var(--pop-dur) var(--pop-ease) var(--pill-delay) backwards}
+.tip .mpt-raiz[data-state=programa][data-tip=on] .mpt-tip-text{animation:mpt-texto-entra var(--text-dur) var(--text-ease) calc(var(--pill-delay) + var(--grow-dur) * 0.9) backwards}
+.tip .mpt-raiz[data-state=programa][data-tip=off] .mpt-tooltip{animation:mpt-encolher var(--tip-out-dur) var(--tip-out-ease) forwards}
+.tip .mpt-raiz[data-state=programa][data-tip=off] .mpt-tip-text{animation:mpt-texto-sai var(--text-dur) var(--text-ease) forwards}
+@keyframes mpt-crescer{
+  from{transform:translate(-50%, -50%) scale(calc(var(--grow-d) * var(--pill-ratio)), var(--grow-d));border-radius:calc(var(--pill-h) / 2 / var(--pill-ratio)) / calc(var(--pill-h) / 2)}
+  to{transform:translate(-50%, -50%) scale(1, 1);border-radius:calc(var(--pill-h) / 2) / calc(var(--pill-h) / 2)}
+}
+@keyframes mpt-encolher{
+  from{transform:translate(-50%, -50%) scale(1, 1);border-radius:calc(var(--pill-h) / 2) / calc(var(--pill-h) / 2)}
+  to{transform:translate(-50%, calc(-50% + var(--exit-travel))) scale(calc(var(--grow-d) * var(--pill-ratio)), var(--grow-d));border-radius:calc(var(--pill-h) / 2 / var(--pill-ratio)) / calc(var(--pill-h) / 2)}
+}
+@keyframes mpt-pico{0%{transform:scale(1, 1)}60%{transform:scale(var(--pop-x), var(--pop-y))}100%{transform:scale(1, 1)}}
+@keyframes mpt-dot-sobe{
+  0%{opacity:0;filter:blur(var(--tip-blur));transform:translate(-50%, var(--tip-travel)) scale(1, 1)}
+  55%{opacity:1;filter:blur(0px);transform:translate(-50%, 0) scale(var(--dot-sx), var(--dot-sy))}
+  100%{opacity:1;filter:blur(0px);transform:translate(-50%, 0) scale(1, 1)}
+}
+@keyframes mpt-texto-entra{from{opacity:0;transform:translateY(var(--text-travel))}to{opacity:1;transform:translateY(0)}}
+@keyframes mpt-texto-sai{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(var(--text-travel))}}
+.tip .mpt-raiz[data-snap] .mpt-pillpath,
+.tip .mpt-raiz[data-snap] .mpt-dot,
+.tip .mpt-raiz[data-state=programa][data-snap] .mpt-pillpath,
+.tip .mpt-raiz[data-state=programa][data-snap] .mpt-squash,
+.tip .mpt-raiz[data-state=programa][data-snap] .mpt-tooltip,
+.tip .mpt-raiz[data-state=programa][data-snap] .mpt-tip-text,
+.tip .mpt-raiz[data-state=programa][data-snap] .mpt-dot{transition:none;animation:none}
+.md-dl{display:inline-flex;align-self:flex-start;margin:0 0 18px;text-decoration:none}
+
+.tv{position:relative;width:1280px;height:720px;overflow:hidden;background:#000;color:#fff;outline:none;font-family:var(--sans)}
+.tv-bg{position:absolute;left:0;top:0;width:100%;height:132%;object-fit:cover;object-position:center top}
+.tv{font-family:Inter, var(--sans)}
+.tv-fade{position:absolute;left:0;right:0;bottom:0;height:220px;background:linear-gradient(transparent, rgba(0,0,0,.5) 62%, rgba(0,0,0,.72))}
+.tv-hint{position:absolute;top:22px;left:28px;margin:0;font-size:14px;color:rgba(255,255,255,.72);font-family:var(--sans)}
+.tv-bar{position:absolute;left:32px;right:32px;bottom:32px;height:88px}
+.tv[data-screen=bug] .tv-bar{display:none}
+.tv .mpt-raiz{position:relative;width:100%;height:88px}
+.tv .mpt-nav{display:flex;align-items:center;justify-content:space-between;height:88px}
+.tv .cluster{display:flex;align-items:center;gap:4px}
+.tv .rb{position:relative;display:grid;place-items:center;flex:none;width:88px;height:88px;padding:0;border:0;border-radius:999px;background:none;color:#fff}
+.tv .circle{position:relative;display:grid;place-items:center;overflow:hidden;width:72px;height:72px;margin:auto;border-radius:999px;background:#191F274D}
+.tv .rest,.tv .ring{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.tv .rest{padding:1px;box-sizing:border-box;background:linear-gradient(135deg, #FFFFFFB3 0%, #6464644D 60%);-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)}
+.tv .ring{display:none;background-color:rgba(0,0,0,.7);background-image:linear-gradient(0deg, #17161B, transparent), radial-gradient(ellipse at 50% 100%, rgba(53,199,243,.6), transparent 70%)}
+.tv .ring::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:4px;box-sizing:border-box;background:linear-gradient(180deg, #414FFD 30%, #35C7F3);-webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)}
+.tv .rb[data-focused] .rest{display:none}
+.tv .rb[data-focused] .ring{display:block}
+.tv .content{position:relative;display:grid;place-items:center}
+.tv .avatar{display:block;width:40px;height:40px;border-radius:999px;object-fit:cover}
+.tv .mark{display:block;width:48px;height:48px;border-radius:999px;background:#3F3F3F}
+.tv .ico{display:block;width:32px;height:32px}
+.tv .wx{width:40px;height:40px}
+.tv .focus-ico{display:none}
+.tv .rb[data-focused] .rest-ico{display:none}
+.tv .rb[data-focused] .focus-ico{display:block}
+.tv .bug{flex:none;width:64px;height:64px;padding:0;border:0;border-radius:999px;background:none}
+.tv .bug img{display:block;width:64px;height:64px;border-radius:999px;object-fit:cover}
+.tv .bug[data-focused]{outline:4px solid #414FFD;outline-offset:2px}
+.tv .misc,.tv .prog{display:flex;align-items:center}
+.tv .lines{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tv .lines b,.tv .lines span{display:block;letter-spacing:-0.01em;line-height:1.2;white-space:nowrap}
+.tv .lines b{font-size:18px;font-weight:700;color:#fff;opacity:.9}
+.tv .lines span{font-size:16px;font-weight:500;color:#999}
+.tv .misc .lines{padding-inline-start:4px;text-align:left}
+.tv .prog .lines{align-items:end;padding:8px 12px;text-align:right}
+.tv .solo{position:absolute;right:32px;bottom:44px}
+.tv:not([data-screen=bug]) .solo{display:none}
+.tv .mpt-raiz[data-menu] nav > :first-child > *,
+.tv .mpt-raiz[data-menu] nav > :last-child > *{
+  animation-name:mpt-opcao;animation-duration:650ms;animation-timing-function:cubic-bezier(0.216, 0.118, 0.232, 0.979);animation-fill-mode:both;
+}
+.tv .mpt-raiz[data-menu] nav > :last-child > :nth-child(2){animation-delay:0ms}
+.tv .mpt-raiz[data-menu] nav > :last-child > :nth-child(1){animation-delay:120ms}
+.tv .mpt-raiz[data-menu] nav > :first-child > :nth-child(3){animation-delay:240ms}
+.tv .mpt-raiz[data-menu] nav > :first-child > :nth-child(2){animation-delay:360ms}
+.tv .mpt-raiz[data-menu] nav > :first-child > :nth-child(1){animation-delay:480ms}
+@keyframes mpt-opcao{0%{opacity:0;transform:translate(10px, 0);filter:blur(2px)}100%{opacity:1;transform:translate(0, 0);filter:blur(0px)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side" aria-label="Tópicos">
+    <nav id="nav"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="main">
+    <div class="topbar">
+      <button class="btn" id="menuBtn" type="button" aria-controls="side" aria-expanded="false">Tópicos</button>
+      <span class="tt" id="topTitle"></span>
+      <span class="tgt" id="topTarget"></span>
+    </div>
+
+    <article class="page" data-page="visao">
+      <div class="crumb">O gesto</div>
+      <h1>O tooltip de login</h1>
+      <p>O lembrete de login é uma pílula desenhada sobre o botão de perfil. Uma animação em CSS, um círculo que cresce até a pílula, começando um segundo depois que a home aparece.</p>
+      <h2>O protótipo</h2>
+      <p>A home abre no canal. O menu assenta, e um segundo depois a pílula <strong>Entrar na conta</strong> sobe sobre o perfil.</p>
+      <div class="demo" data-film>
+        <div class="stage film">
+          <span class="verdict ok">Protótipo</span>
+          <button class="proto-still" type="button" data-open-proto aria-label="Abrir o protótipo">
+            <img src="still.jpg" alt="Home do protótipo, com a pílula Entrar na conta sobre o perfil">
+            <span class="proto-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>
+          </button>
+          <p class="status">Clique para abrir. As setas movem o foco e Enter confirma. Esc volta. A <a href="tooltip-prototype.html">página avulsa</a> é o mesmo protótipo, num arquivo só.</p>
+        </div>
+      </div>
+      <h2>O gesto</h2>
+      <p>Um ponto sai do botão. Um círculo pequeno vem atrás, cresce até a pílula, e a palavra chega quando a forma fecha. Tudo é <code>transform</code>, <code>opacity</code> e <code>filter: blur()</code> em três elementos. A curva de cada um é <code>cubic-bezier(0.25, 0.1, 0.25, 1)</code>, o ease do CSS: sai devagar do repouso e assenta numa cauda longa.</p>
+      <div class="demo" data-pair="both"></div>
+      <h2>Quando começa</h2>
+      <p>A primeira home espera 1 s a partir do momento em que aparece. Voltar a um botão da direita toca a entrada na hora.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Momento</th><th>Espera</th><th>O que toca</th></tr></thead>
+        <tbody>
+          <tr><td>Primeira home, foco na direita</td><td class="v">1000 ms, menos o tempo já gasto</td><td>A entrada inteira</td></tr>
+          <tr><td>Volta à direita depois de encolher</td><td class="v">0 ms</td><td>A entrada inteira, de novo</td></tr>
+          <tr><td>Continua na direita, já entrou</td><td class="v">nenhuma</td><td>Segura. Não toca outra vez</td></tr>
+          <tr><td>Esquerda antes do segundo acabar</td><td class="v">a espera segue</td><td>Nada ainda. O resto do segundo espera</td></tr>
+        </tbody>
+      </table></div>
+    </article>
+
+    <article class="page" data-page="anatomia" hidden>
+      <div class="crumb">O gesto</div>
+      <h1>Três camadas</h1>
+      <p>O gesto são três elementos numa âncora do tamanho do botão redondo. O pai carrega a subida. O filho carrega a forma. A palavra tem o próprio fade.</p>
+      <h2>Onde fica</h2>
+      <p>A âncora é o <code>round-button</code>, 88 por 88. A pílula centra em x = 44. O y de repouso é −28,5: o topo da âncora, menos o círculo visível de 72, dois vãos de 8 px, um vão de 4 px e metade da pílula.</p>
+      <p><code>88 − (88 + 72) / 2 − 8 − 8 − 4 − 33 / 2 = −28,5</code></p>
+      <div class="demo" data-still></div>
+      <p class="note">O pai <code>.mpt-pillpath</code> é um ponto de 0 × 0. O <code>translate</code> dele move a pílula. O <code>translate(-50%, -50%)</code> da pílula centra a caixa nesse ponto. O círculo visível tem 72 e fica no meio dos 88, com 8 px de folga. O ponto encosta no topo dos 88.</p>
+      <h2>Ponto, pílula, palavra</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Camada</th><th>Elemento</th><th>Repouso</th></tr></thead>
+        <tbody>
+          <tr><td>Ponto</td><td><code>.mpt-dot</code></td><td class="v">8 × 8, no topo da âncora, preenchimento elevado</td></tr>
+          <tr><td>Pílula</td><td><code>.mpt-tooltip</code></td><td class="v">124 × 33, raio de pílula, preenchimento elevado</td></tr>
+          <tr><td>Véu</td><td><code>.mpt-veu-pilula</code></td><td class="v">branco com opacidade 0,2, igual no ponto</td></tr>
+          <tr><td>Palavra</td><td><code>.mpt-tip-text</code></td><td class="v">Entrar na conta, 14 px medium, tracking −0,01 em, line-height 1,2</td></tr>
+        </tbody>
+      </table></div>
+    </article>
+
+    <article class="page" data-page="entrada" hidden>
+      <div class="crumb">O movimento</div>
+      <h1>De círculo a pílula</h1>
+      <p>A troca de forma é uma escala só. Começa círculo, 30% da altura da pílula e 0,266 disso na largura, e termina na pílula de 124 por 33. A subida, o desfoque e a palavra são o mesmo gesto, deslocados para a palavra chegar quando a pílula fecha.</p>
+      <h2>A curva</h2>
+      <p>Cada propriedade com tempo usa a mesma curva, <code>cubic-bezier(0.25, 0.1, 0.25, 1)</code>. No gráfico, o tempo anda reto na horizontal. A altura é o ease: quanto do movimento já aconteceu. O ponto percorre a curva junto com o gesto.</p>
+      <div class="demo" data-pair="in"></div>
+      <h2>O que cada camada faz</h2>
+      <p>O tempo conta a partir do instante em que o gesto começa. Os atrasos entram nessa conta. No código, esse instante é o atributo <code>data-tip</code> passando a <code>on</code>.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Camada</th><th>Atraso</th><th>Duração</th><th>De</th><th>Para</th></tr></thead>
+        <tbody>
+          <tr><td>Ponto</td><td class="v">0</td><td class="v">280 ms</td><td>opacity 0, blur 2 px, y +8, scale 1</td><td>Aos 55% (154 ms): opacity 1, blur 0, y 0, scale 1,05 × 1,18. Aos 100%: scale 1</td></tr>
+          <tr><td>Viagem da pílula</td><td class="v">140 ms</td><td class="v">350 ms</td><td>opacity 0, blur 2 px, y +8</td><td>opacity 1, blur 0, y 0. Chega aos 490 ms</td></tr>
+          <tr><td>Forma da pílula</td><td class="v">140 ms</td><td class="v">300 ms</td><td>scale(0,096, 0,3), raio de círculo</td><td>scale(1, 1), raio 16,5. Fecha aos 440 ms</td></tr>
+          <tr><td>Pico</td><td class="v">140 ms</td><td class="v">600 ms</td><td>scale 1</td><td>Aos 60% (500 ms): scale 1,07 × 0,95. Volta a 1 aos 740 ms</td></tr>
+          <tr><td>Palavra</td><td class="v">410 ms</td><td class="v">100 ms</td><td>opacity 0, y +4</td><td>opacity 1, y 0. Pronta aos 510 ms</td></tr>
+        </tbody>
+      </table></div>
+      <p>O atraso da palavra é <code>140 + 300 × 0.9</code>. Esse 0,9 é 90% da mudança de forma, então as letras aparecem quando o círculo vira pílula.</p>
+      <p>O pico chega 60 ms depois da forma já estar no tamanho cheio, e assenta nos 240 ms seguintes. É uma escala no wrapper, então estica a pílula pronta.</p>
+      <figure class="code"><figcaption><span>CSS</span><button class="copy" type="button">Copiar</button></figcaption><pre><code><span class="t-c">/* forma: círculo pequeno até a pílula. 0.3 * 0.266 = 0.0798 no x */</span>
+<span class="t-c">@keyframes</span> mpt-crescer {
+  <span class="t-c">from</span> { <span class="t-c">transform</span>: <span class="t-c">translate</span>(-50%, -50%) <span class="t-c">scale</span>(<span class="t-n">0.0798</span>, <span class="t-n">0.3</span>); }
+  <span class="t-c">to</span>   { <span class="t-c">transform</span>: <span class="t-c">translate</span>(-50%, -50%) <span class="t-c">scale</span>(<span class="t-n">1</span>, <span class="t-n">1</span>); }
+}
+<span class="t-c">/* palavra, aos 90% do crescimento */</span>
+<span class="t-c">animation-delay</span>: <span class="t-c">calc</span>(<span class="t-n">140ms</span> + <span class="t-n">300ms</span> * <span class="t-n">0.9</span>); <span class="t-c">/* 410ms */</span></code></pre></figure>
+    </article>
+
+    <article class="page" data-page="saida" hidden>
+      <div class="crumb">O movimento</div>
+      <h1>De volta para baixo</h1>
+      <p>A saída é o mesmo gesto, mais curto. A palavra desce 4 pixels e some em 100 ms. A pílula volta ao círculo pequeno, cai 10 pixels, e some com a queda de 8 pixels do pai, tudo em 200 ms. O ponto espera 80 ms e segue por 280 ms.</p>
+      <h2>A queda composta</h2>
+      <p>Duas translações se somam. O pai anda <code>+8px</code> e some. A pílula anda mais <code>+10px</code> enquanto volta a <code>scale(0.0798, 0.3)</code>. Juntas, a forma cai 18 pixels e some aos 200 ms. O ponto ainda está sumindo até 80 + 280 = 360 ms.</p>
+      <div class="demo" data-pair="out"></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Camada</th><th>Atraso</th><th>Duração</th><th>Pose final</th></tr></thead>
+        <tbody>
+          <tr><td>Palavra</td><td class="v">0</td><td class="v">100 ms</td><td>opacity 0, y +4</td></tr>
+          <tr><td>Forma da pílula</td><td class="v">0</td><td class="v">200 ms</td><td>círculo pequeno, y +10, fill-mode forwards</td></tr>
+          <tr><td>Viagem da pílula</td><td class="v">0</td><td class="v">200 ms</td><td>opacity 0, blur 2 px, y +8</td></tr>
+          <tr><td>Ponto</td><td class="v">80 ms</td><td class="v">280 ms</td><td>opacity 0, blur 2 px, y +8</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">A saída pinta a pose acesa por dois quadros e só então marca <code>data-tip=off</code>. Sem esses dois quadros o navegador não tem de onde sair, e o encolhimento não roda. Uma remontagem numa tela da esquerda faz isso de propósito.</p>
+    </article>
+
+    <article class="page" data-page="foco" hidden>
+      <div class="crumb">As regras</div>
+      <h1>A direita mostra, a esquerda guarda</h1>
+      <p>O controle remoto é o único ponteiro. Programa e o bug do canal são a direita. Login, grade e miscelânea são a esquerda. A fase é uma de três palavras, e vive fora da tela, então uma remontagem não esquece.</p>
+      <h2>O passeio</h2>
+      <p>A pílula entra na home. Esquerda, até a previsão do tempo, ela encolhe. Direita, de volta ao programa, ela entra de novo na hora.</p>
+      <div class="demo" data-film>
+        <div class="stage film">
+          <span class="verdict ok">Protótipo</span>
+          <video src="video/foco.webm?v=5" playsinline muted loop controls></video>
+          <p class="status">Direita, a pílula fica. Esquerda, ela encolhe. Volta à direita, ela entra na hora.</p>
+        </div>
+        <div class="controls"><div class="actions"><button class="btn" type="button" data-replay>Ver de novo</button></div></div>
+      </div>
+      <h2>Três fases</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Fase</th><th>O que significa</th><th>Próximo foco na direita</th><th>Próximo foco na esquerda</th></tr></thead>
+        <tbody>
+          <tr><td><code>novo</code></td><td>A entrada ainda não começou</td><td>Espera o que falta dos 1000 ms, e toca</td><td>Continua <code>novo</code>. Cancela o toque pendente. A espera guarda o começo original</td></tr>
+          <tr><td><code>visivel</code></td><td>A pílula está na tela, ou a entrada acabou de começar</td><td>Se já passaram 900 ms desde o começo, segura. Se não, o toque continua</td><td>Vai a <code>feito</code> e toca o encolhimento</td></tr>
+          <tr><td><code>feito</code></td><td>Encolheu na esquerda</td><td>Toca a entrada agora. Os 1000 ms não entram na conta</td><td>Continua <code>feito</code></td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">900 ms é uma trava, não a duração visual. O pico assenta aos 740 ms. A trava é mais longa para uma remontagem no meio do assentamento não recomeçar o gesto. Com a trava ligada, uma home nova na direita pinta a pílula em repouso, com as animações forçadas a <code>none</code>.</p>
+    </article>
+
+    <article class="page" data-page="spec" hidden>
+      <div class="crumb">Entrega</div>
+      <h1>Cada número</h1>
+      <p>Estas são as custom properties de <code>.mpt-raiz</code>.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Propriedade</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td><code>--tip-in-dur</code> / <code>--tip-in-ease</code></td><td class="v">350 ms, ease</td></tr>
+          <tr><td><code>--pill-delay</code></td><td class="v">140 ms</td></tr>
+          <tr><td><code>--tip-travel</code> / <code>--tip-blur</code></td><td class="v">8 px, 2 px</td></tr>
+          <tr><td><code>--dot-dur</code></td><td class="v">280 ms, pico de escala 1,05 × 1,18 aos 55%</td></tr>
+          <tr><td><code>--grow-dur</code> / <code>--grow-d</code> / <code>--pill-ratio</code></td><td class="v">300 ms, desde scale(0,096, 0,3)</td></tr>
+          <tr><td><code>--pop-dur</code> / <code>--pop-x</code> / <code>--pop-y</code></td><td class="v">600 ms, 1,07 × 0,95 aos 60%</td></tr>
+          <tr><td><code>--text-dur</code> / <code>--text-travel</code></td><td class="v">100 ms, 4 px, atraso 410 ms</td></tr>
+          <tr><td><code>--tip-out-dur</code> / <code>--exit-travel</code></td><td class="v">200 ms, +10 px na pílula</td></tr>
+          <tr><td><code>--dot-out-delay</code></td><td class="v">80 ms</td></tr>
+          <tr><td><code>--pill-w</code> / <code>--pill-h</code></td><td class="v">124 × 33</td></tr>
+          <tr><td>Espera da primeira home</td><td class="v">1000 ms desde <code>marcaHome</code></td></tr>
+          <tr><td>Trava da entrada</td><td class="v">900 ms depois que o toque começa</td></tr>
+        </tbody>
+      </table></div>
+      <h2>Declaradas, e ninguém lê</h2>
+      <p>A folha também define <code>--squash-dur</code> 400 ms, <code>--squash-ease</code>, <code>--stretch-x/y</code>, <code>--squash-x/y</code>, <code>--squash-peak</code> 35 e <code>--squash-land</code> 80. Nenhuma regra lê esses valores. O pico que vai para a tela é <code>mpt-pico</code>, a escala 1,07 × 0,95.</p>
+      <h2>O que tem que bater</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Checagem</th><th>Passa</th></tr></thead>
+        <tbody>
+          <tr><td>Primeira home na direita: o gesto começa no 1 s, não na pintura</td><td><span class="mark yes">sim</span></td></tr>
+          <tr><td>Volta ao programa ou ao bug do canal depois de encolher: o gesto começa nesse quadro</td><td><span class="mark yes">sim</span></td></tr>
+          <tr><td>Login, grade, miscelânea: a pílula encolhe. O avatar não ganha selo</td><td><span class="mark yes">sim</span></td></tr>
+          <tr><td>Sai para a esquerda durante o 1 s: não toca. Volta: só o tempo que falta</td><td><span class="mark yes">sim</span></td></tr>
+          <tr><td>Segunda visita a um botão da direita depois da trava de 900 ms: a pílula está lá, parada, sem repetir</td><td><span class="mark yes">sim</span></td></tr>
+          <tr><td>Chrome 68: um <code>transform</code> por keyframe, sem <code>@property</code>, sem a propriedade <code>translate</code> separada</td><td><span class="mark yes">sim</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">O protótipo também tem um caminho de movimento reduzido, só com opacidade. Esta página não o descreve.</p>
+    </article>
+
+  </main>
+  <aside class="toc" aria-label="Nesta página">
+    <a class="btn md-dl" href="tooltip-motion.md" download="tooltip-motion.md">Baixar MD</a>
+    <div class="toc-h"><svg viewBox="0 0 16 16" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M2 4h12M2 8h12M2 12h7"/></svg>Nesta página</div>
+    <ul id="tocList"></ul>
+  </aside>
+</div>
+<div class="proto-shell" id="protoShell" hidden>
+  <div class="proto-dim" id="protoDim"></div>
+  <div class="proto-stage" id="protoStage">
+    <img class="proto-poster" id="protoPoster" src="still.jpg" alt="">
+    <iframe class="proto-frame" id="protoFrame" title="Protótipo do tooltip de login" src="about:blank"></iframe>
+    <button class="proto-x" id="protoClose" type="button" aria-label="Fechar">×</button>
+  </div>
+</div>
+<script>
+const PAGES = [
+  { id: 'visao', t: 'Visão geral', m: 0 },
+  { id: 'anatomia', t: 'Anatomia', m: 0 },
+  { id: 'entrada', t: 'Entrada', m: 1 },
+  { id: 'saida', t: 'Saída', m: 1 },
+  { id: 'foco', t: 'Foco', m: 2 },
+  { id: 'spec', t: 'Especificação', m: 3 }
+]
+const MODS = ['O gesto', 'O movimento', 'As regras', 'Entrega']
+const X0 = 36, Y1 = 148, PW = 208, PH = 124
+
+function bez(t, a, b) {
+  const u = 1 - t
+  return 3 * u * u * t * a + 3 * u * t * t * b + t * t * t
+}
+function solveT(x) {
+  let t = x
+  for (let i = 0; i < 8; i++) {
+    const u = 1 - t
+    const dx = bez(t, 0.25, 0.25) - x
+    const d = 3 * u * u * 0.25 + 3 * t * t * 0.75
+    if (Math.abs(d) < 1e-6) break
+    t = Math.min(1, Math.max(0, t - dx / d))
+  }
+  return t
+}
+function easeY(x) { return bez(solveT(x), 0.1, 1) }
+
+function curvePath() {
+  let d = ''
+  for (let i = 0; i <= 48; i++) {
+    const x = i / 48
+    const X = X0 + x * PW
+    const Y = Y1 - easeY(x) * PH
+    d += (i ? 'L' : 'M') + X.toFixed(1) + ' ' + Y.toFixed(1)
+  }
+  return d
+}
+const PATH = curvePath()
+
+function rigHTML() {
+  return '<div class="rig tip"><div class="mpt-raiz" data-state="programa" data-tip="on" data-snap>' +
+    '<div class="mpt-ancora">' +
+    '<div class="btn" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="9" r="3.2" fill="#bdbdbd"/><path d="M6 18.2c1.2-2.4 3.2-3.6 6-3.6s4.8 1.2 6 3.6" fill="none" stroke="#bdbdbd" stroke-width="1.6" stroke-linecap="round"/></svg></div>' +
+    '<span class="mpt-dot"><span class="mpt-veu-ponto"></span></span>' +
+    '<div class="mpt-pillpath"><div class="mpt-squash"><div class="mpt-tooltip"><span class="mpt-veu-pilula"></span><span class="mpt-tip-text">Entrar na conta</span></div></div></div>' +
+    '</div></div></div>'
+}
+function curveSVG() {
+  return '<svg class="curve" viewBox="0 0 260 176" role="img" aria-label="Curva ease. O tempo corre na horizontal e o avanço do movimento na vertical.">' +
+    '<line class="axis" x1="36" y1="16" x2="36" y2="148"/>' +
+    '<line class="axis" x1="36" y1="148" x2="244" y2="148"/>' +
+    '<path class="ease" d="' + PATH + '"/>' +
+    '<line class="guide" data-guide x1="244" y1="16" x2="244" y2="148"/>' +
+    '<circle class="head" data-head cx="244" cy="24" r="5"/>' +
+    '<text x="140" y="168" text-anchor="middle">tempo</text>' +
+    '</svg>'
+}
+function setHead(el, u, ms, total) {
+  const x = X0 + u * PW
+  const y = Y1 - easeY(u) * PH
+  const head = el.querySelector('[data-head]')
+  const guide = el.querySelector('[data-guide]')
+  head.setAttribute('cx', x.toFixed(1))
+  head.setAttribute('cy', y.toFixed(1))
+  guide.setAttribute('x1', x.toFixed(1))
+  guide.setAttribute('x2', x.toFixed(1))
+  el.querySelector('[data-r]').textContent = 'ease · ' + ms + ' ms de ' + total + ' ms'
+}
+function setVerdict(el, text) {
+  const v = el.querySelector('.verdict')
+  v.textContent = text
+  v.className = 'verdict ok'
+}
+function runGraph(el, total) {
+  cancelAnimationFrame(el._raf)
+  const t0 = performance.now()
+  const tick = (now) => {
+    const u = Math.min(1, (now - t0) / total)
+    setHead(el, u, Math.round(u * total), total)
+    if (u < 1) el._raf = requestAnimationFrame(tick)
+    else setVerdict(el, total === 740 ? 'Assentou' : 'Sumiu')
+  }
+  setHead(el, 0, 0, total)
+  el._raf = requestAnimationFrame(tick)
+}
+function playIn(el) {
+  const tip = el.querySelector('.mpt-raiz')
+  cancelAnimationFrame(el._raf)
+  tip.setAttribute('data-snap', '')
+  tip.removeAttribute('data-tip')
+  void tip.offsetWidth
+  tip.setAttribute('data-tip', 'on')
+  void tip.offsetWidth
+  tip.removeAttribute('data-snap')
+  setVerdict(el, 'Entrando')
+  runGraph(el, 740)
+}
+function playOut(el) {
+  const tip = el.querySelector('.mpt-raiz')
+  cancelAnimationFrame(el._raf)
+  tip.removeAttribute('data-snap')
+  tip.setAttribute('data-tip', 'on')
+  void tip.offsetWidth
+  setVerdict(el, 'Saindo')
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    tip.setAttribute('data-tip', 'off')
+    runGraph(el, 360)
+  }))
+}
+
+const PAIR_STATUS = {
+  both: '<b>Entrada.</b> O ponto sai primeiro. A pílula começa aos 140 ms. A palavra, aos 410 ms. O pico assenta aos 740 ms.',
+  in: '<b>Ease.</b> O tempo anda reto. A altura da curva é o quanto do gesto já aconteceu.',
+  out: '<b>Saída.</b> 200 ms para baixo. O ponto é o último a sair, aos 360 ms.'
+}
+document.querySelectorAll('[data-pair]').forEach(el => {
+  const kind = el.getAttribute('data-pair')
+  const buttons = (kind !== 'out' ? '<button class="btn primary" type="button" data-act="in">Mostrar a entrada</button>' : '') +
+    (kind !== 'in' ? '<button class="btn' + (kind === 'out' ? ' primary' : '') + '" type="button" data-act="out">Mostrar a saída</button>' : '')
+  el.innerHTML =
+    '<div class="stage"><span class="verdict ok">Em repouso</span><span class="sim-tag">Simulado</span>' +
+    '<div class="viz"><div class="split"><div class="pane"><span class="pane-k">Tooltip</span>' + rigHTML() + '</div>' +
+    '<div class="pane"><span class="pane-k">Curva</span>' + curveSVG() + '</div></div></div>' +
+    '<code class="pill" data-r>ease · 740 ms de 740 ms</code>' +
+    '<p class="status">' + PAIR_STATUS[kind] + '</p></div>' +
+    '<div class="controls"><div class="actions">' + buttons + '</div></div>'
+  setHead(el, 1, kind === 'out' ? 360 : 740, kind === 'out' ? 360 : 740)
+  const inn = el.querySelector('[data-act=in]')
+  const out = el.querySelector('[data-act=out]')
+  if (inn) inn.addEventListener('click', () => playIn(el))
+  if (out) out.addEventListener('click', () => playOut(el))
+})
+
+const still = document.querySelector('[data-still]')
+still.innerHTML =
+  '<div class="stage"><span class="verdict ok">Repouso</span><span class="sim-tag">Simulado</span>' +
+  '<div class="viz">' + rigHTML() + '</div>' +
+  '<div class="layers"><span>ponto 8 px</span><span>pílula 124 × 33</span><span>centro y −28,5</span></div>' +
+  '<code class="pill">translate(44px, -28.5px)</code></div>'
+
+const nav = document.getElementById('nav')
+MODS.forEach((name, i) => {
+  const mod = document.createElement('div')
+  mod.className = 'mod'
+  const pages = PAGES.filter(p => p.m === i)
+  mod.innerHTML = '<div class="mod-n">Módulo 0' + (i + 1) + '</div><div class="mod-t">' + name + '</div>'
+  const ul = document.createElement('ul')
+  ul.className = 'nav-list'
+  pages.forEach(p => {
+    const li = document.createElement('li')
+    li.innerHTML = '<a href="#' + p.id + '">' + p.t + '</a>'
+    ul.appendChild(li)
+  })
+  mod.appendChild(ul)
+  nav.appendChild(mod)
+})
+
+function route() {
+  const id = (location.hash || '#visao').slice(1)
+  const page = PAGES.find(p => p.id === id) || PAGES[0]
+  if ((location.hash || '#visao').slice(1) !== page.id) history.replaceState(null, '', '#' + page.id)
+  document.querySelectorAll('article[data-page]').forEach(a => { a.hidden = a.dataset.page !== page.id })
+  document.querySelectorAll('.nav-list a').forEach(a => {
+    if (a.getAttribute('href') === '#' + page.id) a.setAttribute('aria-current', 'page')
+    else a.removeAttribute('aria-current')
+  })
+  document.getElementById('topTitle').textContent = page.t
+  const article = document.querySelector('article[data-page="' + page.id + '"]')
+  const heads = [...article.querySelectorAll('h2')]
+  heads.forEach((h, i) => { h.id = page.id + '-s' + i })
+  const list = document.getElementById('tocList')
+  list.innerHTML = heads.map(h => '<li><button type="button" data-for="' + h.id + '">' + h.textContent + '</button></li>').join('')
+  list.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+    document.getElementById(b.dataset.for).scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  }))
+  document.querySelectorAll('video').forEach(v => {
+    if (v.closest('article').hidden) v.pause()
+    else v.play().catch(() => {})
+  })
+  document.querySelectorAll('[data-pair]').forEach(el => cancelAnimationFrame(el._raf))
+  const pair = article.querySelector('[data-pair]')
+  if (pair) {
+    if (pair.getAttribute('data-pair') === 'out') playOut(pair)
+    else playIn(pair)
+  }
+  spy()
+  document.getElementById('side').classList.remove('open')
+  document.getElementById('scrim').classList.remove('open')
+  document.getElementById('menuBtn').setAttribute('aria-expanded', 'false')
+}
+
+function spy() {
+  const article = document.querySelector('article[data-page]:not([hidden])')
+  if (!article) return
+  const heads = [...article.querySelectorAll('h2')]
+  const buttons = [...document.querySelectorAll('#tocList button')]
+  let current = 0
+  heads.forEach((h, i) => { if (h.getBoundingClientRect().top < 140) current = i })
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4 && heads.length) current = heads.length - 1
+  buttons.forEach((b, i) => b.classList.toggle('on', i === current))
+}
+
+PAGES.forEach((p, i) => {
+  const article = document.querySelector('article[data-page="' + p.id + '"]')
+  const prev = PAGES[i - 1]
+  const next = PAGES[i + 1]
+  const pager = document.createElement('div')
+  pager.className = 'pager'
+  pager.innerHTML =
+    (prev ? '<a href="#' + prev.id + '"><span class="dir">Anterior</span><span class="nm">' + prev.t + '</span></a>' : '<span></span>') +
+    (next ? '<a class="next" href="#' + next.id + '"><span class="dir">Próxima</span><span class="nm">' + next.t + '</span></a>' : '')
+  article.appendChild(pager)
+})
+
+const protoShell = document.getElementById('protoShell')
+const protoStage = document.getElementById('protoStage')
+const protoPoster = document.getElementById('protoPoster')
+const protoFrame = document.getElementById('protoFrame')
+const stillBtn = document.querySelector('[data-open-proto]')
+const EASE = 'cubic-bezier(0.25, 0.1, 0.25, 1)'
+const PROTO = 'tooltip-prototype.html'
+let openGen = 0
+
+function alvoPainel() {
+  const margem = 40
+  const maxW = window.innerWidth - margem * 2
+  const maxH = window.innerHeight - margem * 2
+  let w = maxW
+  let h = w * 9 / 16
+  if (h > maxH) { h = maxH; w = h * 16 / 9 }
+  return { left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2, width: w, height: h, radius: 28 }
+}
+function retanguloDoStill() {
+  const r = stillBtn.getBoundingClientRect()
+  return { left: r.left, top: r.top, width: r.width, height: r.height, radius: 10 }
+}
+function posiciona(r, anima) {
+  protoStage.style.transition = anima ? 'left .52s ' + EASE + ', top .52s ' + EASE + ', width .52s ' + EASE + ', height .52s ' + EASE + ', border-radius .52s ' + EASE : 'none'
+  protoStage.style.left = r.left + 'px'
+  protoStage.style.top = r.top + 'px'
+  protoStage.style.width = r.width + 'px'
+  protoStage.style.height = r.height + 'px'
+  protoStage.style.borderRadius = r.radius + 'px'
+}
+function revelaTv() {
+  protoFrame.style.opacity = '1'
+  protoPoster.style.opacity = '0'
+  stillBtn.style.visibility = 'hidden'
+  protoFrame.focus()
+}
+function openProto() {
+  const id = ++openGen
+  protoFrame.style.opacity = '0'
+  protoFrame.src = PROTO
+  protoShell.hidden = false
+  protoShell.removeAttribute('data-open')
+  document.body.style.overflow = 'hidden'
+  protoPoster.style.opacity = '1'
+  posiciona(retanguloDoStill(), false)
+  void protoStage.offsetWidth
+  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (reduzido) {
+    protoShell.setAttribute('data-open', '')
+    posiciona(alvoPainel(), false)
+    revelaTv()
+    return
+  }
+  requestAnimationFrame(() => {
+    protoShell.setAttribute('data-open', '')
+    posiciona(alvoPainel(), true)
+  })
+  const fim = e => {
+    if (e.propertyName !== 'width') return
+    protoStage.removeEventListener('transitionend', fim)
+    if (id !== openGen) return
+    revelaTv()
+  }
+  protoStage.addEventListener('transitionend', fim)
+  setTimeout(() => { if (id === openGen && protoFrame.style.opacity !== '1') revelaTv() }, 700)
+}
+function closeProto() {
+  if (protoShell.hidden) return
+  const id = ++openGen
+  protoShell.removeAttribute('data-open')
+  protoPoster.style.opacity = '1'
+  protoFrame.style.opacity = '0'
+  stillBtn.style.visibility = ''
+  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const acaba = () => {
+    if (id !== openGen) return
+    protoShell.hidden = true
+    document.body.style.overflow = ''
+    protoFrame.src = 'about:blank'
+  }
+  if (reduzido) { acaba(); return }
+  posiciona(retanguloDoStill(), true)
+  const fim = e => {
+    if (e.propertyName !== 'width') return
+    protoStage.removeEventListener('transitionend', fim)
+    acaba()
+  }
+  protoStage.addEventListener('transitionend', fim)
+  setTimeout(acaba, 700)
+}
+stillBtn.addEventListener('click', openProto)
+document.getElementById('protoClose').addEventListener('click', e => { e.stopPropagation(); closeProto() })
+protoShell.addEventListener('click', e => { if (e.target === protoShell || e.target.id === 'protoDim') closeProto() })
+window.addEventListener('resize', () => {
+  if (protoShell.hidden || protoFrame.style.opacity !== '1') return
+  posiciona(alvoPainel(), false)
+})
+document.querySelectorAll('[data-replay]').forEach(b => {
+  b.addEventListener('click', () => {
+    const v = b.closest('.demo').querySelector('video')
+    v.currentTime = 0
+    v.play()
+  })
+})
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copy')
+  if (!b) return
+  const text = b.closest('figure').querySelector('code').innerText
+  const done = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar' }, 1200) }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(done)
+  else done()
+})
+document.getElementById('menuBtn').addEventListener('click', () => {
+  const open = document.getElementById('side').classList.toggle('open')
+  document.getElementById('scrim').classList.toggle('open', open)
+  document.getElementById('menuBtn').setAttribute('aria-expanded', String(open))
+})
+document.getElementById('scrim').addEventListener('click', () => {
+  document.getElementById('side').classList.remove('open')
+  document.getElementById('scrim').classList.remove('open')
+  document.getElementById('menuBtn').setAttribute('aria-expanded', 'false')
+})
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('side').classList.remove('open')
+    document.getElementById('scrim').classList.remove('open')
+    document.getElementById('menuBtn').setAttribute('aria-expanded', 'false')
+  }
+})
+window.addEventListener('hashchange', route)
+window.addEventListener('scroll', spy, { passive: true })
+route()
+</script>
+</body>
+</html>

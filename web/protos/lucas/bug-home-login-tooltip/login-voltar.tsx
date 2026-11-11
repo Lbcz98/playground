@@ -11,7 +11,7 @@ export default function LoginVoltar() {
     <Screen model="interactivity-cards-left" level={3} focusSide="left" anchored={<RoundedButton label="Voltar" interactionState="focus" />} video={<VideoAoVivo src={STREAM_URL} />}>
       <Stack direction="column" justify="end" align="stretch" gap="sm" padding="none" grow>
         <Stack direction="row" justify="start" align="end" gap="sm">
-          <CardLoginRepouso />
+          <CardLoginRepouso topo={false} />
         </Stack>
       </Stack>
     </Screen>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video test (Chrome 68)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; background: #111; object-fit: cover; }
+  #hud { position: absolute; left: 24px; top: 24px; padding: 12px 16px; background: rgba(0,0,0,.7); color: #fff; font: 22px/1.35 monospace; white-space: pre; z-index: 5; }
+</style>
+</head>
+<body>
+<video id="v" muted loop autoplay playsinline></video>
+<div id="hud"></div>
+<script>
+/* Which file the video plays. Left / Right on the remote cycles; OK pauses or plays. Nothing else is on the page, so
+   what the TV shows is the file and the engine alone (the same setup as the video study pages). */
+var FILES = [
+  { name: 'my clip (globo-rj, VP9 1080p30)', url: '/video/globo-rj-1080p30.webm' },
+  { name: 'known good (study file, VP9 1080p30)', url: '/video/known-good-vp9-1080p30.webm' },
+  { name: 'known good (study file, VP9 720p30)', url: '/video/known-good-vp9-720p30.webm' }
+];
+var i = 0, v = document.getElementById('v'), hud = document.getElementById('hud'), log = [];
+function load(n) {
+  i = (n + FILES.length) % FILES.length;
+  log = [];
+  v.src = FILES[i].url;
+  v.load();
+  var p = v.play();
+  if (p && p.catch) p.catch(function (e) { log.push('play() refused: ' + e.name); });
+}
+['error', 'stalled', 'waiting', 'playing', 'loadedmetadata', 'canplay', 'emptied', 'abort'].forEach(function (t) {
+  v.addEventListener(t, function () {
+    log.push(t + (t === 'error' && v.error ? ' code ' + v.error.code : ''));
+    if (log.length > 6) log.shift();
+    if (t === 'error') setTimeout(function () { v.load(); v.play(); }, 500);
+  });
+});
+document.addEventListener('keydown', function (e) {
+  if (e.keyCode === 39) load(i + 1);
+  else if (e.keyCode === 37) load(i - 1);
+  else if (e.keyCode === 13) { if (v.paused) v.play(); else v.pause(); }
+});
+function show() {
+  var dec = v.webkitDecodedFrameCount, drop = v.webkitDroppedFrameCount;
+  hud.textContent = [
+    FILES[i].name,
+    'readyState ' + v.readyState + '  networkState ' + v.networkState + '  paused ' + v.paused,
+    'time ' + v.currentTime.toFixed(1) + 's  size ' + v.videoWidth + 'x' + v.videoHeight,
+    'frames decoded ' + dec + '  dropped ' + drop,
+    'error ' + (v.error ? v.error.code : 'none'),
+    'webm vp9: "' + v.canPlayType('video/webm; codecs="vp9"') + '"  hls: "' + v.canPlayType('application/vnd.apple.mpegurl') + '"',
+    'events: ' + log.join(', '),
+    '<- ->  other file    OK  pause/play'
+  ].join('\n');
+}
+setInterval(show, 500);
+load(0);
+</script>
+</body>
+</html>

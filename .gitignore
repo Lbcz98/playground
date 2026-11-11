@@ -48,3 +48,6 @@ docs/explorations/*/pack/
 
 # Maestri local state
 .maestri/
+
+# a 30 s recorded clip of the live stream for the Chrome 68 TV (WebM VP9), made with ffmpeg; too big for git
+web/public/video/
